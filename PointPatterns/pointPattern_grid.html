@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<style type="text/css">
+			html, body {
+			    height: 100%;
+			}
+			#container {
+			  width: 500px;
+			  height: 500px;
+			  position: relative;
+			}
+			#baseCanvas, #overlayCanvas, #overlayCanvas2 {
+			  width: 500px;
+			  height: 500px;
+			  position: absolute;
+			  top: 0;
+			  left: 0;
+			}
+		</style>
+	</head>
+	<body>
+
+		<div id="container">
+			<canvas id="baseCanvas" width="500" height="500">
+				Your browser does not support the HTML5 canvas tag.
+			</canvas>
+
+			<canvas id="overlayCanvas" width="500" height="500">
+				Your browser does not support the HTML5 canvas tag.
+			</canvas>
+
+			<canvas id="overlayCanvas2" width="500" height="500">
+				Your browser does not support the HTML5 canvas tag.
+			</canvas>
+		</div>
+
+		<br/>
+
+		<div id="controls">
+			<button onclick="start()">Start</button>
+			<button onclick="stop()">Stop</button>
+		</div>
+
+		<script type="text/javascript">
+
+			var canvasWidth = 500;
+			var canvasHeight = 500;
+
+			var pointSize = 3;
+			var pointDistance = 6;
+
+			var baseCanvas = document.getElementById("baseCanvas");
+			var baseContext = baseCanvas.getContext("2d");
+
+			var overlayCanvas = document.getElementById("overlayCanvas");
+			var overlayContext = overlayCanvas.getContext("2d");
+
+			var overlayCanvas2 = document.getElementById("overlayCanvas2");
+			var overlayContext2 = overlayCanvas2.getContext("2d");
+
+			function drawPoint(context) {
+				for(var x=0; x<canvasWidth; x+=pointDistance)
+					for(var y=0; y<canvasHeight; y+=pointDistance)
+						context.fillRect(x, y, pointSize, pointSize);
+			}
+
+			function rotate(context) {			
+				// Clear the canvas
+				context.clearRect(0, 0, canvasWidth, canvasHeight);
+			
+				context.translate(canvasWidth/2, canvasWidth/2);
+				
+				// Rotate 1 degree
+				context.rotate(Math.PI / 90);
+			    context.translate(-canvasWidth/2, -canvasWidth/2);
+				
+				drawPoint(context);
+			}
+
+			baseContext.fillStyle = "#000000";
+			overlayContext.fillStyle = "#000000";
+			overlayContext2.fillStyle = "#000000";
+
+			drawPoint(baseContext);
+			drawPoint(overlayContext);
+			rotate(overlayContext2);
+
+			var intervalID;
+
+			function start() {
+				intervalID = setInterval(rotate, 5, overlayContext);
+			}
+
+			function stop() {
+				clearInterval(intervalID);
+			}
+		</script>
+
+</body>
+</html>

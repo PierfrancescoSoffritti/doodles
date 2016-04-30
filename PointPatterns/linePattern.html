@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<style type="text/css">
+			html, body {
+			    height: 100%;
+			}
+			#container {
+			  width: 500px;
+			  height: 500px;
+			  position: relative;
+			}
+			#baseCanvas, #overlayCanvas, #overlayCanvas2 {
+			  width: 500px;
+			  height: 500px;
+			  position: absolute;
+			  top: 0;
+			  left: 0;
+			}
+		</style>
+	</head>
+	<body>
+
+		<div id="container">
+			<canvas id="baseCanvas" width="500" height="500">
+				Your browser does not support the HTML5 canvas tag.
+			</canvas>
+
+			<canvas id="overlayCanvas" width="500" height="500">
+				Your browser does not support the HTML5 canvas tag.
+			</canvas>
+		</div>
+
+		<br/>
+
+		<div id="controls">
+			<button onclick="start()">Start</button>
+			<button onclick="stop()">Stop</button>
+		</div>
+
+		<script type="text/javascript">
+
+			var canvasWidth = 500;
+			var canvasHeight = 500;
+
+			var rectWidth = 5;
+			var rectDistance = 5;
+
+			var baseCanvas = document.getElementById("baseCanvas");
+			var baseContext = baseCanvas.getContext("2d");
+
+			var overlayCanvas = document.getElementById("overlayCanvas");
+			var overlayContext = overlayCanvas.getContext("2d");
+
+			function drawRects(context) {
+				var j = 1, i = 1;
+				while(canvasWidth - (rectWidth+rectDistance)*j >= 0) {
+					context.rect((rectWidth+rectDistance)*i, (rectWidth+rectDistance)*i, canvasWidth - (rectWidth+rectDistance)*j, canvasHeight - (rectWidth+rectDistance)*j);
+					context.lineWidth=rectWidth;
+					context.stroke();
+
+					i++;
+					j += 2;
+				}
+			}
+
+			var lineWidth = 5;
+			var lineDistance = 10;
+
+			function drawLines(context) {
+				var lineHeight = canvasHeight / 3;
+
+				for(x=0; x<canvasWidth; x+=lineDistance) {
+					for(var y=0; y<canvasHeight; y+=lineHeight) {
+						context.moveTo(x,y);
+						if(y==lineHeight)
+							context.lineTo(x-lineDistance*4,y+lineHeight);
+						else
+							context.lineTo(x+lineDistance*4,y+lineHeight);
+						context.lineWidth=lineWidth;
+						context.stroke();
+					}
+				}
+
+			}
+
+			baseContext.fillStyle = "#000000";
+			overlayContext.fillStyle = "#000000";
+
+			drawLines(baseContext);
+			drawRects(overlayContext);
+
+ 			var angle = 0;
+			var intervalID;
+
+			function start() {
+				intervalID = setInterval( function() {
+			  angle += (Math.PI/360); 
+			  document.getElementById("overlayCanvas").style["transform"] = "rotate(" + angle + "rad)";
+			},10);
+			}
+
+			function stop() {
+				clearInterval(intervalID);
+			}
+		</script>
+
+</body>
+</html>

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<style type="text/css">
+			html, body {
+			    height: 100%;
+			}
+			#container {
+			  width: 500px;
+			  height: 500px;
+			  position: relative;
+			}
+			#baseCanvas, #overlayCanvas, #overlayCanvas2 {
+			  width: 500px;
+			  height: 500px;
+			  position: absolute;
+			  top: 0;
+			  left: 0;
+			}
+		</style>
+	</head>
+	<body>
+
+		<div id="container">
+			<canvas id="overlayCanvas" width="500" height="500">
+				Your browser does not support the HTML5 canvas tag.
+			</canvas>
+
+			<canvas id="baseCanvas" width="500" height="500">
+				Your browser does not support the HTML5 canvas tag.
+			</canvas>
+		</div>
+
+		<br/>
+
+		<div id="controls">
+			<button onclick="start()">Start</button>
+			<button onclick="stop()">Stop</button>
+
+			<br/><br/>
+
+			<label>rotation speed <input id="rotation" type="text" name="rotation" value="1" onchange="setRotation(this.value)"></label>
+			<label>frequency <input id="frequency" type="text" name="frequency" value="90" onchange="setFrequency(this.value)"></label>
+		</div>
+
+		<script type="text/javascript">
+
+			var canvasWidth = 500;
+			var canvasHeight = 500;
+
+			var pointSize = 3;
+			var pointDistance = 10;
+
+			var baseCanvas = document.getElementById("baseCanvas");
+			var baseContext = baseCanvas.getContext("2d");
+
+			var overlayCanvas = document.getElementById("overlayCanvas");
+			var overlayContext = overlayCanvas.getContext("2d");
+
+			var angle = 1;
+			
+			var frequency = 90;
+			var frequencyCount = 0;
+			var drawWhite = false;
+
+			function drawPoint(context) {
+				if(drawWhite)
+					overlayContext.fillStyle = "#FFF";
+				else
+					overlayContext.fillStyle = "#000000"
+
+				for(var x=0; x<canvasWidth; x+=pointDistance)
+					for(var y=0; y<canvasHeight; y+=pointDistance)
+						context.fillRect(x, y, pointSize, pointSize);
+			}
+
+			function rotate(context) {
+				context.translate(canvasWidth/2, canvasWidth/2);
+				context.rotate(angle);
+			    context.translate(-canvasWidth/2, -canvasWidth/2);
+				
+				drawPoint(context);
+
+				frequencyCount++;
+				if(frequencyCount > frequency) {
+					frequencyCount = 0;
+					drawWhite = drawWhite ? false : true;
+				}
+			}
+
+			function setRotation(rotation) {
+    			angle = rotation;
+			}
+
+			function setFrequency(freq) {
+    			frequency = freq;
+			}
+
+			baseContext.fillStyle = "#000000";
+			overlayContext.fillStyle = "#000000";
+
+			drawPoint(baseContext);			
+
+			var intervalID;
+
+			function start() {
+				intervalID = setInterval(rotate, 5, overlayContext);
+			}
+
+			function stop() {
+				clearInterval(intervalID);
+			}
+
+		</script>
+
+</body>
+</html>
