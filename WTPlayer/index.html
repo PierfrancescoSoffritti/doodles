@@ -1,0 +1,124 @@
+<html>
+	<head>
+		<title>WTPlayer</title>
+		<style>
+			canvas {
+				width: 100%; height: 100%
+			}
+
+			html, body {
+				width: 100%;
+				height: 100%;
+				margin: 0px;
+				border: 0;
+				overflow: hidden; /*  Disable scrollbars */
+				display: block;  /* No floating content on sides */
+			}
+			#baseCanvas, #overlayCanvas {			  
+			  position: absolute;
+			}
+
+		</style>
+	</head>
+	<body onload="start()">
+
+		<canvas id="baseCanvas">
+			Get a better browser :|
+		</canvas>
+
+		<canvas id="overlayCanvas">
+			Get a better browser :|
+		</canvas>
+
+		<!-- createjs utils -->
+		<script src="https://code.createjs.com/createjs-2015.11.26.min.js"></script>
+		<script src="https://code.createjs.com/easeljs-0.8.2.min.js"></script>
+
+		<!-- libs -->
+		<script src="js/libs/three.min.js"></script>
+
+		<!-- my classes -->
+		<script src="js/SceneManager.js"></script>
+		<script src="js/SoundManager.js"></script>
+		<script src="js/ModelsManager.js"></script>
+		<script src="js/BackgroundManager.js"></script>
+		<script src="js/SceneObject.js"></script>
+		<script src="js/Behaviour.js"></script>
+		<script src="js/PointsEmitter.js"></script>
+		<script src="js/Rain.js"></script>
+		<script src="js/MouseManager.js"></script>
+		<script src="js/BackgroundExplosion.js"></script>
+		<script src="js/Orbit.js"></script>
+
+		<script>		
+			var mModelsManager = new ModelsManager();
+			var mSoundManager = new SoundManager();
+			var mSceneManager = new SceneManager();
+			var mBackgroundManager = new BackgroundManager();
+			var mMouseManager = new MouseManager();
+
+			// can't render until every manager is ready
+			var ready = 0;
+			var initCallback = function() {
+				ready++;
+
+				console.log("loading ... " +ready+"/4");
+
+				if(ready == 3)
+					mSceneManager.init(initCallback);
+				else if(ready == 4) {
+					console.log("ready to start");
+					render();
+				}
+			}
+
+			var start = function() {
+				var canvas = document.getElementById("overlayCanvas");
+    			canvas.width = document.body.clientWidth;
+    			canvas.height = document.body.clientHeight;
+
+    			canvas = document.getElementById("baseCanvas");
+    			canvas.width = document.body.clientWidth;
+    			canvas.height = document.body.clientHeight;
+
+
+				// init are async operations, must wait before rendering
+				mModelsManager.init(initCallback);
+				mSoundManager.init(initCallback);
+				mBackgroundManager.init(initCallback);
+			}
+
+			// render loop
+			var render = function () {
+				requestAnimationFrame(render);
+
+				mSceneManager.update();
+				mBackgroundManager.update();
+			}
+
+			// event handlers
+			function onWindowResize(event) {
+				event.preventDefault();
+
+				mSceneManager.onWindowResize(event);
+			}
+
+			function onMouseDown(event) {
+				event.preventDefault();
+
+				mSceneManager.onMouseDown(event);
+			}
+
+			function onMouseMove(event) {
+				event.preventDefault();
+
+				mMouseManager.onMouseMove(event);
+			}
+
+			// page events
+			window.addEventListener('resize', onWindowResize, false);
+			document.addEventListener('mousedown', onMouseDown, false);
+			document.addEventListener('mousemove', onMouseMove, false);
+		</script>
+	</body>
+</html>
