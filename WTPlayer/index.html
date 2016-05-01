@@ -29,6 +29,9 @@
 			Get a better browser :|
 		</canvas>
 
+		<script src="js/libs/sweetalert.min.js"></script>
+		<link rel="stylesheet" type="text/css" href="css/sweetalert.css">
+
 		<!-- createjs utils -->
 		<script src="https://code.createjs.com/createjs-2015.11.26.min.js"></script>
 		<script src="https://code.createjs.com/easeljs-0.8.2.min.js"></script>
@@ -67,6 +70,7 @@
 					mSceneManager.init(initCallback);
 				else if(ready == 4) {
 					console.log("ready to start");
+					swal("WTPlayer", "Click on the object at the center to start/pause the music.\n\nDon't run this on a mobile phone .. it may explode.")
 					render();
 				}
 			}
