@@ -16,10 +16,9 @@
                 border: 0;
                 overflow: hidden; /*  Disable scrollbars */
                 display: block;
-                position: relative;
+                position: absolute;
             }
             div {
-            	position: relative;
             	width: 100%;
             	padding: 32px;
             	background-color: #4CAF50;
@@ -30,11 +29,11 @@
                 font-weight: bold;
             }            
             i {
-            	position: relative;
             	margin: 16px;
             	padding: 8px;
             }
             a {
+                position: absolute;
             	color: #000;
             }
         </style>
@@ -46,10 +45,12 @@
     		<li>Press any key from the first two rows of letters on the keyboard to play notes</li>
     		<li>Press 1, 2, 3, 4 to change the waveform</li>
     		<li>Press arrow UP and DOWN to change the octave</li>
+
+            <br/><br/>[You should visit this page using Google Chrome]
     	</div>
-    	<a href="#" id="close"><i class="fa fa-bars fa-lg" aria-hidden="true"></i></a>
 
         <canvas id="demoCanvas"></canvas>
+        <a href="#" id="close"><i class="fa fa-bars fa-lg" aria-hidden="true"></i></a>
 
         <script type="text/javascript">
             function init() {
