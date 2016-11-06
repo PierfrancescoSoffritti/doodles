@@ -13,7 +13,7 @@ function SoundGenerator() {
     analyser.fftSize = this.fftSize;
 
     var waveForm = "square";
-    var fact = 6;
+    var fact = 1;
 
     $("body").keypress(event => {
         var i = getKeyIndex(event.key);
@@ -59,8 +59,8 @@ function SoundGenerator() {
             fact--;
         if(event.key == 'ArrowUp')
             fact++;
-        fact = fact > 8 ? 1 : fact;
-        fact = fact < 1 ? 8 : fact;        
+        fact = fact > 3 ? 1 : fact;
+        fact = fact < 1 ? 3 : fact;        
 
         waveForm = getWaveForm(event.key);
 
@@ -111,31 +111,31 @@ function SoundGenerator() {
 
     function getNotes() {
         var notes = new Array();
-        notes.push(16.35);
-        notes.push(17.32);
-        notes.push(18.35);
-        notes.push(19.45);
-        notes.push(20.60);
-        notes.push(21.83);
-        notes.push(23.12);
-        notes.push(24.50);
-        notes.push(25.96);
-        notes.push(27.50);
-        notes.push(29.14);
-        notes.push(30.87);
+        notes.push(66);
+        notes.push(70);
+        notes.push(74);
+        notes.push(78);
+        notes.push(83);
+        notes.push(88);
+        notes.push(93);
+        notes.push(98);
+        notes.push(104);
+        notes.push(110);
+        notes.push(117);
+        notes.push(124);
 
-        notes.push(176.35);
-        notes.push(177.32);
-        notes.push(178.35);
-        notes.push(179.45);
-        notes.push(180.60);
-        notes.push(181.83);
-        notes.push(183.12);
-        notes.push(184.50);
-        notes.push(185.96);
-        notes.push(187.50);
-        notes.push(189.14);
-        notes.push(190.87);
+        notes.push(131);
+        notes.push(139);
+        notes.push(147);
+        notes.push(156);
+        notes.push(165);
+        notes.push(175);
+        notes.push(185);
+        notes.push(196);
+        notes.push(208);
+        notes.push(220);
+        notes.push(233);
+        notes.push(247);
 
         return notes;
     }
