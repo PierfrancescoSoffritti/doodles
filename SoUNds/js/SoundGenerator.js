@@ -1,7 +1,7 @@
 function SoundGenerator() {
-    var audio = new Audio();
-    audio.src = "song2.mp3";
-    audio.load();
+    // var audio = new Audio();
+    // audio.src = "song2.mp3";
+    // audio.load();
 
 	var notesArray = getNotes();
 
@@ -41,6 +41,7 @@ function SoundGenerator() {
 
     this.getByteFrequencyData = function() {
         if(!analyser) {
+            // return an array of 0s
             var array = [this.fftSize/2];
             for(var i=0; i<array.length; i++)
                 array[i] = 0;
@@ -53,6 +54,7 @@ function SoundGenerator() {
     }
 
     $("body").keyup(event => { 
+        // change factor (octave ?)
         if(event.key == 'ArrowDown')
             fact--;
         if(event.key == 'ArrowUp')
