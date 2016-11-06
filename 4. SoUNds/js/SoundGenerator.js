@@ -12,7 +12,7 @@ function SoundGenerator() {
     analyser.smoothingTimeConstant = 0.7;
     analyser.fftSize = this.fftSize;
 
-    var waveForm = "triangle";
+    var waveForm = "square";
     var fact = 6;
 
     $("body").keypress(event => {
