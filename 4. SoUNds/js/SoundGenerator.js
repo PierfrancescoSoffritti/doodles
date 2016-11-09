@@ -14,7 +14,7 @@ function SoundGenerator() {
     analyser.fftSize = this.fftSize;
 
     var waveForm = "triangle";
-    var fact = 1;
+    var fact = 0;
 
     $("body").keypress(event => {
         // drums
@@ -35,7 +35,7 @@ function SoundGenerator() {
 
         var oscillator = context.createOscillator();
         oscillator.type = waveForm;
-        oscillator.frequency.value = notesArray[i] * fact;
+        oscillator.frequency.value = notesArray[i] * Math.pow(2,fact);
 
         var gain = context.createGain();
 
@@ -74,8 +74,8 @@ function SoundGenerator() {
             fact--;
         if(event.key == 'ArrowUp')
             fact++;
-        fact = fact > 3 ? 1 : fact;
-        fact = fact < 1 ? 3 : fact;        
+        fact = fact > 4 ? -2 : fact;
+        fact = fact < -2 ? 4 : fact;        
 
         waveForm = getWaveForm(event.key);
 
@@ -126,7 +126,7 @@ function SoundGenerator() {
 
     function getNotes() {
         var notes = new Array();
-        notes.push(66);
+        /*notes.push(66);
         notes.push(70);
         notes.push(74);
         notes.push(78);
@@ -137,7 +137,7 @@ function SoundGenerator() {
         notes.push(104);
         notes.push(110);
         notes.push(117);
-        notes.push(124);
+        notes.push(124);*/
 
         notes.push(131);
         notes.push(139);
@@ -151,6 +151,19 @@ function SoundGenerator() {
         notes.push(220);
         notes.push(233);
         notes.push(247);
+
+        notes.push(262);
+        notes.push(277);
+        notes.push(294);
+        notes.push(311);
+        notes.push(330);
+        notes.push(349);
+        notes.push(370);
+        notes.push(392);
+        notes.push(415);
+        notes.push(440);
+        notes.push(466);
+        notes.push(494);
 
         return notes;
     }
