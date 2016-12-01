@@ -1,4 +1,4 @@
-function BallSceneSubject(scene, cubeCamera) {
+function CrystalSceneSubject(scene, cubeCamera) {
 	
 	var startVertices = new Array();
 
@@ -26,7 +26,7 @@ function BallSceneSubject(scene, cubeCamera) {
 
 	// particles
 	var map = new THREE.TextureLoader().load("particle.png");
-	var particleMaterial = new THREE.PointsMaterial({ map: map, color: "#fff", size: 0.05, blending: THREE.AdditiveBlending, transparent: true, opacity: 0.5, alphaTest: 0.25 });
+	var particleMaterial = new THREE.PointsMaterial({ map: map, color: "#fff", size: 0.04, blending: THREE.AdditiveBlending, transparent: true, opacity: 0.5, alphaTest: 0.25 });
 	var particles = new THREE.Points(wireGeometry, particleMaterial);
 	scene.add(particles);
 

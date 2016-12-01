@@ -23,7 +23,7 @@ function SceneManager(canvas) {
     scene.add(cubeCamera);
     
     var sceneSubjects = new Array();
-    sceneSubjects.push(new BallSceneSubject(scene, cubeCamera));
+    sceneSubjects.push(new CrystalSceneSubject(scene, cubeCamera));
 
     function buildLights(scene) {  
         var light = new THREE.DirectionalLight("#fff", 0.4);    
