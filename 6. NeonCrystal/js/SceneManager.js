@@ -4,6 +4,11 @@ function SceneManager(canvas) {
 
     var time = 0;
 
+    var mousePosition = {
+        x: 0,
+        y: 0
+    };
+
     var width = canvas.width;
     var height = canvas.height;
   
@@ -17,8 +22,6 @@ function SceneManager(canvas) {
     var cubeCamera = new THREE.CubeCamera(0.5, 500, 1024);
     scene.add(cubeCamera);
     
-    // var controls = new THREE.OrbitControls(camera, renderer.domElement);
-
     var sceneSubjects = new Array();
     sceneSubjects.push(new BallSceneSubject(scene, cubeCamera));
 
@@ -58,8 +61,8 @@ function SceneManager(canvas) {
         var farPlane = 500; 
         var camera = new THREE.PerspectiveCamera(fieldOfView, aspectRatio, nearPlane, farPlane);
 
-        camera.position.z = 3;
-        camera.position.y = 5;
+        camera.position.z = 6;
+        camera.position.y = 8;
 
         camera.lookAt(new THREE.Vector3(0,0,0));
 
@@ -81,13 +84,16 @@ function SceneManager(canvas) {
     this.update = function() {
         time++;
 
+        // camera position, relative to mouse position
+        camera.position.x += (  (mousePosition.x * 0.001) - camera.position.x ) * 0.04;
+        camera.position.y += ( -(mousePosition.y * 0.002) - camera.position.y ) * 0.04;
+        camera.lookAt(new THREE.Vector3(0,0,0));
+
         // move the light
         light.position.x = Math.sin(time*0.01)*50;
 
         for(var i=0; i<sceneSubjects.length; i++)
         	sceneSubjects[i].update(time);
-
-        // controls.update();
 
         cubeCamera.updateCubeMap(renderer, scene);
 
@@ -105,7 +111,10 @@ function SceneManager(canvas) {
         camera = buildCamera(width, height);
         
         renderer.setSize(width, height);
+    }
 
-        // var controls = new THREE.OrbitControls(camera, renderer.domElement);
+    this.onMouseMove = function(mouseX, mouseY) {
+        mousePosition.x = mouseX;
+        mousePosition.y = mouseY;
     }
 }
