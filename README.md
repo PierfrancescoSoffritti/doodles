@@ -1,6 +1,6 @@
 # Doodling
 
-(from the most recent to the most old)
+(ordered from the most recent)
 
 [6. NeonCrystal](https://rawgit.com/PierfrancescoSoffritti/Doodling/master/6.%20NeonCrystal/index.html) <br/>
 [5. GrassSimulator](https://rawgit.com/PierfrancescoSoffritti/Doodling/master/5.%20GrassSimulator/index.html) <br/>
