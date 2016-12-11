@@ -57,8 +57,9 @@
             function init() {
             	initGUI();
 
-                var soundGenerator = new SoundGenerator();                
-                var draw = new Draw(soundGenerator.fftSize/2);
+            	var fftSize = 16384;
+                var soundGenerator = new SoundGenerator(fftSize);                
+                var draw = new Draw(fftSize/2);
                 draw.init();
 
                 createjs.Ticker.addEventListener("tick", handleTick);

@@ -73,28 +73,36 @@ function Draw (lineNumber) {
 
     // draw a line for each frequency
     function drawLines(frequencyData) {
-        for(var i=0; i<frequencyData.length; i++) {
-            var color;
-            var unit = frequencyData.length/8;
+        var colorRange = frequencyData.length/state.palette.length;
 
-            if(i<unit)
-                color = state.palette[0];
-            else if(i<unit*2)
-                color = state.palette[1];
-            else if(i<unit*3)
-                color = state.palette[2];
-            else if(i<unit*4)
-                color = state.palette[3];
-            else if(i<unit*5)
-                color = state.palette[4];
-            else if(i<unit*6)
-                color = state.palette[5];
-            else if(i<unit*7)
-                color = state.palette[6];
-            else if(i<unit*7)
-                color = state.palette[7];
+        for(var i=0; i<frequencyData.length; i++) {
+
+            var color = getColor(i, colorRange);
 
             drawLine(lines[i], color, state.radius+state.strokeStyleCicrle/2, state.radius+state.strokeStyleCicrle/2+frequencyData[i], getAngle(i));
+        }
+
+        function getColor(i, colorRange) {
+            var color;
+
+            if(i<colorRange)
+                color = state.palette[0];
+            else if(i<colorRange*2)
+                color = state.palette[1];
+            else if(i<colorRange*3)
+                color = state.palette[2];
+            else if(i<colorRange*4)
+                color = state.palette[3];
+            else if(i<colorRange*5)
+                color = state.palette[4];
+            else if(i<colorRange*6)
+                color = state.palette[5];
+            else if(i<colorRange*7)
+                color = state.palette[6];
+            else if(i<colorRange*8)
+                color = state.palette[7];
+
+            return color;
         }
 
         function getAngle(i) {

@@ -1,4 +1,4 @@
-function SoundGenerator() {
+function SoundGenerator(fftSize) {
     // var audio = new Audio();
     // audio.src = "song2.mp3";
     // audio.load();
@@ -8,10 +8,9 @@ function SoundGenerator() {
 
     var notesArray = getNotes();
 
-    this.fftSize = 16384;
     var analyser = context.createAnalyser();
     analyser.smoothingTimeConstant = 0.7;
-    analyser.fftSize = this.fftSize;
+    analyser.fftSize = fftSize;
 
     var waveForm = "triangle";
     var fact = 0;
@@ -54,10 +53,26 @@ function SoundGenerator() {
         gain.gain.exponentialRampToValueAtTime(0.00001, context.currentTime + 1);
     })
 
+    $("body").keyup(event => { 
+        // change octave
+        if(event.key == 'ArrowDown')
+            fact--;
+        if(event.key == 'ArrowUp')
+            fact++;
+        fact = fact > 4 ? -2 : fact;
+        fact = fact < -2 ? 4 : fact;        
+
+        // change waveform
+        waveForm = getWaveForm(event.key);
+
+        console.log("fact: " +fact +" WaveForm: " +waveForm);
+    })
+
+    // return the current frequency data
     this.getByteFrequencyData = function() {
         if(!analyser) {
             // return an array of 0s
-            var array = [this.fftSize/2];
+            var array = [fftSize/2];
             for(var i=0; i<array.length; i++)
                 array[i] = 0;
             return array;
@@ -68,20 +83,7 @@ function SoundGenerator() {
         return array;
     }
 
-    $("body").keyup(event => { 
-        // change factor (octave ?)
-        if(event.key == 'ArrowDown')
-            fact--;
-        if(event.key == 'ArrowUp')
-            fact++;
-        fact = fact > 4 ? -2 : fact;
-        fact = fact < -2 ? 4 : fact;        
-
-        waveForm = getWaveForm(event.key);
-
-        console.log("fact: " +fact +" WaveForm: " +waveForm);
-    })
-
+    // maps a key to a waveform
     function getWaveForm(key) {
         switch(key) {
             case '1': return "sine";
@@ -92,6 +94,8 @@ function SoundGenerator() {
         }
     }
 
+    // maps a key to an integer
+    // the integer will be used to access a note in the notes array
     function getKeyIndex(key) {
         switch(key) {
             case 'q': return 0;
@@ -110,7 +114,7 @@ function SoundGenerator() {
             case 'a': return 12;
             case 's': return 13;
             case 'd': return 14;
-            case 'f': return 15
+            case 'f': return 15;
             case 'g': return 16;
             case 'h': return 17;
             case 'j': return 18;
@@ -124,20 +128,9 @@ function SoundGenerator() {
         }
     }
 
+    // returns an array of frequency values
     function getNotes() {
         var notes = new Array();
-        /*notes.push(66);
-        notes.push(70);
-        notes.push(74);
-        notes.push(78);
-        notes.push(83);
-        notes.push(88);
-        notes.push(93);
-        notes.push(98);
-        notes.push(104);
-        notes.push(110);
-        notes.push(117);
-        notes.push(124);*/
 
         notes.push(131);
         notes.push(139);
@@ -168,6 +161,7 @@ function SoundGenerator() {
         return notes;
     }
 
+    // play kick sound
     function kick() {
         var osc = context.createOscillator();
         var osc2 = context.createOscillator();
@@ -208,6 +202,7 @@ function SoundGenerator() {
 
     }
 
+    // play snare sound
     function snare() {
         var osc3 = context.createOscillator();
         var gainOsc3 = context.createGain();
@@ -264,6 +259,7 @@ function SoundGenerator() {
 
     }
 
+    // play hihat sound
     function hihat() {
         var gainOsc4 = context.createGain();
         var fundamental = 40;
