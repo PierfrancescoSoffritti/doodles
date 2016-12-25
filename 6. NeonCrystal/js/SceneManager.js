@@ -97,7 +97,6 @@ function SceneManager(canvas) {
 
         cubeCamera.updateCubeMap(renderer, scene);
 
-        renderer.clear();
         renderer.render(scene, camera);
     };
 
