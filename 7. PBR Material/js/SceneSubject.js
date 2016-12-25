@@ -1,4 +1,4 @@
-function PlaneSceneSubject(scene, cubeCamera) {
+function SceneSubject(scene, cubeCamera) {
 
 	var icoGeometry = new THREE.IcosahedronGeometry(1, 6);
     var material = new THREE.MeshPhongMaterial({ shading: THREE.SmoothShading  });
