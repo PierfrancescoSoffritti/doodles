@@ -6,18 +6,18 @@ function SceneSubject(scene, cubeCamera) {
     material.envMap = cubeCamera.renderTarget.texture;
     material.reflectivity = .6;
 
-    var colorMap = new THREE.TextureLoader().load('textures/Marble065_COL_1K.jpg');
+    var colorMap = new THREE.TextureLoader().load('Marble065_COL_1K.jpg');
     material.map = colorMap;
 
-    var normalMap = new THREE.TextureLoader().load('textures/Marble065_NRM_1K.jpg');
+    var normalMap = new THREE.TextureLoader().load('Marble065_NRM_1K.jpg');
     material.normalMap = normalMap;
     material.normalScale = new THREE.Vector2(0.5, 0.5);
 
-    var specularMap = new THREE.TextureLoader().load('textures/SpecularMap.png');
+    var specularMap = new THREE.TextureLoader().load('SpecularMap.png');
     material.specularMap = specularMap;
     material.shininess = 400;
 
-	var displacementMap = new THREE.TextureLoader().load('textures/Marble065_DISP_1K.jpg');
+	var displacementMap = new THREE.TextureLoader().load('Marble065_DISP_1K.jpg');
 	material.displacementMap = displacementMap;
 	material.displacementScale = .1;
 
