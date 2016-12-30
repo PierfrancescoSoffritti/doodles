@@ -1,4 +1,4 @@
-function Torus(scene, cubeCamera) {
+function Rings(scene, cubeCamera) {
     var group = new THREE.Group();
 
     var radius = 2;
@@ -34,26 +34,12 @@ function Torus(scene, cubeCamera) {
         for(var i=0; i<group.children.length; i++) {
             var child = group.children[i];
 
-            // child.position.x = 1 * Math.sin( time * 0.001 - i *0.15 );
-            // child.position.y = 1 * Math.sin( time * 0.003 - i *0.15 );
-
-            // child.rotation.x = time * 0.01123 - Math.pow( i, 1.15 ) * 0.15;
-            // child.rotation.y = time * 0.02 - Math.pow( i, 1.15 ) * 0.15;
-            
-            var rotSpeed = 0.008;
-            var rot = Math.sin(time * rotSpeed)
-            // child.rotation.x = rot;
-            // child.rotation.y = rot; 
-            // child.rotation.z = rot;
-            // child.material.emissive.r = Math.max( 0, Math.sin( - time * 5 + i * 0.2 ) ) * 0.5;
-
             child.material.emissive.g = Math.max(0, (Math.sin(time * speed )+i*0.2) * 0.6);
-            // child.material.emissive.g = Math.max( 0, Math.sin( - time * 0.01 + i * 0.2) ) * 0.5;
-            // material.emissive.g = Math.pow( material.emissive.r * 2, 6 );
 
-            child.rotation.x = Math.sin(time * rotSpeed - i*0.2) ;
-            child.rotation.y = Math.sin(time * rotSpeed - i*0.2) ;
-            // child.rotation.z += Math.sin(time * rotSpeed - i*0.25) ;
+            var rotationSpeed = 0.008;
+            var rotation = Math.sin(time * rotationSpeed - i*0.2);
+            child.rotation.x = rotation;
+            child.rotation.y = rotation;
         }
     }
 }

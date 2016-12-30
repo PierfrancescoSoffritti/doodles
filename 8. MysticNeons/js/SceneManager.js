@@ -23,22 +23,13 @@ function SceneManager(canvas) {
     scene.add(cubeCamera);
     
     var sceneSubjects = new Array();
-    sceneSubjects.push(new Torus(scene, cubeCamera));
+    sceneSubjects.push(new Background(scene, cubeCamera));
+    sceneSubjects.push(new Rings(scene, cubeCamera));
     sceneSubjects.push(new DoublePyramid(scene, cubeCamera));
-    sceneSubjects.push(new SceneSubject(scene, cubeCamera));
+    sceneSubjects.push(new Spheres(scene, cubeCamera));
 
-    function buildLights(scene) {  
-        var light = new THREE.DirectionalLight("#fff", 0.4);    
-        light.position.x = -50;
-        light.target.position.set(0,0,0)
-        light.castShadow = true;
-        scene.add(light);
-
-        var light = new THREE.DirectionalLight("#fff", 0.2);    
-        light.position.x = 30;
-        light.position.z = 50;
-        light.target.position.set(0,0,0)
-        light.castShadow = true;
+    function buildLights(scene) {
+        var light = new THREE.HemisphereLight( "#fff", "#000", 1 );
         scene.add(light);
 
         var light = new THREE.SpotLight("#fff", .8);
