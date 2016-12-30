@@ -17,6 +17,7 @@ function Spheres(scene, cubeCamera) {
 
     // external sphere
     var externalSphere = deformedSphere.clone();
+    externalSphere.geometry = new THREE.IcosahedronGeometry(1.01, 6);
     externalSphere.material = new THREE.MeshStandardMaterial({ color: "#222222", roughness: 0, metalness: .9,  shading: THREE.SmoothShading, 
         transparent: true, opacity: 1, side: THREE.DoubleSide, alphaTest: 0.5 });
     
@@ -24,15 +25,21 @@ function Spheres(scene, cubeCamera) {
     alphaMap.magFilter = THREE.NearestFilter;
     alphaMap.wrapT = THREE.RepeatWrapping;
     alphaMap.repeat.y = 1;
-    externalSphere.material.alphaMap = alphaMap
-    externalSphere.material.envMap = cubeCamera.renderTarget.texture
+    externalSphere.material.alphaMap = alphaMap;
 
-    scene.add(externalSphere)
+    externalSphere.material.envMap = cubeCamera.renderTarget.texture;
+
+    scene.add(externalSphere);
 
     var speed = 0.02;
     this.update = function(time) {
 
         externalSphere.material.alphaMap.offset.y = Math.sin(time*0.006)/4;
+
+        var rotationSpeed = 0.008;
+        var rotation = Math.sin(time * rotationSpeed)/2;
+        externalSphere.rotation.x = rotation;
+        externalSphere.rotation.z = rotation;
 
         deformedSphere.material.alphaMap.offset.y = time*0.003;
 
