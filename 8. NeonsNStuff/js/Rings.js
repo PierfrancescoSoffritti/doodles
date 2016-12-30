@@ -3,7 +3,7 @@ function Rings(scene, cubeCamera) {
 
     var radius = 2;
 
-    var geometry = new THREE.TorusGeometry(radius, .05, 32, 128);
+    var geometry = new THREE.TorusGeometry(radius, .055, 32, 128);
     var material = new THREE.MeshStandardMaterial({ color: "#222222", roughness: 0, metalness: .9,  shading: THREE.SmoothShading  });
 
     var envMap = new THREE.TextureLoader().load('textures/envMap.png');
@@ -20,7 +20,7 @@ function Rings(scene, cubeCamera) {
 
     for(var i=1; i<4; i++) {
         var temp = mesh.clone();
-        temp.geometry = new THREE.TorusGeometry(radius-(i*0.20), .05, 32, 64);
+        temp.geometry = new THREE.TorusGeometry(radius-(i*0.20), .055, 32, 128);
         temp.material = material.clone();
         group.add(temp);
     }
@@ -35,6 +35,7 @@ function Rings(scene, cubeCamera) {
             var child = group.children[i];
 
             child.material.emissive.g = Math.max(0, (Math.sin(time * speed )+i*0.2) * 0.8);
+            // child.material.emissive.r = Math.pow( child.material.emissive.g * 2, 6 ) / 140;
 
             var rotationSpeed = 0.008;
             var rotation = Math.sin(time * rotationSpeed - i*0.2);
