@@ -12,8 +12,6 @@ function Sphere(scene) {
     var eyeTexture_red = new THREE.TextureLoader().load('textures/eye_red.jpg');
     eyeTexture_red.mapping = THREE.SphericalReflectionMapping;
 
-    var textures = [eyeTexture_red]
-
     var eyeGeometry = new THREE.IcosahedronGeometry(0.24, 3);
         
     // modify UVs to accommodate texture
@@ -31,6 +29,10 @@ function Sphere(scene) {
         }
     }
 
+    var eyeMaterial = new THREE.MeshStandardMaterial({ color: "#222222", roughness: 0, metalness: .9,  shading: THREE.SmoothShading, opacity: 1 });
+	eyeMaterial.envMap = envMap;
+    eyeMaterial.map = eyeTexture_red;
+
     var eyes = new Array();
     var randFactors = new Array();
 
@@ -38,19 +40,15 @@ function Sphere(scene) {
     for (var i=0; i<icoGeometry.vertices.length; i++) {
         var vertex = icoGeometry.vertices[i];
         
-        var tSphere = deformedSphere.clone();
+        var tEye = deformedSphere.clone();
 
-        tSphere.geometry = eyeGeometry;
+        tEye.geometry = eyeGeometry;
+        tEye.material = eyeMaterial
 
-        tSphere.material = new THREE.MeshStandardMaterial({ color: "#222222", roughness: 0, metalness: .9,  shading: THREE.SmoothShading, opacity: 1, alphaTest: 0.5 });
+        tEye.position.set(vertex.x, vertex.y, vertex.z);
+        scene.add(tEye);
 
-        tSphere.material.envMap = envMap;
-        tSphere.material.map = textures[ Math.floor(getRandom(0, textures.length)) ];
-
-        tSphere.position.set(vertex.x, vertex.y, vertex.z);
-        scene.add(tSphere);
-
-        eyes.push(tSphere);
+        eyes.push(tEye);
         randFactors.push({x: getRandom(-0.4, 0.4), y: getRandom(-0.4, 0.4)});
     }
 
