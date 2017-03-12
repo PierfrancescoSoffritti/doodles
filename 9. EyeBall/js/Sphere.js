@@ -40,6 +40,9 @@ function Sphere(scene) {
     for (var i=0; i<icoGeometry.vertices.length; i++) {
         var vertex = icoGeometry.vertices[i];
         
+        if(vertex.z < 0)
+        	continue;
+        
         var tEye = deformedSphere.clone();
 
         tEye.geometry = eyeGeometry;
