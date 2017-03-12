@@ -1,4 +1,4 @@
-function Background(scene, cubeCamera) {
+function Background(scene) {
     var backgroundGeometry = new THREE.IcosahedronGeometry(20, 0);
     var backgroundMaterial = new THREE.MeshStandardMaterial({ color: "#000000", roughness: 1, metalness: .5, shading: THREE.SmoothShading, side: THREE.BackSide });
     var background = new THREE.Mesh(backgroundGeometry, backgroundMaterial);

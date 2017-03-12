@@ -1,11 +1,7 @@
-function Sphere(scene, cubeCamera) {
+function Sphere(scene) {
     // deformed sphere
     var icoGeometry = new THREE.IcosahedronGeometry(1.5, 2);
-    // var icoMaterial = new THREE.MeshStandardMaterial({ color: "#222222", roughness: 0, metalness: .9,  shading: THREE.SmoothShading, 
-    //     transparent: true, opacity: 1, side: THREE.DoubleSide, alphaTest: 0.5 });
     var icoMaterial = new THREE.MeshBasicMaterial({ color: "#000", wireframe: false });
-
-    // icoMaterial.envMap = cubeCamera.renderTarget.texture;
 
     var deformedSphere = new THREE.Mesh(icoGeometry, icoMaterial);
     scene.add(deformedSphere);
@@ -20,17 +16,17 @@ function Sphere(scene, cubeCamera) {
 
     var eyeGeometry = new THREE.IcosahedronGeometry(0.24, 3);
         
-    // modify UVs to accommodate MatCap texture
-    var faceVertexUvs = eyeGeometry.faceVertexUvs[ 0 ];
-    for ( i = 0; i < faceVertexUvs.length; i ++ ) {
+    // modify UVs to accommodate texture
+    var faceVertexUvs = eyeGeometry.faceVertexUvs[0];
+    for (i=0; i<faceVertexUvs.length; i++) {
 
-        var uvs = faceVertexUvs[ i ];
-        var face = eyeGeometry.faces[ i ];
+        var uvs = faceVertexUvs[i];
+        var face = eyeGeometry.faces[i];
 
-        for ( var j = 0; j < 3; j ++ ) {
+        for (var j=0; j<3; j++) {
 
-            uvs[ j ].x = face.vertexNormals[ j ].x * 0.5 + 0.5;
-            uvs[ j ].y = face.vertexNormals[ j ].y * 0.5 + 0.5;
+            uvs[j].x = face.vertexNormals[j].x * 0.5 + 0.5;
+            uvs[j].y = face.vertexNormals[j].y * 0.5 + 0.5;
 
         }
     }
@@ -38,7 +34,7 @@ function Sphere(scene, cubeCamera) {
     var eyes = new Array();
     var randFactors = new Array();
 
-    // geometry deformation
+    // add an eye on each vertex
     for (var i=0; i<icoGeometry.vertices.length; i++) {
         var vertex = icoGeometry.vertices[i];
         
@@ -72,8 +68,14 @@ function Sphere(scene, cubeCamera) {
 
         for(var i=0; i<eyes.length; i++) {            
             if(follow) {
+                // var x = mousePosition.x / 1000;
+                // var y = mousePosition.y / 1000;
+                // var distance = Math.sqrt( Math.pow(eyes[i].position.x - x, 2) + Math.pow(eyes[i].position.y - y, 2) );
+                // eyes[i].rotation.x += (( mousePosition.y/1000 * distance ) - eyes[i].rotation.x) * 0.06
+                // eyes[i].rotation.y += (( mousePosition.x/1000 * distance ) - eyes[i].rotation.y) * 0.06
                 eyes[i].rotation.x += (( mousePosition.y/1000 ) - eyes[i].rotation.x) * 0.06
                 eyes[i].rotation.y += (( mousePosition.x/1000 ) - eyes[i].rotation.y) * 0.06
+                
             } else {
                 var x = Math.sin(time* randFactors[i].x*speed);
                 var y = Math.sin(time* randFactors[i].y*speed)

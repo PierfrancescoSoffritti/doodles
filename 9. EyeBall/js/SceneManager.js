@@ -19,13 +19,10 @@ function SceneManager(canvas) {
     var light = buildLights(scene);
     var camera = buildCamera(width, height);
     var renderer = buildRender(width, height);
-
-    var cubeCamera = new THREE.CubeCamera(0.5, 500, 1024);
-    scene.add(cubeCamera);
     
     var sceneSubjects = new Array();
-    sceneSubjects.push(new Background(scene, cubeCamera));
-    sceneSubjects.push(new Sphere(scene, cubeCamera));
+    sceneSubjects.push(new Background(scene));
+    sceneSubjects.push(new Sphere(scene));
 
     function buildLights(scene) {
         var light = new THREE.HemisphereLight( "#fff", "#000", 1 );
@@ -91,11 +88,6 @@ function SceneManager(canvas) {
         for(var i=0; i<sceneSubjects.length; i++)
         	sceneSubjects[i].update(time, mousePosition);
 
-        // mousePosition.disabled = true;
-
-        cubeCamera.updateCubeMap(renderer, scene);
-
-        // renderer.clear();
         renderer.render(scene, camera);
     };
 
