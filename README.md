@@ -2,7 +2,7 @@
 
 (ordered from the most recent)
 
-[10. EyeBall](https://rawgit.com/PierfrancescoSoffritti/Doodling/master/10.%20BrokenMantra/index.html) <br/>
+[10. Broken Mantra](https://rawgit.com/PierfrancescoSoffritti/Doodling/master/10.%20BrokenMantra/index.html) <br/>
 [9. EyeBall](https://rawgit.com/PierfrancescoSoffritti/Doodling/master/9.%20EyeBall/index.html) <br/>
 [8. NeonsNStuff](https://rawgit.com/PierfrancescoSoffritti/Doodling/master/8.%20NeonsNStuff/index.html) <br/>
 [7. PBR material](https://rawgit.com/PierfrancescoSoffritti/Doodling/master/7.%20PBR%20Material/index.html) <br/>

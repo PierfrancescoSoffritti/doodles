@@ -167,7 +167,7 @@ function SceneManager(canvas) {
             row.show(false);
         } else if(time > 82.1 && time < 83) {           
             heads.lookAt(true);
-        } else if(time > 102.1 && time < 103) {
+        } else if(time > 102.2 && time < 103) {
             light.color.setRGB(158, 0, 0);
             head.showMesh(false)
             head.showWireframe(true)
