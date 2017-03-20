@@ -3,8 +3,8 @@ function Sphere(scene) {
     var icoGeometry = new THREE.IcosahedronGeometry(1.5, 2);
     var icoMaterial = new THREE.MeshBasicMaterial({ color: "#000", wireframe: false });
 
-    var deformedSphere = new THREE.Mesh(icoGeometry, icoMaterial);
-    scene.add(deformedSphere);
+    var baseSphere = new THREE.Mesh(icoGeometry, icoMaterial);
+    scene.add(baseSphere);
 
     var envMap = new THREE.TextureLoader().load('textures/env2.png');
     envMap.mapping = THREE.SphericalReflectionMapping;
@@ -33,6 +33,11 @@ function Sphere(scene) {
 	eyeMaterial.envMap = envMap;
     eyeMaterial.map = eyeTexture_red;
 
+    var eye = baseSphere.clone();
+
+    eye.geometry = eyeGeometry;
+    eye.material = eyeMaterial;
+
     var eyes = new Array();
     var randFactors = new Array();
 
@@ -43,10 +48,7 @@ function Sphere(scene) {
         if(vertex.z < 0)
         	continue;
         
-        var tEye = deformedSphere.clone();
-
-        tEye.geometry = eyeGeometry;
-        tEye.material = eyeMaterial
+        var tEye = eye.clone();
 
         tEye.position.set(vertex.x, vertex.y, vertex.z);
         scene.add(tEye);
