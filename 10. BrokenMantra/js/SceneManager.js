@@ -167,12 +167,12 @@ function SceneManager(canvas) {
             cubes.show(false);
         } else if(time > 82.1 && time < 83) {           
             heads.lookAt(true);
-        } else if(time > 102.2 && time < 103) {
+        } else if(time > 102.4 && time < 103.4) {
             light.color.setRGB(158, 0, 0);
             head.showMesh(false)
             head.showWireframe(true)
             head.moveTo(0, 0, 1.5);
-        } else if(time > 112 && time < 113) {
+        } else if(time > 112.6 && time < 113.6) {
             head.moveTo(0, 0, 2.5);
 
             mainRow = cubes;
@@ -181,7 +181,7 @@ function SceneManager(canvas) {
 
             light.color.setRGB(0, 0, 0);
             light.intensity = 0;
-        } else if(time > 122 && time < 123) {
+        } else if(time > 122.6 && time < 123.6) {
             // kill the light :D
             light.color = "#000";
         }  else if(time > 152 && time < 153) {
