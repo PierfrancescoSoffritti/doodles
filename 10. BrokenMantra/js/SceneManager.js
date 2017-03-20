@@ -134,7 +134,7 @@ function SceneManager(canvas) {
     };
 
     this.onSongTimeUpdate = function(time) {
-        console.log(time);
+        // console.log(time);
 
 
         if(time > 11 && time < 12) {
