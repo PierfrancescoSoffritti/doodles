@@ -27,19 +27,19 @@ function SceneManager(canvas) {
     var sceneSubjects = new Array();
     var background = new Background(scene)
     var pyramid = new Pyramid(scene)
-    var row = new Row(scene)
+    var cubes = new Cubes(scene)
     var eyes = new Eyes(scene)
     var head = new Head(scene);
     var heads = new Heads(scene);
 
     sceneSubjects.push(background);
     sceneSubjects.push(pyramid);
-    sceneSubjects.push(row);
+    sceneSubjects.push(cubes);
     sceneSubjects.push(eyes);
     sceneSubjects.push(head);
     sceneSubjects.push(heads);
 
-    var mainRow = row;
+    var mainRow = cubes;
 
     function buildPostProcessing(renderer, scene, camera) {
         glitchPass = new THREE.GlitchPass();
@@ -164,7 +164,7 @@ function SceneManager(canvas) {
 
             mainRow = heads;
             heads.show(true);            
-            row.show(false);
+            cubes.show(false);
         } else if(time > 82.1 && time < 83) {           
             heads.lookAt(true);
         } else if(time > 102.2 && time < 103) {
@@ -175,9 +175,9 @@ function SceneManager(canvas) {
         } else if(time > 112 && time < 113) {
             head.moveTo(0, 0, 2.5);
 
-            mainRow = row;
+            mainRow = cubes;
             heads.show(false);
-            row.show(true);
+            cubes.show(true);
 
             light.color.setRGB(0, 0, 0);
             light.intensity = 0;
@@ -188,7 +188,7 @@ function SceneManager(canvas) {
             mainRow = null;
 
             heads.show(false);
-            row.show(false);
+            cubes.show(false);
             pyramid.show(false);
         }
     }

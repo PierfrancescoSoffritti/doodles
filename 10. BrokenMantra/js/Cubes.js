@@ -1,4 +1,4 @@
-function Row(scene) {
+function Cubes(scene) {
 
 	var group = new THREE.Group();
 
