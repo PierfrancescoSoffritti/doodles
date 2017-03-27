@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html >
+<head>
+  <meta charset="UTF-8">
+  <title>Shaders Experiment</title>  
+      <link rel="stylesheet" href="css/style.css"> 
+</head>
+
+<body>
+	<!-- Shaders -->
+	<script type="x-shader/x-vertex" id="vertexshader">
+
+		uniform float time;
+
+		float speed = .05;
+
+		varying vec3 vNormal;
+		varying vec3 vPosition;
+
+		varying float vDistFromPoint;
+		
+		void main() {
+			vNormal = normal;
+			vPosition = position;
+
+			vec3 offset = position;
+
+		 	// float dist = sin(time*speed) * 0.1 + 0.1;
+		  	// offset += normal * dist;
+		   	
+		  	vDistFromPoint = distance(position, vec3(.2, .2, .2));
+
+			vec3 newPosition = position;
+			newPosition -= (sin(time * speed * normal) +1.) /10.;
+			// newPosition -= (sin(time * speed * vDistFromPoint) +1.) /20.;
+
+			gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
+		}
+		
+	</script>
+	
+	<script type="x-shader/x-fragment" id="fragmentshader">
+
+		varying vec3 vNormal;
+		varying vec3 vPosition;
+		
+		uniform float time;
+
+		float speed = .01;
+
+		varying float vDistFromPoint;
+		
+		void main() {
+		  	vec3 light = vec3(0.0, 0.0, .8);
+
+		  	// ensure it's normalized
+		  	// light = normalize(light);
+
+		  	// calculate the dot product of
+		  	// the light to the vertex normal
+		  	
+		  	float dProd = max(0.0, dot(vNormal, light));
+
+		  	gl_FragColor = vec4(
+		  		dProd*(sin(time*speed/20.)+1.)/2.,
+		  		dProd*(sin(time*speed)+1.)/2.,
+		  		dProd*(sin(time*speed/10.)+1.)/2.,
+		  		1.0);
+		  	
+		  	// float fact = 4.;
+		  	// gl_FragColor = vec4(vec3(vDistFromPoint/(8.*fact), vDistFromPoint/(2.*fact), vDistFromPoint/(1.*fact)), 1.0);
+		}
+
+	</script>
+	
+	<!-- End Shaders -->
+
+	<canvas id="canvas"></canvas>
+  	
+	<script src='js/libs/three.min.js'></script>
+
+	<script src='js/Utils.js'></script>
+
+	<script src="js/Background.js"></script>
+	<script src="js/Sphere.js"></script>
+	<script src="js/SceneManager.js"></script>    
+	<script src="js/main.js"></script>
+
+</body>
+</html>
