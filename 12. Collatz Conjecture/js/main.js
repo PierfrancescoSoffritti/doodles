@@ -10,26 +10,14 @@ function onLoad() {
     }
 
     var tree = new CollatzTreeBuilder().build(values);
-    // DFS(tree, node => console.log(node.value));
     const sceneManager = new SceneManager(canvas, tree);
 
-    // set canvas size (size on screen, not resolution) programmatically
     resizeCanvas();
 
     render();
 
-    window.onmousemove = onMouseMove;
-
     function render() {
         requestAnimationFrame(render);
-
-    }
-
-    function onMouseMove(event) {
-    	var mouseX = event.pageX;
-        var mouseY = event.pageY;
-
-    	sceneManager.onMouseMove(mouseX, mouseY);
     }
 
     function resizeCanvas() {
