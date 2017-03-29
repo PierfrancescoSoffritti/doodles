@@ -11,13 +11,24 @@
 	<script type="x-shader/x-vertex" id="vertexshader">
 
 		uniform float time;
+		uniform vec3 mousePosition;
 
 		float speed = .05;
 
 		varying vec3 vNormal;
 		varying vec3 vPosition;
 
-		varying float vDistFromPoint;
+		mat4 rotationMatrix(vec3 axis, float angle) {
+		    axis = normalize(axis);
+		    float s = sin(angle);
+		    float c = cos(angle);
+		    float oc = 1.0 - c;
+		    
+		    return mat4(oc * axis.x * axis.x + c,           oc * axis.x * axis.y - axis.z * s,  oc * axis.z * axis.x + axis.y * s,  0.0,
+		                oc * axis.x * axis.y + axis.z * s,  oc * axis.y * axis.y + c,           oc * axis.y * axis.z - axis.x * s,  0.0,
+		                oc * axis.z * axis.x - axis.y * s,  oc * axis.y * axis.z + axis.x * s,  oc * axis.z * axis.z + c,           0.0,
+		                0.0,                                0.0,                                0.0,                                1.0);
+		}
 		
 		void main() {
 			vNormal = normal;
@@ -25,16 +36,21 @@
 
 			vec3 offset = position;
 
-		 	// float dist = sin(time*speed) * 0.1 + 0.1;
-		  	// offset += normal * dist;
-		   	
-		  	vDistFromPoint = distance(position, vec3(.2, .2, .2));
+			float sinu = sin(time*speed + position.x*1.) * 0.2;
+
+		 	float dist = sinu;
+		  	offset += sinu * normal;
 
 			vec3 newPosition = position;
-			newPosition -= (sin(time * speed * normal) +1.) /10.;
-			// newPosition -= (sin(time * speed * vDistFromPoint) +1.) /20.;
+			// offset -= (sin(time * speed * normal) +1.) /10.;
+			// offset -= (sin(time * speed * vDistFromPoint) +1.) /20.;
+			
+			// float dProd = max(0.0, dot(mousePosition, position));
+			// offset += pow(distance(mousePosition, position), dProd*10.)/20.;
+			
+			mat4 rotation = rotationMatrix(vec3(0., 0., 1.), sinu);
 
-			gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
+			gl_Position = projectionMatrix * modelViewMatrix * vec4(offset, 1.0) * rotation;
 		}
 		
 	</script>
@@ -45,10 +61,9 @@
 		varying vec3 vPosition;
 		
 		uniform float time;
+		uniform vec3 mousePosition;
 
 		float speed = .01;
-
-		varying float vDistFromPoint;
 		
 		void main() {
 		  	vec3 light = vec3(0.0, 0.0, .8);
@@ -66,9 +81,6 @@
 		  		dProd*(sin(time*speed)+1.)/2.,
 		  		dProd*(sin(time*speed/10.)+1.)/2.,
 		  		1.0);
-		  	
-		  	// float fact = 4.;
-		  	// gl_FragColor = vec4(vec3(vDistFromPoint/(8.*fact), vDistFromPoint/(2.*fact), vDistFromPoint/(1.*fact)), 1.0);
 		}
 
 	</script>

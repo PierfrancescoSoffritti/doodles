@@ -18,10 +18,7 @@ function render() {
 }
 
 function onMouseMove(event) {
-	var mouseX = event.pageX-windowHalfX;
-    var mouseY = event.pageY-windowHalfY;
-
-	sceneManager.onMouseMove(mouseX, mouseY);
+	sceneManager.onMouseMove(event.pageX, event.pageY);
 }
 
 function resizeCanvas() {

@@ -78,9 +78,9 @@ function SceneManager(canvas) {
         time++;
 
         // camera position, relative to mouse position
-        camera.position.x += (  (mousePosition.x * 0.001) - camera.position.x ) * 0.04;
-        camera.position.y += ( -(mousePosition.y * 0.002) - camera.position.y ) * 0.04;
-        camera.lookAt(new THREE.Vector3(0,0,0));
+        // camera.position.x += (  (mousePosition.x * 0.001) - camera.position.x ) * 0.04;
+        // camera.position.y += ( -(mousePosition.y * 0.002) - camera.position.y ) * 0.04;
+        // camera.lookAt(new THREE.Vector3(0,0,0));
 
         // move the light
         // light.position.x = Math.sin(time*0.01)*50;
@@ -93,8 +93,8 @@ function SceneManager(canvas) {
 
     this.onWindowResize = function() {
         var canvas = document.getElementById("canvas");
-        var width = document.body.clientWidth;
-        var height = document.body.clientHeight;
+        width = document.body.clientWidth;
+        height = document.body.clientHeight;
         canvas.width = width;
         canvas.height = height;
 
@@ -107,8 +107,8 @@ function SceneManager(canvas) {
     this.onMouseMove = function(mouseX, mouseY) {
         clearTimeout(timeout);
 
-        mousePosition.x = mouseX;
-        mousePosition.y = mouseY;
+        mousePosition.x = mouseX/width;
+        mousePosition.y = mouseY/height;
         mousePosition.disabled = false;
 
     	timeout = setTimeout(function() {
