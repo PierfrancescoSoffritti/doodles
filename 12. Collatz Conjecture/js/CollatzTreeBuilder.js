@@ -21,7 +21,7 @@ function CollatzTreeBuilder() {
         while(!queue.isEmpty()) {
             const value = queue.dequeue();
             
-            let treeNode = BFS_until(tree, node => { return node.value === value });
+            let treeNode = BFS(tree, node => { return node.value === value });
 
             if(treeNode) {
                 for(let i=nodeList.length-1; i>=0; i--) {

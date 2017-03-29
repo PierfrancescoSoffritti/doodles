@@ -1,16 +1,16 @@
-function CollatzViz0(stage, state, tree) {
+function CollatzViz2(stage, state, tree) {
 
-	const shape = new createjs.Shape();
+    const shape = new createjs.Shape();
     const graphics = shape.graphics;
     stage.addChild(shape);
 
-	this.draw = function() {
+    this.draw = function() {
 
         const stack = new Stack();
         let rad = 0, angle = 0;
         const color = new Color();
 
-        const xOffset = state.width/4;
+        const xOffset = state.width/2;
         const yOffset = state.height/2;
 
         graphics.clear()
@@ -18,19 +18,21 @@ function CollatzViz0(stage, state, tree) {
         DFS(tree, node => {
 
             let angleStep = node.value % 2 === 0 ? -1 : 1;
-            angleStep *= getRandom(.01, .4) //* (Math.sin(rad)+3)/2;
+            angleStep *= getRandom(.01, .4) * Math.tan(rad/100);
 
-            const radStep = getRandom(3, 5) * state.pixelRatio;
+            const radStep = getRandom(2, 4) * state.pixelRatio;
 
             const newRad = rad - radStep;
             const newAngle = angle - angleStep;
+
+            const strokeStyle = node.value/400;
 
             color.setColorRgb(node.value%255, 70, 70);
 
             graphics
                 .beginStroke(color.getHex())
-                // .setStrokeDash([20, 40], node.value/400)
-                .setStrokeStyle(node.value/500)
+                // .setStrokeDash([80, 40], node.value/400)
+                .setStrokeStyle(strokeStyle)
                 .moveTo(rad*Math.cos(angle) + xOffset, rad*Math.sin(angle) + yOffset)
                 .lineTo(newRad*Math.cos(newAngle) + xOffset, newRad*Math.sin(newAngle) + yOffset)
 

@@ -10,7 +10,15 @@ function SceneManager(canvas, tree) {
     const stage = new createjs.Stage(canvas);
     state.pixelRatio = getPixelRatio(canvas.getContext('2d'));
 
-    var viz = new CollatzViz0(stage, state, tree);
+    const vizS = [
+        new CollatzViz0(stage, state, tree),
+        new CollatzViz1(stage, state, tree),
+        new CollatzViz2(stage, state, tree),
+        new CollatzViz3(stage, state, tree),
+        new CollatzViz4(stage, state, tree)
+    ]
+
+    const viz = vizS[Math.floor(getRandom(0, 5))];
 
     this.update = function () {
 

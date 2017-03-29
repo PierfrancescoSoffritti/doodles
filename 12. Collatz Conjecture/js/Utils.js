@@ -28,7 +28,7 @@ function collatz(number, action) {
 	collatz(number % 2 === 0 ? number/2 : (number*3)+1, action);
 }
 
-function BFS_until(tree, eval) {
+function BFS(tree, eval) {
 	const queue = new Queue(tree);
 
 	while(!queue.isEmpty()) {
@@ -41,9 +41,6 @@ function BFS_until(tree, eval) {
 }
 
 function DFS(tree, eval) {
-	// if(tree.value > 10000)
-	// 	return;
-
 	eval(tree);
 	tree.children.forEach(child => DFS(child, eval));
 }
