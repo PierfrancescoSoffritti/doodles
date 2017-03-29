@@ -2,6 +2,7 @@
 
 (ordered from the most recent)
 
+[12. Collatz Conjecture](https://rawgit.com/PierfrancescoSoffritti/Doodling/master/12.%20Collatz%20Conjecture/index.html) <br/>
 [10. Broken Mantra](https://rawgit.com/PierfrancescoSoffritti/Doodling/master/10.%20BrokenMantra/index.html) <br/>
 [9. EyeBall](https://rawgit.com/PierfrancescoSoffritti/Doodling/master/9.%20EyeBall/index.html) <br/>
 [8. NeonsNStuff](https://rawgit.com/PierfrancescoSoffritti/Doodling/master/8.%20NeonsNStuff/index.html) <br/>
