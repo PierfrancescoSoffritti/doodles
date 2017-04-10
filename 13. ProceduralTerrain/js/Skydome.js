@@ -13,12 +13,24 @@ function Skydome(scene) {
 	var stars = new THREE.Points(starsGeometry, starMaterial);
 	scene.add(stars);
 
-	var snowGeometry = new THREE.IcosahedronGeometry(200, 2);	
+	// var snowGeometry = new THREE.IcosahedronGeometry(200, 2);	
     // geometry deformation
-    for (var i=0; i<snowGeometry.vertices.length; i+=1) {
-    	var scalar = Math.random() + Math.random();
-    	snowGeometry.vertices[i].multiplyScalar(scalar)
-	}
+ //    for (var i=0; i<snowGeometry.vertices.length; i+=1) {
+ //    	var scalar = Math.random() + Math.random();
+ //    	snowGeometry.vertices[i].multiplyScalar(scalar)
+	// }
+
+	var snowGeometry = new THREE.Geometry();
+	var range = 440*9;
+    for (var i = 0; i < 1500*10; i++) {
+        var particle = new THREE.Vector3(
+                Math.random() * range - range / 2,
+                Math.random() * range/6 * 1.5,
+                Math.random() * range - range / 2);
+        particle.velocityY = 0.1 + Math.random() / 5;
+        particle.velocityX = (Math.random() - 0.5) / 3;
+        snowGeometry.vertices.push(particle);
+    }
 
 	// particles
 	var texture = new THREE.TextureLoader().load("textures/particle.png");
@@ -30,12 +42,14 @@ function Skydome(scene) {
 		stars.rotation.y += .0001;
 		stars.rotation.x += .0001;
 
-		snow.rotation.y += .001;
-		snow.position.x = player.position.x;
-		snow.position.z = player.position.z;
+		// snow.rotation.y += .001;
+		// snow.position.x = player.position.x;
+		// snow.position.z = player.position.z;
 		for(let i=0; i<snowGeometry.vertices.length; i++) {
 			const vertex = snowGeometry.vertices[i];
-			vertex.y -= 0.1;
+			// vertex.y -= 0.1;
+			vertex.y -= vertex.velocityY;
+            vertex.x -= vertex.velocityX;
 
             if(vertex.y <= 0)
             	vertex.y = 400-i;
