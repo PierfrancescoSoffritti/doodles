@@ -4,18 +4,20 @@ function Terrain(scene) {
     const map = mapGenerator.generateMap();
 
     const mesh = new TerrainMeshGenerator().generateTerrainMesh(map, .4, 13, 1).createMesh();
+    mesh.scale.set(8, 8, 8)
 
     scene.add(mesh)
 
     this.terrain = mesh;
 
- //    var geometry = new THREE.PlaneGeometry( 241, 241, 32 );
-	// var material = new THREE.MeshBasicMaterial( {color: "#6666FF", side: THREE.DoubleSide} );
-	// var plane = new THREE.Mesh( geometry, material );
-	// plane.rotation.x = -Math.PI/2
-	// plane.position.y = .01;
-	// scene.add( plane );
+    var wireframe = new THREE.LineSegments(
+        new THREE.EdgesGeometry(mesh.geometry),
+        new THREE.LineBasicMaterial()
+    );
+
+    mesh.add(wireframe)
 
     this.update = function(time) {
+        wireframe.material.color.setHSL(Math.sin(time * 0.1), 0.5, 0.5 );
     }
 }

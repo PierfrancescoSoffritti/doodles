@@ -1,6 +1,6 @@
 function MapGenerator(noiseScale, octaves, persistance, lacunarity, seed, offset) {	
 
-	const mapChunkSize = 241;
+	const mapChunkSize = 441;
 	const noise = new Noise();
 
 	this.generateMap = function() {

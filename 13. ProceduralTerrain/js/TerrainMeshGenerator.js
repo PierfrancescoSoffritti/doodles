@@ -59,7 +59,8 @@ function TerrainMeshGenerator() {
 
 			geometry.computeVertexNormals();
 
-			var mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({wireframe: true}));
+			var mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({color: "#000", wireframe: false,
+				metalness: .5, roughness: 1 }));
 			return mesh;
 		}
 	}

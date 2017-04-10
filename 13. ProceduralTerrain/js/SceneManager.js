@@ -14,7 +14,7 @@ function SceneManager(canvas) {
     var height = canvas.height;
   
     var scene = new THREE.Scene();
-    scene.background = new THREE.Color("#202020");
+    scene.background = new THREE.Color("#CE0059");
 
     var light = buildLights(scene);
 
@@ -31,13 +31,12 @@ function SceneManager(canvas) {
     const collisionManager = new TerrainCollisionManager(camera, terrainSubject.terrain);
 
     function buildLights(scene) {
-        var light = new THREE.HemisphereLight( "#fff", "#000", 1 );
-        scene.add(light);
 
-        var light = new THREE.SpotLight("#fff", 2);
+        var light = new THREE.SpotLight("#f1f1f1", 1);
         light.castShadow = true;
-        light.position.y = 7;
-        light.position.z = 150;
+        light.position.y = 700;
+        light.position.z = 0;
+        light.position.x = -1400;
 
         light.decacy = 2;
         light.penumbra = 1;
@@ -48,8 +47,8 @@ function SceneManager(canvas) {
 
         scene.add(light);
 
-        //var spotLightHelper = new THREE.SpotLightHelper( light );
-		//scene.add( spotLightHelper )
+        var spotLightHelper = new THREE.SpotLightHelper( light );
+		scene.add( spotLightHelper )
 
         return light;
     }
@@ -61,8 +60,8 @@ function SceneManager(canvas) {
         var farPlane = 4000; 
         var camera = new THREE.PerspectiveCamera(fieldOfView, aspectRatio, nearPlane, farPlane);
 
-        camera.position.y = 10;
-        // camera.position.z = 200;
+        camera.position.y = 50;
+        camera.position.z = 400;
         // camera.lookAt(new THREE.Vector3(0,0,0));
 
         cameraControls = new CameraFirstPersonControls(camera);
