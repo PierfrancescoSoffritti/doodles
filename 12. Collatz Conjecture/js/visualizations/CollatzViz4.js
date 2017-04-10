@@ -49,7 +49,7 @@ function CollatzViz4(stage, state, tree) {
                 stack.push([rad, angle]);
             }
 
-
+            
         });
 
         graphics.endStroke();

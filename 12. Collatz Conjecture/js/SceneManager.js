@@ -18,7 +18,7 @@ function SceneManager(canvas, tree) {
         new CollatzViz4(stage, state, tree)
     ]
 
-    const viz = vizS[Math.floor(getRandom(0, 5))];
+    const viz = vizS[Math.floor(getRandom(0, vizS.length))];
 
     this.update = function () {
 
