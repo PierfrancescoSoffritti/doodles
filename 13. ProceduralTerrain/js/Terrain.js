@@ -1,10 +1,10 @@
 function Terrain(scene) {
 
-    const mapGenerator = new MapGenerator(200, 5, .5, 2, 0, [0, 0]);
+    const mapGenerator = new MapGenerator(200, 5, .5, 2, 0, [0, 0], true);
     const map = mapGenerator.generateMap();
 
-    const mesh = new TerrainMeshGenerator().generateTerrainMesh(map, .4, 13, 1).createMesh();
-    mesh.scale.set(8, 8, 8)
+    const mesh = new TerrainMeshGenerator().generateTerrainMesh(map, .4, 15, 1).createMesh();
+    mesh.scale.set(15, 15, 15)
 
     scene.add(mesh)
 

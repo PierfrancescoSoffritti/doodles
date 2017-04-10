@@ -24,7 +24,6 @@ function TerrainMeshGenerator() {
 				// heightMap[x][y] = heightMap[x][y] < smoothThreshold ? 0 : Math.pow(heightMap[x][y]-smoothThreshold, 2)
 				heightMap[x][y] = heightMap[x][y] < smoothThreshold ? 0 : Math.exp(heightMap[x][y] - smoothThreshold)-1;
 				// heightMap[x][y] = heightMap[x][y] < smoothThreshold ? 0 : heightMap[x][y];
-
 				meshData.vertices[vertexIndex] = new THREE.Vector3(topLeftX + x, heightMap[x][y] * heightMultiplier, topLeftZ - y);
 				meshData.uvs[vertexIndex] = new THREE.Vector2(x/width, y/height);
 
