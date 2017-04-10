@@ -51,8 +51,11 @@ function Skydome(scene) {
 			vertex.y -= vertex.velocityY;
             vertex.x -= vertex.velocityX;
 
-            if(vertex.y <= 0)
-            	vertex.y = 400-i;
+            if(vertex.y <= 0) {
+            	Math.random() * range - range / 2,
+                Math.random() * range/6,
+                Math.random() * range - range / 2;
+            }
 		}
 		snowGeometry.verticesNeedUpdate = true;        
 	}
