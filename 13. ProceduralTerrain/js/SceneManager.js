@@ -14,25 +14,31 @@ function SceneManager(canvas) {
     var height = canvas.height;
   
     var scene = new THREE.Scene();
-    scene.background = new THREE.Color("#CE0059");
+    scene.background = new THREE.Color("#000033");
+
+    scene.fog = new THREE.Fog( "#990099", 1, 4000 )
 
     var light = buildLights(scene);
 
     var cameraControls;
     var camera = buildCamera(width, height);
 
+    var cubeCamera = new THREE.CubeCamera(0.5, 20000, 1024);    
+    scene.add(cubeCamera);
+
     var renderer = buildRender(width, height);
     
     var sceneSubjects = new Array();
-    const terrainSubject = new Terrain(scene);
+    const terrainSubject = new Terrain(scene, cubeCamera);
     sceneSubjects.push(terrainSubject);
+    sceneSubjects.push(new Skydome(scene));
     // sceneSubjects.push(new EndlessTerrain(scene, camera, 240));
     
     const collisionManager = new TerrainCollisionManager(camera, terrainSubject.terrain);
 
     function buildLights(scene) {
 
-        var light = new THREE.SpotLight("#f1f1f1", 1);
+        var light = new THREE.SpotLight("#2222ff", 1);
         light.castShadow = true;
         light.position.y = 700;
         light.position.z = 0;
@@ -56,8 +62,8 @@ function SceneManager(canvas) {
     function buildCamera(width, height) {
         var aspectRatio = width / height;
         var fieldOfView = 60;
-        var nearPlane = 0.5;
-        var farPlane = 4000; 
+        var nearPlane = 0.01;
+        var farPlane = 7000; 
         var camera = new THREE.PerspectiveCamera(fieldOfView, aspectRatio, nearPlane, farPlane);
 
         camera.position.y = 50;
@@ -87,6 +93,10 @@ function SceneManager(canvas) {
 
         cameraControls.update(clock.getDelta());
         collisionManager.update();
+
+        cubeCamera.position.x = camera.position.x;
+        cubeCamera.position.z = camera.position.z;
+        cubeCamera.updateCubeMap(renderer, scene);
 
         renderer.render(scene, camera);
     };

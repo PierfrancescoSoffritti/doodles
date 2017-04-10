@@ -1,9 +1,9 @@
-function Terrain(scene) {
+function Terrain(scene, cubecamera) {
 
-    const mapGenerator = new MapGenerator(200, 5, .5, 2, 0, [0, 0], true);
+    const mapGenerator = new MapGenerator(150, 5, .5, 2, 0, [0, 0], true);
     const map = mapGenerator.generateMap();
 
-    const mesh = new TerrainMeshGenerator().generateTerrainMesh(map, .4, 15, 1).createMesh();
+    const mesh = new TerrainMeshGenerator().generateTerrainMesh(map, .4, 15, 1).createMesh(cubecamera);
     mesh.scale.set(15, 15, 15)
 
     scene.add(mesh)

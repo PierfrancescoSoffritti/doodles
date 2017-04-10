@@ -49,7 +49,7 @@ function TerrainMeshGenerator() {
 			this.triangles.push(new THREE.Face3(a,b,c))
 		}
 
-		this.createMesh = function() {
+		this.createMesh = function(cubeCamera) {
 			var geometry = new THREE.Geometry(); 
 			
 			geometry.vertices = this.vertices;
@@ -58,8 +58,10 @@ function TerrainMeshGenerator() {
 
 			geometry.computeVertexNormals();
 
-			var mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({color: "#000", wireframe: false,
-				metalness: .5, roughness: 1 }));
+			var mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({color: "#000001", wireframe: false,
+				metalness: .0, roughness: 1 }));
+
+			mesh.material.envMap = cubeCamera.renderTarget.texture;
 			return mesh;
 		}
 	}
