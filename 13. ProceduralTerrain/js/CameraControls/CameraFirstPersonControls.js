@@ -50,7 +50,7 @@ function CameraFirstPersonControls(camera) {
 	this.update = function(time) {
 		if(keyState.isAKeyDown()) {
 			const tDirection = new THREE.Vector3(direction.x, direction.y, direction.z);
-			camera.position.add(tDirection.multiplyScalar(1));
+			camera.position.add(tDirection.multiplyScalar(10));
 		}
 	}
 }
