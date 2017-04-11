@@ -4,7 +4,7 @@ function EntitiesSpawner(scene, player, collisionManager) {
 	const geometry = new THREE.IcosahedronGeometry(1, 2);
 	const mesh = new THREE.Mesh(geometry, material);
 	scene.add(mesh);
-	mesh.moving = false;
+	mesh.animationInProgress = false;
 
 	const trees = new Trees(scene, player, collisionManager);
 
@@ -30,19 +30,21 @@ function EntitiesSpawner(scene, player, collisionManager) {
 		const targetX = player.position.x + radius * dirVector.x;
 		const targetZ = player.position.z + radius * dirVector.z;
 		
-		mesh.moving = true;
+		mesh.animationInProgress = true;
 
 		createjs.Tween
 			.get(mesh.position, {override:true})
 			.to({x: targetX, z: targetZ}, 600, createjs.Ease.cubicInOut)
-			.call(function() { console.log("finish"); mesh.moving = false });
+			.call(function() { mesh.animationInProgress = false });
 	}
 
 	this.update = function(time) {
 
-		const distance = Math.sqrt(Math.pow(player.position.x - mesh.position.x, 2) + Math.pow(player.position.z - mesh.position.z, 2));
-		if(distance <= minDistance && !mesh.moving)
-			moveEntity(mesh);
+		if(!mesh.animationInProgress) {
+			const distance = Math.sqrt(Math.pow(player.position.x - mesh.position.x, 2) + Math.pow(player.position.z - mesh.position.z, 2));
+			if(distance <= minDistance)
+				moveEntity(mesh);
+		}
 
 		mesh.material.emissive.r = Math.max(0, (Math.sin(time)));
 		mesh.material.emissive.r = .2;

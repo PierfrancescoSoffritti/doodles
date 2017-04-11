@@ -4,11 +4,24 @@ function TerrainCollisionManager(terrain) {
 	
 	const down = new THREE.Vector3(0, -1, 0);
     const raycaster = new THREE.Raycaster();
+
+    this.getY = function(x, z) {
+        raycaster.set(new THREE.Vector3(x, 200, z), down);
+        const collisionResults = raycaster.intersectObject(terrain);
+
+        if (collisionResults.length > 0) 
+            return collisionResults[0].point.y+16;
+        else
+            return null;
+    }
     
 	this.update = function() {
 
         for(let i=0; i<this.objects.length; i++) {
             const object = this.objects[i];
+
+            if(object.skipCollision === true)
+                continue;
 
     		raycaster.set(object.position, down);
             const collisionResults = raycaster.intersectObject(terrain);
