@@ -24,14 +24,17 @@ function SceneManager(canvas) {
     scene.add(cubeCamera);
 
     var renderer = buildRender(width, height);
+
+    const terrainSubject = new Terrain(scene, cubeCamera);
+
+    const collisionManager = new TerrainCollisionManager(terrainSubject.terrain);
+    collisionManager.objects.push(camera)
     
     var sceneSubjects = new Array();
-    const terrainSubject = new Terrain(scene, cubeCamera);
     sceneSubjects.push(terrainSubject);
     sceneSubjects.push(new Skydome(scene, terrainSubject.size));
-    sceneSubjects.push(new EntitiesSpawner(scene, camera, terrainSubject.terrain));
-    
-    const collisionManager = new TerrainCollisionManager(camera, terrainSubject.terrain);
+    const entitiesSpawner = new EntitiesSpawner(scene, camera, collisionManager)
+    sceneSubjects.push(entitiesSpawner);
 
     function buildLights(scene) {
 

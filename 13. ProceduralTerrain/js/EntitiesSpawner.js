@@ -1,4 +1,4 @@
-function EntitiesSpawner(scene, player, terrain) {
+function EntitiesSpawner(scene, player, collisionManager) {
 	
 	const material = new THREE.MeshStandardMaterial();
 	const geometry = new THREE.IcosahedronGeometry(1, 2);
@@ -6,7 +6,7 @@ function EntitiesSpawner(scene, player, terrain) {
 	scene.add(mesh);
 	mesh.moving = false;
 
-	const collisionManager = new TerrainCollisionManager(mesh, terrain);
+	collisionManager.objects.push(mesh);
 
 	const maxRadius = 200;
 	const minRadius = 160;
@@ -41,8 +41,6 @@ function EntitiesSpawner(scene, player, terrain) {
 		const distance = Math.sqrt(Math.pow(player.position.x - mesh.position.x, 2) + Math.pow(player.position.z - mesh.position.z, 2));
 		if(distance <= minDistance && !mesh.moving)
 			moveEntity(mesh);
-
-		collisionManager.update();
 
 		mesh.material.emissive.r = Math.max(0, (Math.sin(time)));
 		mesh.material.emissive.r = .2;

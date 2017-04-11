@@ -51,9 +51,9 @@ function Skydome(scene, terrainSize) {
 		}
 
 		if(isSnowing && snow.position.y > 0)
-			snow.position.y -= .1;
+			snow.position.y -= .2;
 		else if(!isSnowing && snow.position.y > -range/2)
-			snow.position.y -= .1;
+			snow.position.y -= .2;
 		else if(snow.position.y <= -range/2)
 			scene.remove(snow);
 
