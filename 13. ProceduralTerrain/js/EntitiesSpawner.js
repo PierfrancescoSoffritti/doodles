@@ -6,6 +6,12 @@ function EntitiesSpawner(scene, player, collisionManager) {
 	scene.add(mesh);
 	mesh.moving = false;
 
+	var cubeGeometry = new THREE.BoxGeometry( 6, 20, 6 );
+	var cubeMaterial = new THREE.MeshBasicMaterial( {color: 0x00ff00, wireframe: true} );
+	var cube = new THREE.Mesh( cubeGeometry, cubeMaterial );
+	scene.add( cube );
+
+	collisionManager.objects.push(cube);
 	collisionManager.objects.push(mesh);
 
 	const maxRadius = 200;
@@ -41,6 +47,9 @@ function EntitiesSpawner(scene, player, collisionManager) {
 		const distance = Math.sqrt(Math.pow(player.position.x - mesh.position.x, 2) + Math.pow(player.position.z - mesh.position.z, 2));
 		if(distance <= minDistance && !mesh.moving)
 			moveEntity(mesh);
+
+		cube.position.x = player.position.x + minRadius * Math.cos(time*10);
+		cube.position.z = player.position.z + minRadius * Math.sin(time*10);
 
 		mesh.material.emissive.r = Math.max(0, (Math.sin(time)));
 		mesh.material.emissive.r = .2;
