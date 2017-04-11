@@ -31,7 +31,7 @@ function Skydome(scene, terrainSize) {
 	var snow = new THREE.Points(snowGeometry, snowMaterial);
 	// scene.add(snow);
 
-	let startSnowTime = getRandom(50, 150);
+	let startSnowTime = getRandom(50, 80);
 	let snowDuration = getRandom(100, 200);
 	let isSnowing = false;
 
