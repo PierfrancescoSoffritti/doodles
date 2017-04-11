@@ -57,13 +57,13 @@ function Trees(scene, player, collisionManager) {
 				if(distance >= maxDistance)
 					moveTree(cube);
 			}
-
-			const position = Math.sin(time)/10;
-			cube.geometry.vertices[0].y -= position
-			cube.geometry.vertices[1].y -= position
-			cube.geometry.vertices[4].y -= position
-			cube.geometry.vertices[5].y -= position
-			cube.geometry.verticesNeedUpdate = true; 
 		}
+
+		const position = Math.sin(time)/10;
+		cube.geometry.vertices[0].y -= position
+		cube.geometry.vertices[1].y -= position
+		cube.geometry.vertices[4].y -= position
+		cube.geometry.vertices[5].y -= position
+		cube.geometry.verticesNeedUpdate = true; 
 	}
 }
