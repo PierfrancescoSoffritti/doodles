@@ -6,12 +6,8 @@ function EntitiesSpawner(scene, player, collisionManager) {
 	scene.add(mesh);
 	mesh.moving = false;
 
-	var cubeGeometry = new THREE.BoxGeometry( 6, 20, 6 );
-	var cubeMaterial = new THREE.MeshBasicMaterial( {color: 0x00ff00, wireframe: true} );
-	var cube = new THREE.Mesh( cubeGeometry, cubeMaterial );
-	scene.add( cube );
+	const trees = new Trees(scene, player, collisionManager);
 
-	collisionManager.objects.push(cube);
 	collisionManager.objects.push(mesh);
 
 	const maxRadius = 200;
@@ -48,9 +44,6 @@ function EntitiesSpawner(scene, player, collisionManager) {
 		if(distance <= minDistance && !mesh.moving)
 			moveEntity(mesh);
 
-		cube.position.x = player.position.x + minRadius * Math.cos(time*10);
-		cube.position.z = player.position.z + minRadius * Math.sin(time*10);
-
 		mesh.material.emissive.r = Math.max(0, (Math.sin(time)));
 		mesh.material.emissive.r = .2;
 		mesh.material.emissive.b = .2;
@@ -58,5 +51,7 @@ function EntitiesSpawner(scene, player, collisionManager) {
 		
 		const scale = Math.sin(time)+2;
 		mesh.scale.set(scale,scale,scale);
+
+		trees.update(time);
 	}
 }
