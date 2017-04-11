@@ -8,8 +8,10 @@ function Stars(scene, terrainSize) {
     	starsGeometry.vertices[i].multiplyScalar(scalar)
 	}
 
-	// stars
-	const texture = new THREE.TextureLoader().load("textures/particle.png");
+	const textureLoader = new THREE.TextureLoader();
+    textureLoader.setCrossOrigin("anonymous");
+	const texture = textureLoader.load("textures/particle.png");
+
 	const starMaterial = new THREE.PointsMaterial({ map: texture, color: "#fff", size: 10, blending: THREE.AdditiveBlending, transparent: false, opacity: 0.5, alphaTest: 0.25 });
 	const stars = new THREE.Points(starsGeometry, starMaterial);
 	scene.add(stars);

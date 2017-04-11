@@ -21,7 +21,10 @@ function Snow(scene, terrainSize) {
         snowGeometry.vertices.push(particle);
     }
 
-	const texture = new THREE.TextureLoader().load("textures/particle.png");
+    const textureLoader = new THREE.TextureLoader();
+    textureLoader.setCrossOrigin("anonymous");
+	const texture = textureLoader.load("textures/particle.png");
+	
 	const snowMaterial = new THREE.PointsMaterial({ map: texture, color: "#fff", size: 4, blending: THREE.AdditiveBlending, transparent: true, opacity: 0.5, alphaTest: 0.25 });
 	const snow = new THREE.Points(snowGeometry, snowMaterial);
 
