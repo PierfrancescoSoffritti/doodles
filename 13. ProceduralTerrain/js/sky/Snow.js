@@ -1,17 +1,4 @@
-function Skydome(scene, terrainSize) {
-	var starsGeometry = new THREE.IcosahedronGeometry(terrainSize/2, 4);
-	
-    // geometry deformation
-    for (var i=0; i<starsGeometry.vertices.length; i+=1) {
-    	var scalar = 1+ Math.random() + Math.random();
-    	starsGeometry.vertices[i].multiplyScalar(scalar)
-	}
-
-	// stars
-	const texture = new THREE.TextureLoader().load("textures/particle.png");
-	const starMaterial = new THREE.PointsMaterial({ map: texture, color: "#fff", size: 10, blending: THREE.AdditiveBlending, transparent: false, opacity: 0.5, alphaTest: 0.25 });
-	const stars = new THREE.Points(starsGeometry, starMaterial);
-	scene.add(stars);
+function Snow(scene, terrainSize) {
 
 	const snowGeometry = new THREE.Geometry();
 	const range = terrainSize/1.8;
@@ -34,32 +21,15 @@ function Skydome(scene, terrainSize) {
         snowGeometry.vertices.push(particle);
     }
 
-	// snow
+	const texture = new THREE.TextureLoader().load("textures/particle.png");
 	const snowMaterial = new THREE.PointsMaterial({ map: texture, color: "#fff", size: 4, blending: THREE.AdditiveBlending, transparent: true, opacity: 0.5, alphaTest: 0.25 });
 	const snow = new THREE.Points(snowGeometry, snowMaterial);
 
 	let startSnowTime = getRandom(50, 80);
 	const snowDuration = getRandom(100, 200);
 	let isSnowing = false;
-
-	// moon
-	const moonGeometry = new THREE.IcosahedronGeometry(1000, 3);
-	const moonMaterial = new THREE.MeshBasicMaterial({color: "#fff"});
-	const moon = new THREE.Mesh(moonGeometry, moonMaterial);
-	scene.add(moon);
-	moon.position.z = -terrainSize/1.8;
-
-	this.update = function(time, player) {
-		// moon
-		moon.position.x = terrainSize * Math.sin(time*0.01 - Math.PI/2);
-		moon.position.y = terrainSize/2 * Math.cos(time*0.01 - Math.PI/2);
-		// moon.position.z = 50 * Math.cos(time);
-
-		// stars
-		stars.rotation.y -= .0001;
-		stars.rotation.x -= .0001;
-
-		// snow
+	
+	this.update = function(time) {
 		if(time >= startSnowTime && !isSnowing) {
 			scene.add(snow);
 			snow.position.y = 400;
@@ -90,6 +60,6 @@ function Skydome(scene, terrainSize) {
 		        vertex.z = vertex.baseCoords.z;
             }
 		}
-		snowGeometry.verticesNeedUpdate = true;     
+		snowGeometry.verticesNeedUpdate = true;
 	}
 }

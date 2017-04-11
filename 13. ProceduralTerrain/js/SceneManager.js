@@ -5,11 +5,6 @@ function SceneManager(canvas) {
     var height = canvas.height;
 
     var clock = new THREE.Clock();
-
-    var mousePosition = {
-        x: 0,
-        y: 0
-    };
   
     // scene setup
     var scene = new THREE.Scene();
@@ -20,7 +15,7 @@ function SceneManager(canvas) {
 
     var cameraControls;
     var camera = buildCamera(width, height);
-    var cubeCamera = new THREE.CubeCamera(0.5, 20000, 1024);    
+    var cubeCamera = new THREE.CubeCamera(0.5, 20000, 1024);   
     scene.add(cubeCamera);
 
     var renderer = buildRender(width, height);
@@ -33,8 +28,7 @@ function SceneManager(canvas) {
     var sceneSubjects = new Array();
     sceneSubjects.push(terrainSubject);
     sceneSubjects.push(new Skydome(scene, terrainSubject.size));
-    const entitiesSpawner = new EntitiesSpawner(scene, camera, collisionManager)
-    sceneSubjects.push(entitiesSpawner);
+    sceneSubjects.push(new EntitiesSpawner(scene, camera, collisionManager));
 
     function buildLights(scene) {
 
@@ -101,9 +95,9 @@ function SceneManager(canvas) {
     };
 
     this.onWindowResize = function() {
-        var canvas = document.getElementById("canvas");
-        var width = document.body.clientWidth;
-        var height = document.body.clientHeight;
+        const canvas = document.getElementById("canvas");
+        width = document.body.clientWidth;
+        height = document.body.clientHeight;
         canvas.width = width;
         canvas.height = height;
 

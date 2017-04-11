@@ -1,19 +1,16 @@
-function EntitiesSpawner(scene, player, collisionManager) {
-	
+function ElusiveEntity(scene, player, collisionManager) {
 	const material = new THREE.MeshStandardMaterial();
 	const geometry = new THREE.IcosahedronGeometry(1, 2);
 	const mesh = new THREE.Mesh(geometry, material);
 	scene.add(mesh);
-	mesh.animationInProgress = false;
 
-	const trees = new Trees(scene, player, collisionManager);
+	mesh.animationInProgress = false;
 
 	collisionManager.objects.push(mesh);
 
 	const maxRadius = 200;
 	const minRadius = 160;
 	const minDistance = 10;
-	const speed = 3;
 
 	moveEntity(mesh);
 
@@ -22,7 +19,7 @@ function EntitiesSpawner(scene, player, collisionManager) {
 		player.getWorldDirection(dirVector);
 
 		var axis = new THREE.Vector3( 0, 1, 0 );
-		const angle = getRandom(-Math.PI/4, Math.PI/4);
+		const angle = getRandom(-Math.PI/6, Math.PI/6);
 		dirVector.applyAxisAngle( axis, angle );
 
 		const radius = getRandom(minRadius, maxRadius);		
@@ -46,14 +43,14 @@ function EntitiesSpawner(scene, player, collisionManager) {
 				moveEntity(mesh);
 		}
 
-		mesh.material.emissive.r = Math.max(0, (Math.sin(time)));
+		const sinTime = Math.sin(time);
+
+		mesh.material.emissive.r = Math.max(0, sinTime);
 		mesh.material.emissive.r = .2;
 		mesh.material.emissive.b = .2;
 		// mesh.material.emissive.setHSL(Math.sin(time * 0.1), 0.5, 0.5);
 		
-		const scale = Math.sin(time)+2;
+		const scale = sinTime+2;
 		mesh.scale.set(scale,scale,scale);
-
-		trees.update(time);
 	}
 }
