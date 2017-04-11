@@ -1,28 +1,25 @@
 function SceneManager(canvas) {
 	canvas.width = document.body.clientWidth;
     canvas.height = document.body.clientHeight;
+    var width = canvas.width;
+    var height = canvas.height;
 
     var clock = new THREE.Clock();
 
     var mousePosition = {
         x: 0,
-        y: 0,
-        disabled: true
+        y: 0
     };
-
-    var width = canvas.width;
-    var height = canvas.height;
   
+    // scene setup
     var scene = new THREE.Scene();
     scene.background = new THREE.Color("#000033");
-
     scene.fog = new THREE.Fog( "#990099", 1, 4000 )
 
     var light = buildLights(scene);
 
     var cameraControls;
     var camera = buildCamera(width, height);
-
     var cubeCamera = new THREE.CubeCamera(0.5, 20000, 1024);    
     scene.add(cubeCamera);
 
@@ -31,8 +28,8 @@ function SceneManager(canvas) {
     var sceneSubjects = new Array();
     const terrainSubject = new Terrain(scene, cubeCamera);
     sceneSubjects.push(terrainSubject);
-    sceneSubjects.push(new Skydome(scene));
-    // sceneSubjects.push(new EndlessTerrain(scene, camera, 240));
+    sceneSubjects.push(new Skydome(scene, terrainSubject.size));
+    sceneSubjects.push(new EntitiesSpawner(scene, camera, terrainSubject.terrain));
     
     const collisionManager = new TerrainCollisionManager(camera, terrainSubject.terrain);
 
@@ -68,7 +65,6 @@ function SceneManager(canvas) {
 
         camera.position.y = 50;
         camera.position.z = 400;
-        // camera.lookAt(new THREE.Vector3(0,0,0));
 
         cameraControls = new CameraFirstPersonControls(camera);
         return camera;

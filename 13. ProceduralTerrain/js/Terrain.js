@@ -3,21 +3,32 @@ function Terrain(scene, cubecamera) {
     const mapGenerator = new MapGenerator(150, 5, .5, 2, 0, [0, 0], true);
     const map = mapGenerator.generateMap();
 
+    const scale = 15;
+
+    // terrain
     const mesh = new TerrainMeshGenerator().generateTerrainMesh(map, .4, 15, 1).createMesh(cubecamera);
-    mesh.scale.set(15, 15, 15)
+    mesh.scale.set(scale, scale, scale);
+    scene.add(mesh);
 
-    scene.add(mesh)
-
-    this.terrain = mesh;
-
-    var wireframe = new THREE.LineSegments(
+    // terrain wireframe
+    var terrainWireframe = new THREE.LineSegments(
         new THREE.EdgesGeometry(mesh.geometry),
         new THREE.LineBasicMaterial()
     );
+    mesh.add(terrainWireframe)
 
-    mesh.add(wireframe)
+    this.size = mapGenerator.size * scale;
+    this.terrain = mesh;
+
+    // "sea" plane
+    var geometry = new THREE.PlaneGeometry(this.size*2, this.size*2, 32 );
+    var material = new THREE.MeshStandardMaterial({color: "#000001", metalness: .0, roughness: 1 })
+    var plane = new THREE.Mesh( geometry, material );
+    plane.rotation.x = -Math.PI/2;
+    plane.position.y = -10;
+    scene.add(plane);
 
     this.update = function(time) {
-        wireframe.material.color.setHSL(Math.sin(time * 0.1), 0.5, 0.5 );
+        terrainWireframe.material.color.setHSL(Math.sin(time * 0.1), 0.5, 0.5);
     }
 }

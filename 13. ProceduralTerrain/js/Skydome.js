@@ -1,5 +1,5 @@
-function Skydome(scene) {
-	var starsGeometry = new THREE.IcosahedronGeometry(440*9, 4);
+function Skydome(scene, terrainSize) {
+	var starsGeometry = new THREE.IcosahedronGeometry(terrainSize/2, 4);
 	
     // geometry deformation
     for (var i=0; i<starsGeometry.vertices.length; i+=1) {
@@ -13,15 +13,8 @@ function Skydome(scene) {
 	var stars = new THREE.Points(starsGeometry, starMaterial);
 	scene.add(stars);
 
-	// var snowGeometry = new THREE.IcosahedronGeometry(200, 2);	
-    // geometry deformation
- //    for (var i=0; i<snowGeometry.vertices.length; i+=1) {
- //    	var scalar = Math.random() + Math.random();
- //    	snowGeometry.vertices[i].multiplyScalar(scalar)
-	// }
-
 	var snowGeometry = new THREE.Geometry();
-	var range = 440*9;
+	var range = terrainSize/1.8;
     for (var i = 0; i < 1500*10; i++) {
         var particle = new THREE.Vector3(
                 Math.random() * range - range / 2,
@@ -36,18 +29,37 @@ function Skydome(scene) {
 	var texture = new THREE.TextureLoader().load("textures/particle.png");
 	var snowMaterial = new THREE.PointsMaterial({ map: texture, color: "#fff", size: 4, blending: THREE.AdditiveBlending, transparent: true, opacity: 0.5, alphaTest: 0.25 });
 	var snow = new THREE.Points(snowGeometry, snowMaterial);
-	scene.add(snow);
+	// scene.add(snow);
+
+	let startSnowTime = getRandom(50, 150);
+	let snowDuration = getRandom(100, 200);
+	let isSnowing = false;
 
 	this.update = function(time, player) {
 		stars.rotation.y += .0001;
 		stars.rotation.x += .0001;
 
-		// snow.rotation.y += .001;
-		// snow.position.x = player.position.x;
-		// snow.position.z = player.position.z;
+		if(time >= startSnowTime && !isSnowing) {
+			scene.add(snow);
+			snow.position.y = 400;
+			isSnowing = true;
+		}
+
+		if(time-startSnowTime >= snowDuration) {
+			startSnowTime+=time
+			isSnowing = false;
+		}
+
+		if(isSnowing && snow.position.y > 0)
+			snow.position.y -= .1;
+		else if(!isSnowing && snow.position.y > -range/2)
+			snow.position.y -= .1;
+		else if(snow.position.y <= -range/2)
+			scene.remove(snow);
+
+
 		for(let i=0; i<snowGeometry.vertices.length; i++) {
 			const vertex = snowGeometry.vertices[i];
-			// vertex.y -= 0.1;
 			vertex.y -= vertex.velocityY;
             vertex.x -= vertex.velocityX;
 
@@ -57,6 +69,6 @@ function Skydome(scene) {
                 vertex.z = Math.random() * range - range / 2;
             }
 		}
-		snowGeometry.verticesNeedUpdate = true;        
+		snowGeometry.verticesNeedUpdate = true;     
 	}
 }
