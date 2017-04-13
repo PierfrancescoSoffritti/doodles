@@ -10,7 +10,7 @@ function TerrainCollisionManager(terrain) {
         const collisionResults = raycaster.intersectObject(terrain);
 
         if (collisionResults.length > 0) 
-            return collisionResults[0].point.y+16;
+            return collisionResults[0].point.y;
         else
             return null;
     }

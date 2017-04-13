@@ -45,10 +45,10 @@ function ElusiveEntity(scene, player, collisionManager) {
 
 		const sinTime = Math.sin(time);
 
-		mesh.material.emissive.r = Math.max(0, sinTime);
-		mesh.material.emissive.r = .2;
-		mesh.material.emissive.b = .2;
-		// mesh.material.emissive.setHSL(Math.sin(time * 0.1), 0.5, 0.5);
+		// mesh.material.emissive.r = Math.max(0, sinTime);
+		// mesh.material.emissive.r = .2;
+		// mesh.material.emissive.b = .2;
+		mesh.material.emissive.setHSL(Math.sin(time * 0.1), 0.5, 0.5);
 		
 		const scale = sinTime+2;
 		mesh.scale.set(scale,scale,scale);

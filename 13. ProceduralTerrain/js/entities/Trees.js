@@ -1,22 +1,24 @@
 function Trees(scene, player, collisionManager) {
 
+	const minRadius = 80;
+	const maxRadius = 160;
+	const maxDistance = 180;
+
+	const height = 20;
+
 	var cube = new THREE.LineSegments(
-        new THREE.EdgesGeometry( new THREE.BoxGeometry(4, 10, 4) ),
+        new THREE.EdgesGeometry( new THREE.BoxGeometry(4, height, 4) ),
         new THREE.LineBasicMaterial()
     );
 	scene.add(cube);
 
-	cubes = [cube];
+	const cubes = [cube];
 
 	for(let i=1; i<20; i++) {
 		cubes.push(cube.clone());
 		cubes[i].animationInProgress = false;
 		scene.add(cubes[i]);
 	}
-
-	const minRadius = 80;
-	const maxRadius = 160;
-	const maxDistance = 180;
 
 	function moveTree(cube) {
 		const angle = getRandom(0, Math.PI*2);
@@ -31,7 +33,7 @@ function Trees(scene, player, collisionManager) {
 				
 				const x = player.position.x + radius * Math.cos(angle);
 				const z = player.position.z + radius * Math.sin(angle);
-				let y = collisionManager.getY(x, z);
+				let y = collisionManager.getY(x, z) + height/2;
 
 				if(y === null)
 					y = 0;

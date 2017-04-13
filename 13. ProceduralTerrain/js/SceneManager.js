@@ -32,6 +32,9 @@ function SceneManager(canvas) {
 
     function buildLights(scene) {
 
+        var light = new THREE.HemisphereLight( 0xffffbb, 0x080820, 1 );
+        scene.add( light );
+
         var light = new THREE.SpotLight("#2222ff", 1);
         light.castShadow = true;
         light.position.y = 700;
