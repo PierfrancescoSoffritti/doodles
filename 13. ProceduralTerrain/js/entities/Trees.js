@@ -1,15 +1,10 @@
 function Trees(scene, player, collisionManager) {
 
-	var cubeGeometry = new THREE.BoxGeometry(4, 10, 4);
-	var cubeMaterial = new THREE.MeshBasicMaterial( {color: "#00000a", wireframe: false} );
-	var cube = new THREE.Mesh( cubeGeometry, cubeMaterial );
-	scene.add(cube);
-
-	var cubeWireframe = new THREE.LineSegments(
-        new THREE.EdgesGeometry(cube.geometry),
+	var cube = new THREE.LineSegments(
+        new THREE.EdgesGeometry( new THREE.BoxGeometry(4, 10, 4) ),
         new THREE.LineBasicMaterial()
     );
-    cube.add(cubeWireframe)
+	scene.add(cube);
 
 	cubes = [cube];
 
@@ -36,7 +31,10 @@ function Trees(scene, player, collisionManager) {
 				
 				const x = player.position.x + radius * Math.cos(angle);
 				const z = player.position.z + radius * Math.sin(angle);
-				const y = collisionManager.getY(x, z);
+				let y = collisionManager.getY(x, z);
+
+				if(y === null)
+					y = 0;
 
 				cube.position.x = x;
 				cube.position.z = z;
@@ -58,12 +56,5 @@ function Trees(scene, player, collisionManager) {
 					moveTree(cube);
 			}
 		}
-
-		const position = Math.sin(time)/10;
-		cube.geometry.vertices[0].y -= position
-		cube.geometry.vertices[1].y -= position
-		cube.geometry.vertices[4].y -= position
-		cube.geometry.vertices[5].y -= position
-		cube.geometry.verticesNeedUpdate = true; 
 	}
 }
