@@ -30,7 +30,7 @@ function FollowerEntity(scene, player, collisionManager) {
 		const x = this.player.position.x + radius * Math.cos(angle);
 		const z = this.player.position.z + radius * Math.sin(angle);
 		let y = this.collisionManager.getY(x, z) + this.height/2;
-
+		
 		if(y === null)
 			y = 0;
 
