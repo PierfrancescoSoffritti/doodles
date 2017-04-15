@@ -24,7 +24,7 @@ function Snow(scene, terrainSize) {
     const textureLoader = new THREE.TextureLoader();
     textureLoader.setCrossOrigin("anonymous");
 	const texture = textureLoader.load("textures/particle.png");
-	
+
 	const snowMaterial = new THREE.PointsMaterial({ map: texture, color: "#fff", size: 4, blending: THREE.AdditiveBlending, transparent: true, opacity: 0.5, alphaTest: 0.25 });
 	const snow = new THREE.Points(snowGeometry, snowMaterial);
 
@@ -33,6 +33,7 @@ function Snow(scene, terrainSize) {
 	let isSnowing = false;
 	
 	this.update = function(time) {
+		
 		if(time >= startSnowTime && !isSnowing) {
 			scene.add(snow);
 			snow.position.y = 400;

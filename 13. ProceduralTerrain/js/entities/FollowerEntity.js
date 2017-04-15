@@ -1,7 +1,10 @@
 function FollowerEntity(scene, player, collisionManager) {
+	const self = this;
+
 	this.minRadius = 40;
 	this.maxRadius = 160;
 	this.maxDistance = 180;
+	this.animationTime = 300;
 
 	this.height = 4;
 
@@ -30,6 +33,7 @@ function FollowerEntity(scene, player, collisionManager) {
 		const x = this.player.position.x + radius * Math.cos(angle);
 		const z = this.player.position.z + radius * Math.sin(angle);
 		let y = this.collisionManager.getY(x, z) + this.height/2;
+		// let y = this.player.position.y;
 		
 		if(y === null)
 			y = 0;
@@ -42,7 +46,7 @@ function FollowerEntity(scene, player, collisionManager) {
 
 		createjs.Tween
 			.get(entity.position, {override:true})
-			.to({y: - this.height }, 300, createjs.Ease.cubicInOut)
+			.to({y: - this.height }, this.animationTime, createjs.Ease.cubicInOut)
 			.call(function() { 
 
 				entity.position.x = x;
@@ -62,7 +66,7 @@ function FollowerEntity(scene, player, collisionManager) {
 
 		createjs.Tween
 			.get(entity.position, {override:true})
-			.to({y: y}, 300, createjs.Ease.cubicInOut)
+			.to({y: y}, self.animationTime, createjs.Ease.cubicInOut)
 			.call(function() {
 				entity.animationInProgress = false;
 			});

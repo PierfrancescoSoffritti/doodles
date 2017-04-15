@@ -20,14 +20,6 @@ function Terrain(scene, cubecamera) {
     this.size = mapGenerator.size * scale;
     this.terrain = mesh;
 
-    // "sea" plane
-    var geometry = new THREE.PlaneGeometry(this.size*2, this.size*2, 32 );
-    var material = new THREE.MeshStandardMaterial({color: "#000001", metalness: .0, roughness: 1 })
-    var plane = new THREE.Mesh( geometry, material );
-    plane.rotation.x = -Math.PI/2;
-    plane.position.y = -10;
-    scene.add(plane);
-
     this.update = function(time) {
         terrainWireframe.material.color.setHSL(Math.sin(time * 0.1), 0.5, 0.5);
     }

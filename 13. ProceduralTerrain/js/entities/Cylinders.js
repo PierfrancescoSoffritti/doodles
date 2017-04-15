@@ -3,6 +3,7 @@ function Cylinders(scene, player, collisionManager) {
 	this.minRadius = 80;
 	this.maxRadius = 160;
 	this.maxDistance = 180;
+	this.animationTime = 300;
 
 	this.height = 15;
 
