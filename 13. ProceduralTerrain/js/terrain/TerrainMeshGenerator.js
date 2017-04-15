@@ -58,7 +58,7 @@ function TerrainMeshGenerator() {
 			geometry.computeVertexNormals();
 
 			var mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({color: "#000001", wireframe: false,
-				metalness: .0, roughness: 1 }));
+				metalness: .0, roughness: 1, shading: THREE.SmoothShading }));
 
 			mesh.material.envMap = cubeCamera.renderTarget.texture;
 			return mesh;

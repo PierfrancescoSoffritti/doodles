@@ -10,12 +10,7 @@ function Cylinders(scene, player, collisionManager) {
 	this.player = player;
 	this.entities = [];
 	this.collisionManager = collisionManager;
-
-	// const wireframe = new THREE.LineSegments(
- //        new THREE.EdgesGeometry( new THREE.BoxGeometry(4, this.height, 4) ),
- //        new THREE.LineBasicMaterial()
- //    );
-
+	
  	const wireframeMaterial = new THREE.LineBasicMaterial();
 
  	const wireframeBig = new THREE.LineSegments(
