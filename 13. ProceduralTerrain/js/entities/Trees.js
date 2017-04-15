@@ -1,9 +1,9 @@
 function Trees(scene, player, collisionManager) {
 	const self = this;
 
-	this.minRadius = 80;
-	this.maxRadius = 160;
-	this.maxDistance = 180;
+	this.minRadius = 160;
+	this.maxRadius = 260;
+	this.maxDistance = 265;
 	this.animationTime = 1000;
 
 	this.height = 220;

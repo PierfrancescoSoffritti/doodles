@@ -22,7 +22,7 @@ function Grass(scene, player, collisionManager) {
         material
     );
 
-	for(let i=0; i<20; i++) {
+	for(let i=0; i<40; i++) {
 		const grassBig = grassBlueprint.clone();
 		const grassSmall = grassBlueprintSmall.clone();
 		const grassSmall2 = grassBlueprintSmall.clone();
