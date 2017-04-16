@@ -13,22 +13,22 @@ function SceneManager(canvas) {
 
     var light = buildLights(scene);
 
-    var cameraControls;
     var camera = buildCamera(width, height);
     var cubeCamera = new THREE.CubeCamera(0.5, 20000, 1024);   
     scene.add(cubeCamera);
-
     var renderer = buildRender(width, height);
 
     const terrainSubject = new Terrain(scene, cubeCamera);
 
     const collisionManager = new TerrainCollisionManager(terrainSubject.terrain);
-    collisionManager.objects.push(camera)
+
+    const cameraControls = new PointerLockManager(camera, scene, collisionManager);
+    const player = cameraControls.getObject();
     
     var sceneSubjects = new Array();
     sceneSubjects.push(terrainSubject);
     sceneSubjects.push(new Skydome(scene, terrainSubject.size));
-    sceneSubjects.push(new EntitiesSpawner(scene, camera, collisionManager));
+    sceneSubjects.push(new EntitiesSpawner(scene, player, collisionManager));
 
     function buildLights(scene) {
 
@@ -63,10 +63,6 @@ function SceneManager(canvas) {
         var farPlane = 7000; 
         var camera = new THREE.PerspectiveCamera(fieldOfView, aspectRatio, nearPlane, farPlane);
 
-        camera.position.y = 50;
-        camera.position.z = 400;
-
-        cameraControls = new CameraFirstPersonControls(camera);
         return camera;
     }
 
@@ -85,13 +81,13 @@ function SceneManager(canvas) {
     this.update = function() {
 
         for(var i=0; i<sceneSubjects.length; i++)
-        	sceneSubjects[i].update(clock.getElapsedTime(), camera);
+        	sceneSubjects[i].update(clock.getElapsedTime(), player);
 
-        cameraControls.update(clock.getDelta());
+        cameraControls.update();
         collisionManager.update();
 
-        cubeCamera.position.x = camera.position.x;
-        cubeCamera.position.z = camera.position.z;
+        cubeCamera.position.x = player.position.x;
+        cubeCamera.position.z = player.position.z;
         cubeCamera.updateCubeMap(renderer, scene);
 
         renderer.render(scene, camera);

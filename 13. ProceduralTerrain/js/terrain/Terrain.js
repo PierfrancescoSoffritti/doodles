@@ -11,16 +11,16 @@ function Terrain(scene, cubecamera) {
     scene.add(mesh);
 
     // terrain wireframe
-    // var terrainWireframe = new THREE.LineSegments(
-    //     new THREE.EdgesGeometry(mesh.geometry),
-    //     new THREE.LineBasicMaterial()
-    // );
-    // mesh.add(terrainWireframe)
+    var terrainWireframe = new THREE.LineSegments(
+        new THREE.EdgesGeometry(mesh.geometry),
+        new THREE.LineBasicMaterial()
+    );
+    mesh.add(terrainWireframe)
 
     this.size = mapGenerator.size * scale;
     this.terrain = mesh;
 
     this.update = function(time) {
-        // terrainWireframe.material.color.setHSL(Math.sin(time * 0.1), 0.5, 0.5);
+        terrainWireframe.material.color.setHSL(Math.sin(time * 0.1), 0.5, 0.5);
     }
 }

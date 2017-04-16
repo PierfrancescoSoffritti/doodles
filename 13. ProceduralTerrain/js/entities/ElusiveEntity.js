@@ -10,16 +10,16 @@ function ElusiveEntity(scene, player, collisionManager) {
 
 	const maxRadius = 200;
 	const minRadius = 160;
-	const minDistance = 10;
+	const minDistance = 20;
 
 	moveEntity(mesh);
 
 	function moveEntity(mesh) {
 		var dirVector = new THREE.Vector3();
-		player.getWorldDirection(dirVector);
+		player.controls.getDirection(dirVector);
 
 		var axis = new THREE.Vector3( 0, 1, 0 );
-		const angle = getRandom(-Math.PI/6, Math.PI/6);
+		const angle = getRandom(-Math.PI/2, Math.PI/2);
 		dirVector.applyAxisAngle( axis, angle );
 
 		const radius = getRandom(minRadius, maxRadius);		

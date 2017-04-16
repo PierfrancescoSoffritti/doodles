@@ -7,16 +7,26 @@
 </head>
 
 <body>
+	<div id="blocker">
+		<div id="instructions">
+			<span style="font-size:40px">Click to play</span>
+			<br />
+			(W, A, S, D = Move, SPACE = Jump, MOUSE = Look around)
+		</div>
+	</div>
+
 	<canvas id="canvas"></canvas>
   	
   	<script src="https://code.createjs.com/tweenjs-0.6.2.min.js"></script>
 	<script src='js/libs/three.min.js'></script>
 	<script src='js/libs/PRNG.js'></script>
 	<script src='js/libs/SimplexNoise.js'></script>
+	<script src='js/libs/PointerLockControls.js'></script>
 
 	<script src='js/Utils.js'></script>
 	
 	<script src='js/cameraControls/CameraFirstPersonControls.js'></script>
+	<script src='js/cameraControls/PointerLockManager.js'></script>
 	
 	<script src='js/terrain/Noise.js'></script>
 	<script src='js/terrain/FalloffGenerator.js'></script>
