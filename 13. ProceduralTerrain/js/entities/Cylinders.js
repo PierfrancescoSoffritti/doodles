@@ -3,7 +3,6 @@ function Cylinders(scene, player, collisionManager) {
 	this.minRadius = 80;
 	this.maxRadius = 160;
 	this.maxDistance = 180;
-	this.animationTime = 300;
 
 	this.height = 15;
 
@@ -34,8 +33,14 @@ function Cylinders(scene, player, collisionManager) {
 	cylinderSmall.add(wireframeSmall)
 
 	for(let i=0; i<20; i++) {
-		if(i%2 === 0)
-			this.entities.push(wireframeBig.clone());
+		if(i%2 === 0) {
+
+			const wireframeCopy = wireframeBig.clone()
+			wireframeCopy.animationTimeIn = getRandom(250, 350);
+			wireframeCopy.animationTimeOut = getRandom(250, 350);
+
+			this.entities.push(wireframeCopy);
+		}
 		else {
 			const small = cylinderSmall.clone()
 			const group = new THREE.Group();
@@ -45,6 +50,9 @@ function Cylinders(scene, player, collisionManager) {
 			small.position.x -= getRandom(-6, 6);
 			small.position.z += getRandom(-6, 4)
 			small.position.y -= this.height/4
+
+			group.animationTimeIn = getRandom(250, 350);
+			group.animationTimeOut = getRandom(250, 350);
 
 			this.entities.push(group);
 		}

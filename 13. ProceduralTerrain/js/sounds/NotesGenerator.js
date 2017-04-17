@@ -31,15 +31,14 @@ function NotesGenerator(fftSize) {
         if(gainValue !== undefined)
             gainNode.gain.value = gainValue;
 
-        console.log( gainNode.gain.value)
-
         // generate sound
         oscillator.connect(gainNode);
         gainNode.connect(analyser);
         analyser.connect(context.destination);
 
         oscillator.start(0);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 2);
+        // gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 2);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + getRandomInt(1, 4));
 
         oscillator.stop(context.currentTime + 2);        
     }

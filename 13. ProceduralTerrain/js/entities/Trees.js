@@ -4,7 +4,6 @@ function Trees(scene, player, collisionManager) {
 	this.minRadius = 160;
 	this.maxRadius = 260;
 	this.maxDistance = 265;
-	this.animationTime = 1000;
 
 	this.height = 220;
 
@@ -24,6 +23,9 @@ function Trees(scene, player, collisionManager) {
 
 			const tree = treeMesh.clone();
 			tree.scale.set(scale, scale*1.5, scale);
+
+			tree.animationTimeIn = getRandom(600, 800);
+			tree.animationTimeOut = getRandom(600, 800);
 
 			self.entities.push(tree);
 			self.entities[i].animationInProgress = false;

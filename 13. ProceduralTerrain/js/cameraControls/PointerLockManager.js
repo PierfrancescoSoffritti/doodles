@@ -106,7 +106,7 @@ function PointerLockManager(camera, scene, collisionManager) {
 		document.addEventListener( 'keyup', onKeyUp, false );
 	}
 
-	const speed = 200;
+	const speed = 150;
 	const deltaTime = 0.06;
 
 	this.update = function() {

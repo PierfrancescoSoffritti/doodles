@@ -1,12 +1,12 @@
 function FollowerEntity(scene, player, collisionManager) {
-	const self = this;
+	this.minRadius;
+	this.maxRadius;
+	this.maxDistance;
 
-	this.minRadius = 40;
-	this.maxRadius = 160;
-	this.maxDistance = 180;
-	this.animationTime = 300;
+	this.animationTimeIn;
+	this.animationTimeOut;
 
-	this.height = 4;
+	this.height;
 
 	this.player;
 	this.entities = [];
@@ -50,9 +50,12 @@ function FollowerEntity(scene, player, collisionManager) {
 	this.animateOut = function(entity, x, y, z, animateIn) {
 		entity.animationInProgress = true;
 
+		const animationOutDuration = this.animationTimeOut;
+		const animationInDuration = this.animationTimeIn;
+
 		createjs.Tween
 			.get(entity.position, {override:true})
-			.to({y: - this.height }, this.animationTime, createjs.Ease.cubicInOut)
+			.to({y: - this.height/2 }, entity.animationTimeOut, createjs.Ease.cubicInOut)
 			.call(function() { 
 
 				entity.position.x = x;
@@ -62,17 +65,17 @@ function FollowerEntity(scene, player, collisionManager) {
 					entity.position.y = y;
 					entity.animationInProgress = false;
 				} else {
-					animateIn(entity, y);
+					animateIn(entity, y, animationInDuration);
 				}
 			});
 	}
 
-	this.animateIn = function(entity, y) {
+	this.animateIn = function(entity, y, animationInDuration) {
 		entity.animationInProgress = true;
-
+		
 		createjs.Tween
 			.get(entity.position, {override:true})
-			.to({y: y}, self.animationTime, createjs.Ease.cubicInOut)
+			.to({y: y}, entity.animationTimeIn, createjs.Ease.cubicInOut)
 			.call(function() {
 				entity.animationInProgress = false;
 			});

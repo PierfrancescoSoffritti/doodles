@@ -3,7 +3,6 @@ function Grass(scene, player, collisionManager) {
 	this.minRadius = 40;
 	this.maxRadius = 160;
 	this.maxDistance = 180;
-	this.animationTime = 300;
 
 	this.height = 4;
 
@@ -40,6 +39,9 @@ function Grass(scene, player, collisionManager) {
 	    group.add(grassSmall)
 	    group.add(grassSmall2)
 	    group.rotation.y = getRandom(0, Math.PI*2);
+
+	    group.animationTimeIn = getRandom(250, 350);
+		group.animationTimeOut = getRandom(250, 350);
 
 		this.entities.push(group);
 		this.entities[i].animationInProgress = false;
