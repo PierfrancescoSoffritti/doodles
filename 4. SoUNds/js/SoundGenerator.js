@@ -51,6 +51,8 @@ function SoundGenerator(fftSize) {
 
         oscillator.start(0);
         gain.gain.exponentialRampToValueAtTime(0.00001, context.currentTime + 1);
+
+        oscillator.stop(context.currentTime + 1);
     })
 
     $("body").keyup(event => { 

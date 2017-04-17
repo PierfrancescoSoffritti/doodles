@@ -18,6 +18,8 @@ function FollowerEntity(scene, player, collisionManager) {
 
 		this.player.controls.getDirection(this.forwardVector);
 		this.forwardVector.multiplyScalar(60);
+
+		let isMoving = false;
 		
 		for(let i=0; i<this.entities.length; i++) {
 			
@@ -25,10 +27,14 @@ function FollowerEntity(scene, player, collisionManager) {
 
 			if(!entity.animationInProgress) {
 				const distance = Math.sqrt(Math.pow( (this.player.position.x + this.forwardVector.x) - entity.position.x, 2) + Math.pow( (this.player.position.z + this.forwardVector.z) - entity.position.z, 2));
-				if(distance >= this.maxDistance)
+				if(distance >= this.maxDistance) {
 					this.move(entity);
+					isMoving = true;
+				}
 			}
 		}
+
+		return isMoving;
 	}
 
 	this.move = function(entity) {

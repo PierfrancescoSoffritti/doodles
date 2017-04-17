@@ -2,3 +2,21 @@ html, body {
     overflow: hidden;
     margin: 0;
 }
+
+#blocker { 
+	position: fixed; 
+	top: 50%; 
+	left: 50%; 
+	-webkit-transform: translate(-50%, -50%); 
+	transform: translate(-50%, -50%);
+
+	color: white;
+}
+
+.pointer_wrapper { 
+	position: fixed; 
+	top: 50%; 
+	left: 50%; 
+	-webkit-transform: translate(-50%, -50%); 
+	transform: translate(-50%, -50%); 
+}

@@ -14,8 +14,16 @@
 			(W, A, S, D = Move, SPACE = Jump, MOUSE = Look around)
 		</div>
 	</div>
+	
+	<svg class = "pointer_wrapper" expanded = "true" height = "50px" width = "50px">
+		<circle cx = "50%" cy = "50%" r = "2%" stroke = "#fff" stroke-width = "6%" fill = "none">
+			<animate id="pointerGrow" attributeName="r" begin="indefinite" dur=".15s" repeatCount="1" from="2%" to="15%" fill="freeze"/>
+			<animate id="pointerShrink" attributeName="r" begin="indefinite" dur=".15s" repeatCount="1" from="15%" to="2%" fill="freeze"/>
+		</circle>
+    </svg>
 
 	<canvas id="canvas"></canvas>
+
   	
   	<script src="https://code.createjs.com/tweenjs-0.6.2.min.js"></script>
 	<script src='js/libs/three.min.js'></script>
@@ -37,6 +45,9 @@
 	<script src="js/terrain/Terrain.js"></script>
 	<script src="js/terrain/EndlessTerrain.js"></script>
 
+	<script src="js/ViewFinderManager.js"></script>
+
+	<script src="js/sounds/MusicManager.js"></script>
 	<script src="js/sounds/NotesGenerator.js"></script>
 	<script src="js/sounds/BackgroundTuneGenerator.js"></script>
 
