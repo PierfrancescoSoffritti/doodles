@@ -27,11 +27,11 @@ function EventBus() {
      * @param  {[string]} eventType [event]
      * @param  {[object]} argument  [an optional argument]
      */
-    this.post = function (eventType, argument) {
+    this.post = function (eventType, argument1, argument2) {
         // call every callback of the event
         eventObjects
             .filter(function (eventObject) { return eventObject.eventType == eventType; })
-            .forEach(function (eventObject) { eventObject.callbacks.forEach(function (callback) { callback(argument) }) });
+            .forEach(function (eventObject) { eventObject.callbacks.forEach(function (callback) { callback(argument1, argument2) }) });
     }
 
     /**

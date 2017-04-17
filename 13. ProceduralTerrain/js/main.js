@@ -12,6 +12,7 @@ const eventBus = new EventBus();
 
 const fftSize = 16384;
 const notesGenerator = new NotesGenerator(fftSize);
+const backgroundTuneGenerator = new BackgroundTuneGenerator();
 var sceneManager = new SceneManager(canvas);
 
 render();

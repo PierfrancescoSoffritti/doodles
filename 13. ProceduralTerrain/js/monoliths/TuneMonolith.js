@@ -24,7 +24,7 @@ function TuneMonolith(scene, collisionManager) {
 		if(cube.position.y <= 0) {
 			const y = collisionManager.getY(cube.position.x, cube.position.z);
 			if(y !== null)
-				cube.position.y = y + size*2;
+				cube.position.y = y + size/2;
 		}
 	}
 }

@@ -9,44 +9,39 @@ function NotesGenerator(fftSize) {
     analyser.smoothingTimeConstant = 0.7;
     analyser.fftSize = fftSize;
 
-    var waveForm = "triangle";
-    var fact = 0;
-
     eventBus.subscribe(tuneMonolithClick, playNote);
 
     let timeout = null;
 
-    function playNote() {
+    function playNote(waveFormIndx, gainValue) {
         const i = getRandomInt(0, notesArray.length-1);
-        fact = getRandomInt(-2, 5);
-        waveForm = getWaveForm(getRandomInt(1, 5));
+        const fact = getRandomInt(-2, 5);
+        
+        let waveForm;
+        if(!waveFormIndx)
+            waveForm = getWaveForm(getRandomInt(1, 4));
+        else
+            waveForm = getWaveForm(waveFormIndx);
 
-        var oscillator = context.createOscillator();
+        const oscillator = context.createOscillator();
         oscillator.type = waveForm;
         oscillator.frequency.value = notesArray[i] * Math.pow(2, fact);
 
-        var gain = context.createGain();
+        const gainNode = context.createGain();
+        if(gainValue !== undefined)
+            gainNode.gain.value = gainValue;
+
+        console.log( gainNode.gain.value)
 
         // generate sound
-        oscillator.connect(gain);
-        gain.connect(analyser);
+        oscillator.connect(gainNode);
+        gainNode.connect(analyser);
         analyser.connect(context.destination);
 
         oscillator.start(0);
-        gain.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 2);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 2);
 
-        oscillator.stop(context.currentTime + 2);
-
-        // if(timeout !== null)
-        //     clearTimeout(timeout);
-
-        // timeout = setTimeout(function() {
-        //     oscillator.stop(0);
-
-        //     timeout = null;
-        // }, 1000);
-
-        
+        oscillator.stop(context.currentTime + 2);        
     }
 
     // return the current frequency data
@@ -71,7 +66,7 @@ function NotesGenerator(fftSize) {
             case 2: return "square";
             case 3: return "triangle";
             case 4: return "sawtooth";
-            default: return waveForm;
+            default: console.error(key +" is not a valid waveform");
         }
     }
 
