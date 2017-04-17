@@ -29,11 +29,12 @@ function SceneManager(canvas) {
     sceneSubjects.push(terrainSubject);
     sceneSubjects.push(new Skydome(scene, terrainSubject.size));
     sceneSubjects.push(new EntitiesSpawner(scene, player, collisionManager));
+    sceneSubjects.push(new MonolithsSpawner(scene, player, collisionManager, terrainSubject.size, cubeCamera));
 
     function buildLights(scene) {
 
-        var light = new THREE.HemisphereLight( 0xffffbb, 0x080820, 1 );
-        scene.add( light );
+        // var light = new THREE.HemisphereLight( 0xffffbb, 0x080820, 1 );
+        // scene.add( light );
 
         var light = new THREE.SpotLight("#2222ff", 1);
         light.castShadow = true;
@@ -60,7 +61,7 @@ function SceneManager(canvas) {
         var aspectRatio = width / height;
         var fieldOfView = 60;
         var nearPlane = 0.01;
-        var farPlane = 7000; 
+        var farPlane = 10000; 
         var camera = new THREE.PerspectiveCamera(fieldOfView, aspectRatio, nearPlane, farPlane);
 
         return camera;

@@ -1,6 +1,6 @@
 function Stars(scene, terrainSize) {
 	
-	var starsGeometry = new THREE.IcosahedronGeometry(terrainSize/2, 4);
+	var starsGeometry = new THREE.IcosahedronGeometry(terrainSize, 4);
 	
     // geometry deformation
     for (var i=0; i<starsGeometry.vertices.length; i+=1) {
