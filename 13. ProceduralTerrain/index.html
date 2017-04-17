@@ -2,19 +2,22 @@
 <html >
 <head>
   <meta charset="UTF-8">
-  <title>ProceduralLand</title>  
-      <link rel="stylesheet" href="css/style.css"> 
+  <title>ProceduralLand</title> 
+  	<link href="https://fonts.googleapis.com/css?family=Poppins:300,400,700" rel="stylesheet">
+  	<link href="https://fonts.googleapis.com/css?family=Comfortaa:300" rel="stylesheet">
+  	
+  	<link rel="stylesheet" href="css/style.css"> 
 </head>
 
 <body>
 	<div id="blocker">
 		<div id="instructions">
-			<span style="font-size:40px">Click to play</span>
+			<span style="font-size:40px">CLICK TO PLAY</span>
 			<br />
-			(W, A, S, D = Move, SPACE = Jump, MOUSE = Look around)
+			(W, A, S, D = Move, MOUSE = Look around)
 		</div>
 	</div>
-	
+
 	<svg class = "pointer_wrapper" expanded = "true" height = "50px" width = "50px">
 		<circle cx = "50%" cy = "50%" r = "2%" stroke = "#fff" stroke-width = "6%" fill = "none">
 			<animate id="pointerGrow" attributeName="r" begin="indefinite" dur=".15s" repeatCount="1" from="2%" to="15%" fill="freeze"/>

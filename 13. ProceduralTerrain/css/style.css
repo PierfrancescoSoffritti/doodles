@@ -1,3 +1,11 @@
+html {
+    color: #222;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.4;
+    font-family: 'Poppins', sans-serif;
+}
+
 html, body {
     overflow: hidden;
     margin: 0;
@@ -9,6 +17,8 @@ html, body {
 	left: 50%; 
 	-webkit-transform: translate(-50%, -50%); 
 	transform: translate(-50%, -50%);
+
+	text-align: center;
 
 	color: white;
 }

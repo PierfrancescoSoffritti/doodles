@@ -51,8 +51,8 @@ function SceneManager(canvas) {
 
         scene.add(light);
 
-        var spotLightHelper = new THREE.SpotLightHelper( light );
-		scene.add( spotLightHelper )
+  //       var spotLightHelper = new THREE.SpotLightHelper( light );
+		// scene.add( spotLightHelper )
 
         return light;
     }
