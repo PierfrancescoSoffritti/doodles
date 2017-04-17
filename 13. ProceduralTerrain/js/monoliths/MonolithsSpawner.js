@@ -14,6 +14,20 @@ function MonolithsSpawner(scene, player, collisionManager, terrainSize, cubeCame
 	const forwardVector = new THREE.Vector3();
 	const maxDistance = 50;
 
+	let mouseDown = false;
+
+	document.addEventListener("click", function() {
+    	mouseDown = true;
+	})
+
+	document.addEventListener("mousedown", function() {
+    	// mouseDown = true;
+	})
+
+	document.addEventListener("mouseup", function() {
+    	// mouseDown = false;
+	})
+
 	this.update = function(time) {
 		for(let i=0; i<octahedrons.length; i++)
 			octahedrons[i].update(time);
@@ -31,7 +45,9 @@ function MonolithsSpawner(scene, player, collisionManager, terrainSize, cubeCame
 	        const collisionResults = raycaster.intersectObject(monoliths[0].mesh);
 
 	        if (collisionResults.length > 0)
-	            monoliths[0].action();
+	            monoliths[0].action(mouseDown);
 		}
+
+		mouseDown = false;
 	}
 }

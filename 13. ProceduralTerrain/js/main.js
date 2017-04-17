@@ -8,6 +8,10 @@ window.onresize = resizeCanvas;
 
 resizeCanvas();
 
+const eventBus = new EventBus();
+
+const fftSize = 16384;
+const notesGenerator = new NotesGenerator(fftSize);
 var sceneManager = new SceneManager(canvas);
 
 render();
