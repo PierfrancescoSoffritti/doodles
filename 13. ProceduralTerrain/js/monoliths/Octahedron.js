@@ -47,7 +47,7 @@ function Octahedron(scene, collisionManager, x, z, cubeCamera) {
 		small2.position.y = main.position.y + rad * Math.sin(-ang1*speed2) * Math.sin(-ang2*speed2)
 		small2.position.z = main.position.z + rad * Math.cos(-ang1*speed2)
 
-		const scale = (Math.sin(time)+6)/7;
+		const scale = (Math.sin(time*0.6)+6)/7;
 		main.scale.set(scale, scale, scale);
 	}
 }
