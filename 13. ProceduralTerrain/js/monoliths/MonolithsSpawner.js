@@ -9,7 +9,7 @@ function MonolithsSpawner(scene, player, collisionManager, terrainSize, cubeCame
 		octahedrons.push(new Octahedron(scene, collisionManager, x, z, cubeCamera))
 	}
 
-	monoliths.push(new TuneMonolith(scene, collisionManager))
+	monoliths.push(new TuneMonolithGroup(scene, collisionManager))
 
 	const forwardVector = new THREE.Vector3();
 	const maxDistance = 50;
@@ -36,20 +36,12 @@ function MonolithsSpawner(scene, player, collisionManager, terrainSize, cubeCame
 		
 		player.controls.getDirection(forwardVector);
 		const raycaster = new THREE.Raycaster(player.position, forwardVector)
+
 		for(let i=0; i<monoliths.length; i++) {
 
 			monoliths[i].update(time);
 
-			// const distance = Math.sqrt(Math.pow(player.position.x - monoliths[0].mesh.position.x, 2) + Math.pow(player.position.z - monoliths[0].mesh.position.z, 2));
-			// if(distance > maxDistance)
-			// 	continue;
-
-	        const collisionResults = raycaster.intersectObject(monoliths[0].mesh);
-
-	        if (collisionResults.length > 0) {
-	            monoliths[0].action(mouseDown);
-	            isActionAvailable = true;
-	        }
+			isActionAvailable = isActionAvailable || monoliths[i].checkCollision(raycaster, mouseDown);
 		}
 
 		if(isActionAvailable) {
