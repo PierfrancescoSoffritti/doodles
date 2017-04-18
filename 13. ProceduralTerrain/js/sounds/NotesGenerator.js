@@ -9,17 +9,17 @@ function NotesGenerator(fftSize) {
     analyser.smoothingTimeConstant = 0.7;
     analyser.fftSize = fftSize;
 
-    eventBus.subscribe(tuneMonolithClick, playNote);
-
-    let timeout = null;
-
-    function playNote(waveFormIndx, gainValue) {
+    this.playNote = function(waveFormIndx, gainValue, maxFactor, useLinear) {
         const i = getRandomInt(0, notesArray.length-1);
-        const fact = getRandomInt(-2, 5);
+
+        if(maxFactor === undefined)
+            maxFactor = 5;
+
+        const fact = getRandomInt(-2, maxFactor);
         
         let waveForm;
         if(!waveFormIndx)
-            waveForm = getWaveForm(getRandomInt(1, 4));
+            waveForm = getWaveForm(getRandomInt(1, 3));
         else
             waveForm = getWaveForm(waveFormIndx);
 
@@ -30,6 +30,8 @@ function NotesGenerator(fftSize) {
         const gainNode = context.createGain();
         if(gainValue !== undefined)
             gainNode.gain.value = gainValue;
+        else
+            gainNode.gain.value = 1;
 
         // generate sound
         oscillator.connect(gainNode);
@@ -37,10 +39,13 @@ function NotesGenerator(fftSize) {
         analyser.connect(context.destination);
 
         oscillator.start(0);
-        // gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 2);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + getRandomInt(1, 4));
+        
+        if(!useLinear)
+            gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 2);
+        else
+            gainNode.gain.linearRampToValueAtTime(0.0001, context.currentTime + getRandomInt(1, 4));
 
-        oscillator.stop(context.currentTime + 2);        
+        oscillator.stop(context.currentTime + 4);        
     }
 
     // return the current frequency data
@@ -58,12 +63,15 @@ function NotesGenerator(fftSize) {
         return array;
     }
 
+    // events
+    eventBus.subscribe(tuneMonolithClick, this.playNote);
+
     // maps a key to a waveform
     function getWaveForm(key) {
         switch(key) {
             case 1: return "sine";
-            case 2: return "square";
-            case 3: return "triangle";
+            case 2: return "triangle";
+            case 3: return "square";
             case 4: return "sawtooth";
             default: console.error(key +" is not a valid waveform");
         }

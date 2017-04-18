@@ -15,7 +15,6 @@ function TuneMonolith(scene, collisionManager) {
 
 	this.action = function(mouseDown) {
 		if(mouseDown) {
-			console.log("play note")
 			eventBus.post(tuneMonolithClick);
 		}
 	}

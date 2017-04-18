@@ -12,7 +12,7 @@ const eventBus = new EventBus();
 
 const fftSize = 16384;
 const notesGenerator = new NotesGenerator(fftSize);
-const backgroundTuneGenerator = new BackgroundTuneGenerator();
+const backgroundTuneGenerator = new BackgroundTuneGenerator(notesGenerator);
 // const musicManager = new MusicManager();
 const viewFinderManager = new ViewFinderManager();
 var sceneManager = new SceneManager(canvas);
