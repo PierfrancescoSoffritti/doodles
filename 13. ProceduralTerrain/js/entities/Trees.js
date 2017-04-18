@@ -24,6 +24,9 @@ function Trees(scene, player, collisionManager) {
 			const tree = treeMesh.clone();
 			tree.scale.set(scale, scale*1.5, scale);
 
+			const rand = getRandom(3000, 4000);
+			tree.position.set(rand, 0, rand);
+
 			tree.animationTimeIn = getRandom(600, 800);
 			tree.animationTimeOut = getRandom(600, 800);
 

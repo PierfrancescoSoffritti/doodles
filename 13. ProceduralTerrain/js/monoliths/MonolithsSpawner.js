@@ -9,7 +9,7 @@ function MonolithsSpawner(scene, player, collisionManager, terrainSize, cubeCame
 		octahedrons.push(new Octahedron(scene, collisionManager, x, z, cubeCamera))
 	}
 
-	monoliths.push(new TuneMonolithGroup(scene, collisionManager))
+	monoliths.push(new TuneMonolithGroup(scene, collisionManager, terrainSize))
 
 	const forwardVector = new THREE.Vector3();
 	const maxDistance = 50;

@@ -5,7 +5,7 @@ function TerrainCollisionManager(terrain) {
 	const down = new THREE.Vector3(0, -1, 0);
 
     this.getY = function(x, z) {
-        const raycaster = new THREE.Raycaster(new THREE.Vector3(x, 200, z), down)
+        const raycaster = new THREE.Raycaster(new THREE.Vector3(x, 400, z), down)
         const collisionResults = raycaster.intersectObject(terrain);
 
         if (collisionResults.length > 0)
