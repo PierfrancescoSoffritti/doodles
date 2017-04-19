@@ -7,11 +7,11 @@ function TuneMonolithGroup(scene, collisionManager, terrainSize) {
 	geometry.vertices[0].y /= 1.2
 	geometry.vertices[1].y /= 1.2
 
-	// const xOffset = getRandom(-terrainSize/12, terrainSize/12);
-	// const zOffset = getRandom(-terrainSize/12, terrainSize/12);
+	const xOffset = getRandom(-terrainSize/12, terrainSize/12);
+	const zOffset = getRandom(-terrainSize/12, terrainSize/12);
 	
-	const xOffset = -10;
-	const zOffset = -100;
+	// const xOffset = -10;
+	// const zOffset = -100;
 
 	const radStep = 30;
 	const angleStep = Math.PI/2;
@@ -48,7 +48,7 @@ function TuneMonolithGroup(scene, collisionManager, terrainSize) {
 		for(let i=0; i<subjects.length; i++) {
 
 			const distance = Math.sqrt(Math.pow(raycaster.ray.origin.x - subjects[i].mesh.position.x, 2) + Math.pow(raycaster.ray.origin.z - subjects[i].mesh.position.z, 2));
-			if(distance > subjects[i].size*5)
+			if(distance > subjects[i].size*6)
 				continue;
 
 			const collisionResults = raycaster.intersectObject(subjects[i].mesh);
