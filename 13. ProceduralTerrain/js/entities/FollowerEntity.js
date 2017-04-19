@@ -26,7 +26,10 @@ function FollowerEntity(scene, player, collisionManager) {
 			const entity = this.entities[i];
 
 			if(!entity.animationInProgress) {
-				const distance = Math.sqrt(Math.pow( (this.player.position.x + this.forwardVector.x) - entity.position.x, 2) + Math.pow( (this.player.position.z + this.forwardVector.z) - entity.position.z, 2));
+				const distance = (this.forwardVector.clone().add(this.player.position)).distanceTo(entity.position)
+
+				// const distance = Math.sqrt(Math.pow( (this.player.position.x + this.forwardVector.x) - entity.position.x, 2) + Math.pow( (this.player.position.z + this.forwardVector.z) - entity.position.z, 2));
+			
 				if(distance >= this.maxDistance) {
 					this.move(entity);
 					isMoving = true;
