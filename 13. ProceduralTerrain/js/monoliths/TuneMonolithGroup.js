@@ -7,11 +7,11 @@ function TuneMonolithGroup(scene, collisionManager, terrainSize) {
 	geometry.vertices[0].y /= 1.2
 	geometry.vertices[1].y /= 1.2
 
-	const xOffset = getRandom(-terrainSize/12, terrainSize/12);
-	const zOffset = getRandom(-terrainSize/12, terrainSize/12);
+	// const xOffset = getRandom(-terrainSize/12, terrainSize/12);
+	// const zOffset = getRandom(-terrainSize/12, terrainSize/12);
 	
-	// const xOffset = -10;
-	// const zOffset = -100;
+	const xOffset = -10;
+	const zOffset = -100;
 
 	const radStep = 30;
 	const angleStep = Math.PI/2;
