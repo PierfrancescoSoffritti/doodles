@@ -9,6 +9,10 @@ function NotesGenerator(fftSize) {
     analyser.smoothingTimeConstant = 0.7;
     analyser.fftSize = fftSize;
 
+    //Choose the importance of each note
+    var nextNoteString = distribution({131:1, 139:0.5, 147:1, 156:0.5, 165:1, 175:1, 185:0.5, 196:1, 208:0.5, 220:1, 233:0.5, 247:1,
+                                 262:1, 277:0.5, 294:1, 311:0.5, 330:1, 349:1, 370:0.5, 392:1, 415:0.5, 440:1, 466:0.5, 496:1})
+
     this.playRandomNote = function() {
         const i = getRandomInt(0, notesArray.length-1);
         const fact = getRandomInt(-2, 5);
@@ -42,6 +46,30 @@ function NotesGenerator(fftSize) {
         const oscillator = context.createOscillator();
         oscillator.type = waveForm;
         oscillator.frequency.value = notesArray[i] * Math.pow(2, fact);
+
+        const gainNode = context.createGain();
+        gainNode.gain.value = gainValue;
+        
+        // generate sound
+        oscillator.connect(gainNode);
+        gainNode.connect(analyser);
+        analyser.connect(context.destination);
+
+        oscillator.start(0);
+        
+        const duration = getRandomInt(1, 2);
+
+        gainNode.gain.linearRampToValueAtTime(0.0001, context.currentTime + duration);
+        oscillator.stop(context.currentTime + duration);
+    }
+
+    this.playBackgroundNoteWithDistr = function(waveFormIndx, gainValue, maxFactor){
+        const fact = getRandomInt(-2, maxFactor);        
+        const waveForm = getWaveForm(waveFormIndx);
+
+        const oscillator = context.createOscillator();
+        oscillator.type = waveForm;
+        oscillator.frequency.value = parseInt(nextNoteString()) * Math.pow(2, fact);
 
         const gainNode = context.createGain();
         gainNode.gain.value = gainValue;
@@ -147,4 +175,36 @@ function NotesGenerator(fftSize) {
 
         return notes;
     }
+
+    /**
+     * takes an object that maps his keys to probabilities (or counts)
+     * and returns a function that returns one of the keys 
+     * with that discrete distribution
+     */
+    function distribution(obj){
+        o = normalizedObj(obj)
+        return function(){
+            var p = 0
+            var r = Math.random()
+            for(let key in o){
+                p += o[key]
+                if(r < p){
+                    return key
+                }
+            }
+        }
+    }
+
+    function normalizedObj(o){
+        var normalized = {}
+        var sum = 0
+        for(key in o){
+            sum += o[key]
+        }
+        for(key in o){
+            normalized[key] = o[key] / sum
+        }
+        return normalized
+    }
+
 }
