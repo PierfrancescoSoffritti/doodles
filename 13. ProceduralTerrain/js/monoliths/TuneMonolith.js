@@ -20,7 +20,7 @@ function TuneMonolith(geometry, baseSize, scene, collisionManager, index) {
 		if(mouseDown) {
 			changeColor();
 			bump();
-			eventBus.post(tuneMonolithClick, index*2);
+			eventBus.post(tuneMonolithClick, index*3);
 		}
 	}
 

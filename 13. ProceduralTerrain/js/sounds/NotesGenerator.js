@@ -16,7 +16,7 @@ function NotesGenerator(fftSize) {
     var nextNoteString = distribution({131:2, 139:0, 147:1, 156:0, 165:2, 175:1, 185:0, 196:2, 208:0, 220:1, 233:0, 247:1,
                                  262:2, 277:0, 294:1, 311:0, 330:2, 349:1, 370:0, 392:2, 415:0, 440:1, 466:0, 496:1})
 
-    var nextFacString = distribution({'-1':2,'0':2, '1':2, '2':1, '3':0.5 });
+    var nextFacString = distribution({'-1':2,'0':2, '1':2, '2':1, '3':0 });
 
     this.playRandomNote = function() {
         const i = getRandomInt(0, notesArray.length-1);
@@ -75,8 +75,12 @@ function NotesGenerator(fftSize) {
         const oscillator = context.createOscillator();
         oscillator.type = waveForm;
         
-        const fac = parseInt(nextFacString());
-        console.log(fac)
+
+        let fac = parseInt(nextFacString());
+        while(fac > maxFactor)
+            fac = parseInt(nextFacString());
+
+        // console.log(fac)
 
         oscillator.frequency.value = parseInt(nextNoteString()) * Math.pow(2, fac );
 
@@ -99,16 +103,16 @@ function NotesGenerator(fftSize) {
     this.playSinNote = function(note) {
         const i = note;
 
-        const fact = getRandomInt(-2, 5);
+        const fact = getRandomInt(-2, 1);
         
         let waveForm = getWaveForm(1);        
 
         const oscillator = context.createOscillator();
         oscillator.type = waveForm;
-        oscillator.frequency.value = notesArray[i] * Math.pow(2, fact);
+        oscillator.frequency.value = notesArray[i] * Math.pow(2, parseInt(nextFacString()));
 
         const gainNode = context.createGain();
-        gainNode.gain.value = .5;
+        gainNode.gain.value = .1;
 
         // generate sound
         oscillator.connect(gainNode);
@@ -117,7 +121,7 @@ function NotesGenerator(fftSize) {
 
         oscillator.start(0);
 
-        const duration = getRandomInt(1, 2);
+        const duration = 3//getRandomInt(1, 2);
 
         gainNode.gain.linearRampToValueAtTime(0.0001, context.currentTime + duration);
         oscillator.stop(context.currentTime + duration);
