@@ -25,8 +25,7 @@ function MonolithsSpawner(scene, player, collisionManager, terrainSize, cubeCame
 	const raycaster = new THREE.Raycaster(player.position, forwardVector)
 
 	this.update = function(time) {		
-		player.controls.getDirection(forwardVector);
-		
+		player.controls.getDirection(forwardVector);		
 		raycaster.ray.set(player.position, forwardVector);
 
 		for(let i=0; i<monoliths.length; i++) {

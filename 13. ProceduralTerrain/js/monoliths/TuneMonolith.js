@@ -35,7 +35,7 @@ function TuneMonolith(geometry, baseSize, scene, collisionManager, index) {
 		}
 
 		const fact = animating ? .3 : 0;
-		self.mesh.material.emissive.setHSL((Math.sin(time)+3)/4, (Math.sin(time)+3)/4, .2 + fact);
+		self.mesh.material.emissive.setHSL((Math.sin(time/2)+3)/4, (Math.sin(time/4)+3)/4, .2 + fact);
 	}
 
 	function changeColor() {

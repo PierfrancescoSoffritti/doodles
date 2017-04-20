@@ -20,7 +20,7 @@ function ElusiveEntity(scene, player, collisionManager) {
 	function moveEntity(mesh) {
 		player.controls.getDirection(dirVector);
 
-		const angle = getRandom(-Math.PI/2, Math.PI/2);
+		const angle = getRandom(-Math.PI/2.5, Math.PI/2.5);
 		dirVector.applyAxisAngle( up, angle );
 
 		const radius = getRandom(minRadius, maxRadius);		
@@ -40,6 +40,8 @@ function ElusiveEntity(scene, player, collisionManager) {
 
 		if(!mesh.animationInProgress) {
 			const distance = Math.sqrt(Math.pow(player.position.x - mesh.position.x, 2) + Math.pow(player.position.z - mesh.position.z, 2));
+			// const distance = player.position.distanceTo(mesh.position);
+
 			if(distance <= minDistance)
 				moveEntity(mesh);
 		}
@@ -51,7 +53,12 @@ function ElusiveEntity(scene, player, collisionManager) {
 		// mesh.material.emissive.b = .2;
 		mesh.material.emissive.setHSL(Math.sin(time * 0.1), 0.5, 0.5);
 		
-		const scale = sinTime+2;
+		const scale = (sinTime+2)*1.2;
 		mesh.scale.set(scale,scale,scale);
+
+		if(!mesh.animationInProgress) {
+			mesh.position.x += sinTime/4;
+			mesh.position.z += Math.cos(time)/4;
+		}
 	}
 }

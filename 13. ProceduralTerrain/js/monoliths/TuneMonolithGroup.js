@@ -8,10 +8,7 @@ function TuneMonolithGroup(scene, collisionManager, terrainSize) {
 	geometry.vertices[1].y /= 1.2
 
 	const xOffset = getRandom(-terrainSize/12, terrainSize/12);
-	const zOffset = getRandom(-terrainSize/12, terrainSize/12);
-	
-	// const xOffset = -10;
-	// const zOffset = -100;
+	const zOffset = getRandom(-terrainSize/18, terrainSize/12);
 
 	const radStep = 30;
 	const angleStep = Math.PI/2;
@@ -21,7 +18,9 @@ function TuneMonolithGroup(scene, collisionManager, terrainSize) {
 	for(let i=0; i<16; i++) {
 		
 		const tCube = new TuneMonolith(geometry, baseSize, scene, collisionManager, index);
-		tCube.mesh.position.set(xOffset + radius*Math.cos(angle), -1, zOffset + radius*Math.sin(angle));
+		tCube.mesh.position.x = xOffset + radius*Math.cos(angle);
+		tCube.mesh.position.z = zOffset + radius*Math.sin(angle);
+		
 		tCube.mesh.rotation.y = -angle;
 		tCube.mesh.scale.y = (4 - index) + 1;
 
@@ -42,9 +41,13 @@ function TuneMonolithGroup(scene, collisionManager, terrainSize) {
 	light.position.set(xOffset, -1, zOffset);
 	scene.add(light);
 
-	var sphereSize = 10;
-	var pointLightHelper = new THREE.PointLightHelper( light, sphereSize );
-	scene.add(pointLightHelper);
+	const size = 6;
+    const octahedron = new THREE.LineSegments(
+        new THREE.EdgesGeometry(new THREE.OctahedronGeometry(size, 0)),
+        new THREE.LineBasicMaterial()
+    );
+    octahedron.position.set(light.position.x, light.position.y, light.position.z);
+    scene.add(octahedron);
 
 	let isActionAvailable = false;
 
@@ -55,8 +58,12 @@ function TuneMonolithGroup(scene, collisionManager, terrainSize) {
 			console.log(y)
 			if(y !== null) {
 				light.position.y = y+40;
+				octahedron.position.y = y+30;
 			}
 		}
+
+		octahedron.position.y = (light.position.y-10) + Math.sin(time)*2;
+		octahedron.rotation.y = time*0.06;
 
 		for(let i=0; i<subjects.length; i++) {
 			subjects[i].update(time);

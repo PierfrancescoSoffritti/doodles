@@ -32,9 +32,32 @@ function Sprouts(scene, player, collisionManager, terrainSize) {
 			leafVertices[i].y = (Math.sin(time)+1)/1.2;
 		leafGeometry.verticesNeedUpdate = true;
 
+		const sinColor = (Math.sin(time)+2) / 3;
 		const sin = (Math.sin(time)+8) / 9;
 
-		ball.material.emissive.setHSL(sin, .5, .5);
+		let fac = 0;
+		if(time*1000 % 1000 < 50)
+			fac = .1;
+		else if(time*1000 % 1000 < 150)
+			fac = .2;
+		else if(time*1000 % 1000 < 100)
+			fac = .3;
+		else if(time*1000 % 1000 < 150)
+			fac = .4;
+		else if(time*1000 % 1000 < 200)
+			fac = .5;
+		else if(time*1000 % 1000 < 250)
+			fac = .4;
+		else if(time*1000 % 1000 < 300)
+			fac = .3;
+		else if(time*1000 % 1000 < 350)
+			fac = .2;
+		else if(time*1000 % 1000 < 400)
+			fac = .1;
+		else
+			fac = 0;
+
+		ball.material.emissive.setHSL(sinColor, .5, .5 + fac);
 
 		for(let i=0; i<sprouts.length; i++) {
 			
