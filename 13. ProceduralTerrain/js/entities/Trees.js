@@ -15,8 +15,7 @@ function Trees(scene, player, collisionManager) {
 
     var loader = new THREE.JSONLoader();
     loader.load('models/tree.json', function(geometry) {
-        const treeMesh = new THREE.Mesh(geometry);
-        treeMesh.material = material;
+        const treeMesh = new THREE.Mesh(geometry, material);
 
         for(let i=0; i<20; i++) {
         	const scale = 15//getRandom(10, 20);

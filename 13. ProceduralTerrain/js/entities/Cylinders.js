@@ -10,40 +10,31 @@ function Cylinders(scene, player, collisionManager) {
 	this.entities = [];
 	this.collisionManager = collisionManager;
 	
- 	const wireframeMaterial = new THREE.LineBasicMaterial();
+ 	const cylinderGeometry = new THREE.CylinderGeometry(2, 2, this.height, 6);
 
- 	const wireframeBig = new THREE.LineSegments(
-        new THREE.EdgesGeometry(new THREE.CylinderGeometry(2, 2, this.height, 6)),
-        wireframeMaterial
-    );
-    const wireframeSmall = new THREE.LineSegments(
-        new THREE.EdgesGeometry(new THREE.CylinderGeometry(2, 2, this.height/2, 6)),
-        wireframeMaterial
-    );
-
- 	var material = new THREE.MeshBasicMaterial({ color: "#000001" });
-
-    var geometryBig = new THREE.CylinderGeometry(2, 2, this.height, 6);
-    var geometrySmall = new THREE.CylinderGeometry(2, 2, this.height/2, 6);
+ 	const wireframe = new THREE.LineSegments(
+        new THREE.EdgesGeometry(cylinderGeometry),
+        new THREE.LineBasicMaterial()
+    )
 	
-	var cylinderBig = new THREE.Mesh(geometryBig, material);
-	cylinderBig.add(wireframeBig);
+	const cylinderBig = new THREE.Mesh(cylinderGeometry, new THREE.MeshBasicMaterial({ color: "#000001" }));
+	cylinderBig.add(wireframe);
 
-	var cylinderSmall = new THREE.Mesh(geometrySmall, material);
-	cylinderSmall.add(wireframeSmall)
+	const cylinderSmall = cylinderBig.clone();
+	cylinderSmall.scale.y = 0.5;
 
 	for(let i=0; i<20; i++) {
 		if(i%2 === 0) {
 
-			const wireframeCopy = wireframeBig.clone()
+			const wireframeCopy = wireframe.clone()
 			wireframeCopy.animationTimeIn = getRandom(250, 350);
 			wireframeCopy.animationTimeOut = getRandom(250, 350);
 
 			this.entities.push(wireframeCopy);
 		}
 		else {
-			const small = cylinderSmall.clone()
 			const group = new THREE.Group();
+			const small = cylinderSmall.clone()
 			group.add(cylinderBig.clone())
 			group.add(small)
 

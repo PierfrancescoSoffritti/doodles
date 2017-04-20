@@ -10,16 +10,13 @@ function Grass(scene, player, collisionManager) {
 	this.entities = [];
 	this.collisionManager = collisionManager;
 
-	const material = new THREE.LineBasicMaterial();
-
 	const grassBlueprint = new THREE.LineSegments(
         new THREE.EdgesGeometry( new THREE.CylinderGeometry(.2, .4, this.height, 2) ),
-        material
+        new THREE.LineBasicMaterial()
     );
-    const grassBlueprintSmall = new THREE.LineSegments(
-        new THREE.EdgesGeometry( new THREE.CylinderGeometry(.2, .4, this.height/2, 2) ),
-        material
-    );
+    
+    const grassBlueprintSmall = grassBlueprint.clone();
+    grassBlueprintSmall.scale.y = 0.5;
 
 	for(let i=0; i<40; i++) {
 		const grassBig = grassBlueprint.clone();
