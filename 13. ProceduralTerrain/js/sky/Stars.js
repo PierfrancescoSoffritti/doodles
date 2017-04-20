@@ -17,7 +17,6 @@ function Stars(scene, terrainSize) {
 	scene.add(stars);
 
 	this.update = function(time) {
-		stars.rotation.y -= .0001;
-		stars.rotation.x -= .0001;
+		stars.rotation.y = time*0.003;
 	}
 }

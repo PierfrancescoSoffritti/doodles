@@ -49,8 +49,10 @@ function TuneMonolithGroup(scene, collisionManager, terrainSize) {
 	let isActionAvailable = false;
 
 	this.update = function(time) {
+		// update Y
 		if(light.position.y < 0) {
 			const y = collisionManager.getY(light.position.x, light.position.z);
+			console.log(y)
 			if(y !== null) {
 				light.position.y = y+40;
 			}

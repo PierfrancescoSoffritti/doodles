@@ -82,7 +82,7 @@ function SceneManager(canvas) {
     this.update = function() {
 
         for(var i=0; i<sceneSubjects.length; i++)
-        	sceneSubjects[i].update(clock.getElapsedTime(), player);
+        	sceneSubjects[i].update(clock.getElapsedTime()*1, player);
 
         cameraControls.update();
         collisionManager.update();

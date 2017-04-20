@@ -103,16 +103,16 @@ function NotesGenerator(fftSize) {
     this.playSinNote = function(note) {
         const i = note;
 
-        const fact = getRandomInt(-2, 1);
+        const fact = getRandomInt(-1, 2);
         
         let waveForm = getWaveForm(1);        
 
         const oscillator = context.createOscillator();
         oscillator.type = waveForm;
-        oscillator.frequency.value = notesArray[i] * Math.pow(2, parseInt(nextFacString()));
+        oscillator.frequency.value = notesArray[i] * Math.pow(2, fact);
 
         const gainNode = context.createGain();
-        gainNode.gain.value = .1;
+        gainNode.gain.value = .2;
 
         // generate sound
         oscillator.connect(gainNode);

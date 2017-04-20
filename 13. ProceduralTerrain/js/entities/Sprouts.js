@@ -40,8 +40,10 @@ function Sprouts(scene, player, collisionManager, terrainSize) {
 			
 			const group = sprouts[i];
 
+			// update Y
 			if(group.position.y < 0) {
 				const y = collisionManager.getY(group.position.x, group.position.z);
+				console.log(y)
 				if(y !== null) {
 					group.position.y = y;
 				}
