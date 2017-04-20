@@ -10,7 +10,6 @@ function MonolithsSpawner(scene, player, collisionManager, terrainSize, cubeCame
 	}
 
 	monoliths.push(new TuneMonolithGroup(scene, collisionManager, terrainSize))
-	monoliths.push(new Sproute(scene, collisionManager, terrainSize))
 
 	const forwardVector = new THREE.Vector3();
 	const maxDistance = 50;
