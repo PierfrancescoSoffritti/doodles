@@ -47,7 +47,7 @@ function Sprouts(scene, player, collisionManager, terrainSize) {
 				}
 			}
 
-			group.children[0].position.y =  sin* group.maxHeight;
+			group.children[0].position.y =  sin * group.maxHeight;
 
 			const scale = sin * group.scaleFactor;
 			group.children[0].scale.set(scale, scale, scale);
