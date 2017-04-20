@@ -28,7 +28,7 @@ function SceneManager(canvas) {
     var sceneSubjects = new Array();
     sceneSubjects.push(terrainSubject);
     sceneSubjects.push(new Skydome(scene, terrainSubject.size));
-    sceneSubjects.push(new EntitiesSpawner(scene, player, collisionManager));
+    sceneSubjects.push(new EntitiesSpawner(scene, player, collisionManager, terrainSubject.size));
     sceneSubjects.push(new MonolithsSpawner(scene, player, collisionManager, terrainSubject.size, cubeCamera));
 
     function buildLights(scene) {

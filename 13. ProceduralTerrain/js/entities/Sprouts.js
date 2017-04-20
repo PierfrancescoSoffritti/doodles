@@ -1,42 +1,57 @@
-function Sprouts(scene, player, collisionManager) {
-
-	const maxHeight = getRandom(20, 30);
-	let baseY = -1;
-
+function Sprouts(scene, player, collisionManager, terrainSize) {
 	const group = new THREE.Group();
 
-	const ball = new THREE.Mesh(new THREE.IcosahedronGeometry(4, 2), new THREE.MeshBasicMaterial({color: "#00ff00"}));	
+	const ball = new THREE.Mesh(new THREE.IcosahedronGeometry(4, 1), new THREE.MeshToonMaterial({color: "#ffffff"}));	
 
 	const leafGeometry = buildLeafGeometry()
 	const leafVertices = [leafGeometry.vertices[3], leafGeometry.vertices[7], leafGeometry.vertices[11], leafGeometry.vertices[15]];
 
-	var leafMesh = new THREE.Mesh(leafGeometry, new THREE.MeshStandardMaterial( {color: "#00ff00", wireframe: false, side: THREE.DoubleSide} ) );
-	leafMesh.scale.set(20, 5, 20)
+	var leafMesh = new THREE.Mesh(leafGeometry, new THREE.MeshToonMaterial( {color: "#33691E", wireframe: false, side: THREE.DoubleSide} ) );
+	leafMesh.scale.set(17, 3, 17)
 
 	group.add(ball);
 	group.add(leafMesh);
-	group.position.z = -100;
-	scene.add(group);
 
-	const light = new THREE.PointLight("#fff", 1);
-	scene.add(light);
-	light.position.set(0, 50, -100)
+	const sprouts = []
+
+	for(let i=0; i<100; i++) {
+		const xOffset = getRandom(-terrainSize/6, terrainSize/16);
+		const zOffset = getRandom(-terrainSize/4, terrainSize/16);
+
+		const tGroup = group.clone();
+		tGroup.position.set(xOffset, -1, zOffset);
+		tGroup.maxHeight = getRandom(5, 15);
+		tGroup.scaleFactor = Math.random();
+		tGroup.children[1].scale.multiplyScalar(tGroup.scaleFactor);
+		sprouts.push(tGroup)
+		scene.add(tGroup);
+	}
 
 	this.update = function(time) {	
-		if(baseY < 0) {
-			const y = collisionManager.getY(group.position.x, group.position.z);
-			if(y !== null)
-				baseY = y;
-		}
-
-		ball.position.y = baseY + ((Math.sin(time)+8) / 9) * maxHeight;
-
-		const scale = (Math.sin(time)+8)/9;
-		ball.scale.set(scale, scale, scale);
-
 		for(let i=0; i<leafVertices.length; i++)
-			leafVertices[i].y = baseY + (Math.sin(time)+1)/1.2;
+			leafVertices[i].y = (Math.sin(time)+1)/1.2;
 		leafGeometry.verticesNeedUpdate = true;
+
+		const sin = (Math.sin(time)+8) / 9;
+
+		ball.material.emissive.setHSL(sin, .5, .5);
+
+		for(let i=0; i<sprouts.length; i++) {
+			
+			const group = sprouts[i];
+
+			if(group.position.y < 0) {
+				const y = collisionManager.getY(group.position.x, group.position.z);
+				if(y !== null) {
+					group.position.y = y;
+				}
+			}
+
+			group.children[0].position.y =  sin* group.maxHeight;
+
+			const scale = sin * group.scaleFactor;
+			group.children[0].scale.set(scale, scale, scale);
+		}
 	}
 
 	function buildLeafGeometry() {

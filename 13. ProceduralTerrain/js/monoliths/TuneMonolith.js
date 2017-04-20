@@ -27,8 +27,9 @@ function TuneMonolith(geometry, baseSize, scene, collisionManager, index) {
 	this.update = function(time) {
 		if(self.mesh.position.y < 0) {
 			const y = collisionManager.getY(self.mesh.position.x, self.mesh.position.z);
-			if(y !== null)
+			if(y !== null) {
 				self.mesh.position.y = y;
+			}
 		}
 
 		const fact = animating ? .3 : 0;
@@ -48,12 +49,12 @@ function TuneMonolith(geometry, baseSize, scene, collisionManager, index) {
 
 		createjs.Tween
 			.get(mesh.scale, {override:true})
-			.to({y: originalScaleY*1.05, z: originalScaleZ*1.05}, 100, createjs.Ease.cubicInOut)
+			.to({y: originalScaleY*1.05, z: originalScaleZ*1.05}, 100, createjs.Ease.cubicIn)
 			.call(function() { 
 				
 				createjs.Tween
 					.get(mesh.scale, {override:true})
-					.to({y: originalScaleY, z: originalScaleZ}, 50, createjs.Ease.cubicInOut)
+					.to({y: originalScaleY, z: originalScaleZ}, 50, createjs.Ease.cubicOut)
 					.call(function() { 
 						animating = false;
 					});

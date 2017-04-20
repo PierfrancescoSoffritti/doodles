@@ -3,8 +3,8 @@ function MonolithsSpawner(scene, player, collisionManager, terrainSize, cubeCame
 	const monoliths = [];
 
 	for(let i=0; i<4; i++) {
-		const x = getRandom(-terrainSize/12, terrainSize/12);
-		const z = getRandom(-terrainSize/12, terrainSize/12);
+		const x = getRandom(-terrainSize/8, terrainSize/12);
+		const z = getRandom(-terrainSize/8, terrainSize/12);
 
 		octahedrons.push(new Octahedron(scene, collisionManager, x, z, cubeCamera))
 	}

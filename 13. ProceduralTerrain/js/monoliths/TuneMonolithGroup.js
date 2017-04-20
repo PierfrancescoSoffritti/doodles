@@ -38,22 +38,23 @@ function TuneMonolithGroup(scene, collisionManager, terrainSize) {
 
 	// ADD SOME DUST PARTICLES
 
-	// const light = new THREE.PointLight("#fff", .1);
-	// light.position.set(xOffset, -1, zOffset);
-	// scene.add(light);
+	const light = new THREE.PointLight("#fff", 1, 200, 2);
+	light.position.set(xOffset, -1, zOffset);
+	scene.add(light);
 
-	// const mesh = new THREE.Mesh(new THREE.IcosahedronGeometry(5, 1), new THREE.MeshBasicMaterial({color: "#00ff00"}));
-	// scene.add(mesh)
-	// mesh.position.set(xOffset, -1, zOffset);
+	var sphereSize = 10;
+	var pointLightHelper = new THREE.PointLightHelper( light, sphereSize );
+	scene.add(pointLightHelper);
+
+	let isActionAvailable = false;
 
 	this.update = function(time) {
-		// if(mesh.position.y <= 0) {
-		// 	const y = collisionManager.getY(mesh.position.x, mesh.position.z);
-		// 	if(y !== null) {
-		// 		mesh.position.y = y+20;
-		// 		light.position.y = y+20;
-		// 	}
-		// }
+		if(light.position.y < 0) {
+			const y = collisionManager.getY(light.position.x, light.position.z);
+			if(y !== null) {
+				light.position.y = y+40;
+			}
+		}
 
 		for(let i=0; i<subjects.length; i++) {
 			subjects[i].update(time);
@@ -61,7 +62,7 @@ function TuneMonolithGroup(scene, collisionManager, terrainSize) {
 	}
 
 	this.checkCollision = function(raycaster, mouseDown) {
-		let isActionAvailable = false;
+		isActionAvailable = false;
 
 		for(let i=0; i<subjects.length; i++) {
 
@@ -74,12 +75,27 @@ function TuneMonolithGroup(scene, collisionManager, terrainSize) {
 	        if (collisionResults.length > 0) {
 	            subjects[i].action(mouseDown);
 	            isActionAvailable = true;
-
 	            break;
 	        }
 		}
 
+		if(isActionAvailable && mouseDown)
+			animateLight();
+
 		return isActionAvailable;
+	}
+
+	function animateLight() {
+		createjs.Tween
+			.get(light, {override:true})
+			.to({intensity: 4, distance: 300}, 300, createjs.Ease.cubicOut)
+			.call(function() { 
+				
+				createjs.Tween
+					.get(light, {override:true})
+					.to({intensity: 1, distance: 200}, 600, createjs.Ease.cubicOut);
+
+			});
 	}
 
 }
