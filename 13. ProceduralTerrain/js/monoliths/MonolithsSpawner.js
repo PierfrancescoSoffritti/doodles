@@ -1,5 +1,4 @@
 function MonolithsSpawner(scene, player, collisionManager, terrainSize, cubeCamera) {
-	const octahedrons = [];
 	const monoliths = [];
 
 	monoliths.push(new TuneMonolithGroup(scene, collisionManager, terrainSize))
@@ -23,13 +22,12 @@ function MonolithsSpawner(scene, player, collisionManager, terrainSize, cubeCame
 	})
 
 	let isActionAvailable = false;
+	const raycaster = new THREE.Raycaster(player.position, forwardVector)
 
-	this.update = function(time) {
-		for(let i=0; i<octahedrons.length; i++)
-			octahedrons[i].update(time);
-		
+	this.update = function(time) {		
 		player.controls.getDirection(forwardVector);
-		const raycaster = new THREE.Raycaster(player.position, forwardVector)
+		
+		raycaster.ray.set(player.position, forwardVector);
 
 		for(let i=0; i<monoliths.length; i++) {
 

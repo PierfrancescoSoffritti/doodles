@@ -3,9 +3,11 @@ function TerrainCollisionManager(terrain) {
     this.objects = [];
 	
 	const down = new THREE.Vector3(0, -1, 0);
+    const raycaster = new THREE.Raycaster(new THREE.Vector3(0, 400, 0), down)
 
     this.getY = function(x, z) {
-        const raycaster = new THREE.Raycaster(new THREE.Vector3(x, 400, z), down)
+        raycaster.ray.origin.set(x, 400, z);
+
         const collisionResults = raycaster.intersectObject(terrain);
 
         if (collisionResults.length > 0)
