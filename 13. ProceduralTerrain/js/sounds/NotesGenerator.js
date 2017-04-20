@@ -84,7 +84,7 @@ function NotesGenerator(fftSize) {
 
         oscillator.start(0);
         
-        const duration = getRandomInt(1, 2);
+        const duration = getRandomInt(2, 4);
 
         gainNode.gain.linearRampToValueAtTime(0.0001, context.currentTime + duration);
         oscillator.stop(context.currentTime + duration);

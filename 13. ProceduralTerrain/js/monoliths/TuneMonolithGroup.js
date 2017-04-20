@@ -21,7 +21,7 @@ function TuneMonolithGroup(scene, collisionManager, terrainSize) {
 	for(let i=0; i<16; i++) {
 		
 		const tCube = new TuneMonolith(geometry, baseSize, scene, collisionManager, index);
-		tCube.mesh.position.set(xOffset + radius*Math.cos(angle), 0, zOffset + radius*Math.sin(angle));
+		tCube.mesh.position.set(xOffset + radius*Math.cos(angle), -1, zOffset + radius*Math.sin(angle));
 		tCube.mesh.rotation.y = -angle;
 		tCube.mesh.scale.y = (4 - index) + 1;
 
@@ -36,7 +36,25 @@ function TuneMonolithGroup(scene, collisionManager, terrainSize) {
 		}
 	}
 
+	// ADD SOME DUST PARTICLES
+
+	// const light = new THREE.PointLight("#fff", .1);
+	// light.position.set(xOffset, -1, zOffset);
+	// scene.add(light);
+
+	// const mesh = new THREE.Mesh(new THREE.IcosahedronGeometry(5, 1), new THREE.MeshBasicMaterial({color: "#00ff00"}));
+	// scene.add(mesh)
+	// mesh.position.set(xOffset, -1, zOffset);
+
 	this.update = function(time) {
+		// if(mesh.position.y <= 0) {
+		// 	const y = collisionManager.getY(mesh.position.x, mesh.position.z);
+		// 	if(y !== null) {
+		// 		mesh.position.y = y+20;
+		// 		light.position.y = y+20;
+		// 	}
+		// }
+
 		for(let i=0; i<subjects.length; i++) {
 			subjects[i].update(time);
 		}

@@ -25,10 +25,10 @@ function TuneMonolith(geometry, baseSize, scene, collisionManager, index) {
 	}
 
 	this.update = function(time) {
-		if(this.mesh.position.y <= 0) {
-			const y = collisionManager.getY(this.mesh.position.x, this.mesh.position.z);
+		if(self.mesh.position.y < 0) {
+			const y = collisionManager.getY(self.mesh.position.x, self.mesh.position.z);
 			if(y !== null)
-				this.mesh.position.y = y;
+				self.mesh.position.y = y;
 		}
 
 		const fact = animating ? .3 : 0;
