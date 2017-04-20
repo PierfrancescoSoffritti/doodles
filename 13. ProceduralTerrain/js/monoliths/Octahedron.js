@@ -15,7 +15,7 @@ function Octahedron(scene, collisionManager, x, z, cubeCamera) {
 	main.position.y = -1;
 
 	const small1 = main.clone();
-	small1.geometry = new THREE.OctahedronGeometry(size/4, 0)
+	small1.scale.set(0.25, 0.25, 0.25)
 	scene.add(small1)
 
 	const small2 = small1.clone();
@@ -29,6 +29,7 @@ function Octahedron(scene, collisionManager, x, z, cubeCamera) {
 	}
 
 	this.update = function(time) {
+		// update y
 		if(main.position.y <= 0) {
 			const y = collisionManager.getY(main.position.x, main.position.z);
 			if(y !== null)
