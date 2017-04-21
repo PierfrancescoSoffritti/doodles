@@ -7,7 +7,7 @@ function Octahedrons(scene, collisionManager, terrainSize, cubeCamera) {
 
 	for(let i=0; i<4; i++) {
 		const x = getRandom(-terrainSize/8, terrainSize/12);
-		const z = getRandom(-terrainSize/8, terrainSize/12);
+		const z = getRandom(-terrainSize/8, terrainSize/18);
 
 		const size = getRandom(5, 15);
 
