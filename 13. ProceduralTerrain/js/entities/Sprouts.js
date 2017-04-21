@@ -21,7 +21,7 @@ function Sprouts(scene, player, collisionManager, terrainSize) {
 		const tGroup = group.clone();
 		tGroup.position.set(xOffset, -1, zOffset);
 		tGroup.maxHeight = getRandom(5, 15);
-		tGroup.scaleFactor = Math.random();
+		tGroup.scaleFactor = getRandom(0.1, 1);
 		tGroup.children[1].scale.multiplyScalar(tGroup.scaleFactor);
 		sprouts.push(tGroup)
 		scene.add(tGroup);

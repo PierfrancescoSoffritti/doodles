@@ -1,3 +1,5 @@
+const playHighNote = "playHighNote";
+
 function NotesGenerator(fftSize) {
 
     window.context = window.context || window.webkitcontext;
@@ -39,31 +41,6 @@ function NotesGenerator(fftSize) {
 
         const duration = getRandomInt(1, 2);
         
-        gainNode.gain.linearRampToValueAtTime(0.0001, context.currentTime + duration);
-        oscillator.stop(context.currentTime + duration);
-    }
-
-    this.playBackgroundNote = function(waveFormIndx, gainValue, maxFactor) {
-        const i = getRandomInt(0, notesArray.length-1);
-        const fact = getRandomInt(-2, maxFactor);        
-        const waveForm = getWaveForm(waveFormIndx);
-
-        const oscillator = context.createOscillator();
-        oscillator.type = waveForm;
-        oscillator.frequency.value = notesArray[i] * Math.pow(2, fact);
-
-        const gainNode = context.createGain();
-        gainNode.gain.value = gainValue;
-        
-        // generate sound
-        oscillator.connect(gainNode);
-        gainNode.connect(analyser);
-        analyser.connect(context.destination);
-
-        oscillator.start(0);
-        
-        const duration = getRandomInt(1, 2);
-
         gainNode.gain.linearRampToValueAtTime(0.0001, context.currentTime + duration);
         oscillator.stop(context.currentTime + duration);
     }
@@ -127,6 +104,33 @@ function NotesGenerator(fftSize) {
         oscillator.stop(context.currentTime + duration);
     }
 
+    this.playHighNote = function() {
+        const i = getRandomInt(0, notesArray.length-1);;
+
+        const fact = getRandomInt(3, 5);
+        
+        let waveForm = getWaveForm(1);        
+
+        const oscillator = context.createOscillator();
+        oscillator.type = waveForm;
+        oscillator.frequency.value = parseInt(nextNoteString()) * Math.pow(2, fact);
+
+        const gainNode = context.createGain();
+        gainNode.gain.value = .2;
+
+        // generate sound
+        oscillator.connect(gainNode);
+        gainNode.connect(analyser);
+        analyser.connect(context.destination);
+
+        oscillator.start(0);
+
+        const duration = 1//getRandomInt(1, 2);
+
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + duration);
+        oscillator.stop(context.currentTime + duration);
+    }
+
     // return the current frequency data
     this.getByteFrequencyData = function() {
         if(!analyser) {
@@ -144,6 +148,7 @@ function NotesGenerator(fftSize) {
 
     // events
     eventBus.subscribe(tuneMonolithClick, this.playSinNote);
+    eventBus.subscribe(playHighNote, this.playHighNote);
 
     // maps a key to a waveform
     function getWaveForm(key) {

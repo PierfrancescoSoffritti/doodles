@@ -60,7 +60,7 @@ function SceneManager(canvas) {
     function buildCamera(width, height) {
         var aspectRatio = width / height;
         var fieldOfView = 60;
-        var nearPlane = 0.01;
+        var nearPlane = 1;
         var farPlane = 10000; 
         var camera = new THREE.PerspectiveCamera(fieldOfView, aspectRatio, nearPlane, farPlane);
 
@@ -88,6 +88,7 @@ function SceneManager(canvas) {
         collisionManager.update();
 
         cubeCamera.position.x = player.position.x;
+        // cubeCamera.position.y = player.position.y;
         cubeCamera.position.z = player.position.z;
         cubeCamera.updateCubeMap(renderer, scene);
 

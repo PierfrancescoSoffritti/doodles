@@ -1,16 +1,42 @@
 function ElusiveEntity(scene, player, collisionManager) {
-	const material = new THREE.MeshStandardMaterial();
-	const geometry = new THREE.IcosahedronGeometry(1, 2);
+	const radius = 1;
+	const material = new THREE.MeshToonMaterial();
+	const geometry = new THREE.IcosahedronGeometry(radius, 1);
 	const mesh = new THREE.Mesh(geometry, material);
 	scene.add(mesh);
+
+	const textureLoader = new THREE.TextureLoader();
+    textureLoader.setCrossOrigin("anonymous");
+	const texture = textureLoader.load("textures/particle.png");
+
+	const particleMaterial = new THREE.PointsMaterial({ map: texture, color: "#ff0000", size: 1,
+		blending: THREE.AdditiveBlending, transparent: true, opacity:1, alphaTest: 0.25 });
+	
+	const particlesGeometry = new THREE.Geometry();
+	for(let i=0; i<20; i++) {
+		const particle = new THREE.Vector3(0, -1, 0);
+
+		particle.velocityX = (Math.random() - 0.5) / 30;
+		particle.velocityY = (Math.random() - 0.5) / 30;
+		particle.velocityZ = (Math.random() - 0.5) / 30;
+
+		particle.life = 0;
+		particle.lifeSpan = getRandomInt(50, 200);
+
+		particlesGeometry.vertices.push(particle);
+	}
+
+	const particles = new THREE.Points(particlesGeometry, particleMaterial);
+	particles.frustumCulled = false
+	scene.add(particles);
 
 	mesh.animationInProgress = false;
 
 	collisionManager.objects.push(mesh);
 
-	const maxRadius = 200;
-	const minRadius = 160;
-	const minDistance = 20;
+	const maxRadius = 220;
+	const minRadius = 180;
+	const minDistance = 40;
 
 	const up = new THREE.Vector3( 0, 1, 0 );
 	const dirVector = new THREE.Vector3();
@@ -39,11 +65,13 @@ function ElusiveEntity(scene, player, collisionManager) {
 	this.update = function(time) {
 
 		if(!mesh.animationInProgress) {
-			const distance = Math.sqrt(Math.pow(player.position.x - mesh.position.x, 2) + Math.pow(player.position.z - mesh.position.z, 2));
-			// const distance = player.position.distanceTo(mesh.position);
+			// const distance = Math.sqrt(Math.pow(player.position.x - mesh.position.x, 2) + Math.pow(player.position.z - mesh.position.z, 2));
+			const distance = player.position.distanceTo(mesh.position);
 
-			if(distance <= minDistance)
+			if(distance <= minDistance) {
+				eventBus.post(playHighNote);
 				moveEntity(mesh);
+			}
 		}
 
 		const sinTime = Math.sin(time);
@@ -51,7 +79,8 @@ function ElusiveEntity(scene, player, collisionManager) {
 		// mesh.material.emissive.r = Math.max(0, sinTime);
 		// mesh.material.emissive.r = .2;
 		// mesh.material.emissive.b = .2;
-		mesh.material.emissive.setHSL(Math.sin(time * 0.1), 0.5, 0.5);
+		mesh.material.emissive.setHSL(Math.sin(time * 0.1), 0.5, 0.6);
+		particleMaterial.color.setHSL(Math.sin(time * 0.1), 0.9, 0.2);
 		
 		const scale = (sinTime+2)*1.2;
 		mesh.scale.set(scale,scale,scale);
@@ -60,5 +89,25 @@ function ElusiveEntity(scene, player, collisionManager) {
 			mesh.position.x += sinTime/4;
 			mesh.position.z += Math.cos(time)/4;
 		}
+
+		for(let i=0; i<particlesGeometry.vertices.length; i++) {
+			const particle = particlesGeometry.vertices[i];
+			particle.x -= particle.velocityX
+			particle.y -= particle.velocityY
+			particle.z -= particle.velocityZ
+
+			particle.life++;
+
+			if(particle.life > particle.lifeSpan) {
+				const ang1 = getRandom(0, Math.PI*2);
+				const ang2 = getRandom(0, Math.PI*2);
+
+				particle.life = 0;
+				particle.x = mesh.position.x + radius*scale*1.2 * Math.sin(ang1) * Math.cos(ang2)
+				particle.y = mesh.position.y + radius*scale*1.2 * Math.sin(ang1) * Math.sin(ang2)
+				particle.z = mesh.position.z + radius*scale*1.2 * Math.cos(ang1)
+			}
+		}	
+		particlesGeometry.verticesNeedUpdate = true;
 	}
 }

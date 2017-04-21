@@ -76,7 +76,7 @@ function TuneMonolithGroup(scene, collisionManager, terrainSize) {
 		for(let i=0; i<subjects.length; i++) {
 
 			const distance = raycaster.ray.origin.distanceTo(subjects[i].mesh.position)			
-			if(distance > subjects[i].size*6)
+			if(distance > subjects[i].size*10)
 				continue;
 
 			const collisionResults = raycaster.intersectObject(subjects[i].mesh);
