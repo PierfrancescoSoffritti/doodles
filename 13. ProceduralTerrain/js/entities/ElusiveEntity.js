@@ -1,8 +1,9 @@
 function ElusiveEntity(scene, player, collisionManager) {
-	const radius = 1;
+	const radius = 2;
 	const material = new THREE.MeshToonMaterial();
-	const geometry = new THREE.IcosahedronGeometry(radius, 1);
+	const geometry = new THREE.OctahedronGeometry(radius, 0);
 	const mesh = new THREE.Mesh(geometry, material);
+	mesh.position.set(0, 1, -200);
 	scene.add(mesh);
 
 	mesh.animationInProgress = false;
@@ -43,7 +44,7 @@ function ElusiveEntity(scene, player, collisionManager) {
 	const up = new THREE.Vector3( 0, 1, 0 );
 	const dirVector = new THREE.Vector3();
 
-	moveEntity(mesh);
+	// moveEntity(mesh);
 
 	function moveEntity(mesh) {
 		player.controls.getDirection(dirVector);
@@ -81,7 +82,7 @@ function ElusiveEntity(scene, player, collisionManager) {
 
 		mesh.material.emissive.setHSL(color, 0.5, 0.6);
 		particleMaterial.color.setHSL(color, 0.9, 0.2);
-		light.color.setHSL(color, 0.9, 0.9)
+		light.color.setHSL(color, 0.9, 0.6)
 		
 		const scale = (sinTime+2)*1.2;
 		mesh.scale.set(scale,scale,scale);

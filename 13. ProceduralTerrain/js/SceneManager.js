@@ -31,6 +31,9 @@ function SceneManager(canvas) {
     sceneSubjects.push(new EntitiesSpawner(scene, player, collisionManager, terrainSubject.size));
     sceneSubjects.push(new MonolithsSpawner(scene, player, collisionManager, terrainSubject.size, cubeCamera));
 
+    let timeFactor = 1;
+    eventBus.subscribe(toggleTime, () => { timeFactor = timeFactor === 1 ? 20 : 1 });
+
     function buildLights(scene) {
 
         // var light = new THREE.HemisphereLight( 0xffffbb, 0x080820, 1 );
@@ -82,7 +85,7 @@ function SceneManager(canvas) {
     this.update = function() {
 
         for(var i=0; i<sceneSubjects.length; i++)
-        	sceneSubjects[i].update(clock.getElapsedTime()*1, player);
+        	sceneSubjects[i].update(clock.getElapsedTime()*timeFactor, player);
 
         cameraControls.update();
         collisionManager.update();
