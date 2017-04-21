@@ -37,7 +37,7 @@ function SceneManager(canvas) {
         // scene.add( light );
 
         var light = new THREE.SpotLight("#2222ff", 1);
-        light.castShadow = true;
+        // light.castShadow = true;
         light.position.y = 700;
         light.position.z = 0;
         light.position.x = -1400;
@@ -45,9 +45,9 @@ function SceneManager(canvas) {
         light.decacy = 2;
         light.penumbra = 1;
 
-        light.shadow.camera.near = 10;
-        light.shadow.camera.far = 1000;
-        light.shadow.camera.fov = 30;
+        // light.shadow.camera.near = 10;
+        // light.shadow.camera.far = 1000;
+        // light.shadow.camera.fov = 30;
 
         scene.add(light);
 

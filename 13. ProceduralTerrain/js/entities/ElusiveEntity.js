@@ -5,11 +5,17 @@ function ElusiveEntity(scene, player, collisionManager) {
 	const mesh = new THREE.Mesh(geometry, material);
 	scene.add(mesh);
 
+	mesh.animationInProgress = false;
+	collisionManager.objects.push(mesh);
+
+	const light = new THREE.PointLight("#fff", 2, 50, 2);
+	mesh.add(light);
+
 	const textureLoader = new THREE.TextureLoader();
     textureLoader.setCrossOrigin("anonymous");
 	const texture = textureLoader.load("textures/particle.png");
 
-	const particleMaterial = new THREE.PointsMaterial({ map: texture, color: "#ff0000", size: 1,
+	const particleMaterial = new THREE.PointsMaterial({ map: texture, color: "#fff", size: 1,
 		blending: THREE.AdditiveBlending, transparent: true, opacity:1, alphaTest: 0.25 });
 	
 	const particlesGeometry = new THREE.Geometry();
@@ -29,10 +35,6 @@ function ElusiveEntity(scene, player, collisionManager) {
 	const particles = new THREE.Points(particlesGeometry, particleMaterial);
 	particles.frustumCulled = false
 	scene.add(particles);
-
-	mesh.animationInProgress = false;
-
-	collisionManager.objects.push(mesh);
 
 	const maxRadius = 220;
 	const minRadius = 180;
@@ -75,12 +77,11 @@ function ElusiveEntity(scene, player, collisionManager) {
 		}
 
 		const sinTime = Math.sin(time);
+		const color = Math.sin(time * 0.1);
 
-		// mesh.material.emissive.r = Math.max(0, sinTime);
-		// mesh.material.emissive.r = .2;
-		// mesh.material.emissive.b = .2;
-		mesh.material.emissive.setHSL(Math.sin(time * 0.1), 0.5, 0.6);
-		particleMaterial.color.setHSL(Math.sin(time * 0.1), 0.9, 0.2);
+		mesh.material.emissive.setHSL(color, 0.5, 0.6);
+		particleMaterial.color.setHSL(color, 0.9, 0.2);
+		light.color.setHSL(color, 0.9, 0.9)
 		
 		const scale = (sinTime+2)*1.2;
 		mesh.scale.set(scale,scale,scale);
@@ -90,6 +91,7 @@ function ElusiveEntity(scene, player, collisionManager) {
 			mesh.position.z += Math.cos(time)/4;
 		}
 
+		// particles
 		for(let i=0; i<particlesGeometry.vertices.length; i++) {
 			const particle = particlesGeometry.vertices[i];
 			particle.x -= particle.velocityX
