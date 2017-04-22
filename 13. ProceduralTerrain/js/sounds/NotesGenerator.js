@@ -1,15 +1,11 @@
 const playHighNote = "playHighNote";
 
-function NotesGenerator(fftSize) {
+function NotesGenerator() {
 
     window.context = window.context || window.webkitcontext;
     var context = new AudioContext();
 
     var notesArray = getNotes();
-
-    var analyser = context.createAnalyser();
-    analyser.smoothingTimeConstant = 0.7;
-    analyser.fftSize = fftSize;
 
     //Choose the importance of each note
     // var nextNoteString = distribution({131:1, 139:0.5, 147:1, 156:0.5, 165:1, 175:1, 185:0.5, 196:1, 208:0.5, 220:1, 233:0.5, 247:1,
@@ -34,8 +30,7 @@ function NotesGenerator(fftSize) {
 
         // generate sound
         oscillator.connect(gainNode);
-        gainNode.connect(analyser);
-        analyser.connect(context.destination);
+        gainNode.connect(context.destination);
 
         oscillator.start(0);
 
@@ -66,8 +61,7 @@ function NotesGenerator(fftSize) {
         
         // generate sound
         oscillator.connect(gainNode);
-        gainNode.connect(analyser);
-        analyser.connect(context.destination);
+        gainNode.connect(context.destination);
 
         oscillator.start(0);
         
@@ -93,8 +87,7 @@ function NotesGenerator(fftSize) {
 
         // generate sound
         oscillator.connect(gainNode);
-        gainNode.connect(analyser);
-        analyser.connect(context.destination);
+        gainNode.connect(context.destination);
 
         oscillator.start(0);
 
@@ -120,8 +113,7 @@ function NotesGenerator(fftSize) {
 
         // generate sound
         oscillator.connect(gainNode);
-        gainNode.connect(analyser);
-        analyser.connect(context.destination);
+        gainNode.connect(context.destination);
 
         oscillator.start(0);
 
@@ -129,21 +121,6 @@ function NotesGenerator(fftSize) {
 
         gainNode.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + duration);
         oscillator.stop(context.currentTime + duration);
-    }
-
-    // return the current frequency data
-    this.getByteFrequencyData = function() {
-        if(!analyser) {
-            // return an array of 0s
-            var array = [fftSize/2];
-            for(var i=0; i<array.length; i++)
-                array[i] = 0;
-            return array;
-        }
-
-        var array = new Uint8Array(analyser.frequencyBinCount);
-        analyser.getByteFrequencyData(array);
-        return array;
     }
 
     // events

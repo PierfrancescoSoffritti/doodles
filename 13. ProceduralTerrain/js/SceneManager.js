@@ -11,12 +11,12 @@ function SceneManager(canvas) {
     scene.background = new THREE.Color("#000033");
     scene.fog = new THREE.Fog( "#990099", 1, 4000 )
 
+    var renderer = buildRender(width, height);
+    var camera = buildCamera(width, height);
     var light = buildLights(scene);
 
-    var camera = buildCamera(width, height);
-    var cubeCamera = new THREE.CubeCamera(0.5, 20000, 1024);   
+    var cubeCamera = new THREE.CubeCamera(1, 10000, 1024);   
     scene.add(cubeCamera);
-    var renderer = buildRender(width, height);
 
     const terrainSubject = new Terrain(scene, cubeCamera);
 
@@ -34,42 +34,6 @@ function SceneManager(canvas) {
     let timeFactor = 1;
     eventBus.subscribe(toggleTime, () => { timeFactor = timeFactor === 1 ? 20 : 1 });
 
-    function buildLights(scene) {
-
-        // var light = new THREE.HemisphereLight( 0xffffbb, 0x080820, 1 );
-        // scene.add( light );
-
-        var light = new THREE.SpotLight("#2222ff", 1);
-        // light.castShadow = true;
-        light.position.y = 700;
-        light.position.z = 0;
-        light.position.x = -1400;
-
-        light.decacy = 2;
-        light.penumbra = 1;
-
-        // light.shadow.camera.near = 10;
-        // light.shadow.camera.far = 1000;
-        // light.shadow.camera.fov = 30;
-
-        scene.add(light);
-
-  //       var spotLightHelper = new THREE.SpotLightHelper( light );
-		// scene.add( spotLightHelper )
-
-        return light;
-    }
-
-    function buildCamera(width, height) {
-        var aspectRatio = width / height;
-        var fieldOfView = 60;
-        var nearPlane = 1;
-        var farPlane = 10000; 
-        var camera = new THREE.PerspectiveCamera(fieldOfView, aspectRatio, nearPlane, farPlane);
-
-        return camera;
-    }
-
     function buildRender(width, height) {
         var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true }); 
         var DPR = (window.devicePixelRatio) ? window.devicePixelRatio : 1;
@@ -82,6 +46,30 @@ function SceneManager(canvas) {
         return renderer;
     }
 
+
+    function buildCamera(width, height) {
+        var aspectRatio = width / height;
+        var fieldOfView = 60;
+        var nearPlane = 1;
+        var farPlane = 10000; 
+        var camera = new THREE.PerspectiveCamera(fieldOfView, aspectRatio, nearPlane, farPlane);
+
+        return camera;
+    }
+
+    function buildLights(scene) {
+        var light = new THREE.SpotLight("#2222ff", 1);
+        light.position.y = 700;
+        light.position.z = 0;
+        light.position.x = -1400;
+
+        light.decacy = 2;
+        light.penumbra = 1;
+        scene.add(light);
+
+        return light;
+    }
+
     this.update = function() {
 
         for(var i=0; i<sceneSubjects.length; i++)
@@ -91,12 +79,12 @@ function SceneManager(canvas) {
         collisionManager.update();
 
         cubeCamera.position.x = player.position.x;
-        // cubeCamera.position.y = player.position.y;
+        cubeCamera.position.y = player.position.y/4;
         cubeCamera.position.z = player.position.z;
         cubeCamera.updateCubeMap(renderer, scene);
 
         renderer.render(scene, camera);
-    };
+    }
 
     this.onWindowResize = function() {
         const canvas = document.getElementById("canvas");
@@ -105,12 +93,9 @@ function SceneManager(canvas) {
         canvas.width = width;
         canvas.height = height;
 
-        camera.aspect = width /height;
+        camera.aspect = width / height;
         camera.updateProjectionMatrix();
         
         renderer.setSize(width, height);
-    }
-
-    this.onMouseMove = function(mouseX, mouseY) {
     }
 }

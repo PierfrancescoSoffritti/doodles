@@ -14,14 +14,6 @@ function MonolithsSpawner(scene, player, collisionManager, terrainSize, cubeCame
     	mouseDown = true;
 	})
 
-	document.addEventListener("mousedown", function() {
-    	// mouseDown = true;
-	})
-
-	document.addEventListener("mouseup", function() {
-    	// mouseDown = false;
-	})
-
 	let isActionAvailable = false;
 	const raycaster = new THREE.Raycaster(player.position, forwardVector)
 
