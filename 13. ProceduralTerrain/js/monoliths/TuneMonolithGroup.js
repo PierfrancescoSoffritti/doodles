@@ -55,7 +55,6 @@ function TuneMonolithGroup(scene, collisionManager, terrainSize) {
 		// update Y
 		if(light.position.y < 0) {
 			const y = collisionManager.getY(light.position.x, light.position.z);
-			console.log(y)
 			if(y !== null) {
 				light.position.y = y+40;
 				octahedron.position.y = y+30;

@@ -25,7 +25,7 @@ function FollowerEntity(scene, player, collisionManager) {
 
 			if(!entity.animationInProgress) {
 				
-				// const distance = (this.forwardVector.clone().add(this.player.position)).distanceTo(entity.position)
+				// const distance = this.player.position).distanceTo(entity.position)
 				
 				const distance = Math.sqrt(
 					Math.pow( (this.player.position.x + this.forwardVector.x) - entity.position.x , 2)

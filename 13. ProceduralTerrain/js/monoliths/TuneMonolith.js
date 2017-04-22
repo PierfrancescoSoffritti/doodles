@@ -28,7 +28,6 @@ function TuneMonolith(geometry, baseSize, scene, collisionManager, index) {
 		// update y
 		if(self.mesh.position.y < 0) {
 			const y = collisionManager.getY(self.mesh.position.x, self.mesh.position.z);
-			console.log(y)
 			if(y !== null) {
 				self.mesh.position.y = y;
 			}

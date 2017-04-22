@@ -10,10 +10,6 @@ function Moon(scene, terrainSize) {
 	light.position.z = moon.position.z;
 	scene.add( light );
 
-	// var sphereSize = 2000;
-	// var pointLightHelper = new THREE.PointLightHelper( light, sphereSize );
-	// scene.add( pointLightHelper );
-
 	this.update = function(time) {
 		const angle = time*0.01 - Math.PI/2;
 		

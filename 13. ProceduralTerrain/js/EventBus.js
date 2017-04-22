@@ -8,7 +8,7 @@ function EventBus() {
      */
     this.subscribe = function (eventType, callback) {
         // check if someone is already subscribed to this event
-        var eventObject = eventObjects.filter(function (eventObject) { return eventObject.eventType == eventType; })[0];
+        var eventObject = eventObjects.filter(function (eventObject) { return eventObject.eventType === eventType; })[0];
 
         if(eventObject) {
             // if there are already callbacks for this event -> add the new callback
@@ -30,7 +30,7 @@ function EventBus() {
     this.post = function (eventType, argument1, argument2) {
         // call every callback of the event
         eventObjects
-            .filter(function (eventObject) { return eventObject.eventType == eventType; })
+            .filter(function (eventObject) { return eventObject.eventType === eventType; })
             .forEach(function (eventObject) { eventObject.callbacks.forEach(function (callback) { callback(argument1, argument2) }) });
     }
 

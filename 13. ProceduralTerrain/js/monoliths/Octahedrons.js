@@ -53,7 +53,6 @@ function Octahedrons(scene, collisionManager, terrainSize, cubeCamera) {
 			// update y
 			if(octahedron.position.y < 0) {
 				const y = collisionManager.getY(octahedron.position.x, octahedron.position.z);
-				console.log(y)
 				if(y !== null)
 					octahedron.position.y = y + octahedron.size*2;
 			}

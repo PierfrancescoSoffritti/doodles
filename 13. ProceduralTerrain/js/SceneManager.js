@@ -1,6 +1,7 @@
 function SceneManager(canvas) {
 	canvas.width = document.body.clientWidth;
     canvas.height = document.body.clientHeight;
+
     var width = canvas.width;
     var height = canvas.height;
 
@@ -24,8 +25,9 @@ function SceneManager(canvas) {
 
     const cameraControls = new PointerLockManager(camera, scene, collisionManager);
     const player = cameraControls.getObject();
+    collisionManager.objects.push(player);
     
-    var sceneSubjects = new Array();
+    var sceneSubjects = [];
     sceneSubjects.push(terrainSubject);
     sceneSubjects.push(new Skydome(scene, terrainSubject.size));
     sceneSubjects.push(new EntitiesSpawner(scene, player, collisionManager, terrainSubject.size));
@@ -78,16 +80,13 @@ function SceneManager(canvas) {
         cameraControls.update();
         collisionManager.update();
 
-        cubeCamera.position.x = player.position.x;
-        cubeCamera.position.y = player.position.y/4;
-        cubeCamera.position.z = player.position.z;
+        cubeCamera.position.set(player.position.x, player.position.y/4, player.position.z)
         cubeCamera.updateCubeMap(renderer, scene);
 
         renderer.render(scene, camera);
     }
 
     this.onWindowResize = function() {
-        const canvas = document.getElementById("canvas");
         width = document.body.clientWidth;
         height = document.body.clientHeight;
         canvas.width = width;

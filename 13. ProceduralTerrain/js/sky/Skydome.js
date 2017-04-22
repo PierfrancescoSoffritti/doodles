@@ -6,7 +6,6 @@ function Skydome(scene, terrainSize) {
 
 	const speed = 0.01;
 	this.update = function(time) {
-		// scene.background = new THREE.Color("#000033");
 		scene.background.setHSL(0.75, .5, (Math.sin(time * speed)+4) / 40);
 
 		stars.update(time);

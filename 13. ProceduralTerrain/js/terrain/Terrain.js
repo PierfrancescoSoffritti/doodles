@@ -11,7 +11,7 @@ function Terrain(scene, cubecamera) {
     scene.add(mesh);
 
     // terrain wireframe
-    var terrainWireframe = new THREE.LineSegments(
+    const terrainWireframe = new THREE.LineSegments(
         new THREE.EdgesGeometry(mesh.geometry),
         new THREE.LineBasicMaterial()
     );
