@@ -1,93 +1,83 @@
-function FollowerEntity(scene, player, collisionManager) {
-	this.minRadius;
-	this.maxRadius;
-	this.maxDistance;
+function FollowerEntity(entity, player, collisionManager) {
 
-	this.animationTimeIn;
-	this.animationTimeOut;
-
-	this.height;
-
-	this.player;
-	this.entities = [];
-	this.collisionManager;
-
-	this.forwardVector = new THREE.Vector3();
+	const forwardVector = new THREE.Vector3();
+	// const entities = entity.entities;
 
 	this.update = function(time) {
 
-		this.player.controls.getDirection(this.forwardVector);
-		this.forwardVector.multiplyScalar(60);
+		player.controls.getDirection(forwardVector);
+		forwardVector.multiplyScalar(60);
 		
-		for(let i=0; i<this.entities.length; i++) {
-			
-			const entity = this.entities[i];
-
-			if(!entity.animationInProgress) {
+		for(let i=0; i<entity.entities.length; i++) {
 				
-				// const distance = this.player.position).distanceTo(entity.position)
+			const iEntity = entity.entities[i];
+
+			if(!iEntity.animationInProgress) {
+				
+				// const distance = this.player.position).distanceTo(iEntity.position)
 				
 				const distance = Math.sqrt(
-					Math.pow( (this.player.position.x + this.forwardVector.x) - entity.position.x , 2)
+					Math.pow( (player.position.x + forwardVector.x) - iEntity.position.x , 2)
 					+
-					Math.pow( (this.player.position.z + this.forwardVector.z) - entity.position.z , 2)
+					Math.pow( (player.position.z + forwardVector.z) - iEntity.position.z , 2)
 				);
-			
-				if(distance >= this.maxDistance) {
-					this.move(entity);
+				
+				if(distance >= entity.maxDistance) {
+					move(iEntity, entity.minRadius, entity.maxRadius, entity.height);
 				}
 			}
 		}
 	}
 
-	this.move = function(entity) {
+	function move(iEntity, minRadius, maxRadius, height) {
+
 		const angle = getRandom(0, Math.PI*2);
-		const radius = getRandom(this.minRadius, this.maxRadius);
+		const radius = getRandom(minRadius, maxRadius);
 
 		// const x = this.player.position.x + radius * Math.cos(angle);
 		// const z = this.player.position.z + radius * Math.sin(angle);
-		const x = this.player.position.x + this.forwardVector.x + radius * Math.cos(angle);
-		const z = this.player.position.z + this.forwardVector.z + radius * Math.sin(angle);
+		const x = player.position.x + forwardVector.x + radius * Math.cos(angle);
+		const z = player.position.z + forwardVector.z + radius * Math.sin(angle);
 		
-		let y = this.collisionManager.getY(x, z) + this.height/2;
+		let y = collisionManager.getY(x, z) + height/2;
 		
 		if(y === null)
 			y = 0;
 
-		this.animateOut(entity, x, y, z, this.animateIn);
+		animateOut(iEntity, x, y, z, height, animateIn);
 	}
 
-	this.animateOut = function(entity, x, y, z, animateIn) {
-		entity.animationInProgress = true;
+	function animateOut(iEntity, x, y, z, height, animateIn) {
+		iEntity.animationInProgress = true;
 
-		const animationOutDuration = this.animationTimeOut;
-		const animationInDuration = this.animationTimeIn;
+		const animationOutDuration = iEntity.animationTimeOut;
+		const animationInDuration = iEntity.animationTimeIn;
 
 		createjs.Tween
-			.get(entity.position, {override:true})
-			.to({y: - this.height/2 }, entity.animationTimeOut, createjs.Ease.cubicInOut)
+			.get(iEntity.position, {override:true})
+			.to({y: - height/2 }, animationOutDuration, createjs.Ease.cubicInOut)
 			.call(function() { 
 
-				entity.position.x = x;
-				entity.position.z = z;
+				iEntity.position.x = x;
+				iEntity.position.z = z;
 
 				if(!animateIn) { 
-					entity.position.y = y;
-					entity.animationInProgress = false;
+					iEntity.position.y = y;
+					iEntity.animationInProgress = false;
 				} else {
-					animateIn(entity, y, animationInDuration);
+					animateIn(iEntity, y, animationInDuration);
 				}
 			});
 	}
 
-	this.animateIn = function(entity, y, animationInDuration) {
-		entity.animationInProgress = true;
+	function animateIn(iEntity, y, animationInDuration) {
+		iEntity.animationInProgress = true;
 		
 		createjs.Tween
-			.get(entity.position, {override:true})
-			.to({y: y}, entity.animationTimeIn, createjs.Ease.cubicInOut)
+			.get(iEntity.position, {override:true})
+			.to({y: y}, animationInDuration, createjs.Ease.cubicInOut)
 			.call(function() {
-				entity.animationInProgress = false;
+				iEntity.animationInProgress = false;
 			});
 	}
 }

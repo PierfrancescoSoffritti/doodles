@@ -1,8 +1,9 @@
 function EntitiesSpawner(scene, player, collisionManager, terrainSize) {
 
-	const cylinders = new Cylinders(scene, player, collisionManager);
-	const grass = new Grass(scene, player, collisionManager);
-	const trees = new Trees(scene, player, collisionManager);
+	const cylinders = new FollowerEntity(new Cylinders(scene), player, collisionManager);
+	const grass = new FollowerEntity(new Grass(scene), player, collisionManager);
+	const trees = new FollowerEntity(new Trees(scene), player, collisionManager);
+	
 	const sprouts = new Sprouts(scene, player, collisionManager, terrainSize);
 	const elusiveEntity = new ElusiveEntity(scene, player, collisionManager);
 
@@ -10,6 +11,7 @@ function EntitiesSpawner(scene, player, collisionManager, terrainSize) {
 		trees.update(time);
 		cylinders.update(time);
 		grass.update(time);
+		
 		sprouts.update(time);
 		elusiveEntity.update(time);
 	}

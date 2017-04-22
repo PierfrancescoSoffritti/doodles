@@ -1,4 +1,4 @@
-function Cylinders(scene, player, collisionManager) {
+function Cylinders(scene) {
 
 	this.minRadius = 80;
 	this.maxRadius = 160;
@@ -6,9 +6,7 @@ function Cylinders(scene, player, collisionManager) {
 
 	this.height = 15;
 
-	this.player = player;
 	this.entities = [];
-	this.collisionManager = collisionManager;
 	
  	const cylinderGeometry = new THREE.CylinderGeometry(2, 2, this.height, 6);
 
@@ -52,5 +50,3 @@ function Cylinders(scene, player, collisionManager) {
 		scene.add(this.entities[i]);
 	}
 }
-
-Cylinders.inheritsFrom(FollowerEntity);

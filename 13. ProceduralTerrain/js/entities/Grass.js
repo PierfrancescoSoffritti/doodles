@@ -1,4 +1,4 @@
-function Grass(scene, player, collisionManager) {
+function Grass(scene) {
 
 	this.minRadius = 40;
 	this.maxRadius = 160;
@@ -6,9 +6,7 @@ function Grass(scene, player, collisionManager) {
 
 	this.height = 4;
 
-	this.player = player;
 	this.entities = [];
-	this.collisionManager = collisionManager;
 
 	const grassBlueprint = new THREE.LineSegments(
         new THREE.EdgesGeometry( new THREE.CylinderGeometry(.2, .4, this.height, 2) ),
@@ -45,5 +43,3 @@ function Grass(scene, player, collisionManager) {
 		scene.add(this.entities[i]);
 	}
 }
-
-Grass.inheritsFrom(FollowerEntity);

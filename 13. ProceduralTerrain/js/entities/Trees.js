@@ -1,4 +1,4 @@
-function Trees(scene, player, collisionManager) {
+function Trees(scene) {
 	const self = this;
 
 	this.minRadius = 160;
@@ -7,9 +7,7 @@ function Trees(scene, player, collisionManager) {
 
 	this.height = 220;
 
-	this.player = player;
 	this.entities = [];
-	this.collisionManager = collisionManager;
 
 	var material = new THREE.MeshStandardMaterial({ color: "#000", roughness: .5, metalness: .5, shading: THREE.FlatShading });
 
@@ -35,5 +33,3 @@ function Trees(scene, player, collisionManager) {
 		}
     });
 }
-
-Trees.inheritsFrom(FollowerEntity);
