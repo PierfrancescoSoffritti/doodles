@@ -28,7 +28,8 @@ function Snow(scene, terrainSize) {
 	const snowMaterial = new THREE.PointsMaterial({ map: texture, color: "#fff", size: 4, blending: THREE.AdditiveBlending, transparent: true, opacity: 0.5, alphaTest: 0.25 });
 	const snow = new THREE.Points(snowGeometry, snowMaterial);
 
-	let startSnowTime = getRandom(50, 80);
+	const snowInterval = getRandom(45, 60)
+	let startSnowTime = snowInterval;
 	const snowDuration = getRandom(100, 200);
 	let isSnowing = false;
 	
@@ -41,7 +42,7 @@ function Snow(scene, terrainSize) {
 		}
 
 		if(time-startSnowTime >= snowDuration) {
-			startSnowTime+=time
+			startSnowTime = time + snowInterval;
 			isSnowing = false;
 		}
 

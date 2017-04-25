@@ -48,18 +48,33 @@ function TuneMonolith(geometry, baseSize, scene, collisionManager, index) {
 		const originalScaleZ = mesh.scale.z;
 		const originalScaleY = mesh.scale.y;
 
-		createjs.Tween
-			.get(mesh.scale, {override:true})
-			.to({y: originalScaleY*1.05, z: originalScaleZ*1.05}, 100, createjs.Ease.cubicIn)
-			.call(function() { 
-				
-				createjs.Tween
-					.get(mesh.scale, {override:true})
-					.to({y: originalScaleY, z: originalScaleZ}, 50, createjs.Ease.cubicOut)
-					.call(function() { 
-						animating = false;
-					});
+		const tween1 = new TWEEN.Tween(mesh.scale)
+			.to({y: originalScaleY*1.05, z: originalScaleZ*1.05}, 100)
+			.easing(TWEEN.Easing.Cubic.In);
 
+		const tween2 = new TWEEN.Tween(mesh.scale)
+			.to({y: originalScaleY, z: originalScaleZ}, 50)
+			.easing(TWEEN.Easing.Cubic.Out)
+			.onComplete(function () {
+				animating = false;
 			});
+
+		tween1.chain(tween2);
+		tween1.start();
+
+
+		// createjs.Tween
+		// 	.get(mesh.scale, {override:true})
+		// 	.to({y: originalScaleY*1.05, z: originalScaleZ*1.05}, 100, createjs.Ease.cubicIn)
+		// 	.call(function() { 
+				
+		// 		createjs.Tween
+		// 			.get(mesh.scale, {override:true})
+		// 			.to({y: originalScaleY, z: originalScaleZ}, 50, createjs.Ease.cubicOut)
+		// 			.call(function() { 
+		// 				animating = false;
+		// 			});
+
+		// 	});
 	}
 }

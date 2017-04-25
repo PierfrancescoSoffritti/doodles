@@ -94,16 +94,16 @@ function TuneMonolithGroup(scene, collisionManager, terrainSize) {
 	}
 
 	function animateLight() {
-		createjs.Tween
-			.get(light, {override:true})
-			.to({intensity: 4, distance: 300}, 300, createjs.Ease.cubicOut)
-			.call(function() { 
-				
-				createjs.Tween
-					.get(light, {override:true})
-					.to({intensity: 1, distance: 200}, 600, createjs.Ease.cubicOut);
+		const tween1 = new TWEEN.Tween(light)
+			.to({intensity: 4, distance: 300}, 600)
+			.easing(TWEEN.Easing.Cubic.In);
 
-			});
+		const tween2 = new TWEEN.Tween(light)
+			.to({intensity: 1, distance: 200}, 1000)
+			.easing(TWEEN.Easing.Cubic.Out);
+
+		tween1.chain(tween2);
+		tween1.start();
 	}
 
 }
