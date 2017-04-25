@@ -66,6 +66,13 @@ function ElusiveEntity(scene, player, collisionManager) {
 			.start();
 	}
 
+	function rotate(mesh) {
+		const tween = new TWEEN.Tween(mesh.rotation)
+			.to({y: mesh.rotation.y+Math.PI*2, z: mesh.rotation.z+Math.PI*2}, 1000)
+			.easing(TWEEN.Easing.Cubic.InOut)
+			.start();
+	}
+
 	this.update = function(time) {
 
 		if(!mesh.animationInProgress) {
@@ -75,6 +82,7 @@ function ElusiveEntity(scene, player, collisionManager) {
 			if(distance <= minDistance) {
 				eventBus.post(playHighNote);
 				moveEntity(mesh);
+				rotate(mesh);
 			}
 		}
 
