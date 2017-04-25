@@ -15,14 +15,16 @@ function PointerLockManager(camera, scene, collisionManager) {
 				blocker.style.display = 'none';
 			} else {
 				controls.enabled = false;
-				blocker.style.display = '-webkit-box';
-				blocker.style.display = '-moz-box';
-				blocker.style.display = 'box';
-				instructions.style.display = '';
+				// blocker.style.display = '-webkit-box';
+				// blocker.style.display = '-moz-box';
+				// blocker.style.display = 'box';
+				// instructions.style.display = '';
+				blocker.style.display = '';
 			}
 		};
 		const pointerlockerror = function ( event ) {
-			instructions.style.display = '';
+			// instructions.style.display = '';
+			instructions.innerHTML = 'error';
 		};
 
 		// Hook pointer lock state change events
@@ -32,9 +34,9 @@ function PointerLockManager(camera, scene, collisionManager) {
 		document.addEventListener( 'pointerlockerror', pointerlockerror, false );
 		document.addEventListener( 'mozpointerlockerror', pointerlockerror, false );
 		document.addEventListener( 'webkitpointerlockerror', pointerlockerror, false );
-		instructions.addEventListener( 'click', function ( event ) {
+		blocker.addEventListener( 'click', function ( event ) {
 			
-			instructions.style.display = 'none';
+			blocker.style.display = 'none';
 
 			// Ask the browser to lock the pointer
 			element.requestPointerLock = element.requestPointerLock || element.mozRequestPointerLock || element.webkitRequestPointerLock;

@@ -13,14 +13,21 @@ html, body {
 
 #blocker { 
 	position: fixed; 
+	
+	width: 100%;
+	
+	padding: 10%;
+
 	top: 50%; 
 	left: 50%; 
-	-webkit-transform: translate(-50%, -50%); 
 	transform: translate(-50%, -50%);
+
+	background-color: rgba(0, 0, 0, 0.5);
 
 	text-align: center;
 
 	color: white;
+	cursor: pointer;
 }
 
 .pointer_wrapper { 

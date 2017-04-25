@@ -11,16 +11,24 @@ function ViewFinderManager() {
 	eventBus.subscribe(actionUnavailable, onActionUnavailable)
 
 	function onActionAvailable() {
-		if(!isPointerBig)
-			growAnimation.beginElement();
+		try {
+			if(!isPointerBig)
+				growAnimation.beginElement();
 
-		isPointerBig = true;
+			isPointerBig = true;
+		} catch(error) {
+			console.error(error)
+		}
 	}
 
 	function onActionUnavailable() {
-		if(isPointerBig)
-			shrinkAnimation.beginElement();
+		try {
+			if(isPointerBig)
+				shrinkAnimation.beginElement();
 
-		isPointerBig = false;
+			isPointerBig = false;
+		} catch(error) {
+			console.error(error)
+		}
 	}
 }
