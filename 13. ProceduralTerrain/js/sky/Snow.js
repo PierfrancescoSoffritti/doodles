@@ -42,7 +42,7 @@ function Snow(scene, terrainSize) {
 		}
 
 		if(time-startSnowTime >= snowDuration) {
-			startSnowTime = time + snowInterval;
+			// startSnowTime = time + snowInterval;
 			isSnowing = false;
 		}
 
@@ -50,8 +50,10 @@ function Snow(scene, terrainSize) {
 			snow.position.y -= .2;
 		else if(!isSnowing && snow.position.y > -range/2)
 			snow.position.y -= .2;
-		else if(snow.position.y <= -range/2)
+		else if(snow.position.y <= -range/2) {
 			scene.remove(snow);
+			startSnowTime = time + snowInterval/1.5;
+		}
 
 
 		for(let i=0; i<snowGeometry.vertices.length; i++) {

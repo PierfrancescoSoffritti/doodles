@@ -34,7 +34,42 @@ function Octahedrons(scene, collisionManager, terrainSize, cubeCamera) {
 	const speed1 = 1;
 	const speed2 = .5;
 
+	let isActionAvailable = false;
+
 	this.checkCollision = function(raycaster, mouseDown) {
+		isActionAvailable = false;
+
+		for(let i=0; i<octahedrons.length; i++) {
+
+			const target = octahedrons[i].children[0];
+
+			const distance = raycaster.ray.origin.distanceTo(target.position)			
+			if(distance > target.size*6)
+				continue;
+
+			const collisionResults = raycaster.intersectObject(target);
+
+	        if (collisionResults.length > 0) {
+	        	if(mouseDown) {
+	        		eventBus.post(playLowNote);
+
+	        		rotate(target);
+	        		rotate(octahedrons[i].children[1]);
+	        		rotate(octahedrons[i].children[2]);
+	        	}
+	            isActionAvailable = true;
+	            break;
+	        }
+		}
+
+		return isActionAvailable;
+	}
+
+	function rotate(mesh) {
+		const tween = new TWEEN.Tween(mesh.rotation)
+			.to({y: mesh.rotation.y+Math.PI/2, z: mesh.rotation.z+Math.PI/2}, 600)
+			.easing(TWEEN.Easing.Cubic.InOut)
+			.start();
 	}
 
 	this.update = function(time) {

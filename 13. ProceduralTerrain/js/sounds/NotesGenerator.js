@@ -1,4 +1,5 @@
 const playHighNote = "playHighNote";
+const playLowNote = "playLowNote";
 
 function NotesGenerator() {
 
@@ -123,9 +124,36 @@ function NotesGenerator() {
         oscillator.stop(context.currentTime + duration);
     }
 
+    this.playLowNote = function() {
+        const i = getRandomInt(0, notesArray.length-1);;
+
+        const fact = getRandomInt(-2, 0);
+        
+        let waveForm = getWaveForm(1);        
+
+        const oscillator = context.createOscillator();
+        oscillator.type = waveForm;
+        oscillator.frequency.value = parseInt(nextNoteString()) * Math.pow(2, fact);
+
+        const gainNode = context.createGain();
+        gainNode.gain.value = .2;
+
+        // generate sound
+        oscillator.connect(gainNode);
+        gainNode.connect(context.destination);
+
+        oscillator.start(0);
+
+        const duration = 4//getRandomInt(1, 2);
+
+        gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + duration);
+        oscillator.stop(context.currentTime + duration);
+    }
+
     // events
     eventBus.subscribe(tuneMonolithClick, this.playSinNote);
     eventBus.subscribe(playHighNote, this.playHighNote);
+    eventBus.subscribe(playLowNote, this.playLowNote);
 
     // maps a key to a waveform
     function getWaveForm(key) {
