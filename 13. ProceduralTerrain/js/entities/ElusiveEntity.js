@@ -1,8 +1,6 @@
 function ElusiveEntity(scene, player, collisionManager) {
 	const radius = 2;
-	const material = new THREE.MeshToonMaterial();
-	const geometry = new THREE.OctahedronGeometry(radius, 0);
-	const mesh = new THREE.Mesh(geometry, material);
+	const mesh = new THREE.Mesh(new THREE.OctahedronBufferGeometry(radius, 0), new THREE.MeshToonMaterial());
 	mesh.position.set(0, 1, -200);
 	scene.add(mesh);
 

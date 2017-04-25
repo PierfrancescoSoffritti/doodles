@@ -9,7 +9,7 @@ function Grass(scene) {
 	this.entities = [];
 
 	const grassBlueprint = new THREE.LineSegments(
-        new THREE.EdgesGeometry( new THREE.CylinderGeometry(.2, .4, this.height, 2) ),
+        new THREE.EdgesGeometry( new THREE.CylinderBufferGeometry(.2, .4, this.height, 2) ),
         new THREE.LineBasicMaterial()
     );
     

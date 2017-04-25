@@ -3,8 +3,8 @@ function Mirrors(scene, player, collisionManager, terrainSize, cubeCamera) {
 	const material = new THREE.MeshBasicMaterial({color:"#fff", side: THREE.DoubleSide, shading: THREE.FlatShading})
 	material.envMap = cubeCamera.renderTarget.texture;
 
-	const square = new THREE.Mesh(new THREE.CircleGeometry(20, 4), material);
-	const circle = new THREE.Mesh(new THREE.CircleGeometry(20, 16), material);
+	const square = new THREE.Mesh(new THREE.CircleBufferGeometry(20, 4), material);
+	const circle = new THREE.Mesh(new THREE.CircleBufferGeometry(20, 16), material);
 
 	const mirrors = []
 
@@ -15,7 +15,7 @@ function Mirrors(scene, player, collisionManager, terrainSize, cubeCamera) {
 		const mesh = Math.random() > 0.5 ? square.clone() : circle.clone();		
 		mesh.rotation.y = getRandom(0, Math.PI*2);
 		mesh.position.set(xOffset, -1, zOffset);
-		mesh.scaleFactor = getRandom(.2, 2);
+		mesh.scaleFactor = getRandom(.2, 1.5);
 		mesh.scale.multiplyScalar(mesh.scaleFactor);
 		mirrors.push(mesh)
 		scene.add(mesh);

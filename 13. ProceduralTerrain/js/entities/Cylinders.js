@@ -8,7 +8,7 @@ function Cylinders(scene) {
 
 	this.entities = [];
 	
- 	const cylinderGeometry = new THREE.CylinderGeometry(2, 2, this.height, 6);
+ 	const cylinderGeometry = new THREE.CylinderBufferGeometry(2, 2, this.height, 6);
 
  	const wireframe = new THREE.LineSegments(
         new THREE.EdgesGeometry(cylinderGeometry),

@@ -7,7 +7,7 @@ function TimeMonolith(scene, collisionManager, terrainSize, cubeCamera) {
 	// group.position.set(0, 0, -100);
 	group.scale.set(5, 5, 5);
 
-	const cylinder = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 1, 6), new THREE.MeshToonMaterial( {color: "#424242", shading: THREE.FlatShading} ) );
+	const cylinder = new THREE.Mesh(new THREE.CylinderBufferGeometry(1, 1, 1, 6), new THREE.MeshToonMaterial( {color: "#424242", shading: THREE.FlatShading} ) );
 	cylinder.scale.set(10, 1, 10);
 	cylinder.position.y = -.3;
 	group.add(cylinder);
@@ -22,7 +22,7 @@ function TimeMonolith(scene, collisionManager, terrainSize, cubeCamera) {
 	cylinderHigh.position.y += .8;
 	group.add(cylinderHigh);
 
-	const sphere = new THREE.Mesh(new THREE.OctahedronGeometry(1, 4), new THREE.MeshBasicMaterial());
+	const sphere = new THREE.Mesh(new THREE.SphereBufferGeometry(1, 32, 32), new THREE.MeshBasicMaterial());
 	sphere.material.envMap = cubeCamera.renderTarget.texture;
 	sphere.position.y = 6
 	group.add(sphere);

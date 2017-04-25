@@ -1,7 +1,7 @@
 function Sprouts(scene, player, collisionManager, terrainSize) {
 	const group = new THREE.Group();
 
-	const ball = new THREE.Mesh(new THREE.IcosahedronGeometry(4, 1), new THREE.MeshToonMaterial({color: "#ffffff"}));	
+	const ball = new THREE.Mesh(new THREE.IcosahedronBufferGeometry(4, 1), new THREE.MeshToonMaterial({color: "#ffffff"}));	
 
 	const leafGeometry = buildLeafGeometry()
 	const leafVertices = [leafGeometry.vertices[3], leafGeometry.vertices[7], leafGeometry.vertices[11], leafGeometry.vertices[15]];
