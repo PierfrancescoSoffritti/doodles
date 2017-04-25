@@ -7,9 +7,9 @@ function Snow(scene, terrainSize) {
         const particle = new THREE.Vector3();
         
         particle.baseCoords = new THREE.Vector3(
-        	Math.random() * range - range / 2,
-        	Math.random() * range/6 * 1.5,
-        	Math.random() * range - range / 2);
+        	Math.random() * range - range/2,
+        	getRandom(0.4, 1.0) * range/4,
+        	Math.random() * range - range/2);
         
         particle.x = particle.baseCoords.x;
         particle.y = particle.baseCoords.y;
@@ -28,31 +28,35 @@ function Snow(scene, terrainSize) {
 	const snowMaterial = new THREE.PointsMaterial({ map: texture, color: "#fff", size: 4, blending: THREE.AdditiveBlending, transparent: true, opacity: 0.5, alphaTest: 0.25 });
 	const snow = new THREE.Points(snowGeometry, snowMaterial);
 
-	const snowInterval = getRandom(45, 60)
+	const snowStartY = 400;
+	const snowEndY = -range/4;
+	snow.position.y = snowStartY;
+
+	const snowInterval = getRandom(45, 50)
 	let startSnowTime = snowInterval;
-	const snowDuration = getRandom(100, 200);
+	const snowDuration = getRandom(150, 200);
 	let isSnowing = false;
 	
 	this.update = function(time) {
-		
 		if(time >= startSnowTime && !isSnowing) {
 			scene.add(snow);
-			snow.position.y = 400;
+			snow.position.y = snowStartY;
 			isSnowing = true;
 		}
 
 		if(time-startSnowTime >= snowDuration) {
-			// startSnowTime = time + snowInterval;
+			startSnowTime = Number.MAX_VALUE;
 			isSnowing = false;
 		}
 
-		if(isSnowing && snow.position.y > 0)
+		if(isSnowing && snow.position.y > 0) {
 			snow.position.y -= .2;
-		else if(!isSnowing && snow.position.y > -range/2)
+		} else if(!isSnowing && snow.position.y > snowEndY && snow.position.y != snowStartY) {
 			snow.position.y -= .2;
-		else if(snow.position.y <= -range/2) {
+		} else if(snow.position.y <= snowEndY) {
 			scene.remove(snow);
-			startSnowTime = time + snowInterval/1.5;
+			startSnowTime = time + snowInterval;
+			snow.position.y = snowStartY;
 		}
 
 
