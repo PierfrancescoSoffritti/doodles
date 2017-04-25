@@ -16,11 +16,9 @@ function FollowerEntity(entity, player, collisionManager) {
 				
 				// const distance = this.player.position).distanceTo(iEntity.position)
 				
-				const distance = Math.sqrt(
-					Math.pow( (player.position.x + forwardVector.x) - iEntity.position.x , 2)
-					+
-					Math.pow( (player.position.z + forwardVector.z) - iEntity.position.z , 2)
-				);
+				const dx = (player.position.x + forwardVector.x) - iEntity.position.x;
+				const dz = (player.position.z + forwardVector.z) - iEntity.position.z;
+				const distance = Math.sqrt(dx*dx + dz*dz);
 				
 				if(distance >= entity.maxDistance) {
 					move(iEntity, entity.minRadius, entity.maxRadius, entity.height);
@@ -53,11 +51,10 @@ function FollowerEntity(entity, player, collisionManager) {
 		const animationOutDuration = iEntity.animationTimeOut;
 		const animationInDuration = iEntity.animationTimeIn;
 
-		createjs.Tween
-			.get(iEntity.position, {override:true})
-			.to({y: - height/2 }, animationOutDuration, createjs.Ease.cubicInOut)
-			.call(function() { 
-
+		const tween = new TWEEN.Tween(iEntity.position)
+			.to({y: - height/2 }, animationOutDuration)
+			.easing(TWEEN.Easing.Cubic.InOut)
+			.onComplete(function () {
 				iEntity.position.x = x;
 				iEntity.position.z = z;
 
@@ -67,17 +64,19 @@ function FollowerEntity(entity, player, collisionManager) {
 				} else {
 					animateIn(iEntity, y, animationInDuration);
 				}
-			});
+			})
+			.start();
 	}
 
 	function animateIn(iEntity, y, animationInDuration) {
 		iEntity.animationInProgress = true;
-		
-		createjs.Tween
-			.get(iEntity.position, {override:true})
-			.to({y: y}, animationInDuration, createjs.Ease.cubicInOut)
-			.call(function() {
+
+		const tween = new TWEEN.Tween(iEntity.position)
+			.to({y: y }, animationInDuration)
+			.easing(TWEEN.Easing.Cubic.InOut)
+			.onComplete(function () {
 				iEntity.animationInProgress = false;
-			});
+			})
+			.start();
 	}
 }

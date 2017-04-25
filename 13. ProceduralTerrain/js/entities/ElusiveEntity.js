@@ -59,10 +59,13 @@ function ElusiveEntity(scene, player, collisionManager) {
 		
 		mesh.animationInProgress = true;
 
-		createjs.Tween
-			.get(mesh.position, {override:true})
-			.to({x: targetX, z: targetZ}, 600, createjs.Ease.cubicInOut)
-			.call(function() { mesh.animationInProgress = false });
+		var tween = new TWEEN.Tween(mesh.position)
+			.to({ x: targetX, z: targetZ }, 600)
+			.easing(TWEEN.Easing.Cubic.InOut)
+			.onComplete(function () {
+				mesh.animationInProgress = false
+			})
+			.start();
 	}
 
 	this.update = function(time) {

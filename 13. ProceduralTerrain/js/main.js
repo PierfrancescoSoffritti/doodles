@@ -15,8 +15,9 @@ var sceneManager = new SceneManager(canvas);
 
 render();
 
-function render() {
+function render(time) {
     requestAnimationFrame(render);
+    TWEEN.update(time);
     sceneManager.update();
 }
 
