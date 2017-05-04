@@ -12,7 +12,7 @@ function Stars(scene, terrainSize) {
     textureLoader.setCrossOrigin("anonymous");
 	const texture = textureLoader.load("textures/particle.png");
 
-	const starMaterial = new THREE.PointsMaterial({ map: texture, color: "#fff", size: 20, blending: THREE.AdditiveBlending, transparent: false, fog: false });
+	const starMaterial = new THREE.PointsMaterial({ map: texture, color: "#fff", size: 20, blending: THREE.AdditiveBlending, transparent: false, fog: true });
 	const stars = new THREE.Points(starsGeometry, starMaterial);
 	scene.add(stars);
 
