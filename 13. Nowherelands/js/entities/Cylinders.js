@@ -1,4 +1,5 @@
 function Cylinders(scene) {
+	const self = this;
 
 	this.minRadius = 80;
 	this.maxRadius = 160;
@@ -22,11 +23,16 @@ function Cylinders(scene) {
 	cylinderSmall.scale.y = 0.5;
 
 	for(let i=0; i<20; i++) {
+
+		const scaleFactor = getRandom(0, 0.6);
+
 		if(i%2 === 0) {
 
 			const wireframeCopy = wireframe.clone()
 			wireframeCopy.animationTimeIn = getRandom(250, 350);
 			wireframeCopy.animationTimeOut = getRandom(250, 350);
+
+			wireframeCopy.scaleFactor = scaleFactor;
 
 			this.entities.push(wireframeCopy);
 		}
@@ -43,10 +49,35 @@ function Cylinders(scene) {
 			group.animationTimeIn = getRandom(250, 350);
 			group.animationTimeOut = getRandom(250, 350);
 
+			group.scaleFactor = scaleFactor;
+
 			this.entities.push(group);
 		}
 
 		this.entities[i].animationInProgress = false;
 		scene.add(this.entities[i]);
+	}
+
+	eventBus.subscribe(notePlayed, onNotePlayed)
+
+	function onNotePlayed() {
+		self.entities.forEach(function(group) {
+			scale(group);
+		})
+	}
+
+	function scale(target, onComplete) {
+		const tween = new TWEEN.Tween(target.scale)
+			.to({y: 1.0 + target.scaleFactor}, 300)
+			.easing(TWEEN.Easing.Cubic.InOut)
+			.onComplete(function() {
+				
+				const tween = new TWEEN.Tween(target.scale)
+					.to({y: 1}, 200)
+					.easing(TWEEN.Easing.Cubic.InOut)
+					.start();
+
+			})
+			.start();
 	}
 }

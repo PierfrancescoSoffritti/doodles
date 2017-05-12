@@ -1,4 +1,6 @@
 function Sprouts(scene, player, collisionManager, terrainSize) {
+	const self = this;
+
 	const group = new THREE.Group();
 
 	const ball = new THREE.Mesh(new THREE.IcosahedronBufferGeometry(4, 1), new THREE.MeshToonMaterial({color: "#ffffff"}));	
@@ -27,6 +29,25 @@ function Sprouts(scene, player, collisionManager, terrainSize) {
 		scene.add(tGroup);
 	}
 
+	this.fac = 0;
+
+	eventBus.subscribe(notePlayed, onNotePlayed)
+
+	function onNotePlayed() {
+		const tween = new TWEEN.Tween(self)
+			.to({fac: .8 }, 200)
+			.easing(TWEEN.Easing.Cubic.InOut)
+			.onComplete(function() {
+				
+				const tween = new TWEEN.Tween(self)
+					.to({fac: 0}, 300)
+					.easing(TWEEN.Easing.Cubic.InOut)
+					.start();
+
+			})
+			.start();
+	}
+
 	this.update = function(time) {	
 		for(let i=0; i<leafVertices.length; i++)
 			leafVertices[i].y = (Math.sin(time)+1)/1.2;
@@ -35,29 +56,7 @@ function Sprouts(scene, player, collisionManager, terrainSize) {
 		const sinColor = (Math.sin(time)+2) / 3;
 		const sin = (Math.sin(time)+8) / 9;
 
-		let fac = 0;
-		if(time*1000 % 1000 < 50)
-			fac = .1;
-		else if(time*1000 % 1000 < 150)
-			fac = .2;
-		else if(time*1000 % 1000 < 100)
-			fac = .3;
-		else if(time*1000 % 1000 < 150)
-			fac = .4;
-		else if(time*1000 % 1000 < 200)
-			fac = .5;
-		else if(time*1000 % 1000 < 250)
-			fac = .4;
-		else if(time*1000 % 1000 < 300)
-			fac = .3;
-		else if(time*1000 % 1000 < 350)
-			fac = .2;
-		else if(time*1000 % 1000 < 400)
-			fac = .1;
-		else
-			fac = 0;
-
-		ball.material.emissive.setHSL(sinColor, .5, .5 + fac);
+		ball.material.emissive.setHSL(sinColor, .5, .2 + self.fac);
 
 		for(let i=0; i<sprouts.length; i++) {
 			

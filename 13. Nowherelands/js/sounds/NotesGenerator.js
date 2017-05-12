@@ -4,7 +4,7 @@ const playLowNote = "playLowNote";
 function NotesGenerator() {
 
     window.context = window.context || window.webkitcontext;
-    const context = new AudioContext();
+    var context = new AudioContext();
 
     var notesArray = getNotes();
 
@@ -27,7 +27,7 @@ function NotesGenerator() {
         oscillator.frequency.value = notesArray[i] * Math.pow(2, fact);
 
         const gainNode = context.createGain();
-        gainNode.gain.value = .5;
+         gainNode.gain.value = .5;
 
         // generate sound
         oscillator.connect(gainNode);

@@ -1,4 +1,4 @@
-var canvas = document.getElementById("canvas");
+const canvas = document.getElementById("canvas");
 
 window.onresize = resizeCanvas;
 
@@ -12,6 +12,27 @@ const notesGenerator = new NotesGenerator();
 const backgroundTuneGenerator = new BackgroundTuneGenerator(notesGenerator);
 const viewFinderManager = new ViewFinderManager();
 var sceneManager = new SceneManager(canvas);
+
+const intro = document.getElementsByClassName('intro')[0];
+const blocker = document.getElementById("blocker");
+
+function fadeOverlay() {
+
+	setTimeout(function() {
+		intro.classList.add('fade');
+
+		setTimeout(function() {
+			blocker.classList.add('go-on-top');
+		}, 2200);
+
+		setTimeout(function() { 
+			intro.parentNode.removeChild(intro);
+		}, 4000);
+		
+	}, 1000);
+}
+
+fadeOverlay();
 
 render();
 

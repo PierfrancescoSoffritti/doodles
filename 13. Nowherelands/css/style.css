@@ -11,6 +11,10 @@ html, body {
     margin: 0;
 }
 
+.go-on-top {
+	z-index: 10;
+}
+
 #blocker { 
 	position: fixed; 
 	
@@ -36,4 +40,21 @@ html, body {
 	left: 50%; 
 	-webkit-transform: translate(-50%, -50%); 
 	transform: translate(-50%, -50%); 
+}
+
+.intro {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+
+	background-color: black;
+}
+
+.intro.fade {
+  -webkit-transition: 4s;
+  -moz-transition: 4s;
+  -ms-transition: 4s;
+  -o-transition: 4s;
+  transition: 4s;
+  background-color: transparent;
 }
