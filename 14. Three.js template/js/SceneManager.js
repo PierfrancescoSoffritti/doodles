@@ -42,9 +42,10 @@ function SceneManager(canvas) {
     }
 
     function createSceneSubjects(scene) {
-        const sceneSubjects = [];
-        sceneSubjects.push(new GeneralLights(scene));
-        sceneSubjects.push(new Subject(scene));
+        const sceneSubjects = [
+            new GeneralLights(scene),
+            new Subject(scene)
+        ];
 
         return sceneSubjects;
     }
