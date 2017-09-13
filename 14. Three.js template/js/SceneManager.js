@@ -10,7 +10,6 @@ function SceneManager(canvas) {
     const scene = buildScene();
     const renderer = buildRender(screenDimensions);
     const camera = buildCamera(screenDimensions);
-    const light = buildLights(scene);    
     const sceneSubjects = createSceneSubjects(scene);
 
     function buildScene() {
@@ -42,15 +41,9 @@ function SceneManager(canvas) {
         return camera;
     }
 
-    function buildLights(scene) {
-        const light = new THREE.PointLight("#2222ff", 1);
-        scene.add(light);
-
-        return light;
-    }
-
     function createSceneSubjects(scene) {
         const sceneSubjects = [];
+        sceneSubjects.push(new GeneralLights(scene));
         sceneSubjects.push(new Subject(scene));
 
         return sceneSubjects;

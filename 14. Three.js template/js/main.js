@@ -3,11 +3,11 @@ const canvas = document.getElementById("canvas");
 const sceneManager = new SceneManager(canvas);
 
 bindEventListeners();
-resizeCanvas();
 render();
 
 function bindEventListeners() {
 	window.onresize = resizeCanvas;
+	resizeCanvas();	
 }
 
 function resizeCanvas() {
