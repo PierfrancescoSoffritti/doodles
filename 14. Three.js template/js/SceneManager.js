@@ -44,7 +44,7 @@ function SceneManager(canvas) {
     function createSceneSubjects(scene) {
         const sceneSubjects = [
             new GeneralLights(scene),
-            new Subject(scene)
+            new SceneSubject(scene)
         ];
 
         return sceneSubjects;
