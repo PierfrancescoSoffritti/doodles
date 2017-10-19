@@ -1,24 +1,41 @@
 const table = document.getElementById("table");
+let time = 0;
+let rand = 0;
 
 const nodes = [];
 for(key in notes)
     nodes.push({ name: key, freq: notes[key]});
 
 const graph = new MarkowGraph(nodes.length);
-
-buildTable(graph);
+const graphBackground = new MarkowGraph(nodes.length);
 
 const notesGenerator = new NotesGenerator();
 
 let prevElm = table;
 
+buildTable(graph);
+render();
+
+function render() {
+    requestAnimationFrame(render);
+    time++;
+    notesGenerator.update(time);
+
+    if(time > rand) {
+        const note = graph.selectNextRow();
+        notesGenerator.playNote( nodes[note.newNote].freq );
+        
+        highligthTableCell(note); 
+
+        time = 0;
+        rand = getRandomInt(10, 110);
+    }
+}
+
 setInterval(function() {
-    const note = graph.selectNextRow();
-    notesGenerator.playNote( nodes[note.newNote].freq, true );
-    
-    highligthTableCell(note);
-    
-}, 500);
+    const note = graphBackground.selectNextRow();
+    notesGenerator.playNoteBackground( nodes[note.newNote].freq );
+}, 5000);
 
 function highligthTableCell(note) {
     const row = document.getElementById("row" +note.currentNote).getElementsByTagName("*");
@@ -45,4 +62,8 @@ function buildTable(graph) {
             cell.innerHTML = graph.getGraph()[i][j].toFixed(4);
         }
     }
+}
+
+function getRandomInt(min, max) {
+    return Math.round(Math.random() * (max - min) + min);
 }

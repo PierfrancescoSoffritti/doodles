@@ -12,7 +12,7 @@ function NotesGenerator() {
         oscillator.frequency.value = freq;
 
         const gainNode = context.createGain();
-        gainNode.gain.value = .2;
+        gainNode.gain.value = .09;
         
         // generate sound
         oscillator.connect(gainNode);
@@ -24,18 +24,55 @@ function NotesGenerator() {
 
         gainNode.gain.linearRampToValueAtTime(0.0001, context.currentTime + duration);
         oscillator.stop(context.currentTime + duration);
+    }
+
+    // let oscillator;
+    this.playNoteBackground = function(freq) {
+        const oscillator = context.createOscillator();
+
+        const waveForm = getWaveForm(getRandomInt(1, 1));
+        oscillator.type = waveForm;
+        
+        const fac = 2;
+
+        oscillator.frequency.value = freq;
+
+        const gainNode = context.createGain();
+        gainNode.gain.value = .06;
+        
+        // generate sound
+        oscillator.connect(gainNode);
+        gainNode.connect(context.destination);
+
+        oscillator.start(0);
+        
+        const duration = getRandomInt(2, 8);
+
+        gainNode.gain.linearRampToValueAtTime(0.0001, context.currentTime + duration);
+        oscillator.stop(context.currentTime + duration);
 
         // setInterval(function() {
         //     oscillator.frequency.value = freq*2
-        // }, 100);
+        // }, 400);
 
-        // createjs.Tween.get(oscillator.frequency, { loop: true })
-        //     .to({ value: freq*2 }, duration/2, createjs.Ease.bounceInOut)
+        const ease = Math.random() > 0.5 ? createjs.Ease.cubicIn : createjs.Ease.cubicOut;
+
+        const targetFreq = freq > 300 ? freq/4 : freq*3;
+
+        createjs.Tween.get(oscillator.frequency, { loop: false })
+            .to({ value: targetFreq }, duration*1000, ease)
     }
 
-    function getRandomInt(min, max) {
-        return Math.round(Math.random() * (max - min) + min);
+    this.update = function(time) {
+        // if(oscillator) {
+        //     const x = time/100;
+        //     const freq = ( (Math.sin(x) )+1) *300;
+        //     oscillator.frequency.value = freq;
+        //     console.log(freq);
+        // }
     }
+
+    
 
     function getWaveForm(key) {
         switch(key) {
