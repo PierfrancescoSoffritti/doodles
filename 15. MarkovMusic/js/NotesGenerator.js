@@ -4,7 +4,7 @@ function NotesGenerator() {
     this.playNote = function(freq) {
         const oscillator = context.createOscillator();
 
-        const waveForm = getWaveForm(getRandomInt(1, 2));
+        const waveForm = getWaveForm(getRandomInt(1, 1));
         oscillator.type = waveForm;
         
         const fac = 2;
@@ -38,7 +38,7 @@ function NotesGenerator() {
         oscillator.frequency.value = freq;
 
         const gainNode = context.createGain();
-        gainNode.gain.value = .06;
+        gainNode.gain.value = .04;
         
         // generate sound
         oscillator.connect(gainNode);
@@ -46,7 +46,7 @@ function NotesGenerator() {
 
         oscillator.start(0);
         
-        const duration = getRandomInt(2, 8);
+        const duration = getRandomInt(2, 10);
 
         gainNode.gain.linearRampToValueAtTime(0.0001, context.currentTime + duration);
         oscillator.stop(context.currentTime + duration);
