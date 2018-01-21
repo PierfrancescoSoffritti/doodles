@@ -38,9 +38,9 @@ function SceneSubject(scene) {
         const y = 0
         const z = radius * sin(angle)
 	
-		var geometry = new THREE.BoxBufferGeometry( getRandomInt(5,30), getRandomInt(5,50), getRandomInt(5,30) );
-		var material = new THREE.MeshBasicMaterial( {color: color} );
-		var pillar = new THREE.Mesh( geometry, material );
+		var pillarGeometry = new THREE.BoxBufferGeometry( getRandomInt(5,30), getRandomInt(5,50), getRandomInt(5,30) );
+		var pillarMaterial = new THREE.MeshBasicMaterial( {color: color} );
+		var pillar = new THREE.Mesh( pillarGeometry, pillarMaterial );
 
 		pillar.position.set(x, y, z)
 		group.add(pillar)
