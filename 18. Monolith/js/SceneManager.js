@@ -28,6 +28,9 @@ function SceneManager(canvas) {
         renderer.setPixelRatio(DPR);
         renderer.setSize(width, height);
 
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap; // default THREE.PCFShadowMap
+
         renderer.gammaInput = true;
         renderer.gammaOutput = true; 
 

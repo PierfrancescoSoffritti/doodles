@@ -7,6 +7,7 @@ function Enemy(scene) {
     const sphere = blueprintEnemy.clone()
     const val = getRandom(1, 2)
     sphere.scale.set(val, val, val)
+    sphere.castShadow = true;
 
     sphere.position.y = getRandom(0, 1) > 0.5 ? 5 : 15
 

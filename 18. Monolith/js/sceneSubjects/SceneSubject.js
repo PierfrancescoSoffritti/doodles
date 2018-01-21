@@ -12,16 +12,19 @@ function SceneSubject(scene) {
 	var plane = new THREE.Mesh( geometry, material );
 	plane.rotation.x = -Math.PI/2
 	this.group.add( plane );
+	plane.receiveShadow = true;
 
 	var geometry = new THREE.CylinderBufferGeometry( 5, 35, 150, 32 );
 	var material = new THREE.MeshBasicMaterial( {color: "#FF0000"} );
 	var cylinder = new THREE.Mesh( geometry, material );
 	this.group.add( cylinder );
+	cylinder.castShadow = true;
 
 	var geometry = new THREE.BoxBufferGeometry( 40, 25, 40 );
 	var material = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
 	var cube = new THREE.Mesh( geometry, material );
 	this.group.add( cube );
+	cube.castShadow = true;
 
 	for(let i=0; i<20; i++)
 		placePillar(this.group, 210, 300)

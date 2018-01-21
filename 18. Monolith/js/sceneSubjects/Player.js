@@ -3,6 +3,7 @@ function Player(scene) {
 	var material = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
 	var cube = new THREE.Mesh( geometry, material );
     scene.add( cube );
+    cube.castShadow = true;
     
     this.mesh = cube;
     this.position = cube.position;
