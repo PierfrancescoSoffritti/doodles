@@ -40,11 +40,32 @@ function PolarControls(camera, player, radius = 200, angle = 0) {
             backward = false
     }
 
+    const speed = .02
+    const maxAcceletation = 1
+    let acceleration = 0
+
     this.update = function(time) {
+        if(Math.abs(acceleration) !== 0)
+            acceleration = Math.sign(acceleration) * ( Math.abs(acceleration) - 0.014 )
+        if(Math.abs(acceleration) < 0.01)
+            acceleration = 0
+
         if(left)
-            angle += .04
+            if(acceleration < maxAcceletation)
+                acceleration += 0.04
+            else
+                acceleration = maxAcceletation
+            angle += speed * acceleration
+
+            // angle += .04
         if(right)
-            angle -= .04
+            if(Math.abs(acceleration) < maxAcceletation)
+                acceleration -= 0.04
+            else
+                acceleration = -maxAcceletation
+            angle += speed * acceleration
+
+            // angle -= .04
         if(forward && radius > minRadius)
             radius--
         if(backward && radius < maxRadius)

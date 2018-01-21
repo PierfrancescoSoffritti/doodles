@@ -2,7 +2,7 @@ function EnemiesSpawner(scene) {
     const enemies = []
     this.enemies = enemies
 
-    const delay = 1
+    const delay = .5
     let lastEnemySpawnTime = 0
 
     function spawnEnemy(currentTime) {

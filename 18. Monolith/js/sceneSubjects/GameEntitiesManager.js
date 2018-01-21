@@ -20,8 +20,10 @@ function GameEntitiesManager(scene) {
             for(let j=0; j<array2.length; j++) {
                 const el2 = array2[j]
 
-                const distance = Math.sqrt(Math.pow(el1.position.x - el2.position.x, 2) + Math.pow(el1.position.z - el2.position.z, 2))
-                if(distance < 10) {
+                // const distance = Math.sqrt(Math.pow(el1.position.x - el2.position.x, 2) + Math.pow(el1.position.z - el2.position.z, 2))
+
+                const distance = el1.position.distanceTo( el2.position );
+                if(distance < el2.boundingSphereRad) {
                     el1.collision = true
                     el2.collision = true
                 }
