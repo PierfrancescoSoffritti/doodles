@@ -40,38 +40,57 @@ function PolarControls(camera, player, radius = 200, angle = 0) {
             backward = false
     }
 
-    const speed = .02
-    const maxAcceletation = 1
-    let acceleration = 0
+    const angleSpeed = .02
+    const angleAcceletationMax = 1
+    let angleAcceleration = 0
+    let angleAccelerationIncreaseStep = 0.04
+    let accelerationDecreaseStep = 0.014
 
     this.update = function(time) {
-        if(Math.abs(acceleration) !== 0)
-            acceleration = Math.sign(acceleration) * ( Math.abs(acceleration) - 0.014 )
-        if(Math.abs(acceleration) < 0.01)
-            acceleration = 0
+        updateAngleAcceleration()
 
-        if(left)
-            if(acceleration < maxAcceletation)
-                acceleration += 0.04
-            else
-                acceleration = maxAcceletation
-            angle += speed * acceleration
+        if(forward && radius > minRadius) {
 
-            // angle += .04
-        if(right)
-            if(Math.abs(acceleration) < maxAcceletation)
-                acceleration -= 0.04
-            else
-                acceleration = -maxAcceletation
-            angle += speed * acceleration
 
-            // angle -= .04
-        if(forward && radius > minRadius)
             radius--
-        if(backward && radius < maxRadius)
+        } if(backward && radius < maxRadius) {
+
+
             radius++
+        }
+
+        angle += angleSpeed * angleAcceleration
 
         setPosition(camera, radius, angle)
+    }
+
+    function updateAngleAcceleration() {
+        if(!left && !right) {
+            decelerate()            
+            return;
+        }
+        
+        accelerate()
+        
+        function decelerate() {
+            if(Math.abs(angleAcceleration) !== 0)
+                angleAcceleration = Math.sign(angleAcceleration) * ( Math.abs(angleAcceleration) - accelerationDecreaseStep )
+            if(Math.abs(angleAcceleration) < 0.01)
+                angleAcceleration = 0
+        }
+
+        function accelerate() {
+            const direction = left ? 1 : -1
+
+            if(Math.abs(angleAcceleration) < angleAcceletationMax)
+                angleAcceleration += direction * angleAccelerationIncreaseStep
+            else
+                angleAcceleration = direction * angleAcceletationMax
+        }
+    }
+
+    function updateRadiusAcceleration() {
+
     }
     
     function setPosition(camera, radius, angle) {
