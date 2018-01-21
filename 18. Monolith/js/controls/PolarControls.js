@@ -13,20 +13,25 @@ function PolarControls(camera, player, radius = 200, angle = 0) {
     let forward = false
     let backward = false
 
+    const angleSpeed = .02
+    const radSpeed = 1
+
+    const acceletationMax = 1
+    const accelerationIncreaseStep = 0.04
+    const accelerationDecreaseStep = 0.014
+
+    const angleAccelerator = new Accelerator(angleSpeed, acceletationMax, accelerationIncreaseStep, accelerationDecreaseStep)
+    const radAccelerator = new Accelerator(radSpeed, acceletationMax, accelerationIncreaseStep, accelerationDecreaseStep)
+
     this.onKeyDown = function(keyCode) {
-        if(keyCode === A) {
+        if(keyCode === A)
             left = true
-            right = false
-        } else if(keyCode === D) {
-            left = false
+        else if(keyCode === D)
             right = true  
-        } else if(keyCode === W) {
+        else if(keyCode === W)
             forward = true
-            backward = false
-        } else if(keyCode === S) {
-            forward = false
+        else if(keyCode === S)
             backward = true
-        }
     }
 
     this.onKeyUp = function(keyCode) {
@@ -40,60 +45,17 @@ function PolarControls(camera, player, radius = 200, angle = 0) {
             backward = false
     }
 
-    const angleSpeed = .02
-    const angleAcceletationMax = 1
-    let angleAcceleration = 0
-    let angleAccelerationIncreaseStep = 0.04
-    let accelerationDecreaseStep = 0.014
-
     this.update = function(time) {
-        updateAngleAcceleration()
-
-        if(forward && radius > minRadius) {
-
-
-            radius--
-        } if(backward && radius < maxRadius) {
-
-
-            radius++
-        }
-
-        angle += angleSpeed * angleAcceleration
-
-        setPosition(camera, radius, angle)
-    }
-
-    function updateAngleAcceleration() {
-        if(!left && !right) {
-            decelerate()            
-            return;
-        }
+        angle += angleAccelerator.getForce(left ? 1 : right ? -1 : 0)
         
-        accelerate()
-        
-        function decelerate() {
-            if(Math.abs(angleAcceleration) !== 0)
-                angleAcceleration = Math.sign(angleAcceleration) * ( Math.abs(angleAcceleration) - accelerationDecreaseStep )
-            if(Math.abs(angleAcceleration) < 0.01)
-                angleAcceleration = 0
-        }
+        const tRad = radius + radAccelerator.getForce(forward ? -1 : backward ? 1 : 0)
+        if(tRad > minRadius && tRad < maxRadius)
+            radius = tRad
 
-        function accelerate() {
-            const direction = left ? 1 : -1
-
-            if(Math.abs(angleAcceleration) < angleAcceletationMax)
-                angleAcceleration += direction * angleAccelerationIncreaseStep
-            else
-                angleAcceleration = direction * angleAcceletationMax
-        }
-    }
-
-    function updateRadiusAcceleration() {
-
+        setPosition(camera, player, radius, angle)
     }
     
-    function setPosition(camera, radius, angle) {
+    function setPosition(camera, player, radius, angle) {
     
         camera.position.x = radius * cos(angle)
         camera.position.y = player.position.y + 2
