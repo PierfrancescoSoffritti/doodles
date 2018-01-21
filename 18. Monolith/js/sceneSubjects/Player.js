@@ -8,13 +8,14 @@ function Player(scene) {
     this.position = cube.position;
     this.rotation = cube.rotation;
     
-    const shooter = new Shooter(scene, this.position)
+    const shooter = new Shooter(scene)
+    this.shooter = shooter
 
     this.update = function(time) {
         shooter.update(time)
     }
 
     this.shoot = function() {
-        shooter.shoot()
+        shooter.shoot(this.position)
     }
 }

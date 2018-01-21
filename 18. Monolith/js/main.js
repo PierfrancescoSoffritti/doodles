@@ -27,7 +27,6 @@ function resizeCanvas() {
 }
 
 function onKeyDown(event) {
-	console.log(event.keyCode)
 	sceneManager.onKeyDown(event.keyCode)
 }
 

@@ -1,13 +1,18 @@
-const geometry = new THREE.SphereBufferGeometry( .8, 16, 16 );
-const material = new THREE.MeshBasicMaterial( {color: "#0000FF"} );
-const blueprint = new THREE.Mesh( geometry, material );
+const geometryBullet = new THREE.SphereBufferGeometry( .8, 16, 16 );
+const materialBullet = new THREE.MeshBasicMaterial( {color: "#0000FF"} );
+const blueprintBullet = new THREE.Mesh( geometryBullet, materialBullet );
 
 function Bullet(scene, origin) {
 
-    const sphere = blueprint.clone()
-    sphere.scale.set(getRandom(.1, 2), getRandom(.1, 2), getRandom(.1, 2))
+    const sphere = blueprintBullet.clone()
+    sphere.scale.set(getRandom(.1, 1), getRandom(.1, 1), getRandom(.1, 1))
+    // const val = getRandom(.1, )
+    // sphere.scale.set(val, val, val)
 
     const speed = 5;
+
+    this.position = sphere.position
+    this.collision = false
 
     sphere.position.x = origin.x
     sphere.position.y = origin.y
@@ -27,11 +32,11 @@ function Bullet(scene, origin) {
     this.update = function(time) {
         radius -= speed
 
-        sphere.position.x = (radius -5) * cos(angle)
-        sphere.position.z = (radius -5) * sin(angle)
+        sphere.position.x = (radius) * cos(angle)
+        sphere.position.z = (radius) * sin(angle)
 
 
-        const expired = radius < 0 ? true : false
+        const expired = ( radius < 0 || this.collision === true ) ? true : false
         if(expired)
             scene.remove(sphere)
             

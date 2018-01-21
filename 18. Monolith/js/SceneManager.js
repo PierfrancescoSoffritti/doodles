@@ -11,8 +11,9 @@ function SceneManager(canvas) {
     const renderer = buildRender(screenDimensions);
     const camera = buildCamera(screenDimensions);
     const sceneSubjects = createSceneSubjects(scene);
-    const player = new Player(scene)
-    const controls = buildControls(camera, player);
+    
+    const gameEntitiesManager = new GameEntitiesManager(scene)
+    const controls = buildControls(camera, gameEntitiesManager.player);
 
     function buildScene() {
         const scene = new THREE.Scene();
@@ -72,7 +73,7 @@ function SceneManager(canvas) {
         controls.polar.update(elapsedTime)
         controls.mouse.update(elapsedTime)
 
-        player.update(elapsedTime)
+        gameEntitiesManager.update(elapsedTime)
 
         renderer.render(scene, camera);
     }

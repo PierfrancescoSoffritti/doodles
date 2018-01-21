@@ -1,12 +1,14 @@
-function Shooter(scene, position) {
+function Shooter(scene) {
 
     const bullets = []
+    this.bullets = bullets
 
     let iTime = 0
-    const delay = .08
+    const delay = .1
+    // const delay = .08
     let lastShootTime = 0
 
-    this.shoot = function() {
+    this.shoot = function(position) {
         if(iTime - lastShootTime < delay)
             return
 
