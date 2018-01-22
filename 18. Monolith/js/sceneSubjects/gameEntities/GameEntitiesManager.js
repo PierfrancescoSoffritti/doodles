@@ -1,5 +1,7 @@
 function GameEntitiesManager(scene) {
-    const player = new Player(scene)
+    const playerShooter = new Shooter(scene)
+
+    const player = new Player( scene, playerShooter )
     const enemiesSpawner = new EnemiesSpawner(scene)
 
     this.player = player
@@ -8,7 +10,7 @@ function GameEntitiesManager(scene) {
         player.update(time)
         enemiesSpawner.update(time)
 
-        const bullets = player.shooter.bullets
+        const bullets = playerShooter.bullets
         const enemies = enemiesSpawner.enemies
         
         checkCollision(bullets, enemies)

@@ -1,5 +1,5 @@
-function Player(scene) {
-    var geometry = new THREE.BoxBufferGeometry( 1, 1, 1 );
+function Player(scene, shooter) {
+    var geometry = new THREE.BoxBufferGeometry( .5, .5, .5 );
 	var material = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
 	var cube = new THREE.Mesh( geometry, material );
     scene.add( cube );
@@ -9,9 +9,6 @@ function Player(scene) {
     this.position = cube.position;
     this.rotation = cube.rotation;
     
-    const shooter = new Shooter(scene)
-    this.shooter = shooter
-
     this.update = function(time) {
         shooter.update(time)
     }

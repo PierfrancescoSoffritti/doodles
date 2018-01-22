@@ -42,7 +42,8 @@ function onMouseUp(event) {
 	sceneManager.onMouseUp(event)
 }
 
-function render() {
-    requestAnimationFrame(render);
+function render(time) {
+	requestAnimationFrame(render);
+	TWEEN.update(time);
     sceneManager.update();
 }

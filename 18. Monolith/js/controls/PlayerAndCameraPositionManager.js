@@ -23,11 +23,15 @@ function PlayerAndCameraPositionManager(camera, player) {
 
     this.changeHeightLevel = function(newHeightLevel) {
         if(newHeightLevel === 0) {
-            camera.position.y = baseLevelHeight 
-            player.position.y = baseLevelHeight 
-        } else {
-            camera.position.y = secondLevelHeight
-            player.position.y = secondLevelHeight
+            const tween = new TWEEN.Tween(player.position)
+                .to({ y: baseLevelHeight }, 600)
+                .easing(TWEEN.Easing.Cubic.InOut)
+                .start();
+        } else {            
+            const tween = new TWEEN.Tween(player.position)
+                .to({ y: secondLevelHeight }, 600)
+                .easing(TWEEN.Easing.Cubic.InOut)
+                .start();            
         }
     }
 }
