@@ -1,8 +1,8 @@
 function PlayerAndCameraPositionManager(camera, player) {
     this.player = player
-    
-    const cameraHeightRelativeToPlayer = 2
-    const playerPositionRelativeToCamera = 5
+
+    const cameraHeightRelativeToPlayer = .7
+    const playerPositionRelativeToCamera = 2
 
     const baseLevelHeight = 5
     const secondLevelHeight = baseLevelHeight + 10
@@ -31,7 +31,7 @@ function PlayerAndCameraPositionManager(camera, player) {
             const tween = new TWEEN.Tween(player.position)
                 .to({ y: secondLevelHeight }, 600)
                 .easing(TWEEN.Easing.Cubic.InOut)
-                .start();            
+                .start();
         }
     }
 }

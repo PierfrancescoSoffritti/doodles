@@ -14,6 +14,8 @@ function Player(scene, shooter) {
     }
 
     this.shoot = function() {
-        shooter.shoot(this.position)
+        const position = cube.position.clone()
+        position.y -= 1
+        shooter.shoot(position)
     }
 }
