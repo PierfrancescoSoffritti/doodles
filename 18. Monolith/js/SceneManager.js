@@ -60,7 +60,7 @@ function SceneManager(canvas) {
 
     function createSceneSubjects(scene) {
         const sceneSubjects = [
-            new GeneralLights(scene),
+            new Lights(scene),
             new Floor(scene),
             new Monolith(scene),
         ];
