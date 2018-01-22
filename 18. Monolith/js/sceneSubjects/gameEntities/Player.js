@@ -6,8 +6,24 @@ function Player(scene, shooter) {
 
     var loader = new THREE.JSONLoader();
     loader.load('models/spaceship_merged.json', function(geometry, materials) {
-        for(let i=0; i<materials.length; i++)
+        
+        for(let i=0; i<materials.length; i++) {
             materials[i].shading = THREE.FlatShading
+            
+            if(materials[i].name === "white") {
+                materials[i].color.r = getRandom(.3, 1)
+                materials[i].color.g = getRandom(.3, 1)
+                materials[i].color.b = getRandom(.3, 1)
+            } else if(materials[i].name === "blue") {
+                materials[i].color.r = getRandom(0, .3)
+                materials[i].color.g = getRandom(0, .3)
+                materials[i].color.b = getRandom(0, .3)
+            } else if(materials[i].name === "black") {
+                materials[i].color.r = getRandom(0, .2)
+                materials[i].color.g = getRandom(0, .2)
+                materials[i].color.b = getRandom(0, .2)
+            }
+        }
 
         const mesh = new THREE.Mesh(geometry, materials);
         const scale = .2
