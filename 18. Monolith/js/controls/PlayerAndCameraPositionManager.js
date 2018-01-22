@@ -7,6 +7,9 @@ function PlayerAndCameraPositionManager(camera, player) {
     const baseLevelHeight = 5
     const secondLevelHeight = baseLevelHeight + 10
 
+    let lastDirectionX = 0
+    let lastDirectionZ = 0
+
     player.position.y = baseLevelHeight
     
     this.setPosition = function(radius, angle) {
@@ -21,15 +24,37 @@ function PlayerAndCameraPositionManager(camera, player) {
         player.rotation.y = -angle
     }
 
+    this.setRotationDirectionX = function(direction) {
+        if(direction === lastDirectionX)
+            return
+        lastDirectionX = direction
+
+        const tween = new TWEEN.Tween(player.mesh.rotation)
+            .to({ x: direction*Math.PI/8 }, 400)
+            .easing(TWEEN.Easing.Cubic.InOut)
+            .start();
+    }
+
+    this.setRotationDirectionZ = function(direction) {
+        if(direction === lastDirectionZ)
+            return
+        lastDirectionZ = direction
+
+        const tween = new TWEEN.Tween(player.mesh.rotation)
+            .to({ z: direction*Math.PI/8 }, 400)
+            .easing(TWEEN.Easing.Cubic.InOut)
+            .start();
+    }
+
     this.changeHeightLevel = function(newHeightLevel) {
         if(newHeightLevel === 0) {
             const tween = new TWEEN.Tween(player.position)
-                .to({ y: baseLevelHeight }, 600)
+                .to({ y: baseLevelHeight }, 400)
                 .easing(TWEEN.Easing.Cubic.InOut)
                 .start();
         } else {            
             const tween = new TWEEN.Tween(player.position)
-                .to({ y: secondLevelHeight }, 600)
+                .to({ y: secondLevelHeight }, 400)
                 .easing(TWEEN.Easing.Cubic.InOut)
                 .start();
         }
