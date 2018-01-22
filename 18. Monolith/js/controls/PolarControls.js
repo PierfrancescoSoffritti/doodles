@@ -38,9 +38,9 @@ function PolarControls(playerAndCameraPositionManager, minRadius = 100, maxRadiu
             left = false            
         else if(keyCode === D)
             right = false
-        else if(keyCode === W && currentRadius > minRadius)
+        else if(keyCode === W)
             forward = false
-        else if(keyCode === S && currentRadius < maxRadius)
+        else if(keyCode === S)
             backward = false
     }
 

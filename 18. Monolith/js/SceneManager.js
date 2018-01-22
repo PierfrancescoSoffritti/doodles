@@ -51,7 +51,7 @@ function SceneManager(canvas) {
 
     function buildControls(playerAndCameraPositionManager, player) {
         const controls = {
-            polar: new PolarControls(playerAndCameraPositionManager, 100, 200, 0),
+            polar: new PolarControls(playerAndCameraPositionManager, 50, 200, 0),
             mouse: new MouseControls(playerAndCameraPositionManager, player)
         }
         
