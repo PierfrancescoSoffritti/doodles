@@ -19,24 +19,16 @@ function Bullet(scene, origin) {
     sphere.position.z = origin.z
     scene.add(sphere);
 
-    let radius = Math.sqrt( Math.pow(origin.x, 2) + Math.pow(origin.z, 2) )
-    let angle = Math.atan( origin.z / origin.x )
-    
-    if(origin.x < 0 && origin.z > 0)
-        angle += Math.PI
-    else if(origin.x < 0 && origin.z < 0)
-        angle += Math.PI
-    else if(origin.x > 0 && origin.z < 0)
-        angle += Math.PI*2
+    const polarCoord = cartesianToPolar(origin.x, origin.z)
 
     this.update = function(time) {
-        radius -= speed
+        polarCoord.radius -= speed
 
-        sphere.position.x = (radius) * cos(angle)
-        sphere.position.z = (radius) * sin(angle)
+        sphere.position.x = (polarCoord.radius) * cos(polarCoord.angle)
+        sphere.position.z = (polarCoord.radius) * sin(polarCoord.angle)
 
 
-        const expired = ( radius < 0 || this.collision === true ) ? true : false
+        const expired = ( polarCoord.radius < 0 || this.collision === true ) ? true : false
         if(expired)
             scene.remove(sphere)
             

@@ -41,3 +41,24 @@ function sin(val) {
 function cos(val) {
     return Math.cos(val);
 }
+
+function cartesianToPolar(x, y) {
+    let radius = Math.sqrt( Math.pow(x, 2) + Math.pow(y, 2) )
+    let angle = Math.atan( y / x )
+    
+    if(x < 0 && y > 0)
+        angle += Math.PI
+    else if(x < 0 && y < 0)
+        angle += Math.PI
+    else if(x > 0 && y < 0)
+        angle += Math.PI*2
+
+    return { radius, angle }
+}
+
+function polarToCartesian(radius, angle) {
+    const x = radius * cos(angle)
+    const y = radius * sin(angle)
+
+    return { x, y }
+}
