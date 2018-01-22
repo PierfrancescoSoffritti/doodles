@@ -1,29 +1,12 @@
-function MouseControls(camera, player) {
+function MouseControls(playerAndCameraPositionManager, player) {
 
-    let level = 0
-    const yMovement = 10
-    const yBase = 5
-
+    let currentHeightLevel = 0
     let shoot = false
-
-    player.position.y = yBase
-
-    function onRightClick() {
-        if(level === 0) {
-            camera.position.y = yBase + yMovement
-            player.position.y = yBase + yMovement
-            level++
-        } else {
-            camera.position.y = yBase 
-            player.position.y = yBase 
-            level--
-        }
-    }
     
     this.onMouseDown = function(event) {
         switch (event.which) {
             case 1:
-                shoot = true;
+                onLeftClickDown()
                 break;
             case 2:
                 // Middle Mouse button pressed
@@ -39,13 +22,12 @@ function MouseControls(camera, player) {
     this.onMouseUp = function(event) {
         switch (event.which) {
             case 1:
-                shoot = false;
+                onLeftClickUp()
                 break;
             case 2:
                 // Middle Mouse button pressed
                 break;
-            case 3:
-                
+            case 3:                
                 break;
             default:
                 console.error("unknown mouse button")
@@ -55,5 +37,18 @@ function MouseControls(camera, player) {
     this.update = function(time) {
         if(shoot)
             player.shoot()
+    }
+
+    function onRightClick() {
+        currentHeightLevel = (currentHeightLevel+1) %2
+        playerAndCameraPositionManager.changeHeightLevel(currentHeightLevel)
+    }
+
+    function onLeftClickDown() {
+        shoot = true
+    }
+
+    function onLeftClickUp() {
+        shoot = false
     }
 }

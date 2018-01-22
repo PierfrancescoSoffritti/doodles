@@ -1,4 +1,4 @@
-function SceneSubject(scene) {
+function Floor(scene) {
 	const self = this;
 
 	const colors = ["#F44336", "#9C27B0", "#3F51B5", "#4CAF50"]
@@ -13,18 +13,6 @@ function SceneSubject(scene) {
 	plane.rotation.x = -Math.PI/2
 	this.group.add( plane );
 	plane.receiveShadow = true;
-
-	var geometry = new THREE.CylinderBufferGeometry( 5, 35, 150, 32 );
-	var material = new THREE.MeshBasicMaterial( {color: "#FFF"} );
-	var cylinder = new THREE.Mesh( geometry, material );
-	this.group.add( cylinder );
-	cylinder.castShadow = true;
-
-	var geometry = new THREE.BoxBufferGeometry( 40, 25, 40 );
-	var material = new THREE.MeshBasicMaterial( {color: "#FFF"} );
-	var cube = new THREE.Mesh( geometry, material );
-	this.group.add( cube );
-	cube.castShadow = true;
 
 	for(let i=0; i<20; i++)
 		placePillar(this.group, 210, 300)

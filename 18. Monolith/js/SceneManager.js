@@ -12,8 +12,10 @@ function SceneManager(canvas) {
     const camera = buildCamera(screenDimensions);
     const sceneSubjects = createSceneSubjects(scene);
     
-    const gameEntitiesManager = new GameEntitiesManager(scene)
-    const controls = buildControls(camera, gameEntitiesManager.player);
+    // these should be SceneSubjects
+    const gameEntitiesManager = new GameEntitiesManager(scene)    
+    const playerAndCameraPositionManager = new PlayerAndCameraPositionManager(camera, gameEntitiesManager.player)
+    const controls = buildControls(playerAndCameraPositionManager, gameEntitiesManager.player);
 
     function buildScene() {
         const scene = new THREE.Scene();
@@ -43,16 +45,14 @@ function SceneManager(canvas) {
         const nearPlane = 1;
         const farPlane = 500; 
         const camera = new THREE.PerspectiveCamera(fieldOfView, aspectRatio, nearPlane, farPlane);
-        camera.position.y = 2
-        camera.position.z = 200
 
         return camera;
     }
 
-    function buildControls(camera, player) {
+    function buildControls(playerAndCameraPositionManager, player) {
         const controls = {
-            polar: new PolarControls(camera, player, camera.position.z, 0),
-            mouse: new MouseControls(camera, player)
+            polar: new PolarControls(playerAndCameraPositionManager, 100, 200, 0),
+            mouse: new MouseControls(playerAndCameraPositionManager, player)
         }
         
         return controls
@@ -61,8 +61,8 @@ function SceneManager(canvas) {
     function createSceneSubjects(scene) {
         const sceneSubjects = [
             new GeneralLights(scene),
-            new SceneSubject(scene),
-            // new Terrain(scene)
+            new Floor(scene),
+            new Monolith(scene),
         ];
 
         return sceneSubjects;
