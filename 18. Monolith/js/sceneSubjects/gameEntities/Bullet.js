@@ -1,4 +1,4 @@
-const geometryBullet = new THREE.SphereBufferGeometry( .8, 16, 16 );
+const geometryBullet = new THREE.SphereBufferGeometry( .4, 16, 16 );
 const materialBullet = new THREE.MeshBasicMaterial( {color: "#0000FF"} );
 const blueprintBullet = new THREE.Mesh( geometryBullet, materialBullet );
 
@@ -6,8 +6,6 @@ function Bullet(scene, origin) {
 
     const sphere = blueprintBullet.clone()
     sphere.scale.set(getRandom(.1, 1), getRandom(.1, 1), getRandom(.1, 1))
-    // const val = getRandom(.1, )
-    // sphere.scale.set(val, val, val)
 
     const speed = 5;
 

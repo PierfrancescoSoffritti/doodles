@@ -76,6 +76,7 @@ function SceneManager(canvas) {
         controls.polar.update(elapsedTime)
         controls.mouse.update(elapsedTime)
 
+        playerAndCameraPositionManager.update(elapsedTime)
         gameEntitiesManager.update(elapsedTime)
 
         renderer.render(scene, camera);
