@@ -14,11 +14,12 @@ function PlayerAndCameraPositionManager(camera, player) {
 
     this.update = function(time) {
         player.mesh.position.y = sin(time*2)/20
+        player.mesh.position.z = sin(time)/40
+        player.mesh.position.x = sin(time/2)/40
     }
 
     this.setAcceleration = function(acceleration) {
         player.acceleration = acceleration
-        console.log(acceleration)
     }
     
     this.setPosition = function(radius, angle) {

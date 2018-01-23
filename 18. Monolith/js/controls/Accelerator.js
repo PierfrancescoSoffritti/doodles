@@ -1,4 +1,4 @@
-function Accelerator(speed, acceletationMax, accelerationIncreaseStep, accelerationDecreaseStep) {
+function Accelerator(speed, accelerationMax, accelerationIncreaseStep, accelerationDecreaseStep) {
     
     let acceleration = 0
     let prevDirection = 0
@@ -8,6 +8,10 @@ function Accelerator(speed, acceletationMax, accelerationIncreaseStep, accelerat
         prevDirection = direction
 
         return speed * acceleration
+    }
+
+    this.boost = function() {        
+        acceleration *= 3
     }
 
     function updateAngleAcceleration(direction) {
@@ -29,10 +33,10 @@ function Accelerator(speed, acceletationMax, accelerationIncreaseStep, accelerat
             if( prevDirection != direction )
                 decelerate()
 
-            if(Math.abs(acceleration) < acceletationMax)
+            if(Math.abs(acceleration) < accelerationMax)
                 acceleration += direction * accelerationIncreaseStep
             else
-                acceleration = direction * acceletationMax
+                decelerate()
 
             return direction
         }

@@ -44,13 +44,15 @@ function PolarControls(playerAndCameraPositionManager, minRadius = 100, maxRadiu
             backward = false
     }
 
+    // setInterval(() => { angleAccelerator.boost(); radAccelerator.boost()  }, 4000)
+
     this.update = function(time) {
         const angleDirection = left ? 1 : right ? -1 : 0
         const radDirection = forward ? -1 : backward ? 1 : 0
 
         const angleAcceleration = angleAccelerator.getForce(angleDirection)
         angle += angleAcceleration
-        
+
         const radAcceleration = radAccelerator.getForce(radDirection)
         const tRad = currentRadius + radAcceleration
         if(tRad > minRadius && tRad < maxRadius)
