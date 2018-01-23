@@ -15,6 +15,11 @@ function PlayerAndCameraPositionManager(camera, player) {
     this.update = function(time) {
         player.mesh.position.y = sin(time*2)/20
     }
+
+    this.setAcceleration = function(acceleration) {
+        player.acceleration = acceleration
+        console.log(acceleration)
+    }
     
     this.setPosition = function(radius, angle) {
         camera.position.x = radius * cos(angle)

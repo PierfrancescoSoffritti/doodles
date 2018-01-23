@@ -9,6 +9,7 @@ function Player(scene, shooter) {
         
         for(let i=0; i<materials.length; i++) {
             materials[i].shading = THREE.FlatShading
+            materials[i].shininess = 0 
             
             if(materials[i].name === "white") {
                 materials[i].color.r = getRandom(.3, 1)
@@ -19,9 +20,16 @@ function Player(scene, shooter) {
                 materials[i].color.g = getRandom(0, .3)
                 materials[i].color.b = getRandom(0, .3)
             } else if(materials[i].name === "black") {
+                materials[i].color.r = getRandom(0, .3)
+                materials[i].color.g = getRandom(0, .3)
+                materials[i].color.b = getRandom(0, .3)
+            } else if(materials[i].name === "engine") {
                 materials[i].color.r = getRandom(0, .2)
                 materials[i].color.g = getRandom(0, .2)
                 materials[i].color.b = getRandom(0, .2)
+
+                self.engineMaterial = materials[i]
+                self.engineBaseColor = materials[i].color.clone()
             }
         }
 
@@ -40,9 +48,15 @@ function Player(scene, shooter) {
     // this.mesh = cube
     this.position = group.position
     this.rotation = group.rotation
+
+    this.acceleration = 0
     
     this.update = function(time) {
         shooter.update(time)
+        
+        self.engineMaterial.color.r = self.engineBaseColor.r + this.acceleration*4
+        self.engineMaterial.color.g = self.engineBaseColor.g + this.acceleration
+        self.engineMaterial.color.b = self.engineBaseColor.b + this.acceleration
     }
 
     this.shoot = function() {
