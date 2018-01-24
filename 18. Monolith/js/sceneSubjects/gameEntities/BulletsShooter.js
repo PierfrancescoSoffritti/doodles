@@ -1,4 +1,4 @@
-function Shooter(scene) {
+function BulletsShooter(scene) {
 
     const bullets = []
     this.bullets = bullets

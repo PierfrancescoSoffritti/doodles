@@ -1,11 +1,8 @@
-function PlayerAndCameraPositionManager(camera, player) {
+function PlayerAndCameraPositionManager(camera, player, baseLevelHeight, secondLevelHeight) {
     this.player = player
 
     const cameraHeightRelativeFromPlayer = .9
     const playerDistanceFromCamera = 2
-
-    const baseLevelHeight = 5
-    const secondLevelHeight = baseLevelHeight + 10
 
     let lastDirectionX = 0
     let lastDirectionZ = 0

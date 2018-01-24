@@ -11,26 +11,7 @@ function Player(scene, shooter) {
             materials[i].shading = THREE.FlatShading
             materials[i].shininess = 0 
             
-            if(materials[i].name === "white") {
-                materials[i].color.r = getRandom(.3, 1)
-                materials[i].color.g = getRandom(.3, 1)
-                materials[i].color.b = getRandom(.3, 1)
-            } else if(materials[i].name === "blue") {
-                materials[i].color.r = getRandom(0, .3)
-                materials[i].color.g = getRandom(0, .3)
-                materials[i].color.b = getRandom(0, .3)
-            } else if(materials[i].name === "black") {
-                materials[i].color.r = getRandom(0, .3)
-                materials[i].color.g = getRandom(0, .3)
-                materials[i].color.b = getRandom(0, .3)
-            } else if(materials[i].name === "engine") {
-                materials[i].color.r = getRandom(0, .2)
-                materials[i].color.g = getRandom(0, .2)
-                materials[i].color.b = getRandom(0, .2)
-
-                self.engineMaterial = materials[i]
-                self.engineBaseColor = materials[i].color.clone()
-            }
+            changeColors(materials[i])
         }
 
         const mesh = new THREE.Mesh(geometry, materials);
@@ -61,5 +42,28 @@ function Player(scene, shooter) {
 
     this.shoot = function() {
         shooter.shoot(new THREE.Vector3(group.position.x, group.position.y-1, group.position.z))
+    }
+
+    function changeColors(material) {
+        if(material.name === "white") {
+            material.color.r = getRandom(.3, 1)
+            material.color.g = getRandom(.3, 1)
+            material.color.b = getRandom(.3, 1)
+        } else if(material.name === "blue") {
+            material.color.r = getRandom(0, .3)
+            material.color.g = getRandom(0, .3)
+            material.color.b = getRandom(0, .3)
+        } else if(material.name === "black") {
+            material.color.r = getRandom(0, .3)
+            material.color.g = getRandom(0, .3)
+            material.color.b = getRandom(0, .3)
+        } else if(material.name === "engine") {
+            material.color.r = getRandom(0, .2)
+            material.color.g = getRandom(0, .2)
+            material.color.b = getRandom(0, .2)
+
+            self.engineMaterial = material
+            self.engineBaseColor = material.color.clone()
+        }
     }
 }

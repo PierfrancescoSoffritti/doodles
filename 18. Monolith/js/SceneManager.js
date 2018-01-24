@@ -13,8 +13,11 @@ function SceneManager(canvas) {
     const sceneSubjects = createSceneSubjects(scene);
     
     // these should be SceneSubjects
-    const gameEntitiesManager = new GameEntitiesManager(scene)    
-    const playerAndCameraPositionManager = new PlayerAndCameraPositionManager(camera, gameEntitiesManager.player)
+    const baseLevelHeight = 5
+    const secondLevelHeight = baseLevelHeight + 10
+
+    const gameEntitiesManager = new GameEntitiesManager(scene, baseLevelHeight, secondLevelHeight)    
+    const playerAndCameraPositionManager = new PlayerAndCameraPositionManager(camera, gameEntitiesManager.player, baseLevelHeight, secondLevelHeight)
     const controls = buildControls(playerAndCameraPositionManager, gameEntitiesManager.player);
 
     function buildScene() {
@@ -61,8 +64,7 @@ function SceneManager(canvas) {
     function createSceneSubjects(scene) {
         const sceneSubjects = [
             new Lights(scene),
-            new Floor(scene),
-            new Monolith(scene),
+            new Floor(scene)
         ];
 
         return sceneSubjects;

@@ -1,14 +1,19 @@
-function GameEntitiesManager(scene) {
-    const playerShooter = new Shooter(scene)
+function GameEntitiesManager(scene, baseLevelHeight, secondLevelHeight) {
+    const playerShooter = new BulletsShooter(scene)
+    const monolithLaserShooter = new LaserShooter(scene, baseLevelHeight, secondLevelHeight)
 
     const player = new Player( scene, playerShooter )
     const enemiesSpawner = new EnemiesSpawner(scene)
+    const monolith = new Monolith(scene, monolithLaserShooter)
 
     this.player = player
 
     this.update = function(time) {
         player.update(time)
+        monolith.update(time)        
         enemiesSpawner.update(time)
+
+        monolithLaserShooter.checkCollision(player.position)
 
         const bullets = playerShooter.bullets
         const enemies = enemiesSpawner.enemies
