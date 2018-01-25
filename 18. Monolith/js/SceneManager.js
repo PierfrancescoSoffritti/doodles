@@ -6,6 +6,9 @@ function SceneManager(canvas) {
         width: canvas.width,
         height: canvas.height
     }
+
+    const minRadius = 50
+    const maxRadius = 200
     
     const scene = buildScene();
     const renderer = buildRender(screenDimensions);
@@ -16,9 +19,9 @@ function SceneManager(canvas) {
     const baseLevelHeight = 5
     const secondLevelHeight = baseLevelHeight + 10
 
-    const gameEntitiesManager = new GameEntitiesManager(scene, baseLevelHeight, secondLevelHeight)    
+    const gameEntitiesManager = new GameEntitiesManager(scene, baseLevelHeight, secondLevelHeight, minRadius, maxRadius)    
     const playerAndCameraPositionManager = new PlayerAndCameraPositionManager(camera, gameEntitiesManager.player, baseLevelHeight, secondLevelHeight)
-    const controls = buildControls(playerAndCameraPositionManager, gameEntitiesManager.player);
+    const controls = buildControls(playerAndCameraPositionManager, gameEntitiesManager.player, minRadius, maxRadius);
 
     function buildScene() {
         const scene = new THREE.Scene();
@@ -52,9 +55,9 @@ function SceneManager(canvas) {
         return camera;
     }
 
-    function buildControls(playerAndCameraPositionManager, player) {
+    function buildControls(playerAndCameraPositionManager, player, minRadius, maxRadius) {
         const controls = {
-            polar: new PolarControls(playerAndCameraPositionManager, 50, 200, 0),
+            polar: new PolarControls(playerAndCameraPositionManager, minRadius, maxRadius),
             mouse: new MouseControls(playerAndCameraPositionManager, player)
         }
         

@@ -1,4 +1,4 @@
-function PolarControls(playerAndCameraPositionManager, minRadius = 100, maxRadius = 200, angle = 0) {
+function PolarControls(playerAndCameraPositionManager, minRadius = 100, maxRadius = 200) {
 
     const W = 87
     const A = 65
@@ -16,6 +16,7 @@ function PolarControls(playerAndCameraPositionManager, minRadius = 100, maxRadiu
     const radAccelerator = new Accelerator(radSpeed, acceletationMax, accelerationIncreaseStep, accelerationDecreaseStep)
 
     let currentRadius = maxRadius
+    let currentAngle = 0
 
     let left = false
     let right = false
@@ -51,14 +52,14 @@ function PolarControls(playerAndCameraPositionManager, minRadius = 100, maxRadiu
         const radDirection = forward ? -1 : backward ? 1 : 0
 
         const angleAcceleration = angleAccelerator.getForce(angleDirection)
-        angle += angleAcceleration
+        currentAngle += angleAcceleration
 
         const radAcceleration = radAccelerator.getForce(radDirection)
         const tRad = currentRadius + radAcceleration
         if(tRad > minRadius && tRad < maxRadius)
             currentRadius = tRad
 
-        playerAndCameraPositionManager.setPosition(currentRadius, angle)
+        playerAndCameraPositionManager.setPosition(currentRadius, currentAngle)
         
         playerAndCameraPositionManager.setAcceleration(Math.max(Math.abs(angleAcceleration*100)/2, Math.abs(radAcceleration)))
 

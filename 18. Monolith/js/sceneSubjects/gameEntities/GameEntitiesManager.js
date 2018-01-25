@@ -1,17 +1,20 @@
-function GameEntitiesManager(scene, baseLevelHeight, secondLevelHeight) {
+function GameEntitiesManager(scene, baseLevelHeight, secondLevelHeight, minRadius, maxRadius) {
     const playerShooter = new BulletsShooter(scene)
     const monolithLaserShooter = new LaserShooter(scene, baseLevelHeight, secondLevelHeight)
 
     const player = new Player( scene, playerShooter )
-    const enemiesSpawner = new EnemiesSpawner(scene)
     const monolith = new Monolith(scene, monolithLaserShooter)
+
+    const enemiesSpawner = new EnemiesSpawner(scene)
+    const boostSpawner = new BoostSpawner(scene, baseLevelHeight, secondLevelHeight, minRadius, maxRadius)
 
     this.player = player
 
     this.update = function(time) {
         player.update(time)
-        monolith.update(time)        
+        monolith.update(time)                
         enemiesSpawner.update(time)
+        boostSpawner.update(time)
 
         monolithLaserShooter.checkCollision(player.position)
 
@@ -19,6 +22,7 @@ function GameEntitiesManager(scene, baseLevelHeight, secondLevelHeight) {
         const enemies = enemiesSpawner.enemies
         
         checkCollision(bullets, enemies)
+        boostSpawner.checkCollision(player.position)
     }   
 
     function checkCollision(array1, array2) {
