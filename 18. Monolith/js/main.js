@@ -1,5 +1,6 @@
 const canvas = document.getElementById("canvas");
 
+const eventBus = new EventBus()
 const sceneManager = new SceneManager(canvas);
 
 bindEventListeners();

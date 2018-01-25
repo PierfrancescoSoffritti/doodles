@@ -23,6 +23,8 @@ function PolarControls(playerAndCameraPositionManager, minRadius = 100, maxRadiu
     let forward = false
     let backward = false
 
+    eventBus.subscribe(startBoost, () => { angleAccelerator.boost(1.3) })
+
     this.onKeyDown = function(keyCode) {
         if(keyCode === A)
             left = true
@@ -44,8 +46,6 @@ function PolarControls(playerAndCameraPositionManager, minRadius = 100, maxRadiu
         else if(keyCode === S)
             backward = false
     }
-
-    // setInterval(() => { angleAccelerator.boost(); radAccelerator.boost()  }, 4000)
 
     this.update = function(time) {
         const angleDirection = left ? 1 : right ? -1 : 0

@@ -4,7 +4,7 @@ function BoostSpawner(scene, minHeight, maxHeight, minRad, maxRad) {
     const minDelay = 1
     const maxDelay = 2
 
-    const meshBoundingBox = 4
+    const meshBoundingBox = 8
 
     const geometry = new THREE.BoxBufferGeometry( meshBoundingBox, meshBoundingBox, meshBoundingBox );
     const material = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
@@ -29,7 +29,7 @@ function BoostSpawner(scene, minHeight, maxHeight, minRad, maxRad) {
     this.checkCollision = function(position) {
         const distance = position.distanceTo( cube.position );
         if(distance < meshBoundingBox) {
-            // eventBus.push(boost)
+            eventBus.post(startBoost)
             scene.remove(cube)
         }
     }
@@ -42,7 +42,7 @@ function BoostSpawner(scene, minHeight, maxHeight, minRad, maxRad) {
         if( scene.getObjectByName(OBJECT_NAME) )
             return;
         else
-            addMeshToScene(getRandom(minRad, maxRad), getRandom(0, Math.PI*2), getRandom(0, 1) < 0.5 ? minHeight : maxHeight)
+            addMeshToScene(getRandom(minRad*1.5, maxRad/1.5), getRandom(0, Math.PI*2), getRandom(0, 1) < 0.5 ? minHeight : maxHeight)
     }
 
     function addMeshToScene(rad, angle, y) {

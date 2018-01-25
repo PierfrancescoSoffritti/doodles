@@ -10,8 +10,8 @@ function Accelerator(speed, accelerationMax, accelerationIncreaseStep, accelerat
         return speed * acceleration
     }
 
-    this.boost = function() {        
-        acceleration *= 3
+    this.boost = function(factor) {        
+        acceleration *= factor
     }
 
     function updateAngleAcceleration(direction) {
