@@ -35,8 +35,7 @@ function MouseControls(playerAndCameraPositionManager, player) {
     }
 
     this.update = function(time) {
-        if(shoot)
-            player.shoot()
+        
     }
 
     function onRightClick() {
@@ -45,10 +44,10 @@ function MouseControls(playerAndCameraPositionManager, player) {
     }
 
     function onLeftClickDown() {
-        shoot = true
+        player.shoot = true
     }
 
     function onLeftClickUp() {
-        shoot = false
+        player.shoot = false
     }
 }

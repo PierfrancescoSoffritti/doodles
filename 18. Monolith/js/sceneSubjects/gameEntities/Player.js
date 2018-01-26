@@ -26,22 +26,30 @@ function Player(scene, shooter) {
         self.mesh = mesh
 	});
     
-    // this.mesh = cube
     this.position = group.position
     this.rotation = group.rotation
 
     this.acceleration = 0
+
+    this.shoot = false
     
     this.update = function(time) {
+        if(this.shoot === true)
+            shoot()
+
         shooter.update(time)
         
-        self.engineMaterial.color.r = self.engineBaseColor.r + this.acceleration*4
-        self.engineMaterial.color.g = self.engineBaseColor.g + this.acceleration
-        self.engineMaterial.color.b = self.engineBaseColor.b + this.acceleration
+        updateEngineColor(this.acceleration)
     }
 
-    this.shoot = function() {
+    function shoot() {
         shooter.shoot(new THREE.Vector3(group.position.x, group.position.y-1, group.position.z))
+    }
+
+    function updateEngineColor(acceleration) {
+        self.engineMaterial.color.r = self.engineBaseColor.r + acceleration*4
+        self.engineMaterial.color.g = self.engineBaseColor.g + acceleration
+        self.engineMaterial.color.b = self.engineBaseColor.b + acceleration
     }
 
     function changeColors(material) {
