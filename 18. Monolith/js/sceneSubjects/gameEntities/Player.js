@@ -36,8 +36,6 @@ function Player(scene, shooter) {
     this.update = function(time) {
         if(this.shoot === true)
             shoot()
-
-        shooter.update(time)
         
         updateEngineColor(this.acceleration)
     }

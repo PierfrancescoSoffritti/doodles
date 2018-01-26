@@ -12,17 +12,18 @@ function GameEntitiesManager(scene, gameConstants) {
 
     this.update = function(time) {
         player.update(time)
-        monolith.update(time)                
+        monolith.update(time)  
+
         enemiesSpawner.update(time)
         boostSpawner.update(time)
-
-        monolithLaserShooter.checkCollision(player.position)
+        playerShooter.update(time)
 
         const bullets = playerShooter.bullets
         const enemies = enemiesSpawner.enemies
         
         checkCollision(bullets, enemies)
         boostSpawner.checkCollision(player.position)
+        monolithLaserShooter.checkCollision(player.position)
     }   
 
     function checkCollision(array1, array2) {
@@ -30,8 +31,6 @@ function GameEntitiesManager(scene, gameConstants) {
             const el1 = array1[i]
             for(let j=0; j<array2.length; j++) {
                 const el2 = array2[j]
-
-                // const distance = Math.sqrt(Math.pow(el1.position.x - el2.position.x, 2) + Math.pow(el1.position.z - el2.position.z, 2))
 
                 const distance = el1.position.distanceTo( el2.position );
                 if(distance < el2.boundingSphereRad) {
