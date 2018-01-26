@@ -1,4 +1,4 @@
-function PlayerAndCameraPositionManager(camera, player, baseLevelHeight, secondLevelHeight) {
+function PlayerAndCameraPositionManager(camera, player, gameConstants) {
     this.player = player
 
     const cameraHeightRelativeFromPlayer = .9
@@ -7,7 +7,7 @@ function PlayerAndCameraPositionManager(camera, player, baseLevelHeight, secondL
     let lastDirectionX = 0
     let lastDirectionZ = 0
 
-    player.position.y = baseLevelHeight
+    player.position.y = gameConstants.baseLevelHeight
 
     this.update = function(time) {
         player.mesh.position.y = sin(time*2)/20
@@ -59,12 +59,12 @@ function PlayerAndCameraPositionManager(camera, player, baseLevelHeight, secondL
 
         if(newHeightLevel === 0) {
             const tween = new TWEEN.Tween(player.position)
-                .to({ y: baseLevelHeight }, 400)
+                .to({ y: gameConstants.baseLevelHeight }, 400)
                 .easing(TWEEN.Easing.Cubic.InOut)
                 .start();
         } else {            
             const tween = new TWEEN.Tween(player.position)
-                .to({ y: secondLevelHeight }, 400)
+                .to({ y: gameConstants.secondLevelHeight }, 400)
                 .easing(TWEEN.Easing.Cubic.InOut)
                 .start();
         }

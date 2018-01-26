@@ -1,12 +1,12 @@
-function GameEntitiesManager(scene, baseLevelHeight, secondLevelHeight, minRadius, maxRadius) {
+function GameEntitiesManager(scene, gameConstants) {
     const playerShooter = new BulletsShooter(scene)
-    const monolithLaserShooter = new LaserShooter(scene, baseLevelHeight, secondLevelHeight)
+    const monolithLaserShooter = new LaserShooter(scene, gameConstants)
 
     const player = new Player( scene, playerShooter )
     const monolith = new Monolith(scene, monolithLaserShooter)
 
     const enemiesSpawner = new EnemiesSpawner(scene)
-    const boostSpawner = new BoostSpawner(scene, baseLevelHeight, secondLevelHeight, minRadius, maxRadius)
+    const boostSpawner = new BoostSpawner(scene, gameConstants)
 
     this.player = player
 

@@ -1,9 +1,9 @@
-function LaserShooter(scene, baseLevelHeight, secondLevelHeight) {
+function LaserShooter(scene, gameConstants) {
 
     const geometry = new THREE.SphereBufferGeometry( 4, 16, 16 )
     const material = new THREE.MeshBasicMaterial( {color: "#000"} )
     const laser1 = new THREE.Mesh( geometry, material )
-    laser1.position.y = baseLevelHeight
+    laser1.position.y = gameConstants.baseLevelHeight
     scene.add(laser1)
 
     var geometryCyl = new THREE.CylinderBufferGeometry( 2, 2, 200, 32 );
@@ -14,7 +14,7 @@ function LaserShooter(scene, baseLevelHeight, secondLevelHeight) {
     laser1.add( ray );
 
     const laser2 = laser1.clone()
-    laser2.position.y = secondLevelHeight
+    laser2.position.y = gameConstants.secondLevelHeight
     scene.add(laser2)
 
     this.checkCollision = function(playerPosition) {

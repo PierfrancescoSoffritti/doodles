@@ -7,8 +7,12 @@ function SceneManager(canvas) {
         height: canvas.height
     }
 
-    const minRadius = 50
-    const maxRadius = 200
+    const gameConstants = {
+        minRadius: 50,
+        maxRadius: 200,
+        baseLevelHeight: 5,
+        secondLevelHeight: 15
+    }
     
     const scene = buildScene();
     const renderer = buildRender(screenDimensions);
@@ -16,12 +20,9 @@ function SceneManager(canvas) {
     const sceneSubjects = createSceneSubjects(scene);
     
     // these should be SceneSubjects
-    const baseLevelHeight = 5
-    const secondLevelHeight = baseLevelHeight + 10
-
-    const gameEntitiesManager = new GameEntitiesManager(scene, baseLevelHeight, secondLevelHeight, minRadius, maxRadius)    
-    const playerAndCameraPositionManager = new PlayerAndCameraPositionManager(camera, gameEntitiesManager.player, baseLevelHeight, secondLevelHeight)
-    const controls = buildControls(playerAndCameraPositionManager, gameEntitiesManager.player, minRadius, maxRadius);
+    const gameEntitiesManager = new GameEntitiesManager(scene, gameConstants)    
+    const playerAndCameraPositionManager = new PlayerAndCameraPositionManager(camera, gameEntitiesManager.player, gameConstants)
+    const controls = buildControls(playerAndCameraPositionManager, gameEntitiesManager.player, gameConstants);
 
     function buildScene() {
         const scene = new THREE.Scene();
@@ -55,9 +56,9 @@ function SceneManager(canvas) {
         return camera;
     }
 
-    function buildControls(playerAndCameraPositionManager, player, minRadius, maxRadius) {
+    function buildControls(playerAndCameraPositionManager, player, gameConstants) {
         const controls = {
-            polar: new PolarControls(playerAndCameraPositionManager, minRadius, maxRadius),
+            polar: new PolarControls(playerAndCameraPositionManager, gameConstants),
             mouse: new MouseControls(playerAndCameraPositionManager, player)
         }
         

@@ -1,4 +1,4 @@
-function BoostSpawner(scene, minHeight, maxHeight, minRad, maxRad) {
+function BoostSpawner(scene, gameConstants) {
     const OBJECT_NAME = "boost_mesh"
 
     const minDelay = 1
@@ -42,7 +42,7 @@ function BoostSpawner(scene, minHeight, maxHeight, minRad, maxRad) {
         if( scene.getObjectByName(OBJECT_NAME) )
             return;
         else
-            addMeshToScene(getRandom(minRad*1.5, maxRad/1.5), getRandom(0, Math.PI*2), getRandom(0, 1) < 0.5 ? minHeight : maxHeight)
+            addMeshToScene(getRandom(gameConstants.minRadius*1.5, gameConstants.maxRadius/1.5), getRandom(0, Math.PI*2), getRandom(0, 1) < 0.5 ? gameConstants.baseLevelHeight : gameConstants.secondLevelHeight)
     }
 
     function addMeshToScene(rad, angle, y) {
