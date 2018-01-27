@@ -10,8 +10,8 @@ function SceneManager(canvas) {
     const gameConstants = {
         minRadius: 50,
         maxRadius: 200,
-        baseLevelHeight: 5,
-        secondLevelHeight: 15
+        baseLevelHeight: 10,
+        secondLevelHeight: 20
     }
     
     const scene = buildScene();

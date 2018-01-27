@@ -22,10 +22,10 @@ function LaserShooter(scene, gameConstants) {
         const laser1Polar = cartesianToPolar(laser1.position.x, laser1.position.z)
         const laser2Polar = cartesianToPolar(laser2.position.x, laser2.position.z)
 
-        if(Math.round(playerPolar.angle*10)/10 === Math.round(laser1Polar.angle*10)/10 && playerPosition.y === laser1.position.y)
-            console.log("collision1")
-        else if(Math.round(playerPolar.angle*10)/10 === Math.round(laser2Polar.angle*10)/10 && playerPosition.y === laser2.position.y)
-            console.log("collision2")
+        // if(Math.round(playerPolar.angle*10)/10 === Math.round(laser1Polar.angle*10)/10 && playerPosition.y === laser1.position.y)
+        //     console.log("collision1")
+        // else if(Math.round(playerPolar.angle*10)/10 === Math.round(laser2Polar.angle*10)/10 && playerPosition.y === laser2.position.y)
+        //     console.log("collision2")
     }
 
     this.update = function(time, center, minDistaneFromCenter) {
