@@ -28,7 +28,7 @@ function BoostSpawner(scene, gameConstants) {
 
     this.checkCollision = function(position) {
         const distance = position.distanceTo( cube.position );
-        if(distance < meshBoundingBox) {
+        if(distance < meshBoundingBox*2) {
             eventBus.post(startBoost)
             scene.remove(cube)
         }
