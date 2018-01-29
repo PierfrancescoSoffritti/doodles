@@ -7,8 +7,8 @@ function Lights(scene) {
 	scene.add( spotLight.target );
 
 	// Frustum
-	const helper = new THREE.CameraHelper( spotLight.shadow.camera )
-	scene.add( helper )
+	// const helper = new THREE.CameraHelper( spotLight.shadow.camera )
+	// scene.add( helper )
 
 	// PointLight
 	const pointLight = new THREE.PointLight( "#fff", .5, 400 );
