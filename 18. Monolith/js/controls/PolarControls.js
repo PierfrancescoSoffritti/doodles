@@ -63,7 +63,7 @@ function PolarControls(playerAndCameraPositionManager, gameConstants) {
         
         playerAndCameraPositionManager.setAcceleration(Math.max(Math.abs(angleAcceleration*100)/2, Math.abs(radAcceleration)))
 
-        playerAndCameraPositionManager.setRotationDirectionX(angleDirection)
-        playerAndCameraPositionManager.setRotationDirectionZ(radDirection*-1)
+        playerAndCameraPositionManager.setAngleDirection(angleDirection)
+        playerAndCameraPositionManager.setRadiusDirection(radDirection*-1)
     }
 }

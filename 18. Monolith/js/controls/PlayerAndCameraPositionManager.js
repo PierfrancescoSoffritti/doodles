@@ -4,8 +4,8 @@ function PlayerAndCameraPositionManager(camera, player, gameConstants) {
     const cameraHeightFromPlayer = .6
     const playerDistanceFromCamera = 1.4
 
-    let lastDirectionX = 0
-    let lastDirectionZ = 0
+    let lastAngleDirection = 0
+    let lastRadiusDirection = 0
 
     let acceleration = 0
 
@@ -26,12 +26,19 @@ function PlayerAndCameraPositionManager(camera, player, gameConstants) {
         player.mesh.position.y = sin(time*2)/20
         player.mesh.position.z = sin(time)/40
 
+        // camera static movement
         cameraPolarPostion.radius += sin(time)/10       
         cameraPolarPostion.angle += cos(time)/8000
+        
         cameraPolarPostion.y = cameraHeightFromPlayer + cos(time/2)/16
 
-        cameraPolarPostion.radius += acceleration
-        cameraPolarPostion.y += acceleration/3
+        // camera acceleration movmenet
+        const acc = acceleration >=  0.975 ? 1/2 : acceleration/2
+        cameraPolarPostion.radius += sin(acc)*2
+        cameraPolarPostion.y += sin(acc)/1.5
+
+        // cameraPolarPostion.angle += Math.sin(acc)/200
+        cameraPolarPostion.angle += cameraAngleStearingOffset.val
 
         updateCameraPosition()
         updatePlayerPosition()
@@ -60,10 +67,7 @@ function PlayerAndCameraPositionManager(camera, player, gameConstants) {
 
     this.setAcceleration = function(a) {
         player.acceleration = a
-        acceleration = a       
-        
-        if(acceleration >= 0.98)
-            acceleration = 1
+        acceleration = a
     }
     
     this.setPosition = function(radius, angle) {
@@ -74,25 +78,33 @@ function PlayerAndCameraPositionManager(camera, player, gameConstants) {
         playerPolarPostion.angle = angle
     }
 
-    this.setRotationDirectionX = function(direction) {
-        if(direction === lastDirectionX)
+    const cameraAngleStearingOffset = { val: 0 }
+    this.setAngleDirection = function(direction) {
+        if(direction === lastAngleDirection)
             return
-        lastDirectionX = direction
+        lastAngleDirection = direction
 
         const tween = new TWEEN.Tween(player.mesh.rotation)
-            .to({ x: direction*Math.PI/8 }, 400)
-            .easing(TWEEN.Easing.Cubic.InOut)
+            .to({ x: direction*Math.PI/8 }, 1000)
+            .easing(TWEEN.Easing.Sinusoidal.InOut)
+            .start();
+
+        const tween2 = new TWEEN.Tween(cameraAngleStearingOffset)
+            .to({ val: -direction/400 }, 1000)
+            .easing(TWEEN.Easing.Sinusoidal.InOut)
+            .onUpdate(function() {                
+            })
             .start();
     }
 
-    this.setRotationDirectionZ = function(direction) {
-        if(direction === lastDirectionZ)
+    this.setRadiusDirection = function(direction) {
+        if(direction === lastRadiusDirection)
             return
-        lastDirectionZ = direction
+        lastRadiusDirection = direction
 
         const tween = new TWEEN.Tween(player.mesh.rotation)
-            .to({ z: direction*Math.PI/8 }, 400)
-            .easing(TWEEN.Easing.Cubic.InOut)
+            .to({ z: direction*Math.PI/8 }, 600)
+            .easing(TWEEN.Easing.Sinusoidal.InOut)
             .start();
     }
 

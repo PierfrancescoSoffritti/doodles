@@ -7,8 +7,6 @@ function Accelerator(speed, accelerationMax, accelerationIncreaseStep, accelerat
         updateAngleAcceleration(direction)
         prevDirection = direction
 
-        console.log(acceleration)
-
         return speed * acceleration
     }
 
@@ -17,15 +15,18 @@ function Accelerator(speed, accelerationMax, accelerationIncreaseStep, accelerat
     }
 
     function updateAngleAcceleration(direction) {
+        const absAcc = Math.abs(acceleration)
+
         if(direction === 0)
             decelerate()            
         else        
             accelerate(direction)
         
         function decelerate() {
-            if(Math.abs(acceleration) !== 0)
-                acceleration = Math.sign(acceleration) * ( Math.abs(acceleration) - accelerationDecreaseStep )
-            if(Math.abs(acceleration) < 0.01)
+            if(absAcc !== 0)
+                acceleration = Math.sign(acceleration) * ( absAcc - accelerationDecreaseStep )
+                // acceleration = Math.sign(acceleration) * ( absAcc - Math.sin(absAcc)/40 )
+            if(absAcc < 0.01)
                 acceleration = 0
 
             return 0
@@ -35,7 +36,7 @@ function Accelerator(speed, accelerationMax, accelerationIncreaseStep, accelerat
             if( prevDirection != direction )
                 decelerate()
 
-            if(Math.abs(acceleration) < accelerationMax)
+            if(absAcc < accelerationMax)
                 acceleration += direction * accelerationIncreaseStep
             else
                 decelerate()

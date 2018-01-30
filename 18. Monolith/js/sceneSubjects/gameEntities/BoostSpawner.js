@@ -17,8 +17,8 @@ function BoostSpawner(scene, gameConstants) {
 
     this.update = function(time) {
         if(time > nextSpawnTime) {
-            spawnCube()
-            nextSpawnTime += getSpawnTimeDelay()
+            // spawnCube()
+            // nextSpawnTime += getSpawnTimeDelay()
         }
 
         cube.rotation.x++
