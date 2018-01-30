@@ -1,7 +1,7 @@
 function PlayerAndCameraPositionManager(camera, player, gameConstants) {
     this.player = player
 
-    const cameraHeightRelativeFromPlayer = .9
+    const cameraHeightFromPlayer = .9
     const playerDistanceFromCamera = 2
 
     let lastDirectionX = 0
@@ -9,10 +9,43 @@ function PlayerAndCameraPositionManager(camera, player, gameConstants) {
 
     player.position.y = gameConstants.baseLevelHeight
 
+    const cameraPolarPostion = {
+        radius: 0,
+        angle: 0
+    }
+
+    const playerPolarPostion = {
+        radius: 0,
+        angle: 0
+    }
+
     this.update = function(time) {
-        player.mesh.position.y = sin(time*2)/20
-        player.mesh.position.z = sin(time)/40
-        player.mesh.position.x = sin(time/2)/40
+        // player.mesh.position.x = sin(time/2)/40
+        // player.mesh.position.y = sin(time*2)/20
+        // player.mesh.position.z = sin(time)/40
+
+        cameraPolarPostion.radius += sin(time)/10
+        cameraPolarPostion.angle += sin(time/2)/1000
+
+        updateCameraPosition()
+        updatePlayerPosition()
+    }
+
+    function updateCameraPosition() {
+        const newPolarPositionCamera = polarToCartesian(cameraPolarPostion.radius, cameraPolarPostion.angle)
+        
+        camera.position.x = newPolarPositionCamera.x
+        camera.position.z = newPolarPositionCamera.y
+        camera.position.y = player.position.y + cameraHeightFromPlayer
+        camera.lookAt(new THREE.Vector3(0,0,0))
+    }
+
+    function updatePlayerPosition() {
+        const newPolarPositionPlayer = polarToCartesian(playerPolarPostion.radius, playerPolarPostion.angle)
+        player.position.x = newPolarPositionPlayer.x
+        player.position.z = newPolarPositionPlayer.y
+
+        player.rotation.y = -playerPolarPostion.angle
     }
 
     this.setAcceleration = function(acceleration) {
@@ -20,15 +53,11 @@ function PlayerAndCameraPositionManager(camera, player, gameConstants) {
     }
     
     this.setPosition = function(radius, angle) {
-        camera.position.x = radius * cos(angle)
-        camera.position.y = player.position.y + cameraHeightRelativeFromPlayer
-        camera.position.z = radius * sin(angle)
-        camera.lookAt(new THREE.Vector3(0,0,0))
-    
-        player.position.x = (radius -playerDistanceFromCamera) * cos(angle)
-        player.position.z = (radius -playerDistanceFromCamera) * sin(angle)
+        cameraPolarPostion.radius = radius
+        cameraPolarPostion.angle = angle
 
-        player.rotation.y = -angle
+        playerPolarPostion.radius = radius-playerDistanceFromCamera
+        playerPolarPostion.angle = angle
     }
 
     this.setRotationDirectionX = function(direction) {
