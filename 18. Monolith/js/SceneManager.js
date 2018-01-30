@@ -16,7 +16,8 @@ function SceneManager(canvas) {
     
     const scene = buildScene();
     const renderer = buildRender(screenDimensions);
-    const camera = buildCamera(screenDimensions);
+    const camera = buildCamera(screenDimensions);    
+    
     const sceneSubjects = createSceneSubjects(scene);
     
     // these should be SceneSubjects

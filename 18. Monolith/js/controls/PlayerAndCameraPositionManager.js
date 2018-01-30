@@ -1,8 +1,8 @@
 function PlayerAndCameraPositionManager(camera, player, gameConstants) {
     this.player = player
 
-    const cameraHeightFromPlayer = .9
-    const playerDistanceFromCamera = 2
+    const cameraHeightFromPlayer = .6
+    const playerDistanceFromCamera = 1.4
 
     let lastDirectionX = 0
     let lastDirectionZ = 0
@@ -20,12 +20,12 @@ function PlayerAndCameraPositionManager(camera, player, gameConstants) {
     }
 
     this.update = function(time) {
-        // player.mesh.position.x = sin(time/2)/40
-        // player.mesh.position.y = sin(time*2)/20
-        // player.mesh.position.z = sin(time)/40
+        player.mesh.position.x = sin(time/2)/40
+        player.mesh.position.y = sin(time*2)/20
+        player.mesh.position.z = sin(time)/40
 
-        cameraPolarPostion.radius += sin(time)/10
-        cameraPolarPostion.angle += sin(time/2)/1000
+        cameraPolarPostion.radius += sin(time)/8
+        // cameraPolarPostion.angle += sin(time/2)/1400
 
         updateCameraPosition()
         updatePlayerPosition()
