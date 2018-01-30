@@ -7,6 +7,8 @@ function Accelerator(speed, accelerationMax, accelerationIncreaseStep, accelerat
         updateAngleAcceleration(direction)
         prevDirection = direction
 
+        console.log(acceleration)
+
         return speed * acceleration
     }
 

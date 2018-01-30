@@ -42,10 +42,10 @@ function LaserShooter(scene, gameConstants) {
         const distance1 = Math.sqrt( (Math.pow(playerPosition.x - collisionPointLaser1.x, 2) ) + (Math.pow(playerPosition.z - collisionPointLaser1.y, 2) )  )
         const distance2 = Math.sqrt( (Math.pow(playerPosition.x - collisionPointLaser2.x, 2) ) + (Math.pow(playerPosition.z - collisionPointLaser2.y, 2) )  )
         
-        if(distance1 < collisionOffset && ( playerPosition.y >= gameConstants.baseLevelHeight && playerPosition.y <= gameConstants.baseLevelHeight+collisionOffset ) )
-            console.log("collision1")
-        if(distance2 < collisionOffset && ( playerPosition.y <= gameConstants.secondLevelHeight && playerPosition.y >= gameConstants.secondLevelHeight-collisionOffset ))
-            console.log("collision2")
+        // if(distance1 < collisionOffset && ( playerPosition.y >= gameConstants.baseLevelHeight && playerPosition.y <= gameConstants.baseLevelHeight+collisionOffset ) )
+        //     console.log("collision1")
+        // if(distance2 < collisionOffset && ( playerPosition.y <= gameConstants.secondLevelHeight && playerPosition.y >= gameConstants.secondLevelHeight-collisionOffset ))
+        //     console.log("collision2")
     }
 
     this.update = function(time, center, minDistaneFromCenter) {

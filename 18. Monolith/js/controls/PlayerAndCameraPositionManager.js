@@ -7,16 +7,18 @@ function PlayerAndCameraPositionManager(camera, player, gameConstants) {
     let lastDirectionX = 0
     let lastDirectionZ = 0
 
-    player.position.y = gameConstants.baseLevelHeight
+    let acceleration = 0
 
     const cameraPolarPostion = {
         radius: 0,
-        angle: 0
+        angle: 0,
+        y : cameraHeightFromPlayer
     }
 
     const playerPolarPostion = {
         radius: 0,
-        angle: 0
+        angle: 0,
+        y: gameConstants.baseLevelHeight
     }
 
     this.update = function(time) {
@@ -24,8 +26,12 @@ function PlayerAndCameraPositionManager(camera, player, gameConstants) {
         player.mesh.position.y = sin(time*2)/20
         player.mesh.position.z = sin(time)/40
 
-        cameraPolarPostion.radius += sin(time)/8
-        // cameraPolarPostion.angle += sin(time/2)/1400
+        cameraPolarPostion.radius += sin(time)/10       
+        cameraPolarPostion.angle += cos(time)/8000
+        cameraPolarPostion.y = cameraHeightFromPlayer + cos(time/2)/16
+
+        cameraPolarPostion.radius += acceleration
+        cameraPolarPostion.y += acceleration/3
 
         updateCameraPosition()
         updatePlayerPosition()
@@ -36,7 +42,9 @@ function PlayerAndCameraPositionManager(camera, player, gameConstants) {
         
         camera.position.x = newPolarPositionCamera.x
         camera.position.z = newPolarPositionCamera.y
-        camera.position.y = player.position.y + cameraHeightFromPlayer
+
+        camera.position.y = playerPolarPostion.y + cameraPolarPostion.y
+
         camera.lookAt(new THREE.Vector3(0,0,0))
     }
 
@@ -45,11 +53,17 @@ function PlayerAndCameraPositionManager(camera, player, gameConstants) {
         player.position.x = newPolarPositionPlayer.x
         player.position.z = newPolarPositionPlayer.y
 
+        player.position.y = playerPolarPostion.y
+
         player.rotation.y = -playerPolarPostion.angle
     }
 
-    this.setAcceleration = function(acceleration) {
-        player.acceleration = acceleration
+    this.setAcceleration = function(a) {
+        player.acceleration = a
+        acceleration = a       
+        
+        if(acceleration >= 0.98)
+            acceleration = 1
     }
     
     this.setPosition = function(radius, angle) {
@@ -87,12 +101,12 @@ function PlayerAndCameraPositionManager(camera, player, gameConstants) {
         heightLevel = newHeightLevel
 
         if(newHeightLevel === 0) {
-            const tween = new TWEEN.Tween(player.position)
+            const tween = new TWEEN.Tween(playerPolarPostion)
                 .to({ y: gameConstants.baseLevelHeight }, 400)
                 .easing(TWEEN.Easing.Cubic.InOut)
                 .start();
         } else {            
-            const tween = new TWEEN.Tween(player.position)
+            const tween = new TWEEN.Tween(playerPolarPostion)
                 .to({ y: gameConstants.secondLevelHeight }, 400)
                 .easing(TWEEN.Easing.Cubic.InOut)
                 .start();

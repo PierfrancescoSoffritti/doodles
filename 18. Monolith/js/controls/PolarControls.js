@@ -9,8 +9,8 @@ function PolarControls(playerAndCameraPositionManager, gameConstants) {
     const radSpeed = 1
 
     const acceletationMax = 1
-    const accelerationIncreaseStep = 0.04
-    const accelerationDecreaseStep = 0.014
+    const accelerationIncreaseStep = 0.02
+    const accelerationDecreaseStep = 0.009
 
     const angleAccelerator = new Accelerator(angleSpeed, acceletationMax, accelerationIncreaseStep, accelerationDecreaseStep)
     const radAccelerator = new Accelerator(radSpeed, acceletationMax, accelerationIncreaseStep, accelerationDecreaseStep)
