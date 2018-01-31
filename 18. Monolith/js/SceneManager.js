@@ -102,10 +102,32 @@ function SceneManager(canvas) {
     }
 
     this.onKeyDown = function(keyCode) {
+        // refactor. this is a hack
+        if(keyCode === 32) {
+            //sapce
+            this.onMouseDown({ which: 3})
+            return
+        } else if(keyCode === 77) {
+            // m
+            this.onMouseDown({ which: 1})
+            return
+        }
+
         controls.polar.onKeyDown(keyCode)
     }
 
     this.onKeyUp = function(keyCode) {
+        // refactor. this is a hack
+        if(keyCode === 32) {
+            //sapce
+            this.onMouseUp({ which: 3})
+            return
+        } else if(keyCode === 77) {
+            // m
+            this.onMouseUp({ which: 1})
+            return
+        }
+
         controls.polar.onKeyUp(keyCode)        
     }
 
