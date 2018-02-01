@@ -8,7 +8,7 @@ function Player(scene, shooter) {
     loader.load('models/spaceship_merged.json', function(geometry, materials) {
         
         for(let i=0; i<materials.length; i++) {
-            materials[i].shading = THREE.FlatShading
+            materials[i].flatShading = true
             materials[i].shininess = 0 
             
             changeColors(materials[i])
