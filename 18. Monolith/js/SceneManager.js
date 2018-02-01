@@ -17,6 +17,9 @@ function SceneManager(canvas) {
     const scene = buildScene();
     const renderer = buildRender(screenDimensions);
     const camera = buildCamera(screenDimensions);    
+    const composer = buildPostProcessing(renderer, scene, camera);
+
+
     const soundManager = new SoundManager(camera)
     
     const sceneSubjects = createSceneSubjects(scene);
@@ -58,6 +61,40 @@ function SceneManager(canvas) {
         return camera;
     }
 
+    var filmPass
+    var staticPass
+
+    function buildPostProcessing(renderer, scene, camera) {
+        const composer = new THREE.EffectComposer(renderer);
+
+        const renderPass = new THREE.RenderPass(scene, camera);
+        renderPass.clear = true;
+        renderPass.clearDepth = true;
+        // renderPass.renderToScreen = true;
+
+        filmPass = new THREE.ShaderPass(THREE.FilmShader);
+        filmPass.uniforms["nIntensity"].value = 0.2;
+        filmPass.uniforms["sIntensity"].value = 0.45;
+        filmPass.uniforms["sCount"].value = 1600;        
+        filmPass.uniforms["grayscale"].value = 0;
+
+        staticPass = new THREE.ShaderPass(THREE.StaticShader);
+        staticPass.uniforms["amount"].value = 0.08;
+        staticPass.uniforms["size"].value = 2;
+
+        const rgbPass = new THREE.ShaderPass(THREE.RGBShiftShader);
+        rgbPass.uniforms["angle"].value = 0 * Math.PI;
+        rgbPass.uniforms["amount"].value = 0.001;
+
+        composer.addPass(renderPass);
+        composer.addPass(staticPass);
+        composer.addPass(rgbPass);
+        composer.addPass(filmPass);
+        filmPass.renderToScreen = true;
+
+        return composer;
+    }
+
     function buildControls(playerAndCameraPositionManager, player, gameConstants) {
         const controls = {
             polar: new PolarControls(playerAndCameraPositionManager, gameConstants),
@@ -87,7 +124,12 @@ function SceneManager(canvas) {
         playerAndCameraPositionManager.update(elapsedTime)
         gameEntitiesManager.update(elapsedTime)
 
-        renderer.render(scene, camera);
+        const delta = clock.getDelta()
+        filmPass.uniforms['time'].value = delta;
+        staticPass.uniforms['time'].value = delta;
+
+        // renderer.render(scene, camera);
+        composer.render(delta);
     }
 
     this.onWindowResize = function() {
@@ -100,6 +142,7 @@ function SceneManager(canvas) {
         camera.updateProjectionMatrix();
         
         renderer.setSize(width, height);
+        composer.setSize(width, height);
     }
 
     this.onKeyDown = function(keyCode) {
