@@ -19,6 +19,13 @@ function LaserShooter(scene, gameConstants) {
     laser1.position.y = gameConstants.baseLevelHeight
     laser2.position.y = gameConstants.secondLevelHeight
 
+    soundSphere = laserSphereMesh.clone();
+    soundSphere2 = laserSphereMesh.clone();
+    scene.add(soundSphere)
+    scene.add(soundSphere2)
+    objTT = soundSphere
+    objTT2 = soundSphere2
+
     scene.add(laser1)
     scene.add(laser2)
 
@@ -41,6 +48,9 @@ function LaserShooter(scene, gameConstants) {
 
         const distance1 = Math.sqrt( (Math.pow(playerPosition.x - collisionPointLaser1.x, 2) ) + (Math.pow(playerPosition.z - collisionPointLaser1.y, 2) )  )
         const distance2 = Math.sqrt( (Math.pow(playerPosition.x - collisionPointLaser2.x, 2) ) + (Math.pow(playerPosition.z - collisionPointLaser2.y, 2) )  )
+
+        soundSphere.position.set(collisionPointLaser1.x, laser1.position.y, collisionPointLaser1.y)
+        soundSphere2.position.set(collisionPointLaser2.x, laser2.position.y, collisionPointLaser2.y)
         
         // if(distance1 < collisionOffset && ( playerPosition.y >= gameConstants.baseLevelHeight && playerPosition.y <= gameConstants.baseLevelHeight+collisionOffset ) )
         //     console.log("collision1")

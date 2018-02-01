@@ -42,6 +42,7 @@ function Player(scene, shooter) {
 
     function shoot() {
         shooter.shoot(new THREE.Vector3(group.position.x, group.position.y-1, group.position.z))
+        eventBus.post(playerShoot)
     }
 
     function updateEngineColor(acceleration) {
