@@ -87,10 +87,10 @@ function SceneManager(canvas) {
         rgbPass.uniforms["amount"].value = 0.001;
 
         composer.addPass(renderPass);
-        composer.addPass(staticPass);
-        composer.addPass(rgbPass);
-        composer.addPass(filmPass);
-        filmPass.renderToScreen = true;
+        // composer.addPass(staticPass);
+        // composer.addPass(rgbPass);
+        // composer.addPass(filmPass);
+        renderPass.renderToScreen = true;
 
         return composer;
     }
