@@ -23,7 +23,10 @@ function GameEntitiesManager(scene, gameConstants) {
         
         checkCollision(bullets, enemies)
         boostSpawner.checkCollision(player.position)
-        monolithLaserShooter.checkCollision(player.position)
+        const isCollision = monolithLaserShooter.checkCollision(player.position)
+        
+        // if(isCollision)
+        //     player.takeDamage();
     }   
 
     function checkCollision(array1, array2) {

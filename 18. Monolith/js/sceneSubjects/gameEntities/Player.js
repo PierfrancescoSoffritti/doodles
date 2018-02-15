@@ -6,10 +6,13 @@ function Player(scene, shooter) {
 
     var loader = new THREE.JSONLoader();
     loader.load('models/spaceship_merged.json', function(geometry, materials) {
+
+        self.materials = materials;
         
         for(let i=0; i<materials.length; i++) {
             materials[i].flatShading = true
             materials[i].shininess = 0 
+            materials[i].transparent = true;
             
             changeColors(materials[i])
         }
@@ -30,14 +33,33 @@ function Player(scene, shooter) {
     this.rotation = group.rotation
 
     this.acceleration = 0
-
     this.shoot = false
+
+    let recoveringFromDamage = false;
     
     this.update = function(time) {
         if(this.shoot === true)
             shoot()
         
-        updateEngineColor(this.acceleration)
+        updateEngineColor(this.acceleration)    
+        fadeMesh(time);
+    }
+
+    this.takeDamage = function() {
+        if(recoveringFromDamage)
+            return;
+
+        recoveringFromDamage = true;
+        setTimeout(() => recoveringFromDamage = false, 3000);
+    }
+
+    function fadeMesh(time) {
+        const opacity = recoveringFromDamage ? 
+            ( sin(time*16) +1.2 ) / 2.2
+            : 1;
+
+        for(let i=0; i<self.materials.length; i++)
+            self.materials[i].opacity = opacity;
     }
 
     function shoot() {

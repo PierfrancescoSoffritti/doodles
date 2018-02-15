@@ -39,7 +39,7 @@ function LaserShooter(scene, gameConstants) {
         angle: 0
     }
 
-    const collisionOffset = 4
+    const collisionOffset = 6
 
     this.checkCollision = function(playerPosition) {
         const playerPolar = cartesianToPolar(playerPosition.x, playerPosition.z)
@@ -52,10 +52,13 @@ function LaserShooter(scene, gameConstants) {
         soundSphere.position.set(collisionPointLaser1.x, laser1.position.y, collisionPointLaser1.y)
         soundSphere2.position.set(collisionPointLaser2.x, laser2.position.y, collisionPointLaser2.y)
         
-        // if(distance1 < collisionOffset && ( playerPosition.y >= gameConstants.baseLevelHeight && playerPosition.y <= gameConstants.baseLevelHeight+collisionOffset ) )
-        //     console.log("collision1")
-        // if(distance2 < collisionOffset && ( playerPosition.y <= gameConstants.secondLevelHeight && playerPosition.y >= gameConstants.secondLevelHeight-collisionOffset ))
-        //     console.log("collision2")
+        // laser 1
+        if(distance1 < collisionOffset && ( playerPosition.y >= gameConstants.baseLevelHeight && playerPosition.y <= gameConstants.baseLevelHeight+collisionOffset ) )
+            return true;
+
+        // laser 2
+        if(distance2 < collisionOffset && ( playerPosition.y <= gameConstants.secondLevelHeight && playerPosition.y >= gameConstants.secondLevelHeight-collisionOffset ))
+            return true;
     }
 
     this.update = function(time, center, minDistaneFromCenter) {
