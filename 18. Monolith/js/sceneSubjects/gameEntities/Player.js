@@ -1,10 +1,13 @@
 function Player(scene, shooter) {
     const self = this
 
+    let lives = 6;
+    let score = 0;
+
     const group = new THREE.Group()
     scene.add( group )
 
-    const guiManager = new GUIManager();
+    const guiManager = new GUIManager(lives, score);
     group.add(guiManager.group);
 
     var loader = new THREE.JSONLoader();
@@ -51,6 +54,9 @@ function Player(scene, shooter) {
     this.takeDamage = function() {
         if(recoveringFromDamage)
             return;
+
+        lives = lives-1;
+        guiManager.updateLives(lives);
 
         recoveringFromDamage = true;
         setTimeout(() => recoveringFromDamage = false, 3000);

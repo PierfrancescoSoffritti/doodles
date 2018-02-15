@@ -1,4 +1,4 @@
-function ScoreTexture() {
+function CanvasTexture(constantText = "") {
     var canvas = document.createElement('canvas');
     const baseDim = 128;
     const widthRatio = 1;
@@ -8,16 +8,17 @@ function ScoreTexture() {
     canvas.height = baseDim/heightRatio;
 
     const ctx = canvas.getContext('2d')
-    const txt = 'score: 0';
-
-    drawTextBG(ctx, txt, '20px arial', canvas.width/2 , canvas.height/2);
 
     this.widthRatio = widthRatio;
     this.heightRatio = heightRatio;
-    this.canvas = canvas;
+    this.texture = new THREE.Texture(canvas);
 
-    function drawTextBG(ctx, txt, font, x, y) {
-        
+    this.setText = function(text) {
+        drawTextBG(ctx, constantText +text, '20px arial', canvas.width/2 , canvas.height/2);
+        this.texture.needsUpdate = true;
+    }
+
+    function drawTextBG(ctx, txt, font, x, y) {        
         ctx.save();
         ctx.font = font;
         ctx.textBaseline = 'middle';
