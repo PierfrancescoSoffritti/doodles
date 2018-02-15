@@ -4,6 +4,8 @@ function Player(scene, shooter) {
     const group = new THREE.Group()
     scene.add( group )
 
+    loadTexture();
+
     var loader = new THREE.JSONLoader();
     loader.load('models/spaceship_merged.json', function(geometry, materials) {
 
@@ -60,6 +62,31 @@ function Player(scene, shooter) {
 
         for(let i=0; i<self.materials.length; i++)
             self.materials[i].opacity = opacity;
+    }
+
+    function loadTexture() {
+        const lifebarTexture = new THREE.TextureLoader().load('textures/profile.PNG');
+        const lifebarMaterial = new THREE.MeshBasicMaterial( { map: lifebarTexture } );
+        const planeGeometry = new THREE.PlaneBufferGeometry(.5, .06, 1, 1);
+        const lifebarMesh = new THREE.Mesh(planeGeometry, lifebarMaterial);
+        
+        lifebarMesh.rotation.y = Math.PI/1.4;        
+        lifebarMesh.position.set(0, .4, .6);
+
+        const scoreTexture = new THREE.TextureLoader().load('textures/test.png');
+        const scoreMaterial = new THREE.MeshBasicMaterial( { map: scoreTexture, transparent: true } );
+        const scoreGeometry = new THREE.PlaneBufferGeometry(.05, .1, 1, 1);
+        const scoreMeshDigit1 = new THREE.Mesh(scoreGeometry, scoreMaterial);
+        
+        scoreMeshDigit1.rotation.y = Math.PI/4;
+        scoreMeshDigit1.position.set(0, .4, -.6);
+
+        scoreMeshDigit2 = scoreMeshDigit1.clone();
+        scoreMeshDigit2.position.set(0, .4, -.66);
+
+        group.add(lifebarMesh);
+        group.add(scoreMeshDigit1);
+        group.add(scoreMeshDigit2);
     }
 
     function shoot() {
