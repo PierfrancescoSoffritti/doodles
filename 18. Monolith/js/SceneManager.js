@@ -25,7 +25,7 @@ function SceneManager(canvas) {
     const sceneSubjects = createSceneSubjects(scene);
     
     // these should be SceneSubjects
-    const gameEntitiesManager = new GameEntitiesManager(scene, gameConstants)    
+    const gameEntitiesManager = new GameEntitiesManager(scene, gameConstants, camera)    
     const playerAndCameraPositionManager = new PlayerAndCameraPositionManager(camera, gameEntitiesManager.player, gameConstants)
     const controls = buildControls(playerAndCameraPositionManager, gameEntitiesManager.player, gameConstants);
 

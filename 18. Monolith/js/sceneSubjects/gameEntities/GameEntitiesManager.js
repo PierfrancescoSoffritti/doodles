@@ -1,4 +1,4 @@
-function GameEntitiesManager(scene, gameConstants) {
+function GameEntitiesManager(scene, gameConstants, camera) {
     const playerShooter = new BulletsShooter(scene)
     const monolithLaserShooter = new LaserShooter(scene, gameConstants)
 
