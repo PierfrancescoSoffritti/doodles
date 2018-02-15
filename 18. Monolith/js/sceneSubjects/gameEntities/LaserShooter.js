@@ -62,14 +62,15 @@ function LaserShooter(scene, gameConstants) {
     }
 
     this.update = function(time, center, minDistaneFromCenter) {
-        // time = 0
-        const angle1 = time *2.8
+        const speedLaser1 = 2.8;
+        const angle1 = time *speedLaser1
         const coords = polarToCartesian(minDistaneFromCenter, angle1)
         laser1.position.x = coords.x
         laser1.position.z = coords.y
         laser1.rotation.y = -angle1
 
-        const angle2 = Math.PI/2 + time *2.8
+        const speedLaser2 = 3.2;
+        const angle2 = Math.PI/2 + time *speedLaser2
         const coords2 = polarToCartesian(minDistaneFromCenter, -angle2)
         laser2.position.x = coords2.x
         laser2.position.z = coords2.y
