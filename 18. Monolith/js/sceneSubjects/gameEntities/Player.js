@@ -1,4 +1,4 @@
-function Player(scene, shooter) {
+function Player(scene, gameState, shooter) {
     const self = this
 
     let lives = 6;
@@ -72,7 +72,7 @@ function Player(scene, shooter) {
     }
 
     function shoot() {
-        shooter.shoot(new THREE.Vector3(group.position.x, group.position.y-1, group.position.z))
+        shooter.shoot( new THREE.Vector3(group.position.x, group.position.y-1, group.position.z) )
         eventBus.post(playerShoot)
     }
 

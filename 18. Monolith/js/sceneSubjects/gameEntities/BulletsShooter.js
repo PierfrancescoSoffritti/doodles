@@ -8,11 +8,11 @@ function BulletsShooter(scene) {
     // const delay = .08
     let lastShootTime = 0
 
-    this.shoot = function(position) {
+    this.shoot = function(originPosition) {
         if(iTime - lastShootTime < delay)
             return
 
-        bullets.push(new Bullet(scene, position))
+        bullets.push( new Bullet(scene, originPosition) )
         lastShootTime = iTime
     }
 

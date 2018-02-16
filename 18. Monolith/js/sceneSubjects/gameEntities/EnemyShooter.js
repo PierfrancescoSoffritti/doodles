@@ -1,21 +1,20 @@
 function EnemyShooter(scene, position, gameConstants) {
     const bullets = []
-    this.bullets = bullets
 
-    let iTime = 0
-    const delay = .1
+    let currentTime = 0
+    const shootDelay = .1
     let lastShootTime = 0
 
     this.shoot = function(targetPosition) {
-        if(iTime - lastShootTime < delay)
+        if(currentTime - lastShootTime < shootDelay)
             return
 
         bullets.push( new BulletEnemy(scene, gameConstants, position, targetPosition) )
-        lastShootTime = iTime
+        lastShootTime = currentTime
     }
 
     this.update = function(time) {
-        iTime = time
+        currentTime = time
         for(let i=0; i<bullets.length; i++) {
             const expired = bullets[i].update(time)
            
@@ -34,28 +33,24 @@ function BulletEnemy(scene, gameConstants, originPosition, targetPosition) {
     const sphere = blueprintBulletEnemy.clone()
     sphere.scale.set(getRandom(1, 2), getRandom(1, 2), getRandom(1, 2))
 
-    const speed = .2;
-
     this.position = sphere.position
     this.collision = false
 
     sphere.position.set(originPosition.x, originPosition.y, originPosition.z)
-    scene.add(sphere);
-
-    const polarCoord = cartesianToPolar(originPosition.x, originPosition.z)
+    scene.add(sphere)
 
     const direction = new THREE.Vector3()
-    direction.subVectors( targetPosition, originPosition ).normalize();
+    direction.subVectors( targetPosition, originPosition ).normalize()
 
-    let cont = 0;
+    const speed = .2
+    let distance = 0
 
     this.update = function(time) {
-        cont += speed;
-        polarCoord.radius += speed
+        distance += speed;
 
-        sphere.translateOnAxis ( direction, cont )       
+        sphere.translateOnAxis ( direction, distance )       
 
-        const expired = ( cont > gameConstants.maxRadius/20 || this.collision === true ) ? true : false
+        const expired = ( distance > gameConstants.maxRadius/20 || this.collision === true ) ? true : false
         if(expired)
             scene.remove(sphere)
             
