@@ -1,6 +1,6 @@
-function GameEntitiesManager(scene, gameConstants, camera) {
+function GameEntitiesManager(scene, gameConstants, gameState) {
     const playerShooter = new BulletsShooter(scene)
-    const monolithLaserShooter = new LaserShooter(scene, gameConstants)
+    // const monolithLaserShooter = new LaserShooter(scene, gameConstants)
 
     const player = new Player( scene, playerShooter )
     const monolith = new Monolith(scene, gameConstants)
@@ -8,7 +8,7 @@ function GameEntitiesManager(scene, gameConstants, camera) {
     // const enemiesSpawner = new EnemiesSpawner(scene, gameConstants)
     // const boostSpawner = new BoostSpawner(scene, gameConstants)
 
-    const targets = new Targets(scene, gameConstants)
+    const targets = new Targets(scene, gameConstants, gameState)
 
     this.player = player
 
@@ -17,7 +17,7 @@ function GameEntitiesManager(scene, gameConstants, camera) {
         monolith.update(time)  
         targets.update(time)
 
-        monolithLaserShooter.update(time, 0, gameConstants.monolithRadius)
+        // monolithLaserShooter.update(time, 0, gameConstants.monolithRadius)
 
         // enemiesSpawner.update(time)
         // boostSpawner.update(time)

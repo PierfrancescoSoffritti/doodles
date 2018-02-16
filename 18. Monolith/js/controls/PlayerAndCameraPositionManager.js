@@ -1,4 +1,4 @@
-function PlayerAndCameraPositionManager(camera, player, gameConstants) {
+function PlayerAndCameraPositionManager(camera, player, gameConstants, gameState) {
     this.player = player
 
     const cameraHeightFromPlayer = .6
@@ -63,6 +63,8 @@ function PlayerAndCameraPositionManager(camera, player, gameConstants) {
         player.position.y = playerPolarPostion.y
 
         player.rotation.y = -playerPolarPostion.angle
+
+        gameState.playerPosition = player.position
     }
 
     this.setAcceleration = function(a) {

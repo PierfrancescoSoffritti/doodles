@@ -1,29 +1,22 @@
-function Targets(scene, gameConstants) {
+function Targets(scene, gameConstants, gameState) {
 
-    const numberOfTargetsPerLevel = 12
+    const numberOfTargetsPerLevel = 8
     const angleStep = (Math.PI*2) / numberOfTargetsPerLevel
 
-    const targets = []
+    const targetsLow = []
+    const targetsHigh = []
 
-    createTargets()
+    createTargets(targetsLow, gameConstants.targetsHeight)
+    // createTargets(targetsHigh, gameConstants.highLevelTargetsHeight)
 
-    function createTargets() {
+    function createTargets(targets, height) {
         
         const rad = gameConstants.monolithRadius
         let angle = 0
 
         for(let i=0; i<numberOfTargetsPerLevel; i++) {
             const position = polarToCartesian(rad, angle)            
-            const target = new Target( scene, new THREE.Vector3(position.x, gameConstants.lowLevelTargetsHeight, position.y), angle )            
-            targets.push(target)
-
-            angle += angleStep
-        }
-
-        angle = 0
-        for(let i=0; i<numberOfTargetsPerLevel; i++) {
-            const position = polarToCartesian(rad, angle)            
-            const target = new Target( scene, new THREE.Vector3(position.x, gameConstants.highLevelTargetsHeight, position.y), angle )            
+            const target = new Target( scene, gameConstants, gameState, new THREE.Vector3(position.x, height, position.y), angle, angleStep)            
             targets.push(target)
 
             angle += angleStep
@@ -31,13 +24,15 @@ function Targets(scene, gameConstants) {
     }
 
     this.update = function(time) {
-        for(let i=0; i<targets.length; i++)
-            targets[i].update(time)
+        for(let i=0; i<numberOfTargetsPerLevel; i++) {
+            targetsLow[i].update(time)
+            // targetsHigh[i].update(time)
+        }
     }
 
 }
 
-function Target(scene, position, rotationY) {
+function Target(scene, gameConstants, gameState, position, angle, angleStep) {
     const geometry = new THREE.BoxBufferGeometry( 1, 4, 2 )
     const material = new THREE.MeshBasicMaterial( {color: 0x00ff00} )
     const cube = new THREE.Mesh( geometry, material )
@@ -45,10 +40,19 @@ function Target(scene, position, rotationY) {
 
     const speed = getRandom(1, 4)
 
-    cube.position.set(position.x, position.y, position.z)
-    cube.rotation.y = -rotationY
+    cube.position.set(position.x, position.y-2, position.z)
+    cube.rotation.y = -angle
+
+    const shooter = new EnemyShooter(scene, cube.position, gameConstants)
 
     this.update = function(time) {
         cube.position.y += sin(time*speed)/100
+
+        const playerAngle = cartesianToPolar(gameState.playerPosition.x, gameState.playerPosition.z).angle
+        if(playerAngle >= angle - angleStep/2 && playerAngle <= angle + angleStep/2 ) {
+            // shooter.shoot(gameState.playerPosition)
+        }
+
+        shooter.update(time)
     }
 }
