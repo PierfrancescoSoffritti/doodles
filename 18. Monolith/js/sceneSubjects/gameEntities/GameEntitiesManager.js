@@ -3,30 +3,35 @@ function GameEntitiesManager(scene, gameConstants, camera) {
     const monolithLaserShooter = new LaserShooter(scene, gameConstants)
 
     const player = new Player( scene, playerShooter )
-    const monolith = new Monolith(scene, monolithLaserShooter)
+    const monolith = new Monolith(scene, gameConstants)
 
-    const enemiesSpawner = new EnemiesSpawner(scene)
-    const boostSpawner = new BoostSpawner(scene, gameConstants)
+    // const enemiesSpawner = new EnemiesSpawner(scene, gameConstants)
+    // const boostSpawner = new BoostSpawner(scene, gameConstants)
+
+    const targets = new Targets(scene, gameConstants)
 
     this.player = player
 
     this.update = function(time) {
         player.update(time)
         monolith.update(time)  
+        targets.update(time)
 
-        enemiesSpawner.update(time)
-        boostSpawner.update(time)
+        monolithLaserShooter.update(time, 0, gameConstants.monolithRadius)
+
+        // enemiesSpawner.update(time)
+        // boostSpawner.update(time)
         playerShooter.update(time)
 
         const bullets = playerShooter.bullets
-        const enemies = enemiesSpawner.enemies
+        // const enemies = enemiesSpawner.enemies
         
-        checkCollision(bullets, enemies)
-        boostSpawner.checkCollision(player.position)
-        const isCollision = monolithLaserShooter.checkCollision(player.position)
+        // checkCollision(bullets, enemies)
+        // boostSpawner.checkCollision(player.position)
+        // const isCollision = monolithLaserShooter.checkCollision(player.position)
         
-        if(isCollision)
-            player.takeDamage();
+        // if(isCollision)
+        //     player.takeDamage();
     }   
 
     function checkCollision(array1, array2) {

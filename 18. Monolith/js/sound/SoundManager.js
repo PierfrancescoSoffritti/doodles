@@ -3,6 +3,8 @@ var objTT2
 
 function SoundManager(camera) {
 
+    /*
+
     // create an AudioListener and add it to the camera
     var listener = new THREE.AudioListener();
     camera.add( listener );
@@ -57,4 +59,6 @@ function SoundManager(camera) {
             shootSound.play()
         }
     }
+
+    */
 }

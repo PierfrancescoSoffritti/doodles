@@ -1,33 +1,34 @@
 const radiusBox = 4
-const geometry = new THREE.SphereBufferGeometry( radiusBox, 16, 16 );
-const material = new THREE.MeshBasicMaterial( {color: "#00FFFF"} );
-const blueprintEnemy = new THREE.Mesh( geometry, material );
+const enemyGeometry = new THREE.SphereBufferGeometry( radiusBox, 16, 16 );
+const enemyMaterial = new THREE.MeshBasicMaterial( {color: "#00FFFF"} );
+const blueprintEnemy = new THREE.Mesh( enemyGeometry, enemyMaterial );
 
-function Enemy(scene) {
+function Enemy(scene, { minRadius, maxRadius, baseLevelHeight, secondLevelHeight }, origin) {
     const sphere = blueprintEnemy.clone()
-    const val = getRandom(1, 2)
-    sphere.scale.set(val, val, val)
-    sphere.castShadow = true;
+    const scale = getRandom(1, 2)
+    sphere.scale.set(scale, scale, scale)
 
-    sphere.position.y = getRandom(0, 1) > 0.5 ? 5 : 15
+    // sphere.position.y = getRandom(0, 1) > 0.5 ? baseLevelHeight : secondLevelHeight
+    sphere.position.y = origin.y
 
     this.position = sphere.position
     this.collision = false;
-    this.boundingSphereRad = radiusBox*val
+    this.boundingSphereRad = radiusBox*scale
 
     const speed = 1;
     scene.add(sphere);
 
-    let radius = 20
-    let angle = getRandom(0, Math.PI*2)
+    const polarCoordinates = cartesianToPolar(origin.x, origin.z)
+    // let radius = 20
+    // let angle = getRandom(0, Math.PI*2)
 
     this.update = function(time) {
-        radius += speed
+        polarCoordinates.radius += speed
 
-        sphere.position.x = radius * cos(angle)
-        sphere.position.z = radius * sin(angle)
+        sphere.position.x = polarCoordinates.radius * cos(polarCoordinates.angle)
+        sphere.position.z = polarCoordinates.radius * sin(polarCoordinates.angle)
 
-        const expired = ( radius > 200 || this.collision === true ) ? true : false
+        const expired = ( polarCoordinates.radius > maxRadius || this.collision === true ) ? true : false
 
         if(expired)
             scene.remove(sphere)

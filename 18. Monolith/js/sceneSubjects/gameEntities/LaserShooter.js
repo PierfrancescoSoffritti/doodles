@@ -2,12 +2,12 @@ function LaserShooter(scene, gameConstants) {
 
     const laserBlueprint = new THREE.Group()
 
-    const geometrySphere = new THREE.SphereBufferGeometry( 4, 16, 16 )
+    const geometrySphere = new THREE.SphereBufferGeometry( 2, 16, 16 )
     const materialSphere = new THREE.MeshBasicMaterial( {color: "#000"} )
     const laserSphereMesh = new THREE.Mesh( geometrySphere, materialSphere )
     laserBlueprint.add(laserSphereMesh)
 
-    var geometryCyl = new THREE.CylinderBufferGeometry( 2, 2, 200, 32 );
+    var geometryCyl = new THREE.CylinderBufferGeometry( 1, 1, 200, 32 );
 	var materialCyl = new THREE.MeshBasicMaterial( {color: "#FFF000", transparent: true, opacity: .6} );
     var rayMesh = new THREE.Mesh( geometryCyl, materialCyl );
     rayMesh.rotation.z = Math.PI/2    

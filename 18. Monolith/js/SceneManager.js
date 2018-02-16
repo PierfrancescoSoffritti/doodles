@@ -8,10 +8,14 @@ function SceneManager(canvas) {
     }
 
     const gameConstants = {
+        monolithRadius: 25,
         minRadius: 50,
         maxRadius: 200,
-        baseLevelHeight: 10,
-        secondLevelHeight: 20
+        baseLevelHeight: 15,
+        secondLevelHeight: 25,
+
+        lowLevelTargetsHeight: 10,
+        highLevelTargetsHeight: 30
     }
     
     const scene = buildScene();
