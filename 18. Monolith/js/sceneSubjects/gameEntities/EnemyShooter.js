@@ -2,7 +2,7 @@ function EnemyShooter(scene, position, gameConstants) {
     const bullets = []
 
     let currentTime = 0
-    const shootDelay = .05
+    const shootDelay = .1
     let lastShootTime = 0
 
     this.update = function(time) {
@@ -47,16 +47,24 @@ function BulletEnemy(scene, gameConstants, originPosition, targetPosition) {
     const direction = new THREE.Vector3()
     direction.subVectors( targetPosition, originPosition ).normalize()
 
-    const speed = .4
+    const speed = .1
     let distance = 0
+
+    const maxScale = 1
 
     this.update = function(time) {
         distance += speed;
 
-        sphere.translateOnAxis ( direction, distance )       
+        // sphere.translateOnAxis ( direction, distance )    
+        sphere.position.add( direction.clone().multiplyScalar( distance ) )
 
         const polarCoords = cartesianToPolar(sphere.position.x, sphere.position.z)
-        const expired = ( polarCoords.radius > gameConstants.maxRadius || this.collision === true ) ? true : false
+        const polarCoordsPlayer = cartesianToPolar(targetPosition.x, targetPosition.z)
+
+        const scale =  maxScale - ( ( .8 * polarCoords.radius ) / gameConstants.maxRadius )
+        sphere.scale.set( scale, scale, scale )
+
+        const expired = ( polarCoords.radius > polarCoordsPlayer.radius || this.collision === true ) ? true : false
         if(expired)
             scene.remove(sphere)
             
