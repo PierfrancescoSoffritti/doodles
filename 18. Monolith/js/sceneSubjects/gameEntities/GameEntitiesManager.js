@@ -25,8 +25,11 @@ function GameEntitiesManager(scene, gameConstants, gameState) {
 
         const bullets = playerShooter.bullets
         const enemies = enemiesSpawner.enemies
+
+        const enemyBullets = targets.getBullets();
         
         checkCollision(bullets, enemies)
+        checkCollisionWithPlayer(enemyBullets, player)
         // boostSpawner.checkCollision(player.position)
         // const isCollision = monolithLaserShooter.checkCollision(player.position)
         
@@ -45,6 +48,19 @@ function GameEntitiesManager(scene, gameConstants, gameState) {
                     el1.collision = true
                     el2.collision = true
                 }
+            }
+        }
+    }
+
+    function checkCollisionWithPlayer(array1, player) {
+        for(let i=0; i<array1.length; i++) {
+            const el1 = array1[i]
+
+            const distance = el1.position.distanceTo( player.position );
+            if(distance < el1.boundingSphereRad) {
+                el1.collision = true
+                
+                player.takeDamage()
             }
         }
     }

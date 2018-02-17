@@ -1,6 +1,6 @@
 function Targets(scene, gameConstants, gameState) {
 
-    const numberOfTargetsPerLevel = 8
+    const numberOfTargetsPerLevel = 20
     const angleStep = (Math.PI*2) / numberOfTargetsPerLevel
 
     const targetsLow = []
@@ -8,6 +8,34 @@ function Targets(scene, gameConstants, gameState) {
 
     createTargets(targetsLow, gameConstants.targetsHeight)
     // createTargets(targetsHigh, gameConstants.highLevelTargetsHeight)
+
+    this.update = function(time) {
+        for(let i=0; i<numberOfTargetsPerLevel; i++) {
+            const target = targetsLow[i]
+            target.update(time)
+            // targetsHigh[i].update(time)
+
+            const playerAngle = cartesianToPolar(gameState.playerPosition.x, gameState.playerPosition.z).angle
+            if(playerAngle >= target.angle - target.angleStep/2 && playerAngle <= target.angle + target.angleStep/2 ) {
+                const i1 = i-1 < 0 ? numberOfTargetsPerLevel-1 : i-1
+
+                targetsLow[ (i1) % numberOfTargetsPerLevel ].shoot(gameState.playerPosition)
+                target.shoot(gameState.playerPosition)
+                targetsLow[ (i+1) % numberOfTargetsPerLevel ].shoot(gameState.playerPosition)
+                
+                gameState.currentTargetPosition = target.position
+            }
+        }
+    }
+
+    this.getBullets = function() {
+        let bullets = []
+
+        for(let i=0; i<targetsLow.length; i++) 
+            bullets = bullets.concat( targetsLow[i].getBullets() )
+        
+        return bullets
+    }
 
     function createTargets(targets, height) {
         
@@ -20,23 +48,6 @@ function Targets(scene, gameConstants, gameState) {
             targets.push(target)
 
             angle += angleStep
-        }
-    }
-
-    this.update = function(time) {
-        for(let i=0; i<numberOfTargetsPerLevel; i++) {
-            const target = targetsLow[i]
-            target.update(time)
-            // targetsHigh[i].update(time)
-
-            const playerAngle = cartesianToPolar(gameState.playerPosition.x, gameState.playerPosition.z).angle
-            if(playerAngle >= target.angle - target.angleStep/2 && playerAngle <= target.angle + target.angleStep/2 ) {
-                // targetsLow[ (i-1) % numberOfTargetsPerLevel ].shoot(gameState.playerPosition)
-                target.shoot(gameState.playerPosition)
-                targetsLow[ (i+1) % numberOfTargetsPerLevel ].shoot(gameState.playerPosition)
-                
-                gameState.currentTargetPosition = target.position
-            }
         }
     }
 
@@ -60,12 +71,16 @@ function Target(scene, gameConstants, gameState, position, angle, angleStep) {
 
     const shooter = new EnemyShooter(scene, cube.position, gameConstants)
 
+    this.update = function(time) {
+        cube.position.y += sin(time*speed)/100
+        shooter.update(time)
+    }
+
     this.shoot = function(targetPosition) {
         shooter.shoot(targetPosition)
     }
 
-    this.update = function(time) {
-        cube.position.y += sin(time*speed)/100
-        shooter.update(time)
+    this.getBullets = function () {
+        return shooter.getBullets()
     }
 }
