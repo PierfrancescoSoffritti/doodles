@@ -65,7 +65,7 @@ function BulletEnemy(scene, gameConstants, originPosition, targetPosition) {
         sphere.scale.set( scale, scale, scale )
 
         const expired = ( polarCoords.radius > polarCoordsPlayer.radius || this.collision === true ) ? true : false
-        if(expired)
+        if(expired) 
             scene.remove(sphere)
             
         return expired

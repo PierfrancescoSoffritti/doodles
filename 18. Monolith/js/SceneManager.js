@@ -19,7 +19,9 @@ function SceneManager(canvas) {
 
     const gameState = {
         playerPosition: new THREE.Vector3(0, 0, 0),
-        currentTargetPosition: null
+        currentTargetPosition: null,
+
+        // score: 0
     }
     
     const scene = buildScene();

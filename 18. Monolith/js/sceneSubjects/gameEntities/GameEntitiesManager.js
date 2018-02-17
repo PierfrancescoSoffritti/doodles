@@ -28,7 +28,7 @@ function GameEntitiesManager(scene, gameConstants, gameState) {
 
         const enemyBullets = targets.getBullets();
         
-        checkCollision(bullets, enemies)
+        checkCollision(bullets, enemies, player)
         checkCollisionWithPlayer(enemyBullets, player)
         // boostSpawner.checkCollision(player.position)
         // const isCollision = monolithLaserShooter.checkCollision(player.position)
@@ -47,6 +47,8 @@ function GameEntitiesManager(scene, gameConstants, gameState) {
                 if(distance < el2.boundingSphereRad) {
                     el1.collision = true
                     el2.collision = true
+
+                    eventBus.post(increaseScore)
                 }
             }
         }

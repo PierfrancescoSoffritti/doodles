@@ -1,4 +1,4 @@
-function GUIManager(lives, score) {
+function GUIManager(lives = 6, score = 0) {
     
     const group = new THREE.Group()
     this.group = group
@@ -11,9 +11,18 @@ function GUIManager(lives, score) {
 
     createTextures();
 
-    this.updateLives = function(lives) {
+    function updateLives(lives) {
         lifeTextureObj.setText(lives);
     }
+
+    function updateScore(score) {
+        scoreTextureObj.setText(score);
+    }
+
+    eventBus.subscribe(decreaseLife, () => updateLives(--lives) )
+
+    eventBus.subscribe(increaseScore, () => updateScore(++score) )
+    eventBus.subscribe(decreaseScore, () => updateScore(--score) )
 
     function createTextures() {
         const baseDim = .2;

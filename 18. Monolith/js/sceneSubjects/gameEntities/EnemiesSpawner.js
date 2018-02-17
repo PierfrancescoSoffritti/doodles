@@ -49,8 +49,10 @@ function EnemiesSpawner(scene, gameConstants) {
         for(let i=0; i<enemies.length; i++) {
             const expired = enemies[i].update(time)
 
-            if(expired)
+            if(expired) {
                 enemies.splice(i, 1)
+                eventBus.post(decreaseScore)
+            }
         }
     }
 }
