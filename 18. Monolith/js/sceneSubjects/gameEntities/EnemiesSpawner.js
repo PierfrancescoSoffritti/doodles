@@ -1,8 +1,6 @@
 function EnemiesSpawner(scene, gameConstants) {
     const enemies = []
 
-    this.enemies = enemies
-
     const delay = .4
     let lastEnemySpawnTime = 0
 
@@ -17,6 +15,8 @@ function EnemiesSpawner(scene, gameConstants) {
 
     let lastEleveationChangeTime = 0
     let changeElevationDelay = 0
+
+    this.enemies = enemies
 
     this.update = function(time) {
         updateSpawnerPolarPosition(time)

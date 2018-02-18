@@ -5,6 +5,8 @@ function EnemyShooter(scene, position, gameConstants) {
     const shootDelay = .1
     let lastShootTime = 0
 
+    this.bullets = bullets
+
     this.update = function(time) {
         currentTime = time
         for(let i=0; i<bullets.length; i++) {
@@ -21,10 +23,6 @@ function EnemyShooter(scene, position, gameConstants) {
 
         bullets.push( new BulletEnemy(scene, gameConstants, position, targetPosition) )
         lastShootTime = currentTime
-    }
-
-    this.getBullets = function() {
-        return bullets
     }
 }
 

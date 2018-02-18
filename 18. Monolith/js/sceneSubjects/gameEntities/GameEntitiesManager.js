@@ -1,12 +1,10 @@
 function GameEntitiesManager(scene, gameConstants, gameState) {
     const playerShooter = new BulletsShooter(scene)
-    // const monolithLaserShooter = new LaserShooter(scene, gameConstants)
 
     const player = new Player( scene, gameState, playerShooter )
     const monolith = new Monolith(scene, gameConstants)
 
     const enemiesSpawner = new EnemiesSpawner(scene, gameConstants)
-    // const boostSpawner = new BoostSpawner(scene, gameConstants)
 
     const targets = new Targets(scene, gameConstants, gameState)
 
@@ -17,10 +15,7 @@ function GameEntitiesManager(scene, gameConstants, gameState) {
         monolith.update(time)  
         targets.update(time)
 
-        // monolithLaserShooter.update(time, 0, gameConstants.monolithRadius)
-
         enemiesSpawner.update(time)
-        // boostSpawner.update(time)
         playerShooter.update(time)
 
         const bullets = playerShooter.bullets
@@ -30,11 +25,6 @@ function GameEntitiesManager(scene, gameConstants, gameState) {
         
         checkCollision(bullets, enemies, player)
         checkCollisionWithPlayer(enemyBullets, player)
-        // boostSpawner.checkCollision(player.position)
-        // const isCollision = monolithLaserShooter.checkCollision(player.position)
-        
-        // if(isCollision)
-        //     player.takeDamage();
     }   
 
     function checkCollision(array1, array2) {

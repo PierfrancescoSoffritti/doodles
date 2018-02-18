@@ -4,7 +4,6 @@ function Monolith(scene, gameConstants) {
 	var material = new THREE.MeshBasicMaterial( {color: "#FFF"} );
 	var cylinder = new THREE.Mesh( geometry, material );
 	scene.add( cylinder );
-	cylinder.castShadow = true;
 
     this.update = function(time) {
 	}

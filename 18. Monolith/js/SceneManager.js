@@ -20,8 +20,6 @@ function SceneManager(canvas) {
     const gameState = {
         playerPosition: new THREE.Vector3(0, 0, 0),
         currentTargetPosition: null,
-
-        // score: 0
     }
     
     const scene = buildScene();
@@ -50,9 +48,6 @@ function SceneManager(canvas) {
         const DPR = (window.devicePixelRatio) ? window.devicePixelRatio : 1;
         renderer.setPixelRatio(DPR);
         renderer.setSize(width, height);
-
-        renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap; // default THREE.PCFShadowMap
 
         renderer.gammaInput = true;
         renderer.gammaOutput = true; 

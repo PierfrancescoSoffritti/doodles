@@ -81,6 +81,6 @@ function Target(scene, gameConstants, gameState, position, angle, angleStep) {
     }
 
     this.getBullets = function () {
-        return shooter.getBullets()
+        return shooter.bullets
     }
 }
