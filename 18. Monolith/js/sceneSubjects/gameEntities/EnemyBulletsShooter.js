@@ -1,4 +1,4 @@
-function EnemyShooter(scene, position, gameConstants) {
+function EnemyBulletsShooter(scene, position, gameConstants) {
     const bullets = []
 
     let currentTime = 0

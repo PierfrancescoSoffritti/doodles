@@ -1,4 +1,4 @@
-function Targets(scene, gameConstants, gameState) {
+function Turrets(scene, gameConstants, gameState) {
 
     const numberOfTargetsPerLevel = 20
     const angleStep = (Math.PI*2) / numberOfTargetsPerLevel
@@ -6,7 +6,7 @@ function Targets(scene, gameConstants, gameState) {
     const targetsLow = []
     const targetsHigh = []
 
-    createTargets(targetsLow, gameConstants.targetsHeight)
+    createTurrets(targetsLow, gameConstants.targetsHeight)
     // createTargets(targetsHigh, gameConstants.highLevelTargetsHeight)
 
     this.update = function(time) {
@@ -37,14 +37,14 @@ function Targets(scene, gameConstants, gameState) {
         return bullets
     }
 
-    function createTargets(targets, height) {
+    function createTurrets(targets, height) {
         
         const rad = gameConstants.monolithRadius
         let angle = 0
 
         for(let i=0; i<numberOfTargetsPerLevel; i++) {
             const position = polarToCartesian(rad, angle)            
-            const target = new Target( scene, gameConstants, gameState, new THREE.Vector3(position.x, height, position.y), angle, angleStep)            
+            const target = new Turret( scene, gameConstants, gameState, new THREE.Vector3(position.x, height, position.y), angle, angleStep)            
             targets.push(target)
 
             angle += angleStep
@@ -53,7 +53,7 @@ function Targets(scene, gameConstants, gameState) {
 
 }
 
-function Target(scene, gameConstants, gameState, position, angle, angleStep) {
+function Turret(scene, gameConstants, gameState, position, angle, angleStep) {
     const geometry = new THREE.BoxBufferGeometry( 1, 4, 2 )
     const material = new THREE.MeshBasicMaterial( {color: 0x00ff00} )
     const cube = new THREE.Mesh( geometry, material )
@@ -69,7 +69,7 @@ function Target(scene, gameConstants, gameState, position, angle, angleStep) {
     cube.position.set(position.x, position.y-2, position.z)
     cube.rotation.y = -angle
 
-    const shooter = new EnemyShooter(scene, cube.position, gameConstants)
+    const shooter = new EnemyBulletsShooter(scene, cube.position, gameConstants)
 
     this.update = function(time) {
         cube.position.y += sin(time*speed)/100

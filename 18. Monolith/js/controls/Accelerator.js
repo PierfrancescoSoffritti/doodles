@@ -25,7 +25,6 @@ function Accelerator(speed, accelerationMax, accelerationIncreaseStep, accelerat
         function decelerate() {
             if(absAcc !== 0)
                 acceleration = Math.sign(acceleration) * ( absAcc - accelerationDecreaseStep )
-                // acceleration = Math.sign(acceleration) * ( absAcc - Math.sin(absAcc)/40 )
             if(absAcc < 0.01)
                 acceleration = 0
 
@@ -36,7 +35,7 @@ function Accelerator(speed, accelerationMax, accelerationIncreaseStep, accelerat
             if( prevDirection != direction )
                 decelerate()
 
-            if(absAcc < accelerationMax)
+            if( absAcc < accelerationMax )
                 acceleration += direction * accelerationIncreaseStep
             else
                 decelerate()

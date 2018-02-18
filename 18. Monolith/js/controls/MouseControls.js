@@ -1,4 +1,4 @@
-function MouseControls(playerAndCameraPositionManager, player) {
+function MouseControls( playerAndCameraPositionManager, player ) {
 
     let currentHeightLevel = 0
     let shoot = false

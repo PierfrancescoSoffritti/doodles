@@ -16,24 +16,20 @@ function SceneManager(canvas) {
 
         targetsHeight: 20
     }
-
-    const gameState = {
-        playerPosition: new THREE.Vector3(0, 0, 0),
-        currentTargetPosition: null,
-    }
     
     const scene = buildScene();
     const renderer = buildRender(screenDimensions);
     const camera = buildCamera(screenDimensions);    
     const composer = buildPostProcessing(renderer, scene, camera);
+    const sceneSubjects = createSceneSubjects(scene);
 
     const soundManager = new SoundManager(camera)
-    
-    const sceneSubjects = createSceneSubjects(scene);
+
+    const gameStateManager = new GameStateManager()
     
     // these should be SceneSubjects
-    const gameEntitiesManager = new GameEntitiesManager(scene, gameConstants, gameState)    
-    const playerAndCameraPositionManager = new PlayerAndCameraPositionManager(camera, gameEntitiesManager.player, gameConstants, gameState)
+    const gameEntitiesManager = new GameEntitiesManager(scene, gameConstants, gameStateManager.gameState)    
+    const playerAndCameraPositionManager = new PlayerAndCameraPositionManager(camera, gameEntitiesManager.player, gameConstants, gameStateManager.gameState)
     const controls = buildControls(playerAndCameraPositionManager, gameEntitiesManager.player, gameConstants);
 
     function buildScene() {
@@ -125,6 +121,7 @@ function SceneManager(canvas) {
         controls.polar.update(elapsedTime)
         controls.mouse.update(elapsedTime)
 
+        gameStateManager.update(elapsedTime)
         playerAndCameraPositionManager.update(elapsedTime)
         gameEntitiesManager.update(elapsedTime)
 
