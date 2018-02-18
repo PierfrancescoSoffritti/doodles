@@ -1,22 +1,14 @@
 function PlayerBulletsShooter(scene) {
-
     const bullets = []
-    this.bullets = bullets
 
-    let iTime = 0
-    const delay = .1
+    let currentTime = 0
+    const shootDelay = .1
     let lastShootTime = 0
 
-    this.shoot = function(originPosition) {
-        if(iTime - lastShootTime < delay)
-            return
-
-        bullets.push( new Bullet(scene, originPosition) )
-        lastShootTime = iTime
-    }
+    this.bullets = bullets
 
     this.update = function(time) {
-        iTime = time
+        currentTime = time
         for(let i=0; i<bullets.length; i++) {
             const expired = bullets[i].update(time)
            
@@ -24,36 +16,43 @@ function PlayerBulletsShooter(scene) {
                 bullets.splice(i, 1);
         }
     }
+
+    this.shoot = function(originPosition) {
+        if(currentTime - lastShootTime < shootDelay)
+            return
+
+        bullets.push( new Bullet(scene, originPosition) )
+        lastShootTime = currentTime
+    }
 }
 
-const geometryBullet = new THREE.SphereBufferGeometry( .4, 16, 16 );
-const materialBullet = new THREE.MeshBasicMaterial( {color: "#0000FF"} );
-const blueprintBullet = new THREE.Mesh( geometryBullet, materialBullet );
+const geometryBulletPlayer = new THREE.SphereBufferGeometry( .4, 16, 16 );
+const materialBulletPlayer = new THREE.MeshBasicMaterial( {color: "#0000FF"} );
+const blueprintBulletPlayer = new THREE.Mesh( geometryBulletPlayer, materialBulletPlayer );
 
 function Bullet(scene, originPosition) {
 
-    const sphere = blueprintBullet.clone()
-    sphere.scale.set(getRandom(.1, 1), getRandom(.1, 1), getRandom(.1, 1))
+    const bulletMesh = blueprintBulletPlayer.clone()
+    scene.add(bulletMesh)
+    bulletMesh.position.set(originPosition.x, originPosition.y, originPosition.z)
+    bulletMesh.scale.set(getRandom(.1, 1), getRandom(.1, 1), getRandom(.1, 1))
 
-    const speed = 5;
-
-    this.position = sphere.position
-    this.collision = false
-
-    sphere.position.set(originPosition.x, originPosition.y, originPosition.z)
-    scene.add(sphere);
+    const speed = 5
 
     const polarCoord = cartesianToPolar(originPosition.x, originPosition.z)
+
+    this.position = bulletMesh.position
+    this.collision = false
     
     this.update = function(time) {
         polarCoord.radius -= speed
 
-        sphere.position.x = (polarCoord.radius) * cos(polarCoord.angle)
-        sphere.position.z = (polarCoord.radius) * sin(polarCoord.angle)
+        bulletMesh.position.x = (polarCoord.radius) * cos(polarCoord.angle)
+        bulletMesh.position.z = (polarCoord.radius) * sin(polarCoord.angle)
 
         const expired = ( polarCoord.radius < 0 || this.collision === true ) ? true : false
         if(expired)
-            scene.remove(sphere)
+            scene.remove(bulletMesh)
             
         return expired
     }
