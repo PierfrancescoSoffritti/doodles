@@ -2,7 +2,7 @@ function EnemyBulletsShooter(scene, position, gameConstants) {
     const bullets = []
 
     let currentTime = 0
-    const shootDelay = .02
+    const shootDelay = .015
     let lastShootTime = 0
 
     this.bullets = bullets
@@ -36,6 +36,8 @@ function BulletEnemy(scene, gameConstants, originPosition, targetPosition) {
     scene.add(bulletMesh)
     bulletMesh.position.set(originPosition.x, originPosition.y, originPosition.z)
     bulletMesh.scale.set(getRandom(.1, 1), getRandom(.1, 1), getRandom(.1, 1))
+
+    bulletMesh.rotation = -cartesianToPolar(originPosition.x, cartesianToPolar.z).radius
 
     const direction = new THREE.Vector3()
     direction.subVectors( targetPosition, originPosition ).normalize()
