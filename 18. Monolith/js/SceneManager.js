@@ -37,7 +37,7 @@ function SceneManager(canvas) {
 
     function buildScene() {
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color("#000");
+        scene.background = new THREE.Color("#222");
 
         return scene;
     }
@@ -91,9 +91,9 @@ function SceneManager(canvas) {
 
         composer.addPass(renderPass);
         // composer.addPass(staticPass);
-        // composer.addPass(rgbPass);
-        // composer.addPass(filmPass);
-        renderPass.renderToScreen = true;
+        composer.addPass(rgbPass);
+        composer.addPass(filmPass);
+        filmPass.renderToScreen = true;
 
         return composer;
     }

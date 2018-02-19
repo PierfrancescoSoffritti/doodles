@@ -1,10 +1,7 @@
 function EnemiesSpawner(scene, gameConstants) {
     const enemies = []
 
-    const spawnerGeometry = new THREE.BoxBufferGeometry( 2, 8, 4 )
-    const spawnerMaterial = new THREE.MeshBasicMaterial( {color: 0x666600} )
-    const spawnerMesh = new THREE.Mesh( spawnerGeometry, spawnerMaterial )
-    scene.add( spawnerMesh )
+    spawnerMesh = buildMesh(scene)
     
     spawnerMesh.position.y = gameConstants.baseLevelHeight    
 
@@ -30,10 +27,64 @@ function EnemiesSpawner(scene, gameConstants) {
     this.enemies = enemies
 
     this.update = function(time) {
+        for(var i=0; i<spawnerMesh.children.length; i++) {
+            var child = spawnerMesh.children[i];
+
+            // child.material.emissive.g = Math.max(0, (Math.sin(time * 1 )+i*0.2) );
+
+            // var rotationSpeed = 1;
+            // var rotation = Math.sin(time * rotationSpeed - i*0.2);
+            // child.rotation.x = rotation;
+            // child.rotation.y = rotation;
+            // child.rotation.x += 0.1
+            // child.rotation.y += 0.1
+
+            child.position.x = sin(time*8) *i
+        }
+
         updateSpawnerPolarPosition(time)
         updateSpawnerHeight(time)
         spawnEnemy(time)
         updateEnemies(time)
+    }
+
+    function buildMesh(scene) {
+        // const spawnerGeometry = new THREE.BoxBufferGeometry( 2, 8, 4 )
+        // const spawnerMaterial = new THREE.MeshBasicMaterial( {color: 0x666600} )
+        // const spawnerMesh = new THREE.Mesh( spawnerGeometry, spawnerMaterial )
+        // scene.add( spawnerMesh )
+
+        // return spawnerMesh
+
+        var group = new THREE.Group();
+
+        var radius = 4;
+
+        var geometry = new THREE.TorusGeometry(radius, .6, 32, 128);
+        var material = new THREE.MeshStandardMaterial({ color: "#222222", roughness: 0, metalness: .9  });
+
+        var envMap = new THREE.TextureLoader().load('textures/envMap.png');
+        envMap.mapping = THREE.SphericalReflectionMapping;
+        material.envMap = envMap;
+
+        // var emissiveMap = new THREE.TextureLoader().load('textures/stripe_horizontal.png');
+        // emissiveMap.wrapS = THREE.RepeatWrapping;
+        // emissiveMap.repeat.x = 3;
+        // material.emissiveMap = emissiveMap;
+
+        var mesh = new THREE.Mesh(geometry, material);
+        mesh.rotation.y = Math.PI/2
+        group.add(mesh);
+
+        for(var i=4; i>=1; i--) {
+            var temp = mesh.clone();
+            temp.scale.set(i*0.20, i*0.20, i*0.20)
+            group.add(temp);
+        }
+
+        scene.add(group)
+
+        return group
     }
 
     function updateSpawnerPolarPosition(time) {
@@ -65,7 +116,12 @@ function EnemiesSpawner(scene, gameConstants) {
         if(time <= lastEleveationChangeTime + changeElevationDelay)
             return
 
-        spawnerMesh.position.y = getRandom(0, 1) > 0.5 ? gameConstants.secondLevelHeight : gameConstants.baseLevelHeight
+        const height = getRandom(0, 1) > 0.5 ? gameConstants.secondLevelHeight : gameConstants.baseLevelHeight
+
+        const tween = new TWEEN.Tween(spawnerMesh.position)
+            .to({ y: height }, 400)
+            .easing(TWEEN.Easing.Cubic.InOut)
+            .start();
         
         lastEleveationChangeTime = time
         changeElevationDelay = getRandom(2, 10)

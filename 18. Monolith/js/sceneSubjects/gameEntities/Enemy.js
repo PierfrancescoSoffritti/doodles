@@ -1,7 +1,20 @@
-const enemyRadius = 4
+const enemyRadius = 2
 const enemyGeometry = new THREE.SphereBufferGeometry( enemyRadius, 16, 16 );
-const enemyMaterial = new THREE.MeshBasicMaterial( {color: "#00FFFF"} );
+// const enemyMaterial = new THREE.MeshBasicMaterial( {color: "#000"} );
+var enemyMaterial = new THREE.MeshStandardMaterial({ color: "#F44336", roughness: 0, metalness: .9  });
+
+        var envMap = new THREE.TextureLoader().load('textures/envMap.png');
+        envMap.mapping = THREE.SphericalReflectionMapping;
+        enemyMaterial.envMap = envMap;
+
 const enemyBlueprint = new THREE.Mesh( enemyGeometry, enemyMaterial );
+
+// wireframe
+var wireMaterial = new THREE.MeshPhongMaterial({ color: "#4CAF50", shading: THREE.FlatShading, wireframe: true });
+const wireframeGeo = new THREE.IcosahedronBufferGeometry(enemyRadius, 1)
+var wireframeMesh = new THREE.Mesh(wireframeGeo, wireMaterial)
+wireframeMesh.scale.set(1.3, 1.3, 1.3)
+enemyBlueprint.add(wireframeMesh)
 
 function Enemy(scene, { minRadius, maxRadius, baseLevelHeight, secondLevelHeight }, origin) {
     
@@ -18,18 +31,30 @@ function Enemy(scene, { minRadius, maxRadius, baseLevelHeight, secondLevelHeight
 
     this.position = sphere.position
     this.collision = false
-    this.boundingSphereRad = enemyRadius*scale
+    this.boundingSphereRad = enemyRadius*scale *2
 
     this.update = function(time) {
+
+        wireMaterial.color.setHSL( Math.abs( Math.sin(time)) , 0.9, 0.5 );
+
         polarCoordinates.radius += speed
 
         sphere.position.x = polarCoordinates.radius * cos(polarCoordinates.angle)
         sphere.position.z = polarCoordinates.radius * sin(polarCoordinates.angle)
 
+        sphere.rotation.x ++;
+
         const expired = ( polarCoordinates.radius > maxRadius || this.collision === true ) ? true : false
 
-        if(expired)
-            scene.remove(sphere)
+        if(expired) {
+            const tween = new TWEEN.Tween(sphere.scale)
+                .to({ x: 0, y: 0, z: 0 } , 400)
+                .easing(TWEEN.Easing.Cubic.InOut)
+                .onComplete(function() {                
+                    scene.remove(sphere)
+                })
+                .start();
+        }
             
         return expired
     }

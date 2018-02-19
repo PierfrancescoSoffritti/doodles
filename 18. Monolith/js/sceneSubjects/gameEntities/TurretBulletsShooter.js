@@ -1,4 +1,4 @@
-function EnemyBulletsShooter(scene, position, gameConstants) {
+function TurretBulletsShooter(scene, position, gameConstants) {
     const bullets = []
 
     let currentTime = 0
@@ -21,28 +21,29 @@ function EnemyBulletsShooter(scene, position, gameConstants) {
         if(currentTime - lastShootTime < shootDelay)
             return
 
-        bullets.push( new BulletEnemy(scene, gameConstants, position, targetPosition) )
+        bullets.push( new TurretEnemy(scene, gameConstants, position, targetPosition) )
         lastShootTime = currentTime
     }
 }
 
-const geometryBulletEnemy = new THREE.SphereBufferGeometry( .8, 16, 16 );
-const materialBulletEnemy = new THREE.MeshBasicMaterial( {color: "#FF0000"} );
-const blueprintBulletEnemy = new THREE.Mesh( geometryBulletEnemy, materialBulletEnemy );
+const geometryTurretEnemy = new THREE.SphereBufferGeometry( .8, 16, 16 );
+// const geometryBulletEnemy = new THREE.BoxBufferGeometry( 10, 1, 1 );
+const materialTurretEnemy = new THREE.MeshBasicMaterial( {color: "#111"} );
+const blueprintTurretEnemy = new THREE.Mesh( geometryTurretEnemy, materialTurretEnemy );
 
-function BulletEnemy(scene, gameConstants, originPosition, targetPosition) {
+function TurretEnemy(scene, gameConstants, originPosition, targetPosition) {
 
-    const bulletMesh = blueprintBulletEnemy.clone()
+    const bulletMesh = blueprintTurretEnemy.clone()
     scene.add(bulletMesh)
     bulletMesh.position.set(originPosition.x, originPosition.y, originPosition.z)
     bulletMesh.scale.set(getRandom(.1, 1), getRandom(.1, 1), getRandom(.1, 1))
 
-    bulletMesh.rotation = -cartesianToPolar(originPosition.x, cartesianToPolar.z).radius
+    // bulletMesh.rotation = cartesianToPolar(originPosition.x, cartesianToPolar.z).radius
 
     const direction = new THREE.Vector3()
     direction.subVectors( targetPosition, originPosition ).normalize()
 
-    const speed = .2
+    const step = .2
     let distance = 0
 
     const maxScale = 1
@@ -52,7 +53,7 @@ function BulletEnemy(scene, gameConstants, originPosition, targetPosition) {
     this.collision = false
 
     this.update = function(time) {
-        distance += speed
+        distance += step
 
         bulletMesh.translateOnAxis ( direction, distance )    
         // sphere.position.add( direction.clone().multiplyScalar( distance ) )

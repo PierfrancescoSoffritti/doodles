@@ -12,41 +12,40 @@ function Turrets(scene, gameConstants, gameState) {
     let shootForwardDuration = shootForwardDurationConst
 
     createTurrets(targetsLow, gameConstants.turretsHeight)
-    // createTargets(targetsHigh, gameConstants.highLevelTargetsHeight)
 
     this.update = function(time) {
         for(let i=0; i<numberOfTargetsPerLevel; i++) {
-            const target = targetsLow[i]
-            target.update(time)
-            // targetsHigh[i].update(time)
+            // const target = targetsLow[i]
+            // target.update(time)
 
-            // target.material.color.r = ( (time - lastShootForwardTime) / shootForwardDelay)
-            target.material.color.g = ( (time - lastShootForwardTime) / shootForwardDelay)
+            // target.material.color.g = ( (time - lastShootForwardTime) / shootForwardDelay)
+            // target.mesh.scale.y = ( (time - lastShootForwardTime) / shootForwardDelay)*2 +1
 
-            if(time > lastShootForwardTime + shootForwardDelay) {
-                target.shootForward(gameState.playerPosition)
-                shootForwardDuration -= 0.01;
+            // if(time > lastShootForwardTime + shootForwardDelay) {
+            //     target.shootForward(gameState.playerPosition)
+            //     shootForwardDuration -= 0.01;
+
+            //     target.mesh.scale.y = 1
+            //     target.material.color.g = 0
                 
-                if(shootForwardDuration <= 0) {
-                    target.material.color.g = 0
-                    
-                    lastShootForwardTime = time
-                    shootForwardDelay = getRandom(10, 20)
-                    shootForwardDuration = shootForwardDurationConst
-                }
+            //     if(shootForwardDuration <= 0) {
+            //         lastShootForwardTime = time
+            //         shootForwardDelay = getRandom(10, 20)
+            //         shootForwardDuration = shootForwardDurationConst
+            //     }
 
-            } else {            
-                const playerAngle = cartesianToPolar(gameState.playerPosition.x, gameState.playerPosition.z).angle
-                if(playerAngle >= target.angle - target.angleStep/2 && playerAngle <= target.angle + target.angleStep/2 ) {
-                    const i1 = i-1 < 0 ? numberOfTargetsPerLevel-1 : i-1
+            // } else {            
+            //     const playerAngle = cartesianToPolar(gameState.playerPosition.x, gameState.playerPosition.z).angle
+            //     if(playerAngle >= target.angle - target.angleStep/2 && playerAngle <= target.angle + target.angleStep/2 ) {
+            //         const i1 = i-1 < 0 ? numberOfTargetsPerLevel-1 : i-1
 
-                    targetsLow[ (i1) % numberOfTargetsPerLevel ].shoot(gameState.playerPosition)
-                    target.shoot(gameState.playerPosition)
-                    targetsLow[ (i+1) % numberOfTargetsPerLevel ].shoot(gameState.playerPosition)
+            //         // targetsLow[ (i1) % numberOfTargetsPerLevel ].shoot(gameState.playerPosition)
+            //         target.shoot(gameState.playerPosition)
+            //         targetsLow[ (i+1) % numberOfTargetsPerLevel ].shoot(gameState.playerPosition)
                     
-                    gameState.currentTargetPosition = target.position
-                }
-            }
+            //         gameState.currentTargetPosition = target.position
+            //     }
+            // }
         }
     }
 
@@ -81,8 +80,10 @@ function Turret(scene, gameConstants, gameState, position, angle, angleStep) {
     const cube = new THREE.Mesh( geometry, material )
     scene.add( cube )
 
-    this.position = cube.position
     this.material = material
+    this.mesh = cube
+
+    this.position = cube.position
 
     this.angle = angle
     this.angleStep = angleStep
@@ -92,7 +93,7 @@ function Turret(scene, gameConstants, gameState, position, angle, angleStep) {
     cube.position.set(position.x, position.y-2, position.z)
     cube.rotation.y = -angle
 
-    const shooter = new EnemyBulletsShooter(scene, cube.position, gameConstants)
+    const shooter = new TurretBulletsShooter(scene, cube.position, gameConstants)
 
     this.update = function(time) {
         cube.position.y += sin(time*speed)/100
