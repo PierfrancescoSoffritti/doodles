@@ -72,9 +72,9 @@ function EnemiesSpawner(scene, gameConstants) {
     }
 
     function spawnEnemy(currentTime) {
-        maxSpawnDelay -= gameConstants.speedStep*10
+        maxSpawnDelay -= gameConstants.speedStep*20
         maxSpawnDelay = maxSpawnDelay < minSpawnDelay * 2 ? maxSpawnDelay*2 : maxSpawnDelay
-        
+
         if(currentTime - lastEnemySpawnTime < spawnDelay)
             return
         

@@ -2,7 +2,7 @@ function PlayerBulletsShooter(scene) {
     const bullets = []
 
     let currentTime = 0
-    const shootDelay = .1
+    const shootDelay = .06
     let lastShootTime = 0
 
     this.bullets = bullets
@@ -37,7 +37,7 @@ function Bullet(scene, originPosition) {
     bulletMesh.position.set(originPosition.x, originPosition.y, originPosition.z)
     bulletMesh.scale.set(getRandom(.1, 1), getRandom(.1, 1), getRandom(.1, 1))
 
-    const speed = 5
+    const speed = 8
 
     const polarCoord = cartesianToPolar(originPosition.x, originPosition.z)
 

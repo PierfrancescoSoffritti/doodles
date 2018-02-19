@@ -17,6 +17,7 @@ function SceneManager(canvas) {
         turretsHeight: 20,
 
         speedStep: 0.0000015,
+        // speedStep: 0.000015,
     }
     
     const scene = buildScene();

@@ -2,7 +2,7 @@ function EnemyBulletsShooter(scene, position, gameConstants) {
     const bullets = []
 
     let currentTime = 0
-    const shootDelay = .1
+    const shootDelay = .02
     let lastShootTime = 0
 
     this.bullets = bullets
@@ -40,7 +40,7 @@ function BulletEnemy(scene, gameConstants, originPosition, targetPosition) {
     const direction = new THREE.Vector3()
     direction.subVectors( targetPosition, originPosition ).normalize()
 
-    const speed = .1
+    const speed = .2
     let distance = 0
 
     const maxScale = 1
