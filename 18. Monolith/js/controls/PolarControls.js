@@ -23,7 +23,7 @@ function PolarControls(playerAndCameraPositionManager, gameConstants) {
     let forward = false
     let backward = false
 
-    eventBus.subscribe(startBoost, () => { angleAccelerator.boost(1.3) })
+    eventBus.subscribe(startBoost, () => angleAccelerator.boost(1.3))
 
     this.onKeyDown = function(keyCode) {
         if(keyCode === A)
@@ -61,7 +61,7 @@ function PolarControls(playerAndCameraPositionManager, gameConstants) {
 
         playerAndCameraPositionManager.setPosition(currentRadius, currentAngle)
         
-        playerAndCameraPositionManager.setAcceleration(Math.max(Math.abs(angleAcceleration*100)/2, Math.abs(radAcceleration)))
+        playerAndCameraPositionManager.setAcceleration( Math.max( Math.abs(angleAcceleration*100)/2, Math.abs(radAcceleration) ) )
 
         playerAndCameraPositionManager.setAngleDirection(angleDirection)
         playerAndCameraPositionManager.setRadiusDirection(radDirection*-1)

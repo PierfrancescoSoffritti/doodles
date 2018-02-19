@@ -1,20 +1,29 @@
 function EnemiesSpawner(scene, gameConstants) {
     const enemies = []
 
-    const delay = .4
-    let lastEnemySpawnTime = 0
-
     const spawnerGeometry = new THREE.BoxBufferGeometry( 2, 8, 4 )
-    const spawnerMaterial = new THREE.MeshStandardMaterial( {color: 0x00ff00} )
+    const spawnerMaterial = new THREE.MeshBasicMaterial( {color: 0x666600} )
     const spawnerMesh = new THREE.Mesh( spawnerGeometry, spawnerMaterial )
     scene.add( spawnerMesh )
     
     spawnerMesh.position.y = gameConstants.baseLevelHeight    
 
-    const speed = 1.2
+    const speed = .006
+    const acceletationMax = 1
+    const accelerationIncreaseStep = 0.02
+    const accelerationDecreaseStep = 0.009
+    const angleAccelerator = new Accelerator(speed, acceletationMax, accelerationIncreaseStep, accelerationDecreaseStep)
+
+    let currentAngle = 0
+    let angleDirection = 1
+    let lastDirectionChangeTime = 0
+    let changeDirectionDelay = 0
 
     let lastEleveationChangeTime = 0
     let changeElevationDelay = 0
+
+    let spawnDelay = .8
+    let lastEnemySpawnTime = 0
 
     this.enemies = enemies
 
@@ -26,12 +35,28 @@ function EnemiesSpawner(scene, gameConstants) {
     }
 
     function updateSpawnerPolarPosition(time) {
-        const agle = time*speed
-        const position = polarToCartesian(gameConstants.minRadius, agle)
+        updateAngleDirection(time)
+
+        angleAccelerator.increaseSpeedOf(.000001)
+
+        const angleAcceleration = angleAccelerator.getForce(angleDirection)
+        currentAngle += angleAcceleration
+
+        const position = polarToCartesian(gameConstants.minRadius, currentAngle)
         spawnerMesh.position.x = position.x
         spawnerMesh.position.z = position.y
         
-        spawnerMesh.rotation.y = -agle
+        spawnerMesh.rotation.y = -currentAngle
+    }
+
+    function updateAngleDirection(time) {
+        if(time <= lastDirectionChangeTime + changeDirectionDelay)
+            return
+
+        angleDirection = getRandom(0, 1) > 0.5 ? 1 : -1
+        
+        lastDirectionChangeTime = time
+        changeDirectionDelay = getRandom(1, 4)
     }
 
     function updateSpawnerHeight(time) {
@@ -41,15 +66,16 @@ function EnemiesSpawner(scene, gameConstants) {
         spawnerMesh.position.y = getRandom(0, 1) > 0.5 ? gameConstants.secondLevelHeight : gameConstants.baseLevelHeight
         
         lastEleveationChangeTime = time
-        changeElevationDelay = getRandom(2, 4)
+        changeElevationDelay = getRandom(2, 10)
     }
 
     function spawnEnemy(currentTime) {
-        if(currentTime - lastEnemySpawnTime < delay)
+        if(currentTime - lastEnemySpawnTime < spawnDelay)
             return
         
         enemies.push(new Enemy(scene, gameConstants, spawnerMesh.position))
         lastEnemySpawnTime = currentTime
+        spawnDelay = getRandom(.1, 1)
     }
 
     function updateEnemies(time) {
@@ -62,7 +88,9 @@ function EnemiesSpawner(scene, gameConstants) {
     }
 
     function removeEnemy(i) {
+        if(!enemies[i].collision)
+            eventBus.post(decreaseScore)
+
         enemies.splice(i, 1)
-        eventBus.post(decreaseScore)
     }
 }

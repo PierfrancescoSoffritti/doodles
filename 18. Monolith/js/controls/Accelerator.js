@@ -14,6 +14,10 @@ function Accelerator(speed, accelerationMax, accelerationIncreaseStep, accelerat
         acceleration *= factor
     }
 
+    this.increaseSpeedOf = function(increase) {
+        speed += increase
+    }
+
     function updateAngleAcceleration(direction) {
         const absAcc = Math.abs(acceleration)
 
