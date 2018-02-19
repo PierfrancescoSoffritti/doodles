@@ -20,11 +20,16 @@ function Turrets(scene, gameConstants, gameState) {
             target.update(time)
             // targetsHigh[i].update(time)
 
+            // target.material.color.r = ( (time - lastShootForwardTime) / shootForwardDelay)
+            target.material.color.g = ( (time - lastShootForwardTime) / shootForwardDelay)
+
             if(time > lastShootForwardTime + shootForwardDelay) {
                 target.shootForward(gameState.playerPosition)
                 shootForwardDuration -= 0.01;
                 
                 if(shootForwardDuration <= 0) {
+                    target.material.color.g = 0
+                    
                     lastShootForwardTime = time
                     shootForwardDelay = getRandom(10, 20)
                     shootForwardDuration = shootForwardDurationConst
@@ -77,6 +82,7 @@ function Turret(scene, gameConstants, gameState, position, angle, angleStep) {
     scene.add( cube )
 
     this.position = cube.position
+    this.material = material
 
     this.angle = angle
     this.angleStep = angleStep
