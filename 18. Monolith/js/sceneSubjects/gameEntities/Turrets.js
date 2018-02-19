@@ -15,37 +15,37 @@ function Turrets(scene, gameConstants, gameState) {
 
     this.update = function(time) {
         for(let i=0; i<numberOfTargetsPerLevel; i++) {
-            // const target = targetsLow[i]
-            // target.update(time)
+            const target = targetsLow[i]
+            target.update(time)
 
-            // target.material.color.g = ( (time - lastShootForwardTime) / shootForwardDelay)
-            // target.mesh.scale.y = ( (time - lastShootForwardTime) / shootForwardDelay)*2 +1
+            target.material.color.g = ( (time - lastShootForwardTime) / shootForwardDelay)
+            target.mesh.scale.y = ( (time - lastShootForwardTime) / shootForwardDelay)*2 +1
 
-            // if(time > lastShootForwardTime + shootForwardDelay) {
-            //     target.shootForward(gameState.playerPosition)
-            //     shootForwardDuration -= 0.01;
+            if(time > lastShootForwardTime + shootForwardDelay) {
+                target.shootForward(gameState.playerPosition)
+                shootForwardDuration -= 0.01;
 
-            //     target.mesh.scale.y = 1
-            //     target.material.color.g = 0
+                target.mesh.scale.y = 1
+                target.material.color.g = 0
                 
-            //     if(shootForwardDuration <= 0) {
-            //         lastShootForwardTime = time
-            //         shootForwardDelay = getRandom(10, 20)
-            //         shootForwardDuration = shootForwardDurationConst
-            //     }
+                if(shootForwardDuration <= 0) {
+                    lastShootForwardTime = time
+                    shootForwardDelay = getRandom(10, 20)
+                    shootForwardDuration = shootForwardDurationConst
+                }
 
-            // } else {            
-            //     const playerAngle = cartesianToPolar(gameState.playerPosition.x, gameState.playerPosition.z).angle
-            //     if(playerAngle >= target.angle - target.angleStep/2 && playerAngle <= target.angle + target.angleStep/2 ) {
-            //         const i1 = i-1 < 0 ? numberOfTargetsPerLevel-1 : i-1
+            } else {            
+                const playerAngle = cartesianToPolar(gameState.playerPosition.x, gameState.playerPosition.z).angle
+                if(playerAngle >= target.angle - target.angleStep/2 && playerAngle <= target.angle + target.angleStep/2 ) {
+                    const i1 = i-1 < 0 ? numberOfTargetsPerLevel-1 : i-1
 
-            //         // targetsLow[ (i1) % numberOfTargetsPerLevel ].shoot(gameState.playerPosition)
-            //         target.shoot(gameState.playerPosition)
-            //         targetsLow[ (i+1) % numberOfTargetsPerLevel ].shoot(gameState.playerPosition)
+                    // targetsLow[ (i1) % numberOfTargetsPerLevel ].shoot(gameState.playerPosition)
+                    target.shoot(gameState.playerPosition)
+                    targetsLow[ (i+1) % numberOfTargetsPerLevel ].shoot(gameState.playerPosition)
                     
-            //         gameState.currentTargetPosition = target.position
-            //     }
-            // }
+                    gameState.currentTargetPosition = target.position
+                }
+            }
         }
     }
 

@@ -65,35 +65,55 @@ function SceneManager(canvas) {
     }
 
     var filmPass
-    var staticPass
 
     function buildPostProcessing(renderer, scene, camera) {
-        const composer = new THREE.EffectComposer(renderer);
+        const composer = new THREE.EffectComposer(renderer)
 
-        const renderPass = new THREE.RenderPass(scene, camera);
-        renderPass.clear = true;
-        renderPass.clearDepth = true;
-        // renderPass.renderToScreen = true;
+        const renderPass = new THREE.RenderPass(scene, camera)
+        renderPass.clear = true
+        renderPass.clearDepth = true
 
-        filmPass = new THREE.ShaderPass(THREE.FilmShader);
-        filmPass.uniforms["nIntensity"].value = 0.2;
-        filmPass.uniforms["sIntensity"].value = 0.45;
-        filmPass.uniforms["sCount"].value = 1600;        
-        filmPass.uniforms["grayscale"].value = 0;
+        filmPass = new THREE.ShaderPass(THREE.FilmShader)
+        filmPass.uniforms["nIntensity"].value = 0.2
+        filmPass.uniforms["sIntensity"].value = 0.45
+        filmPass.uniforms["sCount"].value = 1600   
+        filmPass.uniforms["grayscale"].value = 0
 
-        staticPass = new THREE.ShaderPass(THREE.StaticShader);
-        staticPass.uniforms["amount"].value = 0.08;
-        staticPass.uniforms["size"].value = 2;
+        rgbPass = new THREE.ShaderPass(THREE.RGBShiftShader)
+        rgbPass.uniforms["angle"].value = 0 * Math.PI
+        rgbPass.uniforms["amount"].value = 0.001
 
-        const rgbPass = new THREE.ShaderPass(THREE.RGBShiftShader);
-        rgbPass.uniforms["angle"].value = 0 * Math.PI;
-        rgbPass.uniforms["amount"].value = 0.001;
+        const vignettePass = new THREE.ShaderPass(THREE.VignetteShader)
+        vignettePass.uniforms["offset"].value = 1.4
+
+        const glitchPass = new THREE.GlitchPass()
 
         composer.addPass(renderPass);
-        // composer.addPass(staticPass);
         composer.addPass(rgbPass);
+        composer.addPass(vignettePass);
+        composer.addPass(glitchPass);
         composer.addPass(filmPass);
         filmPass.renderToScreen = true;
+
+        eventBus.subscribe(decreaseLife, () => glitch())
+
+        function glitch() {
+            glitchPass.goWild = true
+
+            const tween = new TWEEN.Tween(rgbPass.uniforms["amount"])
+                .to({ value: 0.1 }, 150)
+                .easing(TWEEN.Easing.Sinusoidal.InOut)
+                .onComplete(function() {
+                    const tween2 = new TWEEN.Tween(rgbPass.uniforms["amount"])
+                        .to({ value: 0.001 }, 150)
+                        .easing(TWEEN.Easing.Sinusoidal.InOut)
+                        .onComplete(function() {
+                            glitchPass.goWild = false
+                        })
+                        .start();
+                })
+                .start();
+        }
 
         return composer;
     }
@@ -130,7 +150,7 @@ function SceneManager(canvas) {
 
         const delta = clock.getDelta()
         filmPass.uniforms['time'].value = delta;
-        staticPass.uniforms['time'].value = delta;
+        // staticPass.uniforms['time'].value = delta;
 
         // renderer.render(scene, camera);
         composer.render(delta);

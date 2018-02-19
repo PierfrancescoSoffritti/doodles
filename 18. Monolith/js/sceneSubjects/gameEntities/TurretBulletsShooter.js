@@ -21,24 +21,25 @@ function TurretBulletsShooter(scene, position, gameConstants) {
         if(currentTime - lastShootTime < shootDelay)
             return
 
-        bullets.push( new TurretEnemy(scene, gameConstants, position, targetPosition) )
+        bullets.push( new TurretBullet(scene, gameConstants, position, targetPosition) )
         lastShootTime = currentTime
     }
 }
 
 const geometryTurretEnemy = new THREE.SphereBufferGeometry( .8, 16, 16 );
-// const geometryBulletEnemy = new THREE.BoxBufferGeometry( 10, 1, 1 );
 const materialTurretEnemy = new THREE.MeshBasicMaterial( {color: "#111"} );
 const blueprintTurretEnemy = new THREE.Mesh( geometryTurretEnemy, materialTurretEnemy );
 
-function TurretEnemy(scene, gameConstants, originPosition, targetPosition) {
+function TurretBullet(scene, gameConstants, originPosition, targetPosition) {
 
     const bulletMesh = blueprintTurretEnemy.clone()
-    scene.add(bulletMesh)
     bulletMesh.position.set(originPosition.x, originPosition.y, originPosition.z)
-    bulletMesh.scale.set(getRandom(.1, 1), getRandom(.1, 1), getRandom(.1, 1))
+    scene.add(bulletMesh)
 
-    // bulletMesh.rotation = cartesianToPolar(originPosition.x, cartesianToPolar.z).radius
+    const maxScaleX = getRandom(.1, 1);
+    const maxScaleY = getRandom(.1, 1);
+    const maxScaleZ = getRandom(.1, 1);
+    bulletMesh.scale.set(maxScaleX, maxScaleY, maxScaleZ)
 
     const direction = new THREE.Vector3()
     direction.subVectors( targetPosition, originPosition ).normalize()
@@ -71,7 +72,9 @@ function TurretEnemy(scene, gameConstants, originPosition, targetPosition) {
     }
 
     function updateScale(polarCoords) {
-        const scale =  maxScale - ( ( .8 * polarCoords.radius ) / gameConstants.maxRadius )
-        bulletMesh.scale.set( scale, scale, scale )
+        const scaleX =  maxScaleX - ( ( .6 * polarCoords.radius ) / gameConstants.maxRadius )
+        const scaleY =  maxScaleY - ( ( .6 * polarCoords.radius ) / gameConstants.maxRadius )
+        const scaleZ =  maxScaleZ - ( ( .6 * polarCoords.radius ) / gameConstants.maxRadius )
+        bulletMesh.scale.set( scaleX, scaleY, scaleZ )
     }
 }
