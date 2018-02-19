@@ -51,6 +51,8 @@ function PolarControls(playerAndCameraPositionManager, gameConstants) {
         const angleDirection = left ? 1 : right ? -1 : 0
         const radDirection = forward ? -1 : backward ? 1 : 0
 
+        angleAccelerator.increaseSpeedOf(gameConstants.speedStep)
+
         const angleAcceleration = angleAccelerator.getForce(angleDirection)
         currentAngle += angleAcceleration
 

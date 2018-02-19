@@ -14,7 +14,9 @@ function SceneManager(canvas) {
         baseLevelHeight: 15,
         secondLevelHeight: 25,
 
-        targetsHeight: 20
+        turretsHeight: 20,
+
+        speedStep: 0.0000015,
     }
     
     const scene = buildScene();
@@ -30,7 +32,7 @@ function SceneManager(canvas) {
     // these should be SceneSubjects
     const gameEntitiesManager = new GameEntitiesManager(scene, gameConstants, gameStateManager.gameState)    
     const playerAndCameraPositionManager = new PlayerAndCameraPositionManager(camera, gameEntitiesManager.player, gameConstants, gameStateManager.gameState)
-    const controls = buildControls(playerAndCameraPositionManager, gameEntitiesManager.player, gameConstants);
+    const controls = buildControls(playerAndCameraPositionManager, gameEntitiesManager.player, gameConstants)
 
     function buildScene() {
         const scene = new THREE.Scene();

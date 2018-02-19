@@ -22,6 +22,8 @@ function EnemiesSpawner(scene, gameConstants) {
     let lastEleveationChangeTime = 0
     let changeElevationDelay = 0
 
+    let maxSpawnDelay = 1
+    const minSpawnDelay = 0.01
     let spawnDelay = .8
     let lastEnemySpawnTime = 0
 
@@ -37,7 +39,7 @@ function EnemiesSpawner(scene, gameConstants) {
     function updateSpawnerPolarPosition(time) {
         updateAngleDirection(time)
 
-        angleAccelerator.increaseSpeedOf(.000001)
+        angleAccelerator.increaseSpeedOf(gameConstants.speedStep)
 
         const angleAcceleration = angleAccelerator.getForce(angleDirection)
         currentAngle += angleAcceleration
@@ -70,12 +72,15 @@ function EnemiesSpawner(scene, gameConstants) {
     }
 
     function spawnEnemy(currentTime) {
+        maxSpawnDelay -= gameConstants.speedStep*10
+        maxSpawnDelay = maxSpawnDelay < minSpawnDelay * 2 ? maxSpawnDelay*2 : maxSpawnDelay
+        
         if(currentTime - lastEnemySpawnTime < spawnDelay)
             return
         
         enemies.push(new Enemy(scene, gameConstants, spawnerMesh.position))
         lastEnemySpawnTime = currentTime
-        spawnDelay = getRandom(.1, 1)
+        spawnDelay = getRandom(minSpawnDelay, maxSpawnDelay)
     }
 
     function updateEnemies(time) {

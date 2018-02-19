@@ -6,7 +6,7 @@ function Turrets(scene, gameConstants, gameState) {
     const targetsLow = []
     const targetsHigh = []
 
-    createTurrets(targetsLow, gameConstants.targetsHeight)
+    createTurrets(targetsLow, gameConstants.turretsHeight)
     // createTargets(targetsHigh, gameConstants.highLevelTargetsHeight)
 
     this.update = function(time) {
