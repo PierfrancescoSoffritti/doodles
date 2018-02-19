@@ -27,7 +27,7 @@ function TurretBulletsShooter(scene, position, gameConstants) {
 }
 
 const geometryTurretEnemy = new THREE.SphereBufferGeometry( .8, 16, 16 );
-const materialTurretEnemy = new THREE.MeshBasicMaterial( {color: "#111"} );
+const materialTurretEnemy = new THREE.MeshBasicMaterial( {color: "#100000"} );
 const blueprintTurretEnemy = new THREE.Mesh( geometryTurretEnemy, materialTurretEnemy );
 
 function TurretBullet(scene, gameConstants, originPosition, targetPosition) {
@@ -44,7 +44,7 @@ function TurretBullet(scene, gameConstants, originPosition, targetPosition) {
     const direction = new THREE.Vector3()
     direction.subVectors( targetPosition, originPosition ).normalize()
 
-    const step = .2
+    const step = getRandom(.1, .2)
     let distance = 0
 
     const maxScale = 1

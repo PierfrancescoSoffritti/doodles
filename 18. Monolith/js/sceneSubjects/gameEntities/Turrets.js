@@ -18,7 +18,7 @@ function Turrets(scene, gameConstants, gameState) {
             const target = targetsLow[i]
             target.update(time)
 
-            target.material.color.g = ( (time - lastShootForwardTime) / shootForwardDelay)
+            target.material.color.r = ( (time - lastShootForwardTime) / shootForwardDelay)
             target.mesh.scale.y = ( (time - lastShootForwardTime) / shootForwardDelay)*2 +1
 
             if(time > lastShootForwardTime + shootForwardDelay) {
@@ -26,7 +26,7 @@ function Turrets(scene, gameConstants, gameState) {
                 shootForwardDuration -= 0.01;
 
                 target.mesh.scale.y = 1
-                target.material.color.g = 0
+                target.material.color.r = 0
                 
                 if(shootForwardDuration <= 0) {
                     lastShootForwardTime = time
@@ -76,7 +76,7 @@ function Turrets(scene, gameConstants, gameState) {
 
 function Turret(scene, gameConstants, gameState, position, angle, angleStep) {
     const geometry = new THREE.BoxBufferGeometry( 1, 4, 2 )
-    const material = new THREE.MeshBasicMaterial( {color: 0x00ff00} )
+    const material = new THREE.MeshBasicMaterial( {color: 0xFF0000} )
     const cube = new THREE.Mesh( geometry, material )
     scene.add( cube )
 
