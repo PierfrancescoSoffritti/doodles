@@ -17,14 +17,13 @@ function SceneManager(canvas) {
         turretsHeight: 20,
 
         speedStep: 0.0000015,
-        // speedStep: 0.000015,
     }
     
     const scene = buildScene();
     const renderer = buildRender(screenDimensions);
     const camera = buildCamera(screenDimensions);    
     const composer = buildPostProcessing(renderer, scene, camera);
-    const sceneSubjects = createSceneSubjects(scene);
+    const sceneSubjects = createSceneSubjects(scene, gameConstants);
 
     const soundManager = new SoundManager(camera)
 
@@ -127,10 +126,11 @@ function SceneManager(canvas) {
         return controls
     }
 
-    function createSceneSubjects(scene) {
+    function createSceneSubjects(scene, gameConstants) {
         const sceneSubjects = [
             new Lights(scene),
-            new Floor(scene)
+            new Floor(scene, gameConstants),
+            new Particles(scene, gameConstants),
         ];
 
         return sceneSubjects;
@@ -150,9 +150,7 @@ function SceneManager(canvas) {
 
         const delta = clock.getDelta()
         filmPass.uniforms['time'].value = delta;
-        // staticPass.uniforms['time'].value = delta;
 
-        // renderer.render(scene, camera);
         composer.render(delta);
     }
 

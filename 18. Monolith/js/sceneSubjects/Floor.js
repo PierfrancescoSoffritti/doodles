@@ -1,12 +1,14 @@
-function Floor(scene) {
+function Floor(scene, gameConstants) {
 
 	const colors = ["#444"] //, "#9C27B0", "#3F51B5", "#4CAF50"]
 	
 	this.group = new THREE.Group();
 	scene.add(this.group);
 
-	for(let i=0; i<400; i++)
-		placePillar(this.group, 210, 300)
+	const pillarGeometry = new THREE.BoxBufferGeometry( 1, 1, 1 );
+
+	for(let i=0; i<300; i++)
+		placePillar(this.group, gameConstants.maxRadius+20, gameConstants.maxRadius+50)
 
 	function placePillar(group, radiusMin, radiusMax) {
 		const radius = getRandom(radiusMin, radiusMax)
@@ -18,11 +20,12 @@ function Floor(scene) {
         const y = 0
         const z = radius * sin(angle)
 	
-		var pillarGeometry = new THREE.BoxBufferGeometry( getRandomInt(5,30), getRandomInt(5,50), getRandomInt(5,30) );
-
 		var pillarMaterial = new THREE.MeshBasicMaterial( );
 		pillarMaterial.color.setRGB(pillarColor, pillarColor, pillarColor);
+
 		var pillar = new THREE.Mesh( pillarGeometry, pillarMaterial );
+
+		pillar.scale.set( getRandomInt(5,30), getRandomInt(5,50), getRandomInt(5,30) )
 
 		pillar.position.set(x, y, z)
 		group.add(pillar)

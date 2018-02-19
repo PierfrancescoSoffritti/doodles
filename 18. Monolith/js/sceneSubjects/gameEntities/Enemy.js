@@ -48,7 +48,7 @@ function Enemy(scene, { minRadius, maxRadius, baseLevelHeight, secondLevelHeight
 
         if(expired) {
             const tween = new TWEEN.Tween(sphere.scale)
-                .to({ x: 0, y: 0, z: 0 } , 400)
+                .to({ x: 0, y: 0, z: 0 } , 200)
                 .easing(TWEEN.Easing.Cubic.InOut)
                 .onComplete(function() {                
                     scene.remove(sphere)

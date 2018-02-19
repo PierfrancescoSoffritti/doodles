@@ -1,13 +1,13 @@
 function Monolith(scene, gameConstants) {
 
-    var geometry = new THREE.CylinderBufferGeometry( 15, gameConstants.monolithRadius, 200, 32 );
-	var material = new THREE.MeshBasicMaterial( {color: "#FFF"} );
-	var cylinder = new THREE.Mesh( geometry, material );
-	scene.add( cylinder );
+    const monolithGeometry = new THREE.CylinderBufferGeometry( 15, gameConstants.monolithRadius, 200, 32 );
+	const monolithMaterial = new THREE.MeshBasicMaterial( {color: "#FFF"} );
+	const monolith = new THREE.Mesh( monolithGeometry, monolithMaterial );
+	scene.add( monolith );
 
-	var geometry = new THREE.TorusGeometry(210, 4, 32, 128);
-	var material = new THREE.MeshBasicMaterial({ color: "#000" });
-	var ringBg = new THREE.Mesh(geometry, material);
+	const geometry = new THREE.TorusGeometry(gameConstants.maxRadius+10, 4, 32, 128);
+	const material = new THREE.MeshBasicMaterial({ color: "#000" });
+	const ringBg = new THREE.Mesh(geometry, material);
 	scene.add(ringBg)
 
 	const rings = new THREE.Group()
