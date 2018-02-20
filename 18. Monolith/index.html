@@ -10,46 +10,55 @@
 	</head>
 
 	<body>
-		<div class="instructions" id="instructionsContainer">
-			<span class="margin40"><span class="bold">SHOOT THE SPHERES TO MAKE POINTS</span></span>
-			
-			<div class="margin40 flexColumn">
-
-				<svg style="width:48px; height:48px" viewBox="0 0 24 24">
-					<path fill="#FFF" d="M19,10H17V8H19M19,13H17V11H19M16,10H14V8H16M16,13H14V11H16M16,17H8V15H16M7,10H5V8H7M7,13H5V11H7M8,11H10V13H8M8,8H10V10H8M11,11H13V13H11M11,8H13V10H11M20,5H4C2.89,5 2,5.89 2,7V17A2,2 0 0,0 4,19H20A2,2 0 0,0 22,17V7C22,5.89 21.1,5 20,5Z" />
-				</svg>
-				<div class="margin8">
-					<span><span class="bold">WASD</span> to move</span>
-				</div>
-
+		<div class="htmlContainer" id="htmlContainer">
+			<div class="countDownContainer fade" id="countDownContainer">
 			</div>
-			<div class="margin40 mouseInstructions">
+
+			<div class="instructions" id="instructionsContainer">
 				
-				<div class="flexColumn">
-
-					<svg style="width:48px; height:48px" viewBox="0 0 24 24">
-						<path fill="#FFF" d="M11,1.07C7.05,1.56 4,4.92 4,9H11M4,15A8,8 0 0,0 12,23A8,8 0 0,0 20,15V11H4M13,1.07V9H20C20,4.92 16.94,1.56 13,1.07Z" />
-					</svg>
-					<div class="margin8">
-						<span><span class="bold">left click</span> to shoot<br/><span class="bold">right click</span> to change elevation</span>
-					</div>
-
+				<div class="margin40">
+					<span class="bold">SHOOT THE SPHERES TO MAKE POINTS</span>
 				</div>
-
-				<div class="margin40 bold">or</div>
 				
-				<div class="flexColumn">
+				<div class="margin40 flexColumn">
+
 					<svg style="width:48px; height:48px" viewBox="0 0 24 24">
 						<path fill="#FFF" d="M19,10H17V8H19M19,13H17V11H19M16,10H14V8H16M16,13H14V11H16M16,17H8V15H16M7,10H5V8H7M7,13H5V11H7M8,11H10V13H8M8,8H10V10H8M11,11H13V13H11M11,8H13V10H11M20,5H4C2.89,5 2,5.89 2,7V17A2,2 0 0,0 4,19H20A2,2 0 0,0 22,17V7C22,5.89 21.1,5 20,5Z" />
 					</svg>
 					<div class="margin8">
-						<span><span class="bold">m</span> to shoot<br/><span class="bold">space</span> to change elevation</span>
+						<span><span class="bold">WASD</span> to move</span>
 					</div>
+
+				</div>
+				<div class="margin40 mouseInstructions">
+					
+					<div class="flexColumn">
+
+						<svg style="width:48px; height:48px" viewBox="0 0 24 24">
+							<path fill="#FFF" d="M11,1.07C7.05,1.56 4,4.92 4,9H11M4,15A8,8 0 0,0 12,23A8,8 0 0,0 20,15V11H4M13,1.07V9H20C20,4.92 16.94,1.56 13,1.07Z" />
+						</svg>
+						<div class="margin8">
+							<span><span class="bold">left click</span> to shoot<br/><span class="bold">right click</span> to change elevation</span>
+						</div>
+
+					</div>
+
+					<div class="margin40 bold">or</div>
+					
+					<div class="flexColumn">
+						<svg style="width:48px; height:48px" viewBox="0 0 24 24">
+							<path fill="#FFF" d="M19,10H17V8H19M19,13H17V11H19M16,10H14V8H16M16,13H14V11H16M16,17H8V15H16M7,10H5V8H7M7,13H5V11H7M8,11H10V13H8M8,8H10V10H8M11,11H13V13H11M11,8H13V10H11M20,5H4C2.89,5 2,5.89 2,7V17A2,2 0 0,0 4,19H20A2,2 0 0,0 22,17V7C22,5.89 21.1,5 20,5Z" />
+						</svg>
+						<div class="margin8">
+							<span><span class="bold">m</span> to shoot<br/><span class="bold">space</span> to change elevation</span>
+						</div>
+					</div>
+
+				</div>
+				<div id="startButton" class="margin40 flexColumn start" onclick="startGame()">				
+					<span class="margin8">START</span>
 				</div>
 
-			</div>
-			<div class="margin40 flexColumn start" onclick="startGame()">				
-				<span class="margin8">START</span>
 			</div>
 		</div>
 
