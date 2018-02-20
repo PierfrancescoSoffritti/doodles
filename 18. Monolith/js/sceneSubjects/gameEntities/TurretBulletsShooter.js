@@ -17,11 +17,11 @@ function TurretBulletsShooter(scene, position, gameConstants) {
         }
     }
 
-    this.shoot = function(targetPosition) {
+    this.shoot = function(targetPosition, scaleFactor = 1) {
         if(currentTime - lastShootTime < shootDelay)
             return
 
-        bullets.push( new TurretBullet(scene, gameConstants, position, targetPosition) )
+        bullets.push( new TurretBullet(scene, gameConstants, position, targetPosition, scaleFactor) )
         lastShootTime = currentTime
     }
 }
@@ -30,15 +30,15 @@ const geometryTurretEnemy = new THREE.SphereBufferGeometry( .8, 16, 16 );
 const materialTurretEnemy = new THREE.MeshBasicMaterial( {color: "#100000"} );
 const blueprintTurretEnemy = new THREE.Mesh( geometryTurretEnemy, materialTurretEnemy );
 
-function TurretBullet(scene, gameConstants, originPosition, targetPosition) {
+function TurretBullet(scene, gameConstants, originPosition, targetPosition, scaleFactor) {
 
     const bulletMesh = blueprintTurretEnemy.clone()
     bulletMesh.position.set(originPosition.x, originPosition.y, originPosition.z)
     scene.add(bulletMesh)
 
-    const maxScaleX = getRandom(.1, 1);
-    const maxScaleY = getRandom(.1, 1);
-    const maxScaleZ = getRandom(.1, 1);
+    const maxScaleX = getRandom(.1, 1) *scaleFactor
+    const maxScaleY = getRandom(.1, 1) *scaleFactor
+    const maxScaleZ = getRandom(.1, 1) *scaleFactor
     bulletMesh.scale.set(maxScaleX, maxScaleY, maxScaleZ)
 
     const direction = new THREE.Vector3()

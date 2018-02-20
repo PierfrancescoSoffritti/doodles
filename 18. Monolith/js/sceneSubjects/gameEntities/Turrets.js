@@ -107,7 +107,7 @@ function Turret(scene, gameConstants, gameState, position, angle, angleStep) {
     this.shootForward = function(targetPosition) {
         const polar = cartesianToPolar(cube.position.x, cube.position.z)
         const cartesian = polarToCartesian(gameConstants.maxRadius, polar.angle)
-        shooter.shoot(new THREE.Vector3(cartesian.x, targetPosition.y, cartesian.y))
+        shooter.shoot(new THREE.Vector3(cartesian.x, targetPosition.y, cartesian.y), 3)
     }
 
     this.getBullets = function () {

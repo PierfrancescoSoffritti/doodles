@@ -5,15 +5,15 @@ function Monolith(scene, gameConstants) {
 	const monolith = new THREE.Mesh( monolithGeometry, monolithMaterial );
 	scene.add( monolith );
 
-	const geometry = new THREE.TorusGeometry(gameConstants.maxRadius+10, 4, 32, 128);
+	const geometry = new THREE.TorusBufferGeometry(gameConstants.maxRadius+10, 10, 32, 128);
 	const material = new THREE.MeshBasicMaterial({ color: "#000" });
-	const ringBg = new THREE.Mesh(geometry, material);
-	scene.add(ringBg)
+	const ringBG = new THREE.Mesh(geometry, material);
+	scene.add(ringBG)
 
 	const rings = new THREE.Group()
 	rings.position.y = -1
 
-	const ringGeometry = new THREE.TorusGeometry(gameConstants.monolithRadius, .6, 32, 128)
+	const ringGeometry = new THREE.TorusBufferGeometry(gameConstants.monolithRadius, .6, 32, 128)
 	const ringMaterial = new THREE.MeshBasicMaterial({ color: "#000"  })
 	const ring0 = new THREE.Mesh(ringGeometry, ringMaterial)
 	ring0.rotation.x = Math.PI/2
@@ -43,6 +43,6 @@ function Monolith(scene, gameConstants) {
 	}
 
     this.update = function(time) {
-		ringBg.rotation.y += 0.001
+		ringBG.rotation.y += 0.001
 	}	
 }
