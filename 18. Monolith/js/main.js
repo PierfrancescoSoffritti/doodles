@@ -6,6 +6,14 @@ const sceneManager = new SceneManager(canvas);
 bindEventListeners();
 render();
 
+function startGame() {
+	const instructions = document.getElementById("instructionsContainer");
+	instructions.classList.add("fade");
+
+	sceneManager.introScreenClosed();
+	setTimeout( () => eventBus.post(startCountDownFinishedEvent), 3000)
+}
+
 function bindEventListeners() {
 	window.onresize = resizeCanvas;
 	window.onkeydown = onKeyDown;

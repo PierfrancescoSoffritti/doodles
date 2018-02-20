@@ -21,6 +21,15 @@ function PlayerAndCameraPositionManager(camera, player, gameConstants, gameState
         y: gameConstants.baseLevelHeight
     }
 
+    const cameraLookAt = new THREE.Vector3(0, 100, 0)
+
+    eventBus.subscribe(introScreenClosed, () => { 
+        const tween = new TWEEN.Tween(cameraLookAt)
+            .to({ y: 10 }, 1500)
+            .easing(TWEEN.Easing.Cubic.InOut)
+            .start();
+     })
+
     this.update = function(time) {
         player.mesh.position.x = sin(time/2)/40
         player.mesh.position.y = sin(time*2)/20
@@ -52,7 +61,7 @@ function PlayerAndCameraPositionManager(camera, player, gameConstants, gameState
 
         camera.position.y = playerPolarPostion.y + cameraPolarPostion.y
 
-        camera.lookAt(new THREE.Vector3(0, 100, 0))
+        camera.lookAt(cameraLookAt)
     }
 
     function updatePlayerPosition() {

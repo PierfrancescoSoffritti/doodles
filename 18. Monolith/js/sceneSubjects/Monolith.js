@@ -36,7 +36,7 @@ function Monolith(scene, gameConstants) {
 
 	function moveRings() {
 		const tween = new TWEEN.Tween(rings.position)
-			.to({ y: 180 }, 1000)
+			.to({ y: 400 }, 1000)
 			.easing(TWEEN.Easing.Cubic.InOut)
 			.onComplete( () => rings.position.y = -1)
 			.start();

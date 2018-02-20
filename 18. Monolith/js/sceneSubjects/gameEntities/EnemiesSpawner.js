@@ -29,16 +29,6 @@ function EnemiesSpawner(scene, gameConstants) {
     this.update = function(time) {
         for(var i=0; i<spawnerMesh.children.length; i++) {
             var child = spawnerMesh.children[i];
-
-            // child.material.emissive.g = Math.max(0, (Math.sin(time * 1 )+i*0.2) );
-
-            // var rotationSpeed = 1;
-            // var rotation = Math.sin(time * rotationSpeed - i*0.2);
-            // child.rotation.x = rotation;
-            // child.rotation.y = rotation;
-            // child.rotation.x += 0.1
-            // child.rotation.y += 0.1
-
             child.position.x = sin(time*8) *i
         }
 
@@ -49,13 +39,6 @@ function EnemiesSpawner(scene, gameConstants) {
     }
 
     function buildMesh(scene) {
-        // const spawnerGeometry = new THREE.BoxBufferGeometry( 2, 8, 4 )
-        // const spawnerMaterial = new THREE.MeshBasicMaterial( {color: 0x666600} )
-        // const spawnerMesh = new THREE.Mesh( spawnerGeometry, spawnerMaterial )
-        // scene.add( spawnerMesh )
-
-        // return spawnerMesh
-
         var group = new THREE.Group();
 
         var radius = 4;
@@ -66,11 +49,6 @@ function EnemiesSpawner(scene, gameConstants) {
         var envMap = new THREE.TextureLoader().load('textures/envMap.png');
         envMap.mapping = THREE.SphericalReflectionMapping;
         material.envMap = envMap;
-
-        // var emissiveMap = new THREE.TextureLoader().load('textures/stripe_horizontal.png');
-        // emissiveMap.wrapS = THREE.RepeatWrapping;
-        // emissiveMap.repeat.x = 3;
-        // material.emissiveMap = emissiveMap;
 
         var mesh = new THREE.Mesh(geometry, material);
         mesh.rotation.y = Math.PI/2

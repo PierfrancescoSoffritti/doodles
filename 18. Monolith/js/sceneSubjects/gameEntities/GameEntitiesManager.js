@@ -10,10 +10,16 @@ function GameEntitiesManager(scene, gameConstants, gameState) {
 
     this.player = player
 
+    let gameStarted = false
+    eventBus.subscribe(startCountDownFinishedEvent, () => gameStarted = true)
+
     this.update = function(time) {
         player.update(time)
         monolith.update(time)  
         turrets.update(time)
+
+        if(!gameStarted)
+            return
 
         enemiesSpawner.update(time)
         playerShooter.update(time)

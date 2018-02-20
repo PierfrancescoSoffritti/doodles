@@ -16,8 +16,12 @@ function SceneManager(canvas) {
 
         turretsHeight: 20,
 
-        speedStep: 0.0000015,
+        speedStep: 0,
     }
+
+    eventBus.subscribe(startCountDownFinishedEvent, () => gameConstants.speedStep = 0.0000015)
+
+    let enableUserInput = false
     
     const scene = buildScene();
     const renderer = buildRender(screenDimensions);
@@ -167,7 +171,15 @@ function SceneManager(canvas) {
         composer.setSize(width, height);
     }
 
+    this.introScreenClosed = function() {
+        eventBus.post(introScreenClosed)
+        enableUserInput = true
+    }
+
     this.onKeyDown = function(keyCode) {
+        if(!enableUserInput)
+            return
+
         // refactor. this is a hack
         if(keyCode === 32) {
             //sapce
@@ -183,6 +195,9 @@ function SceneManager(canvas) {
     }
 
     this.onKeyUp = function(keyCode) {
+        if(!enableUserInput)
+            return
+
         // refactor. this is a hack
         if(keyCode === 32) {
             //sapce
@@ -198,10 +213,14 @@ function SceneManager(canvas) {
     }
 
     this.onMouseDown = function(event) {
+        if(!enableUserInput)
+            return
         controls.mouse.onMouseDown(event)
     }
 
     this.onMouseUp = function(event) {
+        if(!enableUserInput)
+            return
         controls.mouse.onMouseUp(event)
     }
 }

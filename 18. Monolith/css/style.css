@@ -27,6 +27,8 @@ html, body {
     background: rgb(54, 25, 25);
     background: rgba(167, 39, 39, 0.5);
 
+    transition: opacity 0.3s linear;
+
     color: white;   
 }
 
@@ -61,6 +63,8 @@ html, body {
     box-sizing: border-box;
     justify-content: center;
 
+    cursor: pointer;
+
     width: 120px;
     height: 120px;
     
@@ -75,6 +79,10 @@ html, body {
 
 .start:hover {
     border: 6px solid rgba(255, 255, 255, 1);
+}
+
+.fade {
+    opacity: 0.0;
 }
 
 @keyframes color-change {

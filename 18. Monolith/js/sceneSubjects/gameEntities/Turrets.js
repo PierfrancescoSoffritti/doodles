@@ -3,7 +3,7 @@ function Turrets(scene, gameConstants, gameState) {
     const numberOfTargetsPerLevel = 20
     const angleStep = (Math.PI*2) / numberOfTargetsPerLevel
 
-    const targetsLow = []
+    const turretsLow = []
     const targetsHigh = []
 
     let lastShootForwardTime = 0
@@ -11,40 +11,30 @@ function Turrets(scene, gameConstants, gameState) {
     const shootForwardDurationConst = 6
     let shootForwardDuration = shootForwardDurationConst
 
-    createTurrets(targetsLow, gameConstants.turretsHeight)
+    let gameStarted = false
+
+    eventBus.subscribe(startCountDownFinishedEvent, () => { gameStarted = true })
+
+    createTurrets(turretsLow, gameConstants.turretsHeight)
 
     this.update = function(time) {
+
         for(let i=0; i<numberOfTargetsPerLevel; i++) {
-            const target = targetsLow[i]
-            target.update(time)
+            const turret = turretsLow[i]
+            turret.update(time)
 
-            target.material.color.r = ( (time - lastShootForwardTime) / shootForwardDelay)
-            target.mesh.scale.y = ( (time - lastShootForwardTime) / shootForwardDelay)*2 +1
+            if(gameStarted) {
 
-            if(time > lastShootForwardTime + shootForwardDelay) {
-                target.shootForward(gameState.playerPosition)
-                shootForwardDuration -= 0.01;
+                turret.material.color.r = ( (time - lastShootForwardTime) / shootForwardDelay)
+                turret.mesh.scale.y = ( (time - lastShootForwardTime) / shootForwardDelay)*2 +1
 
-                target.mesh.scale.y = 1
-                target.material.color.r = 0
-                
-                if(shootForwardDuration <= 0) {
-                    lastShootForwardTime = time
-                    shootForwardDelay = getRandom(10, 20)
-                    shootForwardDuration = shootForwardDurationConst
-                }
-
-            } else {            
-                const playerAngle = cartesianToPolar(gameState.playerPosition.x, gameState.playerPosition.z).angle
-                if(playerAngle >= target.angle - target.angleStep/2 && playerAngle <= target.angle + target.angleStep/2 ) {
-                    const i1 = i-1 < 0 ? numberOfTargetsPerLevel-1 : i-1
-
-                    // targetsLow[ (i1) % numberOfTargetsPerLevel ].shoot(gameState.playerPosition)
-                    target.shoot(gameState.playerPosition)
-                    targetsLow[ (i+1) % numberOfTargetsPerLevel ].shoot(gameState.playerPosition)
+                if(time > lastShootForwardTime + shootForwardDelay)
+                    shootForward(turret, time)
+                else
+                    shootAtPlayer(turret, i)
                     
-                    gameState.currentTargetPosition = target.position
-                }
+            } else {
+                lastShootForwardTime = time
             }
         }
     }
@@ -52,8 +42,8 @@ function Turrets(scene, gameConstants, gameState) {
     this.getBullets = function() {
         let bullets = []
 
-        for(let i=0; i<targetsLow.length; i++) 
-            bullets = bullets.concat( targetsLow[i].getBullets() )
+        for(let i=0; i<turretsLow.length; i++) 
+            bullets = bullets.concat( turretsLow[i].getBullets() )
         
         return bullets
     }
@@ -72,6 +62,32 @@ function Turrets(scene, gameConstants, gameState) {
         }
     }
 
+    function shootForward(target, time) {
+        target.shootForward(gameState.playerPosition)
+        shootForwardDuration -= 0.01;
+
+        target.mesh.scale.y = 1
+        target.material.color.r = 0
+        
+        if(shootForwardDuration <= 0) {
+            lastShootForwardTime = time
+            shootForwardDelay = getRandom(10, 20)
+            shootForwardDuration = shootForwardDurationConst
+        }
+    }
+
+    function shootAtPlayer(target, i) {
+        const playerAngle = cartesianToPolar(gameState.playerPosition.x, gameState.playerPosition.z).angle
+        if(playerAngle >= target.angle - target.angleStep/2 && playerAngle <= target.angle + target.angleStep/2 ) {
+            const i1 = i-1 < 0 ? numberOfTargetsPerLevel-1 : i-1
+
+            // targetsLow[ (i1) % numberOfTargetsPerLevel ].shoot(gameState.playerPosition)
+            target.shoot(gameState.playerPosition)
+            turretsLow[ (i+1) % numberOfTargetsPerLevel ].shoot(gameState.playerPosition)
+            
+            gameState.currentTargetPosition = target.position
+        }
+    }
 }
 
 function Turret(scene, gameConstants, gameState, position, angle, angleStep) {
