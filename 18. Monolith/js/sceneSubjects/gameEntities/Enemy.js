@@ -9,7 +9,7 @@ enemyMaterial.envMap = envMap;
 const enemyBlueprint = new THREE.Mesh( enemyGeometry, enemyMaterial );
 
 // wireframe
-const wireMaterial = new THREE.MeshPhongMaterial({ color: "#4CAF50", shading: THREE.FlatShading, wireframe: true });
+const wireMaterial = new THREE.MeshPhongMaterial({ color: "#4CAF50", flatShading: true, wireframe: true });
 const wireframeGeo = new THREE.IcosahedronBufferGeometry(enemyRadius, 1)
 const wireframeMesh = new THREE.Mesh(wireframeGeo, wireMaterial)
 wireframeMesh.scale.set(1.3, 1.3, 1.3)

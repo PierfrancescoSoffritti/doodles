@@ -26,7 +26,7 @@ function PlayerAndCameraPositionManager(camera, player, gameConstants, gameState
 
     eventBus.subscribe(gameOverEvent, () => {
         const tween = new TWEEN.Tween(cameraHeightOffset)
-            .to({ y: 100 }, 1500)
+            .to({ y: 80 }, 1500)
             .easing(TWEEN.Easing.Cubic.InOut)
             .start();
     })
