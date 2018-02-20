@@ -26,15 +26,17 @@ function TurretBulletsShooter(scene, position, gameConstants) {
     }
 }
 
-const geometryTurretEnemy = new THREE.SphereBufferGeometry( .8, 16, 16 );
-const materialTurretEnemy = new THREE.MeshBasicMaterial( {color: "#100000"} );
-const blueprintTurretEnemy = new THREE.Mesh( geometryTurretEnemy, materialTurretEnemy );
+const geometryTurretBullet = new THREE.SphereBufferGeometry( .8, 16, 16 );
+const materialTurretBullet = new THREE.MeshBasicMaterial( {color: "#100000"} );
+const blueprintTurretBullet = new THREE.Mesh( geometryTurretBullet, materialTurretBullet );
 
 function TurretBullet(scene, gameConstants, originPosition, targetPosition, scaleFactor) {
-
-    const bulletMesh = blueprintTurretEnemy.clone()
+    const bulletMesh = blueprintTurretBullet.clone()
     bulletMesh.position.set(originPosition.x, originPosition.y, originPosition.z)
     scene.add(bulletMesh)
+
+    if(scaleFactor != 1)
+        bulletMesh.material = new THREE.MeshBasicMaterial( {color: "#810081"} );
 
     const maxScaleX = getRandom(.1, 1) *scaleFactor
     const maxScaleY = getRandom(.1, 1) *scaleFactor

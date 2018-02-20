@@ -1,4 +1,4 @@
-function MapGenerator(noiseScale, octaves, persistance, lacunarity, seed, offset, useFalloff) {	
+function MapGenerator( { noiseScale, octaves, persistance, lacunarity, seed, offset, useFalloff } ) {	
 
 	const mapChunkSize = 441;
 	this.size = mapChunkSize;

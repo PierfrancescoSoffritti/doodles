@@ -1,6 +1,6 @@
 function TerrainMeshGenerator() {
 
-	this.generateTerrainMesh = function(heightMap, smoothThreshold, heightMultiplier, levelOfDetail) {
+	this.generateTerrainMesh = function( { heightMap, smoothThreshold, heightMultiplier, levelOfDetail } ) {
 		if(levelOfDetail < 1 || levelOfDetail > 6) {
 			console.error("levelOfDetail out of range");
 			return;

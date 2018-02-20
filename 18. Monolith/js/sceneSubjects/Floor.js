@@ -1,6 +1,4 @@
 function Floor(scene, gameConstants) {
-
-	const colors = ["#444"] //, "#9C27B0", "#3F51B5", "#4CAF50"]
 	
 	this.group = new THREE.Group();
 	scene.add(this.group);
@@ -31,11 +29,28 @@ function Floor(scene, gameConstants) {
 		group.add(pillar)
 	}
 
-	const mapGenerator = new MapGenerator(150, 5, .5, 20, Math.random(), [0, 0], false);
-    const map = mapGenerator.generateMap();
+	const mapArgs = {
+		noiseScale: 150,
+		octaves: 5,
+		persistance: .5,
+		lacunarity: 20,
+		seed: Math.random(),
+		offset: [0, 0],
+		useFalloff: false
+	}
+
+	const mapGenerator = new MapGenerator(mapArgs);
+	const map = mapGenerator.generateMap();
+	
+	const terrainMeshArgs = {
+		heightMap: map,
+		smoothThreshold: .4,
+		heightMultiplier: 12,
+		levelOfDetail: 2
+	}
 
     // terrain
-    const mesh = new TerrainMeshGenerator().generateTerrainMesh(map, .4, 8, 2).createMesh();
+    const mesh = new TerrainMeshGenerator().generateTerrainMesh(terrainMeshArgs).createMesh();
     scene.add(mesh);
 
     // terrain wireframe
