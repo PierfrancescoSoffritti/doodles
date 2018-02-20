@@ -1,6 +1,8 @@
 function MouseControls( gameState, playerAndCameraPositionManager, player ) {
 
     let shoot = false
+
+    eventBus.subscribe(gameOverEvent, onLeftClickUp )
     
     this.onMouseDown = function(event) {
         switch (event.which) {

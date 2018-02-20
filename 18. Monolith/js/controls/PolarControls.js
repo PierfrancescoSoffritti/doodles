@@ -24,7 +24,7 @@ function PolarControls(playerAndCameraPositionManager, gameConstants) {
     let backward = false
 
     eventBus.subscribe( startBoost, () => angleAccelerator.boost(1.3) )
-    eventBus.subscribe( gameOverEvent, () => angleAccelerator.resetSpeed(angleSpeed) )
+    eventBus.subscribe( gameOverEvent, () => { angleAccelerator.resetSpeed(angleSpeed); left = right = forward = backward = false } )
 
     this.onKeyDown = function(keyCode) {
         if(keyCode === A)

@@ -18,12 +18,12 @@ function GameEntitiesManager(scene, gameConstants, gameState) {
         player.update(time)
         monolith.update(time)  
         turrets.update(time)
+        playerShooter.update(time)
 
         if(!gameStarted)
             return
 
         enemiesSpawner.update(time)
-        playerShooter.update(time)
 
         const bullets = playerShooter.bullets
         const enemies = enemiesSpawner.enemies
