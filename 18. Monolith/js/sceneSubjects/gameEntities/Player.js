@@ -7,17 +7,30 @@ function Player(scene, gameState, shooter) {
     const guiManager = new GUIManager();
     group.add(guiManager.group);
 
+    const colors = [ "#F44336", "#3F51B5", "#2196F3", "#009688", "#4CAF50", "#8BC34A", "#CDDC39", "#FFC107", "#FF9800", "#FF5722" ]
+    const color = colors[ getRandomInt(0, colors.length) ]
+    
+    shooter.bulletsColor = tinycolor(color).darken(20).toString()
+
     var loader = new THREE.JSONLoader();
-    loader.load('models/spaceship_merged.json', function(geometry, materials) {
+    loader.load('models/spaceship.json', function(geometry, materials) {
 
         self.materials = materials;
         
         for(let i=0; i<materials.length; i++) {
             materials[i].flatShading = true
             materials[i].shininess = 0 
-            materials[i].transparent = true;
+            materials[i].metalness = 0 
+            materials[i].roughness = 0.4
+
+            materials[i].transparent = true
             
-            changeColors(materials[i])
+            if(materials[i].name === "engine") {
+                materials[i].emissive = new THREE.Color("#B71C1C")
+                materials[i].emissiveIntensity = 0
+            }
+
+            changeColors(color, materials[i])
         }
 
         const mesh = new THREE.Mesh(geometry, materials);
@@ -72,31 +85,21 @@ function Player(scene, gameState, shooter) {
     }
 
     function updateEngineColor(acceleration) {
-        self.engineMaterial.color.r = self.engineBaseColor.r + acceleration*4
-        self.engineMaterial.color.g = self.engineBaseColor.g + acceleration
-        self.engineMaterial.color.b = self.engineBaseColor.b + acceleration
+
+        self.engineMaterial.emissiveIntensity = acceleration
     }
 
-    function changeColors(material) {
-        if(material.name === "white") {
-            material.color.r = getRandom(.3, 1)
-            material.color.g = getRandom(.3, 1)
-            material.color.b = getRandom(.3, 1)
-        } else if(material.name === "blue") {
-            material.color.r = getRandom(0, .3)
-            material.color.g = getRandom(0, .3)
-            material.color.b = getRandom(0, .3)
-        } else if(material.name === "black") {
-            material.color.r = getRandom(0, .3)
-            material.color.g = getRandom(0, .3)
-            material.color.b = getRandom(0, .3)
-        } else if(material.name === "engine") {
-            material.color.r = getRandom(0, .2)
-            material.color.g = getRandom(0, .2)
-            material.color.b = getRandom(0, .2)
+    function changeColors(color, material) {
+        if(material.name === "white")
+            material.color = new THREE.Color( tinycolor(color).lighten(30).toString() )
+        else if(material.name === "blue")
+            material.color = new THREE.Color( tinycolor(color).darken(25).toString() )
+        else if(material.name === "black")
+            material.color = new THREE.Color( tinycolor(color).darken(55).toString() )
+        else if(material.name === "engine") {
+            material.color = new THREE.Color("#000")
 
             self.engineMaterial = material
-            self.engineBaseColor = material.color.clone()
         }
     }
 }

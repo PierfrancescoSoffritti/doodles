@@ -6,6 +6,7 @@ function PlayerBulletsShooter(scene, gameConstants) {
     let lastShootTime = 0
 
     this.bullets = bullets
+    this.bulletsColor = "#FFF"
 
     this.update = function(time) {
         currentTime = time
@@ -21,16 +22,17 @@ function PlayerBulletsShooter(scene, gameConstants) {
         if(currentTime - lastShootTime < shootDelay)
             return
 
-        bullets.push( new Bullet(scene, originPosition, gameConstants) )
+        bullets.push( new Bullet(scene, originPosition, gameConstants, this.bulletsColor) )
         lastShootTime = currentTime
     }
 }
 
 const geometryBulletPlayer = new THREE.SphereBufferGeometry( .4, 16, 16 );
-const materialBulletPlayer = new THREE.MeshBasicMaterial( {color: "#BF360C"} );
+const materialBulletPlayer = new THREE.MeshBasicMaterial( );
 const blueprintBulletPlayer = new THREE.Mesh( geometryBulletPlayer, materialBulletPlayer );
 
-function Bullet(scene, originPosition, gameConstants) {
+function Bullet(scene, originPosition, gameConstants, color) {
+    materialBulletPlayer.color = new THREE.Color(color)
 
     const bulletMesh = blueprintBulletPlayer.clone()
     bulletMesh.position.set(originPosition.x, originPosition.y, originPosition.z)
