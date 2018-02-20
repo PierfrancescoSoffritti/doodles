@@ -74,7 +74,7 @@ function SceneManager(canvas) {
 
         filmPass = new THREE.ShaderPass(THREE.FilmShader)
         filmPass.uniforms["nIntensity"].value = 0.2
-        filmPass.uniforms["sIntensity"].value = 0.45
+        filmPass.uniforms["sIntensity"].value = 0.2
         filmPass.uniforms["sCount"].value = 1600   
         filmPass.uniforms["grayscale"].value = 0
 

@@ -1,4 +1,4 @@
-function PlayerBulletsShooter(scene) {
+function PlayerBulletsShooter(scene, gameConstants) {
     const bullets = []
 
     let currentTime = 0
@@ -21,39 +21,52 @@ function PlayerBulletsShooter(scene) {
         if(currentTime - lastShootTime < shootDelay)
             return
 
-        bullets.push( new Bullet(scene, originPosition) )
+        bullets.push( new Bullet(scene, originPosition, gameConstants) )
         lastShootTime = currentTime
     }
 }
 
 const geometryBulletPlayer = new THREE.SphereBufferGeometry( .4, 16, 16 );
-const materialBulletPlayer = new THREE.MeshBasicMaterial( {color: "#0000FF"} );
+const materialBulletPlayer = new THREE.MeshBasicMaterial( {color: "#BF360C"} );
 const blueprintBulletPlayer = new THREE.Mesh( geometryBulletPlayer, materialBulletPlayer );
 
-function Bullet(scene, originPosition) {
+function Bullet(scene, originPosition, gameConstants) {
 
     const bulletMesh = blueprintBulletPlayer.clone()
-    scene.add(bulletMesh)
     bulletMesh.position.set(originPosition.x, originPosition.y, originPosition.z)
-    bulletMesh.scale.set(getRandom(.1, 1), getRandom(.1, 1), getRandom(.1, 1))
+    scene.add(bulletMesh)
+    
+    const maxScaleX = getRandom(.5, 1.5);
+    const maxScaleY = getRandom(.5, 1.5);
+    const maxScaleZ = getRandom(.5, 1.5);
+    bulletMesh.scale.set(maxScaleX, maxScaleY, maxScaleZ)
 
     const speed = 8
 
-    const polarCoord = cartesianToPolar(originPosition.x, originPosition.z)
+    const polarCoords = cartesianToPolar(originPosition.x, originPosition.z)
 
     this.position = bulletMesh.position
     this.collision = false
     
     this.update = function(time) {
-        polarCoord.radius -= speed
+        polarCoords.radius -= speed
 
-        bulletMesh.position.x = (polarCoord.radius) * cos(polarCoord.angle)
-        bulletMesh.position.z = (polarCoord.radius) * sin(polarCoord.angle)
+        bulletMesh.position.x = (polarCoords.radius) * cos(polarCoords.angle)
+        bulletMesh.position.z = (polarCoords.radius) * sin(polarCoords.angle)
 
-        const expired = ( polarCoord.radius < 0 || this.collision === true ) ? true : false
+        updateScale(polarCoords)
+
+        const expired = ( polarCoords.radius < 0 || this.collision === true ) ? true : false
         if(expired)
             scene.remove(bulletMesh)
             
         return expired
+    }
+
+    function updateScale(polarCoords) {
+        const scaleX =  maxScaleX - ( polarCoords.radius / gameConstants.maxRadius ) * maxScaleX/4
+        const scaleY =  maxScaleY - ( polarCoords.radius / gameConstants.maxRadius ) * maxScaleY/4
+        const scaleZ =  maxScaleZ - ( polarCoords.radius / gameConstants.maxRadius ) * maxScaleZ/4
+        bulletMesh.scale.set( scaleX, scaleY, scaleZ )
     }
 }

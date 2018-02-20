@@ -72,9 +72,9 @@ function TurretBullet(scene, gameConstants, originPosition, targetPosition) {
     }
 
     function updateScale(polarCoords) {
-        const scaleX =  maxScaleX - ( ( .6 * polarCoords.radius ) / gameConstants.maxRadius )
-        const scaleY =  maxScaleY - ( ( .6 * polarCoords.radius ) / gameConstants.maxRadius )
-        const scaleZ =  maxScaleZ - ( ( .6 * polarCoords.radius ) / gameConstants.maxRadius )
+        const scaleX =  maxScaleX - ( polarCoords.radius / gameConstants.maxRadius ) * maxScaleX/2
+        const scaleY =  maxScaleY - ( polarCoords.radius / gameConstants.maxRadius ) * maxScaleY/2
+        const scaleZ =  maxScaleZ - ( polarCoords.radius / gameConstants.maxRadius ) * maxScaleZ/2
         bulletMesh.scale.set( scaleX, scaleY, scaleZ )
     }
 }

@@ -16,9 +16,9 @@ function Particles(scene, gameConstants) {
         vertex.y = vertex.baseCoords.y;
         vertex.z = vertex.baseCoords.z;
 
-        vertex.velocityX = getRandom(-0.02, 0.02);
-        vertex.velocityY = getRandom(-0.02, 0.02);
-        vertex.velocityZ = getRandom(-0.02, 0.02);
+        vertex.speedX = getRandom(-0.2, 0.2);
+        vertex.speedY = getRandom(-0.2, 0.2);
+        vertex.speedZ = getRandom(-0.2, 0.2);
 
         particlesGeometry.vertices.push(vertex);
     }
@@ -35,9 +35,9 @@ function Particles(scene, gameConstants) {
 		for(let i=0; i<particlesGeometry.vertices.length; i++) {
             const vertex = particlesGeometry.vertices[i];
             
-            vertex.x += sin(time * vertex.velocityX) / 10
-            vertex.y += sin(time * vertex.velocityX) / 10
-            vertex.z += sin(time * vertex.velocityX) / 10
+            vertex.x = vertex.baseCoords.x + sin(time * vertex.speedX) *10
+            vertex.y = vertex.baseCoords.y + sin(time * vertex.speedY) *10
+            vertex.z = vertex.baseCoords.z + sin(time * vertex.speedZ) *10
 		}
 		particlesGeometry.verticesNeedUpdate = true;
 	}
