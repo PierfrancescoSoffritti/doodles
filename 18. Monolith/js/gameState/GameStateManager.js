@@ -1,5 +1,7 @@
 function GameStateManager() {
 
+    const maxLives = 4
+
     this.gameConstants = {
         monolithRadius: 25,
         minRadius: 50,
@@ -16,7 +18,7 @@ function GameStateManager() {
         playerPosition: new THREE.Vector3(0, 0, 0),
         playerHeightLevel: 0, // 0 or 1
 
-        lives: 0,
+        lives: maxLives,
         score: 0,
 
         enableUserInput: false
@@ -29,7 +31,7 @@ function GameStateManager() {
 
     eventBus.subscribe(gameOverEvent, () => {
         this.gameState.playerHeightLevel = 0        
-        this.gameState.lives = 0
+        this.gameState.lives = maxLives
         this.gameState.score = 0
         this.gameState.enableUserInput = false
 
