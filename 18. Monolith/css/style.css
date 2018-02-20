@@ -7,6 +7,8 @@ html, body {
     margin: 0;
 
     font-family: 'Barlow', sans-serif;
+    font-size: 18px;
+    letter-spacing: 3px;
 }
 
 .instructions {
@@ -28,16 +30,37 @@ html, body {
     color: white;   
 }
 
-.flexRow {
+.flexColumn {
     display: flex;
     flex-direction: column;
+
+    align-items: center;
 }
 
 .mouseInstructions {
     display: flex;
     flex-direction: row;
+
+    align-items: center;
 }
 
-.margin {
-    margin: 16px;
+.margin40 {
+    margin: 40px;
+}
+
+.margin8 {
+    margin: 8px;
+}
+
+.bold {
+    font-weight: 700;    
+    animation: color-change 6000ms infinite;
+}
+
+@keyframes color-change {
+    0% { color: rgb(0, 140, 255); }
+    25% { color: rgb(0, 201, 7); }
+    50% { color: rgb(255, 191, 0); }
+    75% { color: rgb(255, 60, 0); }
+    100% { color: rgb(0, 140, 255); }
 }
