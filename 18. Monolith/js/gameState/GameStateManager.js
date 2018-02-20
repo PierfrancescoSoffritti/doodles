@@ -23,7 +23,9 @@ function GameStateManager() {
     }
 
     eventBus.subscribe( introScreenClosed, () => this.gameState.enableUserInput = true )
-    eventBus.subscribe( startCountDownFinishedEvent, () => this.gameConstants.speedStep = 0.0000015 )
+    eventBus.subscribe( startCountDownFinishedEvent, () => {
+        this.gameConstants.speedStep = 0.0000015;
+    } )
 
     eventBus.subscribe(gameOverEvent, () => {
         this.gameState.playerPosition = new THREE.Vector3(0, 0, 0)

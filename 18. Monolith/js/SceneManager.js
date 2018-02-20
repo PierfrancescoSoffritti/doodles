@@ -124,6 +124,8 @@ function SceneManager(canvas) {
 
     this.update = function() {
         const elapsedTime = clock.getElapsedTime()
+        const deltaTime = clock.getDelta()
+
         for(let i=0; i<sceneSubjects.length; i++)
             sceneSubjects[i].update(elapsedTime);
             
@@ -134,10 +136,9 @@ function SceneManager(canvas) {
         playerAndCameraPositionManager.update(elapsedTime)
         gameEntitiesManager.update(elapsedTime)
 
-        const delta = clock.getDelta()
-        filmPass.uniforms['time'].value = delta;
+        filmPass.uniforms['time'].value = deltaTime;
 
-        composer.render(delta);
+        composer.render(deltaTime);
     }
 
     this.onWindowResize = function() {

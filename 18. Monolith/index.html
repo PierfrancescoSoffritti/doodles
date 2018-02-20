@@ -11,11 +11,25 @@
 
 	<body>
 		<div class="htmlContainer" id="htmlContainer">
+
 			<div class="countDownContainer fade" id="countDownContainer">
 			</div>
 
-			<div class="instructions" id="instructionsContainer">
-				
+			<div class="gameOverContainer fade" id="gameOverContainer">				
+				<div class="margin40">
+					<span class="bold gameOver">GAME OVER</span>
+				</div>
+
+				<div class="margin40">
+					<span >SCORE: </span> <span id="scoreContainer" class="bold"></span>
+				</div>
+
+				<div id="startButton" class="margin40 flexColumn start" onclick="startGame()">				
+					<span class="margin8">RESTART</span>
+				</div>
+			</div>
+
+			<div class="instructions" id="instructionsContainer">				
 				<div class="margin40">
 					<span class="bold">SHOOT THE SPHERES TO MAKE POINTS</span>
 				</div>
@@ -58,7 +72,6 @@
 				<div id="startButton" class="margin40 flexColumn start" onclick="startGame()">				
 					<span class="margin8">START</span>
 				</div>
-
 			</div>
 
 			<div class="disablingDiv" id="disablingDiv" />

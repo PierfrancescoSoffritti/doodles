@@ -28,7 +28,7 @@ function GUIManager(gameState) {
         scoreTextureObj.setText(score)
     }
 
-    eventBus.subscribe(decreaseLife, () => { updateLives(--gameState.lives); if(gameState.lives < 0) eventBus.post(gameOverEvent) } )
+    eventBus.subscribe(decreaseLife, () => { updateLives(--gameState.lives); if(gameState.lives < 0) eventBus.post(gameOverEvent, gameState.score) } )
 
     eventBus.subscribe(increaseScore, () => { gameState.score += 1*scoreMultiplier; updateScore(gameState.score); comboStreak++; updateCombo() } )
     eventBus.subscribe(decreaseScore, () => { gameState.score -= 1*scoreMultiplier; updateScore(gameState.score); resetCombo() } )
