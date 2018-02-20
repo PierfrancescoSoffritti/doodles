@@ -1,4 +1,4 @@
-function GUIManager(lives = 6, score = 0) {
+function GUIManager(lives = 1, score = 0) {
     
     const group = new THREE.Group()
     this.group = group
@@ -28,7 +28,7 @@ function GUIManager(lives = 6, score = 0) {
         scoreTextureObj.setText(score)
     }
 
-    eventBus.subscribe(decreaseLife, () => updateLives(--lives) )
+    eventBus.subscribe(decreaseLife, () => { updateLives(--lives); if(lives < 0) eventBus.post(gameOverEvent) } )
 
     eventBus.subscribe(increaseScore, () => { score += 1*scoreMultiplier; updateScore(score); comboStreak++; updateCombo() } )
     eventBus.subscribe(decreaseScore, () => { score -= 1*scoreMultiplier; updateScore(score); resetCombo() } )

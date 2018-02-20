@@ -36,6 +36,9 @@ function startGame() {
 	}, 4300)
 }
 
+function gameOver() {
+}
+
 function bindEventListeners() {
 	window.onresize = resizeCanvas;
 	window.onkeydown = onKeyDown;
