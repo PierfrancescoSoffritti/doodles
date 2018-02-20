@@ -24,12 +24,12 @@ function PlayerAndCameraPositionManager(camera, player, gameConstants, gameState
 
     const cameraLookAt = new THREE.Vector3(0, 100, 0)
 
-    // eventBus.subscribe(gameOverEvent, () => {
-    //     const tween = new TWEEN.Tween(cameraHeightOffset)
-    //         .to({ y: 100 }, 1500)
-    //         .easing(TWEEN.Easing.Cubic.InOut)
-    //         .start();
-    // })
+    eventBus.subscribe(gameOverEvent, () => {
+        const tween = new TWEEN.Tween(cameraHeightOffset)
+            .to({ y: 100 }, 1500)
+            .easing(TWEEN.Easing.Cubic.InOut)
+            .start();
+    })
 
     eventBus.subscribe(introScreenClosed, () => { 
         const tween = new TWEEN.Tween(cameraLookAt)

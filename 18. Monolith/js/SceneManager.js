@@ -7,36 +7,18 @@ function SceneManager(canvas) {
         height: canvas.height
     }
 
-    const gameConstants = {
-        monolithRadius: 25,
-        minRadius: 50,
-        maxRadius: 200,
-        baseLevelHeight: 15,
-        secondLevelHeight: 25,
-
-        turretsHeight: 20,
-
-        speedStep: 0,
-    }
-
-    eventBus.subscribe(startCountDownFinishedEvent, () => gameConstants.speedStep = 0.0000015)
-
-    let enableUserInput = false
+    const gameStateManager = new GameStateManager()
     
     const scene = buildScene();
     const renderer = buildRender(screenDimensions);
     const camera = buildCamera(screenDimensions);    
     const composer = buildPostProcessing(renderer, scene, camera);
-    const sceneSubjects = createSceneSubjects(scene, gameConstants);
-
-    const soundManager = new SoundManager(camera)
-
-    const gameStateManager = new GameStateManager()
+    const sceneSubjects = createSceneSubjects(scene, gameStateManager.gameConstants);
     
     // these should be SceneSubjects
-    const gameEntitiesManager = new GameEntitiesManager(scene, gameConstants, gameStateManager.gameState)    
-    const playerAndCameraPositionManager = new PlayerAndCameraPositionManager(camera, gameEntitiesManager.player, gameConstants, gameStateManager.gameState)
-    const controls = buildControls(playerAndCameraPositionManager, gameEntitiesManager.player, gameConstants, gameStateManager.gameState)
+    const gameEntitiesManager = new GameEntitiesManager(scene, gameStateManager.gameConstants, gameStateManager.gameState)    
+    const playerAndCameraPositionManager = new PlayerAndCameraPositionManager(camera, gameEntitiesManager.player, gameStateManager.gameConstants, gameStateManager.gameState)
+    const controls = buildControls(playerAndCameraPositionManager, gameEntitiesManager.player, gameStateManager.gameConstants, gameStateManager.gameState)
 
     function buildScene() {
         const scene = new THREE.Scene();
@@ -173,11 +155,10 @@ function SceneManager(canvas) {
 
     this.introScreenClosed = function() {
         eventBus.post(introScreenClosed)
-        enableUserInput = true
     }
 
     this.onKeyDown = function(keyCode) {
-        if(!enableUserInput)
+        if(!gameStateManager.gameState.enableUserInput)
             return
 
         // refactor. this is a hack
@@ -195,7 +176,7 @@ function SceneManager(canvas) {
     }
 
     this.onKeyUp = function(keyCode) {
-        if(!enableUserInput)
+        if(!gameStateManager.gameState.enableUserInput)
             return
 
         // refactor. this is a hack
@@ -213,13 +194,13 @@ function SceneManager(canvas) {
     }
 
     this.onMouseDown = function(event) {
-        if(!enableUserInput)
+        if(!gameStateManager.gameState.enableUserInput)
             return
         controls.mouse.onMouseDown(event)
     }
 
     this.onMouseUp = function(event) {
-        if(!enableUserInput)
+        if(!gameStateManager.gameState.enableUserInput)
             return
         controls.mouse.onMouseUp(event)
     }

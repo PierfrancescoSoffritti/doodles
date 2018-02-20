@@ -1,19 +1,38 @@
 function GameStateManager() {
 
+    this.gameConstants = {
+        monolithRadius: 25,
+        minRadius: 50,
+        maxRadius: 200,
+        baseLevelHeight: 15,
+        secondLevelHeight: 25,
+
+        turretsHeight: 20,
+
+        speedStep: 0,
+    }
+
     this.gameState = {
         playerPosition: new THREE.Vector3(0, 0, 0),
         playerHeightLevel: 0, // 0 or 1
 
         lives: 0,
-        score: 0
+        score: 0,
+
+        enableUserInput: false
     }
+
+    eventBus.subscribe( introScreenClosed, () => this.gameState.enableUserInput = true )
+    eventBus.subscribe( startCountDownFinishedEvent, () => this.gameConstants.speedStep = 0.0000015 )
 
     eventBus.subscribe(gameOverEvent, () => {
         this.gameState.playerPosition = new THREE.Vector3(0, 0, 0)
-        this.gameState.playerHeightLevel = 0
-        
+        this.gameState.playerHeightLevel = 0        
         this.gameState.lives = 0
         this.gameState.score = 0
+        this.gameState.enableUserInput = false
+
+        this.gameConstants.speedStep = 0
     })
 
     this.update = function(time) {

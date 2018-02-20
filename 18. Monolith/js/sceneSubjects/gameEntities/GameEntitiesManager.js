@@ -11,7 +11,8 @@ function GameEntitiesManager(scene, gameConstants, gameState) {
     this.player = player
 
     let gameStarted = false
-    eventBus.subscribe(startCountDownFinishedEvent, () => gameStarted = true)
+    eventBus.subscribe( startCountDownFinishedEvent, () => gameStarted = true )
+    eventBus.subscribe( gameOverEvent, () => gameStarted = false )
 
     this.update = function(time) {
         player.update(time)

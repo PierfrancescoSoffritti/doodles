@@ -13,12 +13,12 @@ function Turrets(scene, gameConstants, gameState) {
 
     let gameStarted = false
 
-    eventBus.subscribe(startCountDownFinishedEvent, () => { gameStarted = true })
+    eventBus.subscribe( startCountDownFinishedEvent, () => gameStarted = true )
+    eventBus.subscribe( gameOverEvent, () => gameStarted = false )
 
     createTurrets(turretsLow, gameConstants.turretsHeight)
 
     this.update = function(time) {
-
         for(let i=0; i<numberOfTargetsPerLevel; i++) {
             const turret = turretsLow[i]
             turret.update(time)
@@ -35,6 +35,8 @@ function Turrets(scene, gameConstants, gameState) {
                     
             } else {
                 lastShootForwardTime = time
+                turret.material.color.r = 1
+                turret.mesh.scale.y = 1
             }
         }
     }

@@ -27,7 +27,7 @@ function EnemiesSpawner(scene, gameConstants) {
 
     this.enemies = enemies
 
-    eventBus.subscribe( gameOverEvent, () => { angleAccelerator.resetSpeed(angleSpeed); maxSpawnDelay = originalMaxSpawnDelay; destroyEnemies() } )
+    eventBus.subscribe( gameOverEvent, () => { angleAccelerator.resetSpeed(angleSpeed); maxSpawnDelay = originalMaxSpawnDelay; spawnerMesh.position.set(0,0,0); destroyEnemies() } )
 
     this.update = function(time) {
         for(var i=0; i<spawnerMesh.children.length; i++) {
