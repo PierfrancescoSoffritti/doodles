@@ -1,5 +1,10 @@
+let pageLoaded = false
+
 function onload() {
-    instructionsContainer.classList.remove("fade")
+    pageLoaded = true
+
+    if(meshLoaded)
+        begin()
 }
 
 function startGame() {

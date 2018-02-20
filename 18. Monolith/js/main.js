@@ -5,9 +5,21 @@ const sceneManager = new SceneManager(canvas);
 
 bindEventListeners();
 
+let meshLoaded = false
+
 // hack, used to cache the model
 const loader = new THREE.JSONLoader()
-loader.load('models/spaceship.json', function(playerGeometry, playerMaterials) { render() })
+loader.load('models/spaceship.json', function(playerGeometry, playerMaterials) { 
+	meshLoaded = true
+
+    if(pageLoaded)
+        begin()
+ })
+
+ function begin() {
+	instructionsContainer.classList.remove("fade")
+	 render()
+ }
 
 function bindEventListeners() {
 	window.onresize = resizeCanvas;
