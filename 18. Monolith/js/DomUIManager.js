@@ -1,5 +1,5 @@
 function onload() {
-	instructionsContainer.classList.remove("fade")
+    instructionsContainer.classList.remove("fade")
 }
 
 function startGame() {

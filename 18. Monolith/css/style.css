@@ -27,6 +27,13 @@ html, body {
     color: white;   
 }
 
+.black {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    background: black;
+}
+
 .disablingDiv {
     width: 100%;
     height: 100%;
