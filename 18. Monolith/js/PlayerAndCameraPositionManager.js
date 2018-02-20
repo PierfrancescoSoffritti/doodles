@@ -52,7 +52,7 @@ function PlayerAndCameraPositionManager(camera, player, gameConstants, gameState
 
         camera.position.y = playerPolarPostion.y + cameraPolarPostion.y
 
-        camera.lookAt(new THREE.Vector3(0,10,0))
+        camera.lookAt(new THREE.Vector3(0, 100, 0))
     }
 
     function updatePlayerPosition() {
