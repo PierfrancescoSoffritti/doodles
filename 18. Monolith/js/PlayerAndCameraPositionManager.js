@@ -32,8 +32,13 @@ function PlayerAndCameraPositionManager(camera, player, gameConstants, gameState
     })
 
     eventBus.subscribe(introScreenClosed, () => { 
-        const tween = new TWEEN.Tween(cameraLookAt)
+        const tweenCameraLookAt = new TWEEN.Tween(cameraLookAt)
             .to({ y: 10 }, 1500)
+            .easing(TWEEN.Easing.Cubic.InOut)
+            .start();
+
+        const tweenCameraHeight = new TWEEN.Tween(cameraHeightOffset)
+            .to({ y: 0 }, 1500)
             .easing(TWEEN.Easing.Cubic.InOut)
             .start();
      })

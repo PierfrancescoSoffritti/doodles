@@ -6,39 +6,6 @@ const sceneManager = new SceneManager(canvas);
 bindEventListeners();
 render();
 
-function startGame() {
-	const instructions = document.getElementById("instructionsContainer");
-	instructions.classList.add("fade");
-
-	const countDownContainer = document.getElementById("countDownContainer");
-	countDownContainer.classList.remove("fade");
-
-	sceneManager.introScreenClosed();
-
-	setTimeout( () => { 
-		countDownContainer.innerText = "3"
-
-		const start = document.getElementById("startButton")
-		instructions.removeChild(start)
-
-	}, 1000)
-
-	setTimeout( () => countDownContainer.innerText = "2", 2000)
-	setTimeout( () => countDownContainer.innerText = "1", 3000)
-	setTimeout( () => { 
-		countDownContainer.innerText = "0"
-		eventBus.post(startCountDownFinishedEvent)
-	}, 4000)
-
-	setTimeout( () => {
-		const htmlContainer = document.getElementById("htmlContainer")
-		htmlContainer.parentNode.removeChild(htmlContainer);
-	}, 4300)
-}
-
-function gameOver() {
-}
-
 function bindEventListeners() {
 	window.onresize = resizeCanvas;
 	window.onkeydown = onKeyDown;
