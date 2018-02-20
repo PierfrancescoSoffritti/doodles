@@ -57,10 +57,36 @@ html, body {
     animation: color-change 6000ms infinite;
 }
 
+.start {
+    box-sizing: border-box;
+    justify-content: center;
+
+    width: 120px;
+    height: 120px;
+    
+    border-radius:50%;
+    border: 2px solid rgba(255, 255, 255, 1);
+    transition: border-width 0.3s linear;
+
+    padding: 16px;
+
+    animation: color-change-background 6000ms infinite;
+}
+
+.start:hover {
+    border: 6px solid rgba(255, 255, 255, 1);
+}
+
 @keyframes color-change {
     0% { color: rgb(0, 140, 255); }
     25% { color: rgb(0, 201, 7); }
     50% { color: rgb(255, 191, 0); }
     75% { color: rgb(255, 60, 0); }
     100% { color: rgb(0, 140, 255); }
+}
+
+@keyframes color-change-background {
+    0% { background: rgb(0, 20, 37); }
+    75% { background: rgb(0, 0, 0); }
+    100% { background: rgb(0, 20, 37); }
 }
