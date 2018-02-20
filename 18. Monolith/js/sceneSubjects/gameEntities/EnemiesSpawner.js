@@ -10,7 +10,6 @@ function EnemiesSpawner(scene, gameConstants) {
     const accelerationIncreaseStep = 0.02
     const accelerationDecreaseStep = 0.009
     const angleAccelerator = new Accelerator(angleSpeed, acceletationMax, accelerationIncreaseStep, accelerationDecreaseStep)
-    eventBus.subscribe( gameOverEvent, () => angleAccelerator.resetSpeed(angleSpeed) )
 
     let currentAngle = 0
     let angleDirection = 1
@@ -20,12 +19,15 @@ function EnemiesSpawner(scene, gameConstants) {
     let lastEleveationChangeTime = 0
     let changeElevationDelay = 0
 
+    const originalMaxSpawnDelay = 1
     let maxSpawnDelay = 1
     const minSpawnDelay = 0.01
     let spawnDelay = .8
     let lastEnemySpawnTime = 0
 
     this.enemies = enemies
+
+    eventBus.subscribe( gameOverEvent, () => { angleAccelerator.resetSpeed(angleSpeed); maxSpawnDelay = originalMaxSpawnDelay; destroyEnemies() } )
 
     this.update = function(time) {
         for(var i=0; i<spawnerMesh.children.length; i++) {
@@ -124,6 +126,13 @@ function EnemiesSpawner(scene, gameConstants) {
 
             if(expired)
                 removeEnemy(i)
+        }
+    }
+
+    function destroyEnemies() {
+        while(enemies.length > 0) {
+            const enemy = enemies.pop()
+            enemy.destroy()
         }
     }
 

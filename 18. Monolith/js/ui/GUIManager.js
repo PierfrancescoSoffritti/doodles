@@ -3,8 +3,6 @@ function GUIManager(gameState) {
     const group = new THREE.Group()
     this.group = group
 
-    let { lives, score } = gameState
-
     const comboLength = 5
     let comboStreak = 0
     let scoreMultiplier = 1
@@ -12,13 +10,13 @@ function GUIManager(gameState) {
     let comboMesh
 
     const scoreTextureObj = new CanvasTexture("score: ")
-    scoreTextureObj.setText(score)
+    scoreTextureObj.setText(gameState.score)
 
     const comboTextureObj = new CanvasTexture("x ")
    comboTextureObj.setText(scoreMultiplier)
 
     const lifeTextureObj = new CanvasTexture("lives: ")
-    lifeTextureObj.setText(lives)
+    lifeTextureObj.setText(gameState.lives)
 
     createTextures();
 
@@ -30,10 +28,12 @@ function GUIManager(gameState) {
         scoreTextureObj.setText(score)
     }
 
-    eventBus.subscribe(decreaseLife, () => { updateLives(--lives); if(lives < 0) eventBus.post(gameOverEvent) } )
+    eventBus.subscribe(decreaseLife, () => { updateLives(--gameState.lives); if(gameState.lives < 0) eventBus.post(gameOverEvent) } )
 
-    eventBus.subscribe(increaseScore, () => { score += 1*scoreMultiplier; updateScore(score); comboStreak++; updateCombo() } )
-    eventBus.subscribe(decreaseScore, () => { score -= 1*scoreMultiplier; updateScore(score); resetCombo() } )
+    eventBus.subscribe(increaseScore, () => { gameState.score += 1*scoreMultiplier; updateScore(gameState.score); comboStreak++; updateCombo() } )
+    eventBus.subscribe(decreaseScore, () => { gameState.score -= 1*scoreMultiplier; updateScore(gameState.score); resetCombo() } )
+
+    eventBus.subscribe(gameOverEvent, () => { updateLives(gameState.lives); updateScore(gameState.score); resetCombo() } )
 
     function updateCombo() {
         if(comboStreak % comboLength != 0)

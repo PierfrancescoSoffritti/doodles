@@ -57,4 +57,8 @@ function Enemy(scene, { minRadius, maxRadius, baseLevelHeight, secondLevelHeight
             
         return expired
     }
+
+    this.destroy = function() {
+        scene.remove(sphere)
+    }
 }

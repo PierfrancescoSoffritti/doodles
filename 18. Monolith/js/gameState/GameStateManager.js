@@ -10,6 +10,8 @@ function GameStateManager() {
 
     eventBus.subscribe(gameOverEvent, () => {
         this.gameState.playerPosition = new THREE.Vector3(0, 0, 0)
+        this.gameState.playerHeightLevel = 0
+        
         this.gameState.lives = 0
         this.gameState.score = 0
     })
