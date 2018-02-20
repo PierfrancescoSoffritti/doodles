@@ -1,18 +1,17 @@
 const enemyRadius = 2
 const enemyGeometry = new THREE.SphereBufferGeometry( enemyRadius, 16, 16 );
-// const enemyMaterial = new THREE.MeshBasicMaterial( {color: "#000"} );
-var enemyMaterial = new THREE.MeshStandardMaterial({ color: "#F44336", roughness: 0, metalness: .9  });
+const enemyMaterial = new THREE.MeshStandardMaterial({ color: "#F44336", roughness: 0, metalness: .9  });
 
-        var envMap = new THREE.TextureLoader().load('textures/envMap.png');
-        envMap.mapping = THREE.SphericalReflectionMapping;
-        enemyMaterial.envMap = envMap;
+const envMap = new THREE.TextureLoader().load('textures/envMap.png');
+envMap.mapping = THREE.SphericalReflectionMapping;
+enemyMaterial.envMap = envMap;
 
 const enemyBlueprint = new THREE.Mesh( enemyGeometry, enemyMaterial );
 
 // wireframe
-var wireMaterial = new THREE.MeshPhongMaterial({ color: "#4CAF50", shading: THREE.FlatShading, wireframe: true });
+const wireMaterial = new THREE.MeshPhongMaterial({ color: "#4CAF50", shading: THREE.FlatShading, wireframe: true });
 const wireframeGeo = new THREE.IcosahedronBufferGeometry(enemyRadius, 1)
-var wireframeMesh = new THREE.Mesh(wireframeGeo, wireMaterial)
+const wireframeMesh = new THREE.Mesh(wireframeGeo, wireMaterial)
 wireframeMesh.scale.set(1.3, 1.3, 1.3)
 enemyBlueprint.add(wireframeMesh)
 

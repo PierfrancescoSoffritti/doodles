@@ -1,6 +1,5 @@
-function MouseControls( playerAndCameraPositionManager, player ) {
+function MouseControls( gameState, playerAndCameraPositionManager, player ) {
 
-    let currentHeightLevel = 0
     let shoot = false
     
     this.onMouseDown = function(event) {
@@ -39,8 +38,8 @@ function MouseControls( playerAndCameraPositionManager, player ) {
     }
 
     function onRightClick() {
-        currentHeightLevel = (currentHeightLevel+1) %2
-        playerAndCameraPositionManager.changeHeightLevel(currentHeightLevel)
+        gameState.playerHeightLevel = (gameState.playerHeightLevel +1 ) %2
+        playerAndCameraPositionManager.changeHeightLevel( gameState.playerHeightLevel )
     }
 
     function onLeftClickDown() {

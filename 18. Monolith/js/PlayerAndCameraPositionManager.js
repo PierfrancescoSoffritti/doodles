@@ -19,7 +19,7 @@ function PlayerAndCameraPositionManager(camera, player, gameConstants, gameState
     const playerPolarPostion = {
         radius: 0,
         angle: 0,
-        y: gameConstants.baseLevelHeight
+        y: gameState.playerHeightLevel === 0 ? gameConstants.baseLevelHeight : gameConstants.secondLevelHeight
     }
 
     const cameraLookAt = new THREE.Vector3(0, 100, 0)

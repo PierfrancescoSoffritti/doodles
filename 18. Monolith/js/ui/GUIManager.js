@@ -1,7 +1,9 @@
-function GUIManager(lives = 1, score = 0) {
+function GUIManager(gameState) {
     
     const group = new THREE.Group()
     this.group = group
+
+    let { lives, score } = gameState
 
     const comboLength = 5
     let comboStreak = 0
@@ -52,32 +54,39 @@ function GUIManager(lives = 1, score = 0) {
     function createTextures() {
         const baseDim = .2;
 
-        const lifebarMaterial = new THREE.MeshBasicMaterial( { map: lifeTextureObj.texture } );
-        const planeGeometry = new THREE.PlaneBufferGeometry(baseDim/lifeTextureObj.widthRatio, baseDim/lifeTextureObj.heightRatio, 1, 1);
-        const lifebarMesh = new THREE.Mesh(planeGeometry, lifebarMaterial);
-        
-        lifebarMesh.rotation.y = Math.PI/1.33;        
-        lifebarMesh.position.set(0, .4, .6);
+        createLifeTexture()
+        createScoreTexture()
+        createComboTexture()
 
-        // ---
+        function createLifeTexture() {
+            const lifeMaterial = new THREE.MeshBasicMaterial( { map: lifeTextureObj.texture } );
+            const lifeGeometry = new THREE.PlaneBufferGeometry(baseDim/lifeTextureObj.widthRatio, baseDim/lifeTextureObj.heightRatio, 1, 1);
+            const lifeMesh = new THREE.Mesh(lifeGeometry, lifeMaterial);
+            
+            lifeMesh.rotation.y = Math.PI/1.33;        
+            lifeMesh.position.set(0, .4, .6);
 
-        const scoreMaterial = new THREE.MeshBasicMaterial( { map: scoreTextureObj.texture, transparent: true, side:  THREE.DoubleSide } );
-        const scoreGeometry = new THREE.PlaneBufferGeometry(baseDim/scoreTextureObj.widthRatio, baseDim/scoreTextureObj.heightRatio, 1, 1);
-        const scoreMesh = new THREE.Mesh(scoreGeometry, scoreMaterial);
-        
-        scoreMesh.rotation.y = Math.PI/4;
-        scoreMesh.position.set(.2, .4, -.6);
+            group.add(lifeMesh)
+        }
 
-        // ---
+        function createScoreTexture() {
+            const scoreMaterial = new THREE.MeshBasicMaterial( { map: scoreTextureObj.texture, transparent: true, side:  THREE.DoubleSide } );
+            const scoreGeometry = new THREE.PlaneBufferGeometry(baseDim/scoreTextureObj.widthRatio, baseDim/scoreTextureObj.heightRatio, 1, 1);
+            const scoreMesh = new THREE.Mesh(scoreGeometry, scoreMaterial);
+            
+            scoreMesh.rotation.y = Math.PI/4;
+            scoreMesh.position.set(.2, .4, -.6);
 
-        const comboMaterial = new THREE.MeshBasicMaterial( { map: comboTextureObj.texture, transparent: true, side:  THREE.DoubleSide } );
-        const comboGeometry = new THREE.PlaneBufferGeometry(baseDim/comboTextureObj.widthRatio, baseDim/comboTextureObj.heightRatio, 1, 1);
-        comboMesh = new THREE.Mesh(comboGeometry, comboMaterial);
-        
-        comboMesh.rotation.y = Math.PI/4;
-        comboMesh.position.set(.2, .46, -.6);
+            group.add(scoreMesh)
+        }
 
-        group.add(lifebarMesh);
-        group.add(scoreMesh);
+        function createComboTexture() {
+            const comboMaterial = new THREE.MeshBasicMaterial( { map: comboTextureObj.texture, transparent: true, side:  THREE.DoubleSide } );
+            const comboGeometry = new THREE.PlaneBufferGeometry(baseDim/comboTextureObj.widthRatio, baseDim/comboTextureObj.heightRatio, 1, 1);
+            comboMesh = new THREE.Mesh(comboGeometry, comboMaterial);
+            
+            comboMesh.rotation.y = Math.PI/4;
+            comboMesh.position.set(.2, .46, -.6);
+        }
     }
 }

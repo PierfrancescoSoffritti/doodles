@@ -5,11 +5,12 @@ function EnemiesSpawner(scene, gameConstants) {
     
     spawnerMesh.position.y = gameConstants.baseLevelHeight    
 
-    const speed = .006
+    const angleSpeed = .006
     const acceletationMax = 1
     const accelerationIncreaseStep = 0.02
     const accelerationDecreaseStep = 0.009
-    const angleAccelerator = new Accelerator(speed, acceletationMax, accelerationIncreaseStep, accelerationDecreaseStep)
+    const angleAccelerator = new Accelerator(angleSpeed, acceletationMax, accelerationIncreaseStep, accelerationDecreaseStep)
+    eventBus.subscribe( gameOverEvent, () => angleAccelerator.resetSpeed(angleSpeed) )
 
     let currentAngle = 0
     let angleDirection = 1

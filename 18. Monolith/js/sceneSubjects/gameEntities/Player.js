@@ -4,46 +4,15 @@ function Player(scene, gameState, shooter) {
     const group = new THREE.Group()
     scene.add( group )
 
-    const guiManager = new GUIManager();
-    group.add(guiManager.group);
+    const guiManager = new GUIManager(gameState)
+    group.add(guiManager.group)
 
     const colors = [ "#F44336", "#3F51B5", "#2196F3", "#009688", "#4CAF50", "#8BC34A", "#CDDC39", "#FFC107", "#FF9800", "#FF5722" ]
     const color = colors[ getRandomInt(0, colors.length) ]
     
     shooter.bulletsColor = tinycolor(color).darken(20).toString()
 
-    var loader = new THREE.JSONLoader();
-    loader.load('models/spaceship.json', function(geometry, materials) {
-
-        self.materials = materials;
-        
-        for(let i=0; i<materials.length; i++) {
-            materials[i].flatShading = true
-            materials[i].shininess = 0 
-            materials[i].metalness = 0 
-            materials[i].roughness = 0.4
-
-            materials[i].transparent = true
-            
-            if(materials[i].name === "engine") {
-                materials[i].emissive = new THREE.Color("#B71C1C")
-                materials[i].emissiveIntensity = 0
-            }
-
-            changeColors(color, materials[i])
-        }
-
-        const mesh = new THREE.Mesh(geometry, materials);
-        const scale = .2
-        mesh.scale.set(scale, scale, scale)
-        group.add(mesh);
-
-        const pointLight = new THREE.PointLight( "#E8E8E8", .3, 20);
-        pointLight.position.set( 1, 1, 0 );
-        group.add( pointLight );
-
-        self.mesh = mesh
-	});
+    loadPlayerMesh()
     
     this.position = group.position
     this.rotation = group.rotation
@@ -58,25 +27,61 @@ function Player(scene, gameState, shooter) {
             shoot()
         
         updateEngineColor(this.acceleration)    
-        fadeMesh(time);
+        fadeMesh(time)
     }
 
     this.takeDamage = function() {
         if(recoveringFromDamage)
-            return;
+            return
 
         eventBus.post(decreaseLife)
-        recoveringFromDamage = true;
-        setTimeout(() => recoveringFromDamage = false, 3000);
+
+        recoveringFromDamage = true
+        setTimeout(() => recoveringFromDamage = false, 3000)
+    }
+
+    function loadPlayerMesh() {
+        const loader = new THREE.JSONLoader()
+        loader.load('models/spaceship.json', function(playerGeometry, playerMaterials) {
+
+            self.materials = playerMaterials;
+            
+            for(let i=0; i<playerMaterials.length; i++) {
+                playerMaterials[i].flatShading = true
+                playerMaterials[i].shininess = 0 
+                playerMaterials[i].metalness = 0 
+                playerMaterials[i].roughness = 0.4
+
+                playerMaterials[i].transparent = true
+                
+                if(playerMaterials[i].name === "engine") {
+                    playerMaterials[i].emissive = new THREE.Color("#B71C1C")
+                    playerMaterials[i].emissiveIntensity = 0
+                }
+
+                changeColors(color, playerMaterials[i])
+            }
+
+            const playerMesh = new THREE.Mesh(playerGeometry, playerMaterials)
+            const scale = .2
+            playerMesh.scale.set(scale, scale, scale)
+            group.add(playerMesh);
+
+            const playerPointLight = new THREE.PointLight( "#E8E8E8", .3, 20)
+            playerPointLight.position.set( 1, 1, 0 )
+            group.add( playerPointLight )
+
+            self.mesh = playerMesh
+        })
     }
 
     function fadeMesh(time) {
         const opacity = recoveringFromDamage ? 
             ( sin(time*16) +1.2 ) / 2.2
-            : 1;
+            : 1
 
         for(let i=0; i<self.materials.length; i++)
-            self.materials[i].opacity = opacity;
+            self.materials[i].opacity = opacity
     }
 
     function shoot() {
@@ -85,7 +90,6 @@ function Player(scene, gameState, shooter) {
     }
 
     function updateEngineColor(acceleration) {
-
         self.engineMaterial.emissiveIntensity = acceleration
     }
 

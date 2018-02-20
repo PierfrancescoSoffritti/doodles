@@ -36,7 +36,7 @@ function SceneManager(canvas) {
     // these should be SceneSubjects
     const gameEntitiesManager = new GameEntitiesManager(scene, gameConstants, gameStateManager.gameState)    
     const playerAndCameraPositionManager = new PlayerAndCameraPositionManager(camera, gameEntitiesManager.player, gameConstants, gameStateManager.gameState)
-    const controls = buildControls(playerAndCameraPositionManager, gameEntitiesManager.player, gameConstants)
+    const controls = buildControls(playerAndCameraPositionManager, gameEntitiesManager.player, gameConstants, gameStateManager.gameState)
 
     function buildScene() {
         const scene = new THREE.Scene();
@@ -121,10 +121,10 @@ function SceneManager(canvas) {
         return composer;
     }
 
-    function buildControls(playerAndCameraPositionManager, player, gameConstants) {
+    function buildControls(playerAndCameraPositionManager, player, gameConstants, gameStateManager) {
         const controls = {
             polar: new PolarControls(playerAndCameraPositionManager, gameConstants),
-            mouse: new MouseControls(playerAndCameraPositionManager, player)
+            mouse: new MouseControls(gameStateManager, playerAndCameraPositionManager, player)
         }
         
         return controls
