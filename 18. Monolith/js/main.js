@@ -4,7 +4,9 @@ const eventBus = new EventBus()
 const sceneManager = new SceneManager(canvas);
 
 bindEventListeners();
-render();
+
+const loader = new THREE.JSONLoader()
+loader.load('models/spaceship.json', function(playerGeometry, playerMaterials) { render() })
 
 function bindEventListeners() {
 	window.onresize = resizeCanvas;

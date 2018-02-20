@@ -1,3 +1,7 @@
+function onload() {
+	instructionsContainer.classList.remove("fade")
+}
+
 function startGame() {
     const htmlContainer = document.getElementById("htmlContainer")
     const disablingDiv = document.getElementById("disablingDiv")
