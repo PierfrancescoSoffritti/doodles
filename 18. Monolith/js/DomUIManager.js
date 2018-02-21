@@ -1,4 +1,4 @@
-function DomUIManager (eventBus) {
+function DomUIManager() {
     
     const htmlContainer = document.getElementById("htmlContainer")
     const disablingDiv = document.getElementById("disablingDiv")

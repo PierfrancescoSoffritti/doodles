@@ -1,21 +1,21 @@
 const canvas = document.getElementById("canvas")
 
-const stepBarrier = new StepBarrier(2, begin)
+const loadingStepBarrier = new StepBarrier(2, begin)
 
 const eventBus = new EventBus()
 const sceneManager = new SceneManager(canvas)
-const domUIManager = new DomUIManager(eventBus)
+const domUIManager = new DomUIManager()
 
 cacheResources()
 bindEventListeners()
 
 function onload() {
-    stepBarrier.step()
+    loadingStepBarrier.step()
 }
 
 function cacheResources() {
 	const loader = new THREE.JSONLoader()
-	loader.load('models/spaceship.json', stepBarrier.step)
+	loader.load('models/spaceship.json', loadingStepBarrier.step)
 }
 
  function begin() {	
