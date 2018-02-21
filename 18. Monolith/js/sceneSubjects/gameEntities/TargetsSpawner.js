@@ -1,5 +1,6 @@
 function TargetsSpawner(scene, gameConstants) {
     const targets = []
+    const targetsCache = []
 
     const spawnerMesh = buildSpawnerMesh(scene)    
     const spawnerMovement = new TargetSpawnerMovement(spawnerMesh, gameConstants)
@@ -65,16 +66,18 @@ function TargetsSpawner(scene, gameConstants) {
         if(currentTime - lastTargetSpawnTime < spawnDelay)
             return
         
-        targets.push(new Target(scene, gameConstants, spawnerMesh.position))
+        const target = targetsCache.length != 0 ? targetsCache.pop().reset(spawnerMesh.position) : new Target(scene, gameConstants, spawnerMesh.position)
+        targets.push(target)
+
         lastTargetSpawnTime = currentTime
         spawnDelay = getRandom(minSpawnDelay, maxSpawnDelay)
     }
 
     function updateTargets(time) {
         for(let i=0; i<targets.length; i++) {
-            const expired = targets[i].update(time)
+            const removed = targets[i].update(time)
 
-            if(expired)
+            if(removed)
                 removeTarget(i)
         }
     }
@@ -83,7 +86,8 @@ function TargetsSpawner(scene, gameConstants) {
         if(!targets[i].collision)
             eventBus.post(decreaseScore)
 
-        targets.splice(i, 1)
+        const target = targets.splice(i, 1)[0]
+        targetsCache.push(target)
     }
 
     function destroyTargets() {

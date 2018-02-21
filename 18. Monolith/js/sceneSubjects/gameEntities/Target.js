@@ -27,8 +27,11 @@ function Target(scene, { minRadius, maxRadius, baseLevelHeight, secondLevelHeigh
 
     const polarCoordinates = cartesianToPolar(origin.x, origin.z)
 
-    this.position = sphere.position
+    let removing = false
+    let removed = false
+
     this.collision = false
+    this.position = sphere.position
     this.boundingSphereRad = targetRadius*scale *2
 
     this.update = function(time) {
@@ -46,8 +49,25 @@ function Target(scene, { minRadius, maxRadius, baseLevelHeight, secondLevelHeigh
 
         if(expired)
             removeObject()
-            
-        return expired
+        
+        return removed
+    }
+    
+    this.reset = function(newOrigin) {
+        sphere.scale.set(scale, scale, scale)
+       
+        sphere.position.y = newOrigin.y       
+        const newOriginCoords = cartesianToPolar(newOrigin.x, newOrigin.z)
+        polarCoordinates.radius = newOriginCoords.radius
+        polarCoordinates.angle = newOriginCoords.angle
+
+        removing = false
+        removed = false
+        this.collision = false
+
+        scene.add(sphere)
+
+        return this
     }
 
     this.destroy = function() {
@@ -55,12 +75,15 @@ function Target(scene, { minRadius, maxRadius, baseLevelHeight, secondLevelHeigh
     }
 
     function removeObject() {
+        if(removing)
+            return
+
+        removing = true
+
         const tween = new TWEEN.Tween(sphere.scale)
             .to({ x: 0, y: 0, z: 0 } , 200)
             .easing(TWEEN.Easing.Cubic.InOut)
-            .onComplete(function() {                
-                scene.remove(sphere)
-            })
-            .start();
+            .onComplete( () => { scene.remove(sphere); removed = true; } )
+            .start()
     }
 }
