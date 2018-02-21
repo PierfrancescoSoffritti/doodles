@@ -23,7 +23,7 @@ function Turrets(scene, gameConstants, gameState) {
             const turret = turretsLow[i]
             turret.update(time)
 
-            if(gameStarted) {
+            if( gameStarted && gameState.playerHasMoved ) {
 
                 turret.material.color.r = ( (time - lastShootForwardTime) / shootForwardDelay)
                 turret.mesh.scale.y = ( (time - lastShootForwardTime) / shootForwardDelay)*2 +1

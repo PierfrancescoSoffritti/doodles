@@ -21,12 +21,13 @@ function GameStateManager() {
         lives: maxLives,
         score: 0,
 
+        playerHasMoved: false,
         enableUserInput: false
     }
 
     eventBus.subscribe( introScreenClosed, () => this.gameState.enableUserInput = true )
     eventBus.subscribe( startCountDownFinishedEvent, () => {
-        this.gameConstants.speedStep = 0.0000015;
+        this.gameConstants.speedStep = 0.0000008;
     } )
 
     eventBus.subscribe(gameOverEvent, () => {

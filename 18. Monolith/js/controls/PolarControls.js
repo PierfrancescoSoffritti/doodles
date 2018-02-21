@@ -1,4 +1,4 @@
-function PolarControls(playerAndCameraPositionManager, gameConstants) {
+function PolarControls(playerAndCameraPositionManager, gameConstants, gameState) {
 
     const W = 87
     const A = 65
@@ -27,6 +27,8 @@ function PolarControls(playerAndCameraPositionManager, gameConstants) {
     eventBus.subscribe( gameOverEvent, () => { angleAccelerator.resetSpeed(angleSpeed); left = right = forward = backward = false } )
 
     this.onKeyDown = function(keyCode) {
+        gameState.playerHasMoved = true
+
         if(keyCode === A)
             left = true
         else if(keyCode === D)

@@ -103,10 +103,10 @@ function SceneManager(canvas) {
         return composer;
     }
 
-    function buildControls(playerAndCameraPositionManager, player, gameConstants, gameStateManager) {
+    function buildControls(playerAndCameraPositionManager, player, gameConstants, gameState) {
         const controls = {
-            polar: new PolarControls(playerAndCameraPositionManager, gameConstants),
-            mouse: new MouseControls(gameStateManager, playerAndCameraPositionManager, player)
+            polar: new PolarControls(playerAndCameraPositionManager, gameConstants, gameState),
+            mouse: new MouseControls(gameState, playerAndCameraPositionManager, player)
         }
         
         return controls
