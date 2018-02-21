@@ -1,5 +1,6 @@
 function TurretBulletsShooter(scene, position, gameConstants) {
     const bullets = []
+    const bulletsCache = []
 
     let currentTime = 0
     const shootDelay = .015
@@ -13,7 +14,7 @@ function TurretBulletsShooter(scene, position, gameConstants) {
             const expired = bullets[i].update(time)
            
             if(expired)
-                bullets.splice(i, 1);
+                removeBullet(i)
         }
     }
 
@@ -21,8 +22,16 @@ function TurretBulletsShooter(scene, position, gameConstants) {
         if(currentTime - lastShootTime < shootDelay)
             return
 
-        bullets.push( new TurretBullet(scene, gameConstants, position, targetPosition, scaleFactor) )
+        const bullet = bulletsCache.length != 0 ? bulletsCache.pop().reset(targetPosition, scaleFactor) 
+            : new TurretBullet(scene, gameConstants, position, targetPosition, scaleFactor)
+        bullets.push(bullet)
+
         lastShootTime = currentTime
+    }
+
+    function removeBullet(i) {
+        const bullet = bullets.splice(i, 1)[0]
+        bulletsCache.push(bullet)
     }
 }
 
@@ -38,9 +47,9 @@ function TurretBullet(scene, gameConstants, originPosition, targetPosition, scal
     if(scaleFactor != 1)
         bulletMesh.material = new THREE.MeshBasicMaterial( {color: "#810081"} );
 
-    const maxScaleX = getRandom(.1, 1) *scaleFactor
-    const maxScaleY = getRandom(.1, 1) *scaleFactor
-    const maxScaleZ = getRandom(.1, 1) *scaleFactor
+    let maxScaleX = getRandom(.1, 1) *scaleFactor
+    let maxScaleY = getRandom(.1, 1) *scaleFactor
+    let maxScaleZ = getRandom(.1, 1) *scaleFactor
     bulletMesh.scale.set(maxScaleX, maxScaleY, maxScaleZ)
 
     const direction = new THREE.Vector3()
@@ -51,15 +60,15 @@ function TurretBullet(scene, gameConstants, originPosition, targetPosition, scal
 
     const maxScale = 1
 
+    this.collision = false
+
     this.position = bulletMesh.position
     this.boundingSphereRad = 4
-    this.collision = false
 
     this.update = function(time) {
         distance += step
 
         bulletMesh.translateOnAxis ( direction, distance )    
-        // sphere.position.add( direction.clone().multiplyScalar( distance ) )
 
         const polarCoordsBullet = cartesianToPolar(bulletMesh.position.x, bulletMesh.position.z)
         const polarCoordsPlayer = cartesianToPolar(targetPosition.x, targetPosition.z)
@@ -71,6 +80,29 @@ function TurretBullet(scene, gameConstants, originPosition, targetPosition, scal
             scene.remove(bulletMesh)
             
         return expired
+    }
+
+    this.reset = function(newTargetPosition, scaleFactor) {
+        bulletMesh.position.set(originPosition.x, originPosition.y, originPosition.z)
+
+        if(scaleFactor != 1)
+            bulletMesh.material = new THREE.MeshBasicMaterial( {color: "#810081"} )
+        else
+            bulletMesh.material = new THREE.MeshBasicMaterial( {color: "#100000"} )
+
+        maxScaleX = getRandom(.1, 1) *scaleFactor
+        maxScaleY = getRandom(.1, 1) *scaleFactor
+        maxScaleZ = getRandom(.1, 1) *scaleFactor
+
+        distance = 0
+
+        direction.x = direction.y = direction.z = 0
+        direction.subVectors( newTargetPosition, originPosition ).normalize()
+        scene.add(bulletMesh)
+
+        this.collision = false
+
+        return this
     }
 
     function updateScale(polarCoords) {

@@ -76,6 +76,7 @@ function Bullet(scene, originPosition, gameConstants, color) {
     this.reset = function(newOrigin) {
         const newOriginpolarCoords = cartesianToPolar(newOrigin.x, newOrigin.z)
         
+        bulletMesh.position.set(newOrigin.x, newOrigin.y, newOrigin.z)
         polarCoords.radius = newOriginpolarCoords.radius
         polarCoords.angle = newOriginpolarCoords.angle
 
