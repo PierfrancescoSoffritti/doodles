@@ -1,23 +1,22 @@
-const enemyRadius = 2
-const enemyGeometry = new THREE.SphereBufferGeometry( enemyRadius, 16, 16 );
-const enemyMaterial = new THREE.MeshStandardMaterial({ color: "#F44336", roughness: 0, metalness: .9  });
+const targetRadius = 2
+
+const targetGeometry = new THREE.SphereBufferGeometry( targetRadius, 16, 16 );
+const targetMaterial = new THREE.MeshStandardMaterial({ color: "#F44336", roughness: 0, metalness: .9  });
+const targetBlueprint = new THREE.Mesh( targetGeometry, targetMaterial );
 
 const envMap = new THREE.TextureLoader().load('textures/envMap.png');
 envMap.mapping = THREE.SphericalReflectionMapping;
-enemyMaterial.envMap = envMap;
+targetMaterial.envMap = envMap;
 
-const enemyBlueprint = new THREE.Mesh( enemyGeometry, enemyMaterial );
-
-// wireframe
-const wireMaterial = new THREE.MeshPhongMaterial({ color: "#4CAF50", flatShading: true, wireframe: true });
-const wireframeGeo = new THREE.IcosahedronBufferGeometry(enemyRadius, 1)
-const wireframeMesh = new THREE.Mesh(wireframeGeo, wireMaterial)
-wireframeMesh.scale.set(1.3, 1.3, 1.3)
-enemyBlueprint.add(wireframeMesh)
+const targetWirefraneMaterial = new THREE.MeshPhongMaterial({ color: "#4CAF50", flatShading: true, wireframe: true });
+const targetWireframeGeometry = new THREE.IcosahedronBufferGeometry(targetRadius, 1)
+const targetWireframeMesh = new THREE.Mesh(targetWireframeGeometry, targetWirefraneMaterial)
+targetWireframeMesh.scale.set(1.3, 1.3, 1.3)
+targetBlueprint.add(targetWireframeMesh)
 
 function Target(scene, { minRadius, maxRadius, baseLevelHeight, secondLevelHeight }, origin) {
     
-    const sphere = enemyBlueprint.clone()
+    const sphere = targetBlueprint.clone()
     scene.add(sphere)
 
     const scale = getRandom(1, 2)
@@ -30,11 +29,11 @@ function Target(scene, { minRadius, maxRadius, baseLevelHeight, secondLevelHeigh
 
     this.position = sphere.position
     this.collision = false
-    this.boundingSphereRad = enemyRadius*scale *2
+    this.boundingSphereRad = targetRadius*scale *2
 
     this.update = function(time) {
 
-        wireMaterial.color.setHSL( Math.abs( Math.sin(time)) , 0.9, 0.5 );
+        targetWirefraneMaterial.color.setHSL( Math.abs( Math.sin(time)) , 0.9, 0.5 );
 
         polarCoordinates.radius += speed
 
@@ -45,20 +44,23 @@ function Target(scene, { minRadius, maxRadius, baseLevelHeight, secondLevelHeigh
 
         const expired = ( polarCoordinates.radius > maxRadius || this.collision === true ) ? true : false
 
-        if(expired) {
-            const tween = new TWEEN.Tween(sphere.scale)
-                .to({ x: 0, y: 0, z: 0 } , 200)
-                .easing(TWEEN.Easing.Cubic.InOut)
-                .onComplete(function() {                
-                    scene.remove(sphere)
-                })
-                .start();
-        }
+        if(expired)
+            removeObject()
             
         return expired
     }
 
     this.destroy = function() {
         scene.remove(sphere)
+    }
+
+    function removeObject() {
+        const tween = new TWEEN.Tween(sphere.scale)
+            .to({ x: 0, y: 0, z: 0 } , 200)
+            .easing(TWEEN.Easing.Cubic.InOut)
+            .onComplete(function() {                
+                scene.remove(sphere)
+            })
+            .start();
     }
 }

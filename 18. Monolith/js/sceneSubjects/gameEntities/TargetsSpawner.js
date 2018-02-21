@@ -79,17 +79,17 @@ function TargetsSpawner(scene, gameConstants) {
         }
     }
 
-    function destroyTargets() {
-        while(targets.length > 0) {
-            const target = targets.pop()
-            target.destroy()
-        }
-    }
-
     function removeTarget(i) {
         if(!targets[i].collision)
             eventBus.post(decreaseScore)
 
         targets.splice(i, 1)
+    }
+
+    function destroyTargets() {
+        while(targets.length > 0) {
+            const target = targets.pop()
+            target.destroy()
+        }
     }
 }
