@@ -4,7 +4,7 @@ function GameEntitiesManager(scene, gameConstants, gameState) {
     const player = new Player( scene, gameState, playerShooter )
     const monolith = new Monolith(scene, gameConstants)
 
-    const enemiesSpawner = new EnemiesSpawner(scene, gameConstants)
+    const targetsSpawner = new TargetsSpawner(scene, gameConstants)
 
     const turrets = new Turrets(scene, gameConstants, gameState)
 
@@ -23,14 +23,14 @@ function GameEntitiesManager(scene, gameConstants, gameState) {
         if(!gameStarted)
             return
 
-        enemiesSpawner.update(time)
+        targetsSpawner.update(time)
 
         const bullets = playerShooter.bullets
-        const enemies = enemiesSpawner.enemies
+        const targets = targetsSpawner.targets
 
         const enemyBullets = turrets.getBullets();
         
-        checkCollision(bullets, enemies, player)
+        checkCollision(bullets, targets, player)
         checkCollisionWithPlayer(enemyBullets, player)
     }   
 

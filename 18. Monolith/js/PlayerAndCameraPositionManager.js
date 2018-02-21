@@ -1,9 +1,6 @@
 function PlayerAndCameraPositionManager(camera, player, gameConstants, gameState) {
-    this.player = player
-
-    const cameraHeightFromPlayer = .6
+    const cameraHeightFromPlayer = { value: .6, offset: 0 }
     const playerDistanceFromCamera = 1.4
-    const cameraHeightOffset = { y: 0 }
 
     let lastAngleDirection = 0
     let lastRadiusDirection = 0
@@ -13,7 +10,7 @@ function PlayerAndCameraPositionManager(camera, player, gameConstants, gameState
     const cameraPolarPostion = {
         radius: 0,
         angle: 0,
-        y: cameraHeightFromPlayer
+        y: cameraHeightFromPlayer.value
     }
 
     const playerPolarPostion = {
@@ -25,8 +22,8 @@ function PlayerAndCameraPositionManager(camera, player, gameConstants, gameState
     const cameraLookAt = new THREE.Vector3(0, 100, 0)
 
     eventBus.subscribe(gameOverEvent, () => {
-        const tween = new TWEEN.Tween(cameraHeightOffset)
-            .to({ y: 80 }, 1500)
+        const tween = new TWEEN.Tween(cameraHeightFromPlayer)
+            .to({ offset: 80 }, 1500)
             .easing(TWEEN.Easing.Cubic.InOut)
             .start();
     })
@@ -37,8 +34,8 @@ function PlayerAndCameraPositionManager(camera, player, gameConstants, gameState
             .easing(TWEEN.Easing.Cubic.InOut)
             .start();
 
-        const tweenCameraHeight = new TWEEN.Tween(cameraHeightOffset)
-            .to({ y: 0 }, 1500)
+        const tweenCameraHeight = new TWEEN.Tween(cameraHeightFromPlayer)
+            .to({ offset: 0 }, 1500)
             .easing(TWEEN.Easing.Cubic.InOut)
             .start();
      })
@@ -52,14 +49,13 @@ function PlayerAndCameraPositionManager(camera, player, gameConstants, gameState
         cameraPolarPostion.radius += sin(time)/10       
         cameraPolarPostion.angle += cos(time)/8000
         
-        cameraPolarPostion.y = cameraHeightFromPlayer + cos(time/2)/16 +cameraHeightOffset.y
+        cameraPolarPostion.y = cameraHeightFromPlayer.value + cos(time/2)/16 +cameraHeightFromPlayer.offset
 
         // camera acceleration movmenet
         const acc = acceleration >=  0.975 ? 1/2 : acceleration/2
         cameraPolarPostion.radius += sin(acc)*2
         cameraPolarPostion.y += sin(acc)/1.5
 
-        // cameraPolarPostion.angle += Math.sin(acc)/200
         cameraPolarPostion.angle += cameraAngleStearingOffset.val
 
         updateCameraPosition()
@@ -116,8 +112,6 @@ function PlayerAndCameraPositionManager(camera, player, gameConstants, gameState
         const tween2 = new TWEEN.Tween(cameraAngleStearingOffset)
             .to({ val: -direction/400 }, 1000)
             .easing(TWEEN.Easing.Sinusoidal.InOut)
-            .onUpdate(function() {                
-            })
             .start();
     }
 

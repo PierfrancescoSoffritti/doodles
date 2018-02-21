@@ -12,7 +12,7 @@ function SceneManager(canvas) {
     const scene = buildScene();
     const renderer = buildRender(screenDimensions);
     const camera = buildCamera(screenDimensions);    
-    const composer = buildPostProcessing(renderer, scene, camera);
+    const { composer, timeDependentShaders } = buildPostProcessing(renderer, scene, camera);
     const sceneSubjects = createSceneSubjects(scene, gameStateManager.gameConstants);
     
     // these should be SceneSubjects
@@ -50,16 +50,15 @@ function SceneManager(canvas) {
         return camera;
     }
 
-    var filmPass
-
     function buildPostProcessing(renderer, scene, camera) {
         const composer = new THREE.EffectComposer(renderer)
+        const timeDependentShaders = []
 
         const renderPass = new THREE.RenderPass(scene, camera)
         renderPass.clear = true
         renderPass.clearDepth = true
 
-        filmPass = new THREE.ShaderPass(THREE.FilmShader)
+        const filmPass = new THREE.ShaderPass(THREE.FilmShader)
         filmPass.uniforms["nIntensity"].value = 0.2
         filmPass.uniforms["sIntensity"].value = 0.2
         filmPass.uniforms["sCount"].value = 1600   
@@ -74,34 +73,34 @@ function SceneManager(canvas) {
 
         const glitchPass = new THREE.GlitchPass()
 
-        composer.addPass(renderPass);
-        composer.addPass(rgbPass);
-        composer.addPass(vignettePass);
-        composer.addPass(glitchPass);
-        composer.addPass(filmPass);
-        filmPass.renderToScreen = true;
+        composer.addPass(renderPass)
+        composer.addPass(rgbPass)
+        composer.addPass(vignettePass)
+        composer.addPass(glitchPass)
+        composer.addPass(filmPass)
+        filmPass.renderToScreen = true
 
-        eventBus.subscribe(decreaseLife, () => glitch())
+        timeDependentShaders.push(filmPass)
 
-        function glitch() {
+        eventBus.subscribe(decreaseLife, playGlitchEffect)
+
+        return { composer, timeDependentShaders }
+
+        function playGlitchEffect() {
             glitchPass.goWild = true
 
-            const tween = new TWEEN.Tween(rgbPass.uniforms["amount"])
+            const glitchTweenStart = new TWEEN.Tween(rgbPass.uniforms["amount"])
                 .to({ value: 0.1 }, 150)
                 .easing(TWEEN.Easing.Sinusoidal.InOut)
-                .onComplete(function() {
-                    const tween2 = new TWEEN.Tween(rgbPass.uniforms["amount"])
+                .onComplete( () => {
+                    const glitchTweenEnd = new TWEEN.Tween(rgbPass.uniforms["amount"])
                         .to({ value: 0.001 }, 150)
                         .easing(TWEEN.Easing.Sinusoidal.InOut)
-                        .onComplete(function() {
-                            glitchPass.goWild = false
-                        })
-                        .start();
+                        .onComplete( () => glitchPass.goWild = false )
+                        .start()
                 })
-                .start();
+                .start()
         }
-
-        return composer;
     }
 
     function buildControls(playerAndCameraPositionManager, player, gameConstants, gameState) {
@@ -118,9 +117,9 @@ function SceneManager(canvas) {
             new Lights(scene),
             new Floor(scene, gameConstants),
             new Particles(scene, gameConstants),
-        ];
+        ]
 
-        return sceneSubjects;
+        return sceneSubjects
     }
 
     this.update = function() {
@@ -128,18 +127,20 @@ function SceneManager(canvas) {
         const deltaTime = clock.getDelta()
 
         for(let i=0; i<sceneSubjects.length; i++)
-            sceneSubjects[i].update(elapsedTime);
+            sceneSubjects[i].update(elapsedTime)
+
+        for(let i=0; i<timeDependentShaders.length; i++)
+            timeDependentShaders[i].uniforms['time'].value = deltaTime
+
+        gameStateManager.update(elapsedTime)
             
         controls.polar.update(elapsedTime)
         controls.mouse.update(elapsedTime)
 
-        gameStateManager.update(elapsedTime)
         playerAndCameraPositionManager.update(elapsedTime)
         gameEntitiesManager.update(elapsedTime)
 
-        filmPass.uniforms['time'].value = deltaTime;
-
-        composer.render(deltaTime);
+        composer.render(deltaTime)
     }
 
     this.onWindowResize = function() {

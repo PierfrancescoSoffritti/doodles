@@ -15,7 +15,7 @@ const wireframeMesh = new THREE.Mesh(wireframeGeo, wireMaterial)
 wireframeMesh.scale.set(1.3, 1.3, 1.3)
 enemyBlueprint.add(wireframeMesh)
 
-function Enemy(scene, { minRadius, maxRadius, baseLevelHeight, secondLevelHeight }, origin) {
+function Target(scene, { minRadius, maxRadius, baseLevelHeight, secondLevelHeight }, origin) {
     
     const sphere = enemyBlueprint.clone()
     scene.add(sphere)
