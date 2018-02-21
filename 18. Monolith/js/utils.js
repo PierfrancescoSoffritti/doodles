@@ -46,3 +46,18 @@ function polarToCartesian(radius, angle) {
 
     return { x, y }
 }
+
+function StepBarrier(steps, onDone, onStep) {
+    
+    let stepCounter = 0
+
+    this.step = function() {
+        stepCounter++
+
+        if(onStep)
+            onStep(stepCounter, steps)
+
+        if(stepCounter === steps)
+            onDone()
+    }
+}
