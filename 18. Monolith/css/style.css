@@ -151,7 +151,7 @@ html, body {
     
     border-radius:50%;
     border: 2px solid rgba(255, 255, 255, 1);
-    transition: border-width 0.3s linear;
+    transition: border-width 0.3s ease-in-out;
 
     padding: 16px;
 
@@ -277,12 +277,14 @@ html, body {
     left: 1.5em;
 }
 @-webkit-keyframes load1 {
-    0%,
-    40% {
+    0% {
+        box-shadow: 0 0;
+        height: 4em;
+    }
+    50% {
         box-shadow: 0 -2em;
         height: 5em;
     }
-    80%,
     100% {
         box-shadow: 0 0;
         height: 4em;
@@ -290,12 +292,14 @@ html, body {
 }
 
 @keyframes load1 {
-    0%,
-    40% {
+    0% {
+        box-shadow: 0 0;
+        height: 4em;
+    }
+    50% {
         box-shadow: 0 -2em;
         height: 5em;
     }
-    80%,
     100% {
         box-shadow: 0 0;
         height: 4em;

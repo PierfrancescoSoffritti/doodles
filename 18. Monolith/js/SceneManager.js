@@ -18,6 +18,7 @@ function SceneManager(canvas) {
     // these should be SceneSubjects
     const gameEntitiesManager = new GameEntitiesManager(scene, gameStateManager.gameConstants, gameStateManager.gameState)    
     const playerAndCameraPositionManager = new PlayerAndCameraPositionManager(camera, gameEntitiesManager.player, gameStateManager.gameConstants, gameStateManager.gameState)
+    
     const controls = buildControls(playerAndCameraPositionManager, gameEntitiesManager.player, gameStateManager.gameConstants, gameStateManager.gameState)
 
     function buildScene() {
