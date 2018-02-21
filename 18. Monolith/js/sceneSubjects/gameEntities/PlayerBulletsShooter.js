@@ -1,5 +1,6 @@
 function PlayerBulletsShooter(scene, gameConstants) {
     const bullets = []
+    const bulletsCache = []
 
     let currentTime = 0
     const shootDelay = .06
@@ -14,7 +15,7 @@ function PlayerBulletsShooter(scene, gameConstants) {
             const expired = bullets[i].update(time)
            
             if(expired)
-                bullets.splice(i, 1);
+                removeBullet(i)
         }
     }
 
@@ -22,8 +23,15 @@ function PlayerBulletsShooter(scene, gameConstants) {
         if(currentTime - lastShootTime < shootDelay)
             return
 
-        bullets.push( new Bullet(scene, originPosition, gameConstants, this.bulletsColor) )
+        const bullet = bulletsCache.length != 0 ? bulletsCache.pop().reset(originPosition) : new Bullet(scene, originPosition, gameConstants, this.bulletsColor)
+        bullets.push(bullet)
+
         lastShootTime = currentTime
+    }
+
+    function removeBullet(i) {
+        const bullet = bullets.splice(i, 1)[0]
+        bulletsCache.push(bullet)
     }
 }
 
@@ -47,8 +55,8 @@ function Bullet(scene, originPosition, gameConstants, color) {
 
     const polarCoords = cartesianToPolar(originPosition.x, originPosition.z)
 
-    this.position = bulletMesh.position
     this.collision = false
+    this.position = bulletMesh.position
     
     this.update = function(time) {
         polarCoords.radius -= speed
@@ -63,6 +71,19 @@ function Bullet(scene, originPosition, gameConstants, color) {
             scene.remove(bulletMesh)
             
         return expired
+    }
+
+    this.reset = function(newOrigin) {
+        const newOriginpolarCoords = cartesianToPolar(newOrigin.x, newOrigin.z)
+        
+        polarCoords.radius = newOriginpolarCoords.radius
+        polarCoords.angle = newOriginpolarCoords.angle
+
+        this.collision = false
+
+        scene.add(bulletMesh)
+        
+        return this
     }
 
     function updateScale(polarCoords) {
