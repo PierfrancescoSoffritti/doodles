@@ -25,8 +25,8 @@ function EventBus() {
         return eventCallbacksPairs.find( eventObject => eventObject.eventType === eventType );
     }
 
-    function EventCallbacksPair( type, callback ) {
-        this.eventType = type;
+    function EventCallbacksPair( eventType, callback ) {
+        this.eventType = eventType;
         this.callbacks = [callback];
     }
 }

@@ -25,25 +25,29 @@ function GameEntitiesManager(scene, gameConstants, gameState) {
 
         targetsSpawner.update(time)
 
-        const bullets = playerShooter.bullets
+        const playerBullets = playerShooter.bullets
         const targets = targetsSpawner.targets
 
         const enemyBullets = turrets.getBullets();
         
-        checkCollision(bullets, targets, player)
+        checkCollisionWithTargets(playerBullets, targets)
         checkCollisionWithPlayer(enemyBullets, player)
     }   
 
-    function checkCollision(array1, array2) {
-        for(let i=0; i<array1.length; i++) {
-            const el1 = array1[i]
-            for(let j=0; j<array2.length; j++) {
-                const el2 = array2[j]
+    function checkCollisionWithTargets(playerBullets, targets) {
+        for(let i=0; i<playerBullets.length; i++) {
+            const bullet = playerBullets[i]
+            
+            for(let j=0; j<targets.length; j++) {
+                const target = targets[j]
 
-                const distance = el1.position.distanceTo( el2.position );
-                if(distance < el2.boundingSphereRad) {
-                    el1.collision = true
-                    el2.collision = true
+                if(target.collision === true)
+                    continue
+
+                const distance = bullet.position.distanceTo( target.position );
+                if(distance < target.boundingSphereRad) {
+                    bullet.collision = true
+                    target.collision = true
 
                     eventBus.post(increaseScore)
                 }
