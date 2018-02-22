@@ -1,31 +1,31 @@
 function EventBus() {
-    const eventObjects = new Array();
+    const eventCallbacksPairs = [];
     
-    this.subscribe = function(eventType, callback) {
-        const eventObject = findEventObject(eventType)
+    this.subscribe = function( eventType, callback ) {
+        const eventCallbacksPair = findEventCallbacksPair(eventType);
 
-        if(eventObject)
-            eventObject.callbacks.push(callback);
+        if(eventCallbacksPair)
+            eventCallbacksPair.callbacks.push(callback);
         else
-            eventObjects.push( new EventObject(eventType, callback) );
+            eventCallbacksPairs.push( new EventCallbacksPair(eventType, callback) );
     }
 
-    this.post = function(eventType, argument1, argument2) {
-        const eventObject = findEventObject(eventType)
+    this.post = function( eventType, argument1, argument2 ) {
+        const eventCallbacksPair = findEventCallbacksPair(eventType);
         
-        if(!eventObject) {
-            console.error("no subscribers for event " +eventType)
+        if(!eventCallbacksPair) {
+            console.error("no subscribers for event " +eventType);
             return;
         }
 
-        eventObject.callbacks.forEach( callback => callback(argument1, argument2) );
+        eventCallbacksPair.callbacks.forEach( callback => callback(argument1, argument2) );
     }
 
-    function findEventObject(eventType) {
-        return eventObjects.find( eventObject => eventObject.eventType === eventType );
+    function findEventCallbacksPair(eventType) {
+        return eventCallbacksPairs.find( eventObject => eventObject.eventType === eventType );
     }
 
-    function EventObject(type, callback) {
+    function EventCallbacksPair( type, callback ) {
         this.eventType = type;
         this.callbacks = new Array(callback);
     }
