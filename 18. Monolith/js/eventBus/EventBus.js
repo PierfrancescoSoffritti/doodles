@@ -27,6 +27,6 @@ function EventBus() {
 
     function EventCallbacksPair( type, callback ) {
         this.eventType = type;
-        this.callbacks = new Array(callback);
+        this.callbacks = [callback];
     }
 }
