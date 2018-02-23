@@ -3,7 +3,7 @@
 (ordered from the most recent) <br/>
 
 
-[18. Monolith](https://rawgit.com/PierfrancescoSoffritti/Doodling/master/18.%20Monolith/index.html) this is still a work in progress. Made for DEVX Experiments 2018.<br/>
+[18. Monolith](https://rawgit.com/PierfrancescoSoffritti/Doodling/master/18.%20Monolith/index.html) (made for [DEVX Experiments 2018](http://devx.ddd.it/en), [DDD](http://www.ddd.it) 2018)<br/>
 [13. Nowherelands](https://rawgit.com/PierfrancescoSoffritti/Doodling/master/13.%20Nowherelands/index.html) (made for [DEVX Experiments 2017](http://devx.ddd.it/en), [DDD](http://www.ddd.it) 2017)<br/>
 [12. Collatz Conjecture](https://rawgit.com/PierfrancescoSoffritti/Doodling/master/12.%20Collatz%20Conjecture/index.html)<br/>
 [10. Broken Mantra](https://rawgit.com/PierfrancescoSoffritti/Doodling/master/10.%20BrokenMantra/index.html)<br/>
