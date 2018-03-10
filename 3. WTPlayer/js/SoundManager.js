@@ -24,7 +24,8 @@ SoundManager.prototype.init = function(callback) {
 	callback();
 
 	function loadSong() {
-		self.song[0] = new Audio("sounds/AnimalCollective-FloriDada.mp3");
+		self.song[0] = new Audio("https://firebasestorage.googleapis.com/v0/b/doodling-321e8.appspot.com/o/AnimalCollective-FloriDada.mp3?alt=media&token=2b791d8c-5d25-4480-886c-8a1ba5391e6f");
+		self.song[0].crossOrigin = "anonymous";
 		self.song[1] = self.context.createMediaElementSource(self.song[0]);
 
 		// connect the analyser to the song changes
