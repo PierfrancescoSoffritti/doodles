@@ -17,6 +17,10 @@ function NotesGenerator() {
 
     var nextFacString = distribution({'-1':2,'0':2, '1':2, '2':1, '3':0 });
 
+    this.startButtonClicked = function() {
+        return context.resume();
+    }
+
     this.playRandomNote = function() {
         const i = getRandomInt(0, notesArray.length-1);
         const fact = getRandomInt(-2, 5);

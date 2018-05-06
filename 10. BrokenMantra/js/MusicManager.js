@@ -12,6 +12,10 @@ function MusicManager() {
     // this gives problems on firefox T_T should be fixed with future versions of the browser, since it's working fine with firefox for devs
     initWebAudioApi();
 
+    this.startButtonClicked = function() {
+        return context.resume();
+    }
+
     /**
      * [initWebAudioApi Creates a AudioContext and analyser node]
      * @return {[type]} [description]

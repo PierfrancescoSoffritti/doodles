@@ -16,6 +16,8 @@ var sceneManager = new SceneManager(canvas);
 const intro = document.getElementsByClassName('intro')[0];
 const blocker = document.getElementById("blocker");
 
+blocker.addEventListener("click", () => { notesGenerator.startButtonClicked().then(backgroundTuneGenerator.start) } );
+
 function fadeOverlay() {
 
 	setTimeout(function() {

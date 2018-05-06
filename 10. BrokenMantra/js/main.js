@@ -7,12 +7,26 @@ window.onresize = resizeCanvas;
 resizeCanvas();
 
 var musicManager = new MusicManager();
-musicManager.loadSong('https://firebasestorage.googleapis.com/v0/b/doodling-321e8.appspot.com/o/brokenmantra.mp3?alt=media&token=40efea14-6084-4c72-b3c9-757ad871a4bc');
+
 var sceneManager = new SceneManager(canvas);
 musicManager.onSongLoaded = () => { musicManager.play(); musicManager.seekTo(0) }
 musicManager.onTimeUpdated = sceneManager.onSongTimeUpdate;
 
 window.onclick = musicManager.togglePlayback;
+
+var startPanel = document.getElementById("startPanel");
+var startButton = document.getElementById("startButton");
+
+startButton.addEventListener("click", onStartClicked);
+
+function onStartClicked() {
+    startButton.removeEventListener("click", onStartClicked );
+
+    musicManager.startButtonClicked()
+    .then( () => {
+        startPanel.classList.add("fade");
+        musicManager.loadSong('https://firebasestorage.googleapis.com/v0/b/doodling-321e8.appspot.com/o/brokenmantra.mp3?alt=media&token=40efea14-6084-4c72-b3c9-757ad871a4bc') })
+}
 
 render();
 
