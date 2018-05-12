@@ -15,6 +15,10 @@ function SoundGenerator(fftSize) {
     var waveForm = "triangle";
     var fact = 0;
 
+    this.startButtonClicked = function() {
+        return context.resume();
+    }
+
     $("body").keypress(event => {
         // drums
         if(event.key == "z") {
