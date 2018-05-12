@@ -15,6 +15,10 @@ function SoundManager () {
 	this.song = new Array(2);
 }
 
+SoundManager.prototype.startButtonClicked = function() {
+	self.context.resume().then( () => self.song[0].play() );
+}
+
 SoundManager.prototype.init = function(callback) {
 	self = this;
 
