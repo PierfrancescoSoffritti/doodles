@@ -9,12 +9,12 @@
 	<body>
         <header class="header">
             <div class="title">Doodles</div>
-            <div class="subtitle">Web experiments I do for fun.</div>
+            <div class="subtitle">Web stuff I do for fun.</div>
         </header>
 
         <section id="content" class="content"></section>
         
-        <footer class="footer">Made by <a href="https://pierfrancescosoffritti.com/">Pierfrancesco Soffritti</a></footer>
+        <footer class="footer">Made by <a href="https://pierfrancescosoffritti.com/" target="_blank" rel="noopener noreferrer">Pierfrancesco Soffritti</a></footer>
     </body>
     
     <script>
@@ -110,8 +110,8 @@
                 year: "2017",
             },
             { 
-                name: "16. Unknown Pleasures Cover, test",
-                path: "./16_UnknownPleasuresCover_test/index.html",
+                name: "16. Lines",
+                path: "./16_Lines/index.html",
                 thumbnail: "https://firebasestorage.googleapis.com/v0/b/doodling-321e8.appspot.com/o/thumbnails%2F16_unknownpleasurescovertest_small.png?alt=media&token=e453a506-9763-46a7-808b-5bc429ce4705",
                 year: "2017",
             },
@@ -132,12 +132,13 @@
         const content = document.getElementById("content")
         
         experiments
-            .map(it => {
-                
+            .map(it => {                
                 const a = document.createElement('a')
                 a.classList.add("card")
                 a.title = it.name
                 a.href = it.path
+                a.target = "_blank"
+                a.rel = "noopener noreferrer"
                 
                 const cardContent = document.createElement('div')
                 cardContent.classList.add("card-content")
