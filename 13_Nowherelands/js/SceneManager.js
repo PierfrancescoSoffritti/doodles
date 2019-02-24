@@ -81,7 +81,7 @@ function SceneManager(canvas) {
         collisionManager.update();
 
         cubeCamera.position.set(player.position.x, player.position.y, player.position.z)
-        cubeCamera.updateCubeMap(renderer, scene);
+        cubeCamera.update(renderer, scene);
 
         renderer.render(scene, camera);
     }

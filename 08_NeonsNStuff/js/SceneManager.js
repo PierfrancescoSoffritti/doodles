@@ -91,7 +91,7 @@ function SceneManager(canvas) {
         for(var i=0; i<sceneSubjects.length; i++)
         	sceneSubjects[i].update(time);
 
-        cubeCamera.updateCubeMap(renderer, scene);
+        cubeCamera.update(renderer, scene);
 
         // renderer.clear();
         renderer.render(scene, camera);
