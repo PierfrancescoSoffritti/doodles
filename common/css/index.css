@@ -29,11 +29,6 @@ a {
     flex-direction: row;
     flex-wrap: wrap;
 }
-
-.card {
-    margin-right: 28px;
-    margin-bottom: 28px;
-}
   
 .card-content {
     width: 320px;
@@ -41,15 +36,22 @@ a {
     flex-direction: column;
     border: 1px solid #E0E0E0;
     border-radius: 4px;
+
+    -webkit-transition: all 300ms ease-in-out;
+    -ms-transition: all 300ms ease-in-out;
+    -moz-transition: all 300ms ease-in-out;
+    transition: all 300ms ease-in-out;
 }
 
 .card-content:hover {
     border: 1px solid #9E9E9E;
+    background-color: rgba(0, 0, 0, 0.1);
 }
 
 .image {
     width: 320px;
     height: 180px;
+    z-index: -1;
 }
 
 .text {
@@ -72,19 +74,20 @@ a {
 }
 
 .header-size {
-    padding-top: 64px;
-    padding-bottom: 64px;
+    margin: 64px;
+}
+
+.content-size {
+    padding-top: 16px;
+    padding-bottom: 32px;
 
     padding-left: 64px;
     padding-right: 64px;
 }
 
-.content-size {
-    padding-top: 32px;
-    padding-bottom: 32px;
-
-    padding-left: 64px;
-    padding-right: 64px;
+.card-size {
+    margin-right: 28px;
+    margin-bottom: 28px;
 }
 
 .footer-size {
@@ -93,11 +96,7 @@ a {
 
 @media (max-width: 840px) {
     .header-size {
-        padding-top: 16px;
-        padding-bottom: 16px;
-
-        padding-left: 16px;
-        padding-right: 16px;
+        margin: 16px;
     }
 
     .content-size {
@@ -111,7 +110,7 @@ a {
     }
 
     .card-size {
-        margin-right: 8px;
+        margin-right: 16px;
         margin-bottom: 28px;
     }
 
