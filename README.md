@@ -1,18 +1,5 @@
-# Doodling
+# doodles
 
-(ordered from the most recent) <br/>
+To see the experiments, [check out the homepage](http://pierfrancescosoffritti.github.io/doodles/).
 
-
-[18. Monolith](https://rawgit.com/PierfrancescoSoffritti/Doodling/master/18.%20Monolith/index.html) (made for [DEVX Experiments 2018](http://devx.ddd.it/en), [DDD](http://www.ddd.it) 2018)<br/>
-[13. Nowherelands](https://rawgit.com/PierfrancescoSoffritti/Doodling/master/13.%20Nowherelands/index.html) (made for [DEVX Experiments 2017](http://devx.ddd.it/en), [DDD](http://www.ddd.it) 2017)<br/>
-[12. Collatz Conjecture](https://rawgit.com/PierfrancescoSoffritti/Doodling/master/12.%20Collatz%20Conjecture/index.html)<br/>
-[10. Broken Mantra](https://rawgit.com/PierfrancescoSoffritti/Doodling/master/10.%20BrokenMantra/index.html)<br/>
-[9. EyeBall](https://rawgit.com/PierfrancescoSoffritti/Doodling/master/9.%20EyeBall/index.html)<br/>
-[8. NeonsNStuff](https://rawgit.com/PierfrancescoSoffritti/Doodling/master/8.%20NeonsNStuff/index.html)<br/>
-[7. PBR material](https://rawgit.com/PierfrancescoSoffritti/Doodling/master/7.%20PBR%20Material/index.html)<br/>
-[6. NeonCrystal](https://rawgit.com/PierfrancescoSoffritti/Doodling/master/6.%20NeonCrystal/index.html)<br/>
-[5. GrassSimulator](https://rawgit.com/PierfrancescoSoffritti/Doodling/master/5.%20GrassSimulator/index.html)<br/>
-[4. SoUNds](https://rawgit.com/PierfrancescoSoffritti/Doodling/master/4.%20SoUNds/index.html)<br/>
-[3. WTPlayer](https://rawgit.com/PierfrancescoSoffritti/Doodling/master/3.%20WTPlayer/index.html)<br/>
-[2. Snail](https://rawgit.com/PierfrancescoSoffritti/Doodling/master/2.%20Snail/index.html)<br/>
-[1. PointPatterns](https://rawgit.com/PierfrancescoSoffritti/Doodling/master/1.%20PointPatterns/index.html)
+[![homepage screenshot](./homepage_small.jpg)](http://pierfrancescosoffritti.github.io/doodles/)
