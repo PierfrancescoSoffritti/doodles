@@ -145,11 +145,19 @@
                 cardContent.classList.add("card-content")
                 a.appendChild(cardContent)
 
-                const image = document.createElement('img')
+                const imagePlaceholder = document.createElement('div')
+                imagePlaceholder.classList.add("image-placeholder")
+                cardContent.appendChild(imagePlaceholder)
+                const spinner = document.createElement('div')
+                spinner.classList.add("loader")
+                imagePlaceholder.appendChild(spinner)
+
+                const image = new Image()
                 image.classList.add("image")
+                image.alt = it.name
+                image.style.opacity = 0
+                image.onload = () => { cardContent.replaceChild(image, imagePlaceholder); setTimeout(() => image.style.opacity = 1, 10) }
                 image.src = it.thumbnail
-                image.alt = "desc"
-                cardContent.appendChild(image)
 
                 const textDiv = document.createElement('div')
                 textDiv.classList.add("text")
