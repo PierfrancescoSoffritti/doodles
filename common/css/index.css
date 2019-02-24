@@ -1,0 +1,74 @@
+html, body {
+    width: 100%;
+    
+    margin: 0;
+
+    font-family: Verdana, Geneva, sans-serif;
+}
+
+.header {
+    margin: 64px;
+    line-height: 1.6;
+}
+
+.title {
+    font-size: 40px;
+}
+
+.subtitle {
+    font-weight: 200;
+}
+
+.content {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+
+    margin-top: 32px;
+    margin-bottom: 32px;
+    margin-left: 64px;
+    margin-right: 64px;
+}
+
+.card {
+    margin-right: 22px;
+    margin-bottom: 22px;
+}
+  
+.card-content {
+    width: 320px;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #E0E0E0;
+    border-radius: 4px;
+}
+
+.card-content:hover {
+    border: 1px solid #9E9E9E;
+    border-radius: 4px;
+}
+
+.image {
+    width: 320px;
+    height: 180px;
+}
+
+.text {
+    margin: 16px;
+}
+
+a {
+    color: #263238;
+    text-decoration: none;
+}
+
+.footer {
+    padding: 20px;
+    padding-left: 64px;
+    background-color: rgba(0, 0, 0, 0.1);
+    color: rgba(0, 0, 0, 0.4);
+}
+
+.footer a:link, .footer a:visited, .footer a:active {
+    color: rgba(0, 0, 0, 0.6);
+}

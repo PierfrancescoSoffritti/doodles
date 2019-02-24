@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html >
+	<head>
+		<meta charset="UTF-8">
+		<title>Doodles</title> 		
+		<link rel="stylesheet" href="./common/css/index.css"> 
+	</head>
+
+	<body>
+        <header class="header">
+            <div class="title">Doodles</div>
+            <div class="subtitle">Web experiments I do for fun.</div>
+        </header>
+
+        <section id="content" class="content"></section>
+        
+        <footer class="footer">Made by <a href="https://pierfrancescosoffritti.com/">Pierfrancesco Soffritti</a></footer>
+    </body>
+    
+    <script>
+        const experiments = [
+            { 
+                name: "01. PointPatterns",
+                path: "./01_PointPatterns/index.html",
+                thumbnail: "https://firebasestorage.googleapis.com/v0/b/doodling-321e8.appspot.com/o/thumbnails%2F01_pointpatterns_small.png?alt=media&token=66e55882-de03-4f9d-9623-aa9ae0be9e47",
+                year: "2016",
+            },
+            {
+                name: "02. Snail",
+                path: "./02_Snail/index.html",
+                thumbnail: "https://firebasestorage.googleapis.com/v0/b/doodling-321e8.appspot.com/o/thumbnails%2F02_snail_small.png?alt=media&token=4b398184-1400-4e13-9dd7-87f51aa3c460",
+                year: "2016",
+            },
+            { 
+                name: "03. WTPlayer",
+                path: "./03_WTPlayer/index.html",
+                thumbnail: "https://firebasestorage.googleapis.com/v0/b/doodling-321e8.appspot.com/o/thumbnails%2F03_wtplayer_small.png?alt=media&token=2fc5c48d-3468-4d9d-ac7f-77299c610018",
+                year: "2016",
+            },
+            { 
+                name: "04. SoUNds",
+                path: "./04_SoUNds/index.html",
+                thumbnail: "https://firebasestorage.googleapis.com/v0/b/doodling-321e8.appspot.com/o/thumbnails%2F04_sounds_small.png?alt=media&token=2fd92a4d-6f81-4bbe-85fc-5c96313eadf8",
+                year: "2016",
+            },
+            { 
+                name: "05. GrassSimulator", 
+                path: "./05_GrassSimulator/index.html",
+                thumbnail: "https://firebasestorage.googleapis.com/v0/b/doodling-321e8.appspot.com/o/thumbnails%2F05_grasssimulator_small.png?alt=media&token=bca1f949-fa81-44a7-9ad1-a193f0c05304",
+                year: "2016",
+            },
+            { 
+                name: "06. NeonCrystal",
+                path: "./06_NeonCrystal/index.html",
+                thumbnail: "https://firebasestorage.googleapis.com/v0/b/doodling-321e8.appspot.com/o/thumbnails%2F06_neoncrystal_small.png?alt=media&token=db3a48c3-0d22-4baa-81c0-48ce9cf96296",
+                year: "2016",
+            },
+            { 
+                name: "07. PBRMaterial",
+                path: "./07_PBRMaterial/index.html",
+                thumbnail: "https://firebasestorage.googleapis.com/v0/b/doodling-321e8.appspot.com/o/thumbnails%2F07_pbrnaterial_small.png?alt=media&token=86f63963-9bf0-4b43-847d-69aba9c7fe7c",
+                year: "2016",
+            },
+            { 
+                name: "08. NeonsNStuff",
+                path: "./08_NeonsNStuff/index.html",
+                thumbnail: "https://firebasestorage.googleapis.com/v0/b/doodling-321e8.appspot.com/o/thumbnails%2F08_neonsnstuff_small.png?alt=media&token=a4a8e7fd-d8a3-498c-97bf-24d69722eaf9",
+                year: "2016",
+            },
+            { 
+                name: "09. EyeBall",
+                path: "./09_EyeBall/index.html",
+                thumbnail: "https://firebasestorage.googleapis.com/v0/b/doodling-321e8.appspot.com/o/thumbnails%2F09_eyeball_small.png?alt=media&token=e27b2ee7-cea7-48aa-9d37-a2c8930bebbc",
+                year: "2017",
+            },
+            { 
+                name: "10. BrokenMantra",
+                path: "./10_BrokenMantra/index.html",
+                thumbnail: "https://firebasestorage.googleapis.com/v0/b/doodling-321e8.appspot.com/o/thumbnails%2F10_brokenmantra_small.png?alt=media&token=00688891-4904-419c-be40-5e800fd2fbba",
+                year: "2017",
+            },
+            {
+                name: "11. Shaders",
+                path: "./11_Shaders/index.html",
+                thumbnail: "https://firebasestorage.googleapis.com/v0/b/doodling-321e8.appspot.com/o/thumbnails%2F11_shaders_small.png?alt=media&token=9c2c8806-fa90-4d6b-8797-44bb428b0510",
+                year: "2017",
+            },
+            { 
+                name: "12. CollatzConjecture",
+                path: "./12_CollatzConjecture/index.html",
+                thumbnail: "https://firebasestorage.googleapis.com/v0/b/doodling-321e8.appspot.com/o/thumbnails%2F12_collatzconjecture_small.png?alt=media&token=0d03cb6b-af13-4472-a588-4d7db395e7f4",
+                year: "2017",
+            },
+            { 
+                name: "13. Nowherelands",
+                path: "./13_Nowherelands/index.html",
+                thumbnail: "https://firebasestorage.googleapis.com/v0/b/doodling-321e8.appspot.com/o/thumbnails%2F13_nowherelands_small.png?alt=media&token=425a0128-1374-4f02-862a-4f79af8cc58d",
+                year: "2017",
+            },
+            { 
+                name: "14. Three.js template",
+                path: "https://medium.com/@soffritti.pierfrancesco/how-to-organize-the-structure-of-a-three-js-project-77649f58fa3f",
+                thumbnail: "https://firebasestorage.googleapis.com/v0/b/doodling-321e8.appspot.com/o/thumbnails%2F14_threejstemplate_small.png?alt=media&token=c16e8d62-0ed8-49f4-b060-6d9939d85768",
+                year: "2017",
+            },
+            { 
+                name: "15. MarkovMusic",
+                path: "./15_MarkovMusic/index.html",
+                thumbnail: "https://firebasestorage.googleapis.com/v0/b/doodling-321e8.appspot.com/o/thumbnails%2F15_markovmusic_small.png?alt=media&token=c17ebd95-b1c7-4400-af16-47585ce6da60",
+                year: "2017",
+            },
+            { 
+                name: "16. Unknown Pleasures Cover, test",
+                path: "./16_UnknownPleasuresCover_test/index.html",
+                thumbnail: "https://firebasestorage.googleapis.com/v0/b/doodling-321e8.appspot.com/o/thumbnails%2F16_unknownpleasurescovertest_small.png?alt=media&token=e453a506-9763-46a7-808b-5bc429ce4705",
+                year: "2017",
+            },
+            { 
+                name: "17. SquidPeople",
+                path: "./17_SquidPeople/index.html",
+                thumbnail: "https://firebasestorage.googleapis.com/v0/b/doodling-321e8.appspot.com/o/thumbnails%2F17_squidpeople_small.png?alt=media&token=a7158aa5-a091-4ad2-b3c9-09bb7cdfcef6",
+                year: "2017",
+            },
+            { 
+                name: "18. Monolith",
+                path: "./18_Monolith/index.html",
+                thumbnail: "https://firebasestorage.googleapis.com/v0/b/doodling-321e8.appspot.com/o/thumbnails%2F18_monolith_small.png?alt=media&token=599004a1-ab73-46f8-883d-5ca930f953ae",
+                year: "2018",
+            },
+        ]
+
+        const content = document.getElementById("content")
+        
+        experiments
+            .map(it => {
+                
+                const a = document.createElement('a')
+                a.classList.add("card")
+                a.title = it.name
+                a.href = it.path
+                
+                const cardContent = document.createElement('div')
+                cardContent.classList.add("card-content")
+                a.appendChild(cardContent)
+
+                const image = document.createElement('img')
+                image.classList.add("image")
+                image.src = it.thumbnail
+                image.alt = "desc"
+                cardContent.appendChild(image)
+
+                const textDiv = document.createElement('div')
+                textDiv.classList.add("text")
+                textDiv.innerText = it.name
+                cardContent.appendChild(textDiv)            
+
+                return a
+            }).forEach(a => content.appendChild(a))
+
+    </script>
+</html>
