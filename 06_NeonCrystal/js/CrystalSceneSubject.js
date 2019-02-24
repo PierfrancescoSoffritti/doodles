@@ -4,13 +4,13 @@ function CrystalSceneSubject(scene, cubeCamera) {
 
 	// crystal
 	var icoGeometry = new THREE.IcosahedronGeometry(1.5, 3);
-    var icoMaterial = new THREE.MeshPhongMaterial({ color: "#000", shininess: 1, shading: THREE.FlatShading,
+    var icoMaterial = new THREE.MeshPhongMaterial({ color: "#000", shininess: 1, flatShading: true,
     	envMap: cubeCamera.renderTarget.texture, reflectivity: 0.1, combine: THREE.MixOperation });
     var mesh = new THREE.Mesh(icoGeometry, icoMaterial);
     scene.add(mesh);
 
     // wireframe
-    var wireMaterial = new THREE.MeshPhongMaterial({ color: "#F44336", shading: THREE.FlatShading, wireframe: true });
+    var wireMaterial = new THREE.MeshPhongMaterial({ color: "#F44336", flatShading: true, wireframe: true });
     var wireGeometry = new THREE.IcosahedronGeometry(1.8, 3);
     var wireMesh = new THREE.Mesh(wireGeometry, wireMaterial);   
     scene.add(wireMesh);

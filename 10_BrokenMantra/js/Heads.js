@@ -6,7 +6,7 @@ function Heads(scene) {
     var lookAt = false;
 
     var head;
-    var material = new THREE.MeshStandardMaterial({ color: "#000", roughness: .5, metalness: .5, shading: THREE.FlatShading });
+    var material = new THREE.MeshStandardMaterial({ color: "#000", roughness: .5, metalness: .5, flatShading: true });
 
     var cols = new Array();
 

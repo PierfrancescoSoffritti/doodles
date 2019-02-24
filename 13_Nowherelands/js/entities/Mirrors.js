@@ -1,6 +1,6 @@
 function Mirrors(scene, player, collisionManager, terrainSize, cubeCamera) {
 
-	const material = new THREE.MeshBasicMaterial({color:"#fff", side: THREE.DoubleSide, shading: THREE.FlatShading})
+	const material = new THREE.MeshBasicMaterial({color:"#fff", side: THREE.DoubleSide, flatShading: true })
 	material.envMap = cubeCamera.renderTarget.texture;
 
 	const square = new THREE.Mesh(new THREE.CircleBufferGeometry(20, 4), material);

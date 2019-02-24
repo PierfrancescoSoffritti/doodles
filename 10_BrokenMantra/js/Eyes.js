@@ -35,7 +35,7 @@ function Eyes(scene) {
         }
     }
 
-    var eyeMaterial = new THREE.MeshStandardMaterial({ color: "#222222", roughness: 0, metalness: .9,  shading: THREE.SmoothShading, opacity: 1 });
+    var eyeMaterial = new THREE.MeshStandardMaterial({ color: "#222222", roughness: 0, metalness: .9, flatShading: false, opacity: 1 });
     eyeMaterial.envMap = envMap;
     eyeMaterial.map = eyeTexture_red;
 

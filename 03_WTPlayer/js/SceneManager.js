@@ -71,7 +71,6 @@ SceneManager.prototype.init = function(callback) {
 		var light = new THREE.DirectionalLight( 0xaabbff, 0.3 );
 		light.position.set(100, 0, 200);
 		light.castShadow = true;
-		light.shadowDarkness = 0.5;
 		self.mainScene.add(light);
 	};
 

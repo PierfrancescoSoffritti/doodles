@@ -102,11 +102,9 @@ function createLights() {
   shadowLight = new THREE.DirectionalLight(0xffffff, .8);
   shadowLight.position.set(200, 200, 200);
   shadowLight.castShadow = true;
-  shadowLight.shadowDarkness = .2;
  	
   backLight = new THREE.DirectionalLight(0xffffff, .4);
   backLight.position.set(-100, 200, 50);
-  backLight.shadowDarkness = .1;
   backLight.castShadow = true;
  	
   scene.add(backLight);

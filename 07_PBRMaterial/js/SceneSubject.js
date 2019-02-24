@@ -1,7 +1,7 @@
 function SceneSubject(scene, cubeCamera) {
 
 	var icoGeometry = new THREE.IcosahedronGeometry(1, 6);
-    var material = new THREE.MeshPhongMaterial({ shading: THREE.SmoothShading  });
+    var material = new THREE.MeshPhongMaterial({ flatShading: false });
 
     material.envMap = cubeCamera.renderTarget.texture;
     material.reflectivity = .6;

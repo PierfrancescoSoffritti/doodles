@@ -5,7 +5,7 @@ function Pyramid(scene) {
     var size = 1.5;
 
     var pyramidGeometry = new THREE.CylinderGeometry( 0, size, size*1.5, 4, 1 );
-    var material = new THREE.MeshStandardMaterial({ color: "#000", roughness: 1, metalness: .8, shading: THREE.SmoothShading });
+    var material = new THREE.MeshStandardMaterial({ color: "#000", roughness: 1, metalness: .8, flatShading: false });
 
     var roughnessMap = new THREE.TextureLoader().load("textures/roughness.png")
 

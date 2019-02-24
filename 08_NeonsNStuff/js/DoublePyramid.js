@@ -4,7 +4,7 @@ function DoublePyramid(scene, cubeCamera) {
     var size = .4;
 
     var pyramidGeometry = new THREE.CylinderGeometry( 0, size, size, 4, 1 );
-    var material = new THREE.MeshStandardMaterial({ color: "#B71C1C", roughness: 0, shading: THREE.FlatShading });
+    var material = new THREE.MeshStandardMaterial({ color: "#B71C1C", roughness: 0, flatShading: true });
 
     var top = new THREE.Mesh(pyramidGeometry, material);
     top.position.y = + size/2;
@@ -16,7 +16,7 @@ function DoublePyramid(scene, cubeCamera) {
     group.add(bottom);
 
     // wireframe
-    var wireMaterial = new THREE.MeshPhongMaterial({ color: "#4CAF50", shading: THREE.FlatShading, wireframe: true });
+    var wireMaterial = new THREE.MeshPhongMaterial({ color: "#4CAF50", flatShading: true, wireframe: true });
     var wBottom = bottom.clone();
     var wTop = top.clone();
     wBottom.material = wireMaterial;

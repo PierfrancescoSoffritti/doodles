@@ -55,7 +55,7 @@ function TerrainMeshGenerator() {
 
 			geometry.computeVertexNormals();
 
-			var mesh = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({color: "#000000", shading: THREE.SmoothShading, metalness: 0, roughness: 1 }));
+			var mesh = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({color: "#000000", flatShading: false, metalness: 0, roughness: 1 }));
 
 				return mesh;
 		}

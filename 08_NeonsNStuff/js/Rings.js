@@ -4,7 +4,7 @@ function Rings(scene, cubeCamera) {
     var radius = 2;
 
     var geometry = new THREE.TorusGeometry(radius, .055, 32, 128);
-    var material = new THREE.MeshStandardMaterial({ color: "#222222", roughness: 0, metalness: .9,  shading: THREE.SmoothShading  });
+    var material = new THREE.MeshStandardMaterial({ color: "#222222", roughness: 0, metalness: .9, flatShading: false });
 
     var envMap = new THREE.TextureLoader().load('textures/envMap.png');
     envMap.mapping = THREE.SphericalReflectionMapping;

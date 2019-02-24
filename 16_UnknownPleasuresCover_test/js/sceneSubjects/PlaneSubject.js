@@ -12,7 +12,7 @@ function PlaneSubject(scene, indx, noiseMap, fallOff) {
 
     var plane = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial( {color: "#000"} ) );
 
-    var material = new THREE.MeshBasicMaterial( {color: "#fff", side: THREE.DoubleSide, wireframe: true, wireframe_linewidth: 10} );
+    var material = new THREE.MeshBasicMaterial( {color: "#fff", side: THREE.DoubleSide, wireframe: true} );
     var plane2 = new THREE.Mesh( geometry, material );
     plane.add(plane2);
 

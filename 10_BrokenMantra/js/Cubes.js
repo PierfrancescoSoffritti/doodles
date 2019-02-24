@@ -5,7 +5,7 @@ function Cubes(scene) {
     var size = .5;
 
     var geometry = new THREE.BoxGeometry( 1, 1, 1 );
-    var material = new THREE.MeshStandardMaterial({ color: "#000", roughness: 1, metalness: .8, shading: THREE.SmoothShading });
+    var material = new THREE.MeshStandardMaterial({ color: "#000", roughness: 1, metalness: .8, flatShading: false });
 
     var roughnessMap = new THREE.TextureLoader().load("textures/roughness.png")
 

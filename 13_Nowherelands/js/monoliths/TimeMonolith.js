@@ -7,7 +7,7 @@ function TimeMonolith(scene, collisionManager, terrainSize, cubeCamera) {
 	// group.position.set(0, 0, -100);
 	group.scale.set(5, 5, 5);
 
-	const cylinder = new THREE.Mesh(new THREE.CylinderBufferGeometry(1, 1, 1, 6), new THREE.MeshToonMaterial( {color: "#424242", shading: THREE.FlatShading} ) );
+	const cylinder = new THREE.Mesh(new THREE.CylinderBufferGeometry(1, 1, 1, 6), new THREE.MeshToonMaterial( { color: "#424242", flatShading: true } ) );
 	cylinder.scale.set(10, 1, 10);
 	cylinder.position.y = -.3;
 	group.add(cylinder);

@@ -5,7 +5,7 @@ function TuneMonolith(geometry, baseSize, scene, collisionManager, index) {
 
 	this.size = baseSize;
 	 
-	this.mesh = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial({color: 0x00ff00, shading: THREE.FlatShading}) );
+	this.mesh = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial({color: 0x00ff00, flatShading: true}) );
 	this.mesh.material.color.setHSL(getRandom(0, 1), .5, .5);
 	this.mesh.position.y = -1;
 

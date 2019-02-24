@@ -4,7 +4,7 @@ function Head(scene) {
 
     var deform = false;
     var head, wireframe;
-    var material = new THREE.MeshStandardMaterial({ color: "#000", roughness: .5, metalness: .5, shading: THREE.SmoothShading });
+    var material = new THREE.MeshStandardMaterial({ color: "#000", roughness: .5, metalness: .5, flatShading: false });
 
     var vertices = new Array();
 

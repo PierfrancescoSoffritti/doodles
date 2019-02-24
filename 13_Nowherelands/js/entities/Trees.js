@@ -9,7 +9,7 @@ function Trees(scene) {
 
 	this.entities = [];
 
-	var material = new THREE.MeshStandardMaterial({ color: "#000", roughness: .5, metalness: .5, shading: THREE.FlatShading });
+	var material = new THREE.MeshStandardMaterial({ color: "#000", roughness: .5, metalness: .5, flatShading: true });
 
     var loader = new THREE.JSONLoader();
     loader.load('models/tree.json', function(geometry) {

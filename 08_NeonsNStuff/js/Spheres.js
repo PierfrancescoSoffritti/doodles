@@ -1,7 +1,7 @@
 function Spheres(scene, cubeCamera) {
     // deformed sphere
     var icoGeometry = new THREE.IcosahedronGeometry(1, 6);
-    var icoMaterial = new THREE.MeshStandardMaterial({ color: "#222222", roughness: 0, metalness: .9,  shading: THREE.SmoothShading, 
+    var icoMaterial = new THREE.MeshStandardMaterial({ color: "#222222", roughness: 0, metalness: .9, flatShading: false, 
         transparent: true, opacity: 1, side: THREE.DoubleSide, alphaTest: 0.5 });
     icoMaterial.envMap = cubeCamera.renderTarget.texture;
 
@@ -18,7 +18,7 @@ function Spheres(scene, cubeCamera) {
     // external sphere
     var externalSphere = deformedSphere.clone();
     externalSphere.geometry = new THREE.IcosahedronGeometry(1.01, 6);
-    externalSphere.material = new THREE.MeshStandardMaterial({ color: "#222222", roughness: 0, metalness: .9,  shading: THREE.SmoothShading, 
+    externalSphere.material = new THREE.MeshStandardMaterial({ color: "#222222", roughness: 0, metalness: .9, flatShading: false, 
         transparent: true, opacity: 1, side: THREE.DoubleSide, alphaTest: 0.5 });
     
     var alphaMap = new THREE.TextureLoader().load('textures/stripe_vertical.png');
