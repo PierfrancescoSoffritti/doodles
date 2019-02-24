@@ -16,10 +16,6 @@ a {
     text-decoration: none;
 }
 
-.header {
-    padding: 64px;
-}
-
 .title {
     font-size: 40px;
 }
@@ -32,11 +28,6 @@ a {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
-
-    padding-top: 32px;
-    padding-bottom: 32px;
-    padding-left: 64px;
-    padding-right: 64px;
 }
 
 .card {
@@ -67,7 +58,6 @@ a {
 
 .footer {
     padding: 20px;
-    padding-left: 64px;
     background-color: rgba(0, 0, 0, 0.1);
     color: rgba(0, 0, 0, 0.4);
 }
@@ -81,61 +71,51 @@ a {
     text-decoration: underline;
 }
 
+.header-size {
+    padding-top: 64px;
+    padding-bottom: 64px;
 
-/* desktop-small */
-@media all and (min-width: 0px) and (max-width: 840px) {
-    .header {
-        padding-left: 8px;
-        padding-right: 8px;
+    padding-left: 64px;
+    padding-right: 64px;
+}
+
+.content-size {
+    padding-top: 32px;
+    padding-bottom: 32px;
+
+    padding-left: 64px;
+    padding-right: 64px;
+}
+
+.footer-size {
+    padding-left: 64px;
+}
+
+@media (max-width: 840px) {
+    .header-size {
+        padding-top: 16px;
+        padding-bottom: 16px;
+
+        padding-left: 16px;
+        padding-right: 16px;
     }
 
-    .content {
+    .content-size {
+        padding-top: 16px;
+        padding-bottom: 16px;
+
         padding-left: 8px;
         padding-right: 8px;
 
         justify-content: space-evenly;
     }
 
-    .card {
-        margin-right: 0px;
+    .card-size {
+        margin-right: 8px;
         margin-bottom: 28px;
     }
 
-    .footer {
+    .footer-size {
         padding-left: 8px;
-    }
-}
-
-/* desktop-medium */
-@media all and (min-width: 841px) and (max-width: 1280px) {
-    .header {
-        padding-left: 64px;
-        padding-right: 64px;
-    }
-
-    .content {
-        padding-left: 64px;
-        padding-right: 64px;
-    }
-
-    .footer {
-        padding-left: 64px;
-    }
-}
-
-/* desktop-large */
-@media all and (min-width: 1281px) {
-    .header {
-        padding-left: 64px;
-        padding-right: 64px;
-    }
-
-    .content {
-        padding-left: 64px;
-        padding-right: 64px;
-    }
-
-    .footer {
-        padding-left: 64px;
     }
 }

@@ -2,19 +2,20 @@
 <html >
 	<head>
 		<meta charset="UTF-8">
-		<title>Doodles</title> 		
+        <title>Doodles</title> 		
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
 		<link rel="stylesheet" href="./common/css/index.css"> 
 	</head>
 
 	<body>
-        <header class="header">
+        <header class="header-size">
             <div class="title">Doodles</div>
             <div class="subtitle">Web stuff I do for fun.</div>
         </header>
 
-        <section id="content" class="content"></section>
+        <section id="content" class="content content-size"></section>
         
-        <footer class="footer">Made by <a href="https://pierfrancescosoffritti.com/" target="_blank" rel="noopener noreferrer">Pierfrancesco Soffritti</a></footer>
+        <footer class="footer footer-size">Made by <a href="https://pierfrancescosoffritti.com/" target="_blank" rel="noopener noreferrer">Pierfrancesco Soffritti</a></footer>
     </body>
     
     <script>
@@ -135,6 +136,7 @@
             .map(it => {                
                 const a = document.createElement('a')
                 a.classList.add("card")
+                a.classList.add("card-size")
                 a.title = it.name
                 a.href = it.path
                 a.target = "_blank"
