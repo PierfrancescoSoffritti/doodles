@@ -8,12 +8,13 @@ function onLoad() {
     height: -1
   }
   
+  let firstTime = true
   resizeCanvas()
-  const sceneManager = new SceneManager(canvas, screenInfo)
+  const flow = new Flow(canvas, screenInfo)
   render()
 
   function render() {
-    sceneManager.update()
+    flow.update()
     requestAnimationFrame(render)
   }
 
@@ -21,17 +22,21 @@ function onLoad() {
     canvas.style.width = window.innerWidth + "px"
     canvas.style.height = window.innerHeight + "px"
 
-    var width = window.innerWidth * state.pixelRatio
-    var height = window.innerHeight * state.pixelRatio
+    var width = window.innerWidth * screenInfo.pixelRatio
+    var height = window.innerHeight * screenInfo.pixelRatio
 
     canvas.setAttribute('width', Math.round(width))
     canvas.setAttribute('height', Math.round(height))
 
-    state.width = width
-    state.height = height
+    screenInfo.width = width
+    screenInfo.height = height
 
-    sceneManager.onWindowResize()
-    sceneManager.update()
+    if (firstTime == false) {
+      flow.onWindowResize()
+      flow.update()
+    } else {
+      firstTime = true
+    }
   }
 
   function getPixelRatio(context) {
