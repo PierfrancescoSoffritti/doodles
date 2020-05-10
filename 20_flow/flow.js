@@ -9,12 +9,12 @@ function Flow(canvas, screenInfo) {
   for (let angle = 0; angle < Math.PI * 2; angle += 0.001) {
     const x = circleRadius * Math.cos(angle) + screenInfo.width/2
     const y = circleRadius * Math.sin(angle) + screenInfo.height/2
-    particles.push({ x, y, vx: 0, vy: 0, xStart: x, yStart: y, speed: getRandomSpeed(), color: Math.random()/2 })
+    const speed = getRandomSpeed()
+    particles.push({ x, y, vx: 0, vy: 0, speed, xStart: x, yStart: y, speedStart: speed, color: Math.random()/2 })
   }
 
   drawBackground()
   // drawCircle()
-  // renderParticles()
   // renderField()
 
   this.update = function() {
@@ -22,6 +22,14 @@ function Flow(canvas, screenInfo) {
   }
 
   this.onWindowResize = function() {
+    for (let i = 0; i < particles.length; i++) {
+      const p = particles[i]
+      p.x = p.xStart
+      p.y = p.yStart
+      p.speed = p.speedStart
+    }
+
+    drawBackground()
   }
 
   function drawBackground() {
@@ -39,7 +47,11 @@ function Flow(canvas, screenInfo) {
   function renderParticles() {
     for (let i = 0; i < particles.length; i++) {
       const p = particles[i]
-      if (p.isDead) continue
+      
+      if (p.skip) {
+        continue
+      }
+      
       const angle = getValue(p.x, p.y, 0)
   
       const startX = p.x
@@ -53,7 +65,7 @@ function Flow(canvas, screenInfo) {
   
       if (isOutsideCircle(p)) {
         if (isPointNearStart(p)) {
-          p.isDead = true
+          p.skip = true
         }
   
         p.x = p.xStart
@@ -61,6 +73,7 @@ function Flow(canvas, screenInfo) {
         p.vx = 0
         p.vy = 0
         p.speed = p.speed / 1.5
+
         continue
       }
   
@@ -76,6 +89,31 @@ function Flow(canvas, screenInfo) {
   function isOutsideCircle(p) {
     const radius = Math.sqrt(Math.pow(p.x - screenInfo.width/2, 2) + Math.pow(p.y - screenInfo.height/2, 2))
     return radius > circleRadius
+  }
+
+  function renderField() {
+    const segmentLenght = 4
+    const resolution = 10
+  
+    for (let x = 0; x < screenInfo.width; x += resolution) {
+      for (let y = 0; y < screenInfo.height; y += resolution) {
+        const value = getValue(x, y, 0)
+  
+        const xStart = (-segmentLenght * Math.cos(value)) + x
+        const yStart = (-segmentLenght * Math.sin(value)) + y
+  
+        const xEnd = (segmentLenght * Math.cos(value)) + x
+        const yEnd = (segmentLenght * Math.sin(value)) + y
+  
+        context.lineWidth = .6
+        context.beginPath()
+        context.moveTo(xStart, yStart)
+        context.lineTo(xEnd, yEnd)
+        context.stroke()
+  
+        context.restore()
+      }
+    }
   }
 }
 
@@ -95,31 +133,6 @@ function isPointNearStart(p) {
   const y = p.y - p.yStart
   const distance = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2))
   return distance < 5
-}
-
-function renderField() {
-  const segmentLenght = 4
-  const resolution = 10
-
-  for (let x = 0; x < width; x += resolution) {
-    for (let y = 0; y < height; y += resolution) {
-      const value = getValue(x, y, 0)
-
-      const xStart = (-segmentLenght * Math.cos(value)) + x
-      const yStart = (-segmentLenght * Math.sin(value)) + y
-
-      const xEnd = (segmentLenght * Math.cos(value)) + x
-      const yEnd = (segmentLenght * Math.sin(value)) + y
-
-      context.lineWidth = .6
-      context.beginPath()
-      context.moveTo(xStart, yStart)
-      context.lineTo(xEnd, yEnd)
-      context.stroke()
-
-      context.restore()
-    }
-  }
 }
 
 function getValue(x, y, z) {

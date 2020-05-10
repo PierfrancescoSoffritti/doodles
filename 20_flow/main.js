@@ -1,15 +1,15 @@
 function onLoad() {
-  const canvas = document.getElementById("canvas")
-  window.onresize = resizeCanvas
+  window.onresize = onResize
 
+  const canvas = document.getElementById("canvas")
   const screenInfo = {
     pixelRatio: getPixelRatio(canvas.getContext('2d')),
     width: -1,
     height: -1
   }
   
-  let firstTime = true
   resizeCanvas()
+  
   const flow = new Flow(canvas, screenInfo)
   render()
 
@@ -18,25 +18,23 @@ function onLoad() {
     requestAnimationFrame(render)
   }
 
+  function onResize() {
+    resizeCanvas()
+    flow.onWindowResize()
+  }
+
   function resizeCanvas() {
+    const width = window.innerWidth * screenInfo.pixelRatio
+    const height = window.innerHeight * screenInfo.pixelRatio
+
     canvas.style.width = window.innerWidth + "px"
     canvas.style.height = window.innerHeight + "px"
-
-    var width = window.innerWidth * screenInfo.pixelRatio
-    var height = window.innerHeight * screenInfo.pixelRatio
 
     canvas.setAttribute('width', Math.round(width))
     canvas.setAttribute('height', Math.round(height))
 
     screenInfo.width = width
     screenInfo.height = height
-
-    if (firstTime == false) {
-      flow.onWindowResize()
-      flow.update()
-    } else {
-      firstTime = true
-    }
   }
 
   function getPixelRatio(context) {
