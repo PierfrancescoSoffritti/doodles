@@ -10,7 +10,7 @@ function Flow(canvas, screenInfo) {
     const x = circleRadius * Math.cos(angle) + screenInfo.width/2
     const y = circleRadius * Math.sin(angle) + screenInfo.height/2
     const speed = getRandomSpeed()
-    particles.push({ x, y, vx: 0, vy: 0, speed, xStart: x, yStart: y, speedStart: speed, color: Math.random()/2 })
+    particles.push({ x, y, vx: 0, vy: 0, speed, xStart: x, yStart: y, speedStart: speed, alpha: Math.random()/2 })
   }
 
   drawBackground()
@@ -22,6 +22,7 @@ function Flow(canvas, screenInfo) {
   }
 
   this.onWindowResize = function() {
+    // reset particles
     for (let i = 0; i < particles.length; i++) {
       const p = particles[i]
       p.x = p.xStart
@@ -77,18 +78,13 @@ function Flow(canvas, screenInfo) {
         continue
       }
   
-      context.lineWidth = .9
+      context.lineWidth = .6
       context.beginPath()
       context.moveTo(startX, startY)
       context.lineTo(p.x, p.y)
-      context.strokeStyle = `rgba(255, 255, 255, ${p.color})`
+      context.strokeStyle = `rgba(255, 255, 255, ${p.alpha})`
       context.stroke()
     }
-  }
-
-  function isOutsideCircle(p) {
-    const radius = Math.sqrt(Math.pow(p.x - screenInfo.width/2, 2) + Math.pow(p.y - screenInfo.height/2, 2))
-    return radius > circleRadius
   }
 
   function renderField() {
@@ -109,32 +105,39 @@ function Flow(canvas, screenInfo) {
         context.beginPath()
         context.moveTo(xStart, yStart)
         context.lineTo(xEnd, yEnd)
+        context.strokeStyle = "#FFF"
         context.stroke()
   
         context.restore()
       }
     }
   }
-}
 
-function getRandomSpeed() {
-  const type = Math.random()
-  if (type > 0.92) {
-    return Math.random()*3
-  } else if (type > 0.5) {
-    return Math.random() * 1.5
-  } else {
-    return Math.random() * 0.5
+  function getRandomSpeed() {
+    const type = Math.random()
+    if (type > 0.92) {
+      return Math.random()*3
+    } else if (type > 0.5) {
+      return Math.random() * 1.5
+    } else {
+      return Math.random() * 0.5
+    }
   }
-}
+  
+  function isPointNearStart(p) {
+    const x = p.x - p.xStart
+    const y = p.y - p.yStart
+    const distance = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2))
+    return distance < 5
+  }
 
-function isPointNearStart(p) {
-  const x = p.x - p.xStart
-  const y = p.y - p.yStart
-  const distance = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2))
-  return distance < 5
-}
-
-function getValue(x, y, z) {
-  return (noise.simplex3(x / 4000, y / 4000, z) + 1) * Math.PI
+  function isOutsideCircle(p) {
+    const radius = Math.sqrt(Math.pow(p.x - screenInfo.width/2, 2) + Math.pow(p.y - screenInfo.height/2, 2))
+    return radius > circleRadius
+  }
+  
+  function getValue(x, y, z) {
+    // values are from [-1, 1], shift by one ([0, 2]) and multiply by PI
+    return (noise.simplex3(x / 4000, y / 4000, z) + 1) * Math.PI
+  }
 }

@@ -11,11 +11,15 @@ function onLoad() {
   resizeCanvas()
   
   const flow = new Flow(canvas, screenInfo)
+  let time = 0
   render()
 
   function render() {
-    flow.update()
+    if (time > 20) {
+      flow.update()
+    }
     requestAnimationFrame(render)
+    time += 1
   }
 
   function onResize() {
