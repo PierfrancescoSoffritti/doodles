@@ -10,9 +10,20 @@ function onLoad() {
   
   resizeCanvas()
   
-  const flow = new Flow(canvas, screenInfo)
+  let flow = new Flow(canvas, screenInfo)
   let time = 0
   render()
+
+  document.addEventListener('keyup', e => {
+    // arrow right
+    if (e.keyCode === 39) {
+      flow = new Flow(canvas, screenInfo)
+    }
+  })
+
+  document.addEventListener('touchend', e => {
+    flow = new Flow(canvas, screenInfo)
+  })
 
   function render() {
     if (time > 20) {

@@ -87,11 +87,12 @@ function Flow(canvas, screenInfo) {
 
   function getRandomPalette() {
     const palettes = [
-      // { colors: [ "#120136ee", "#035aa6ee", "#40bad5ee", "#fcbf1eee" ], background: "#FFF" },
-      // { colors: [ "#162447ee", "#1f4068ee", "#1b1b2fee", "#e43f5aee" ], background: "#FFF" },
-      // { colors: [ "#f6eedfee", "#f57b51ee", "#d63447ee", "#ffd31dee" ], background: "#FFF" },
-      // { colors: [ "#095B6Eee", "#79C4D4ee", "#D6E4E2ee", "#C04F5Fbb" ], background: "#409AA4" },
+      // { colors: [ "#120136ee", "#035aa6ee", "#40bad5ee", "#fcbf1eee" ], background: "#B3DBF5" },
+      { colors: [ "#162447ee", "#1f4068ee", "#1b1b2fee", "#e43f5aee" ], background: "#f7d6e0" },
+      { colors: [ "#f6eedfee", "#f57b51ee", "#d63447ee", "#ffd31dee" ], background: "#001845" },
+      { colors: [ "#095B6Eee", "#79C4D4ee", "#D6E4E2ee", "#C04F5Fbb" ], background: "#409AA4" },
       { colors: [ "#f57b51ee", "#2a9d8fee", "#f57b51ee", "#ffd31dee" ], background: "#0D171B" },
+      { colors: [ "#caf0f8ee", "#90e0efee", "#00b4d8ee", "#0077b6ee" ], background: "#0D171B" },
     ]
 
     return palettes[getRandomInt(0, palettes.length-1)]
@@ -106,7 +107,7 @@ function Flow(canvas, screenInfo) {
 
   this.onWindowResize = function() {
     particles = getParticles()
-    circles = getCircles
+    circles = getCircles()
 
     drawBackground(palette.background)
     renderParticles()
