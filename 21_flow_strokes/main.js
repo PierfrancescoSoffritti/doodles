@@ -23,7 +23,7 @@ function onLoad() {
 
   document.addEventListener('touchend', e => {
     flow = new Flow(canvas, screenInfo)
-  })
+  }, false)
 
   function render() {
     if (time > 20) {
