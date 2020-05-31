@@ -1,39 +1,9 @@
 
-function Flow(canvas, imageCanvas, screenInfo) {
+function Flow(canvas, imageCanvas, screenInfo, image) {
   const context = canvas.getContext('2d')
   const imageCanvasContext = imageCanvas.getContext('2d')
 
   noise.seed(Math.random())
-
-  const images = [
-    { 
-      image: "https://firebasestorage.googleapis.com/v0/b/doodling-321e8.appspot.com/o/22_flow_painter%2Fvan_gogh_p2.jpg?alt=media&token=83b68a01-7d1c-4c3f-9a37-2bb6dee6d964", 
-      bg: "#E9B0B6", 
-      border: 100 
-    },
-    { 
-      image: "https://firebasestorage.googleapis.com/v0/b/doodling-321e8.appspot.com/o/22_flow_painter%2Fvan_gogh_p1.jpg?alt=media&token=c69e6518-1a14-41f6-87da-02a4ad36a30f", 
-      bg: "#C4E4FF",
-      border: 100 
-    },
-    { 
-      image: "https://firebasestorage.googleapis.com/v0/b/doodling-321e8.appspot.com/o/22_flow_painter%2Fvan_gogh_c.jpg?alt=media&token=21d33c0f-21b0-48e6-8ea7-4bdf0bd6749e",
-      bg: "#FFF5D5", 
-      border: 250 
-    },
-    { 
-      image: "https://firebasestorage.googleapis.com/v0/b/doodling-321e8.appspot.com/o/22_flow_painter%2Fvan_gogh_s.jpg?alt=media&token=b86d2f42-7ac8-4a29-aa45-6a9ca7bb2c77",
-      bg: "#FFDBDB",
-      border: 250
-    },
-    { 
-      image: "https://firebasestorage.googleapis.com/v0/b/doodling-321e8.appspot.com/o/22_flow_painter%2Fpink_guy.jpg?alt=media&token=51a6aed9-0800-4915-9129-1b998e1dbae4", 
-      bg: "#D1ECFF",
-      border: 250
-    }
-  ]
-
-  const image = images[getRandomInt(0, images.length-1)]
 
   drawBackground(imageCanvasContext, image.bg)
   drawBackground(context, image.bg)
