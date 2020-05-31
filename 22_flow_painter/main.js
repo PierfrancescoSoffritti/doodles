@@ -67,7 +67,7 @@ function onLoad() {
   function onResize() {
     resizeCanvas()
     time = 0
-    flow = new Flow(canvas, imageCanvas, screenInfo)
+    flow = new Flow(canvas, imageCanvas, screenInfo, images[i])
   }
 
   function resizeCanvas() {
