@@ -20,7 +20,7 @@ function onLoad() {
   document.addEventListener('touchend', e => { }, false)
 
   function render() {
-    if (time > 20) {
+    if (time > 10) {
       flow.update()
     }
     requestAnimationFrame(render)
@@ -29,7 +29,8 @@ function onLoad() {
 
   function onResize() {
     resizeCanvas()
-    flow.onWindowResize()
+    time = 0
+    flow = new Flow(canvas, imageCanvas, screenInfo)
   }
 
   function resizeCanvas() {
