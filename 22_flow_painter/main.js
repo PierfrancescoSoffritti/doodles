@@ -45,9 +45,12 @@ function onLoad() {
   render()
 
   document.addEventListener('keyup', e => { 
-    i += 1
-    i %= images.length
-    flow = new Flow(canvas, imageCanvas, screenInfo, images[i])
+    // arrow right
+    if (e.keyCode === 39) {
+      i += 1
+      i %= images.length
+      flow = new Flow(canvas, imageCanvas, screenInfo, images[i])
+    }
   })
 
   document.addEventListener('touchend', e => {

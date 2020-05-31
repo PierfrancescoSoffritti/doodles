@@ -66,6 +66,8 @@ function Flow(canvas, imageCanvas, screenInfo, image) {
 
   this.onWindowResize = function() { }
 
+  const minLifespan = 10 * screenInfo.pixelRatio
+
   function renderParticles() {
     for (let i = 0; i < particles.length; i++) {
       const p = particles[i]
@@ -83,7 +85,7 @@ function Flow(canvas, imageCanvas, screenInfo, image) {
         if (p.speed < 1) p.speed = 1
 
         p.initialLifespan -= p.agingFactor
-        if (p.initialLifespan < 10) p.initialLifespan = 10
+        if (p.initialLifespan < minLifespan) p.initialLifespan = minLifespan
       }
       
       const angle = getValue(p.x, p.y, 0)
