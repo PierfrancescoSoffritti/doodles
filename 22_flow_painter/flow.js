@@ -16,7 +16,7 @@ function Flow(canvas, imageCanvas, screenInfo, image) {
     particles = getParticles()
    })
 
-  border = image.border
+  border = image.border * screenInfo.pixelRatio
 
   function loadImage(imageUrl, onLoad) {
     const image = new Image()
