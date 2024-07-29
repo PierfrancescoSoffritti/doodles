@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Plane to polygon</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        #boundsCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <script src='../common/libs/three_v87.min.js'></script>
+    <!-- Canvas used to render 2D bounds of the 3D plane. -->
+    <canvas id="boundsCanvas"></canvas>
+    <script>
+        // Setup scene, camera, and renderer
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Add directional light
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(1, 1, 1).normalize();
+        scene.add(directionalLight);
+
+        // Add ambient light
+        const ambientLight = new THREE.AmbientLight(0x404040);
+        scene.add(ambientLight);
+
+        // Create plane
+        const geometry = new THREE.PlaneGeometry(1, 1);
+        const material = new THREE.MeshStandardMaterial({ roughness: 0.5, metalness: 0.5, side: THREE.DoubleSide });
+        const plane = new THREE.Mesh(geometry, material);
+        scene.add(plane);
+        plane.position.set(0, 0, -3);
+
+        // Create sphere, used as point of reference to visualize the plane's position in 3D space
+        const sphereGeometry = new THREE.SphereGeometry(0.8, 26, 26);
+        const sphereMaterial = new THREE.MeshStandardMaterial({ roughness: 1, metalness: 0.1, color: 0x00ff00 });
+        const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+        sphere.position.set(0, 0, -3);
+        scene.add(sphere);
+
+        // Function to project 3D points to 2D screen space
+        function toScreenPosition(vector, camera) {
+            // Used to center drawing in the screen
+            const widthHalf = 0.5 * window.innerWidth;
+            const heightHalf = 0.5 * window.innerHeight;
+
+            // Projects vector from world space into the camera's normalized device coordinate space.
+            vector.project(camera);
+
+            return {
+                x: (vector.x * widthHalf) + widthHalf,
+                y: -(vector.y * heightHalf) + heightHalf
+            };
+        }
+
+        // Calculate view bounds programmatically
+        function calculateViewBounds(plane, camera) {
+          // 2D coordinates of a plane's corners. 
+          // Other than making up a rectangle with right proportions relative to the plane,
+          // these coordinates have no notion of 3D space, of where the 3D plane is and its orientation.
+          // It's just a flat 2D rectangle.
+            const corners = [
+                new THREE.Vector3(-0.5, -0.5, 0),
+                new THREE.Vector3(0.5, -0.5, 0),
+                new THREE.Vector3(0.5, 0.5, 0),
+                new THREE.Vector3(-0.5, 0.5, 0)
+            ];
+
+            // Ensure the plane's world matrix is up-to-date
+            plane.updateMatrixWorld();
+
+            return corners.map(corner => {
+                // Applies the matrix transform to the object and updates the object's position, rotation and scale.
+                const worldCorner = corner.clone().applyMatrix4(plane.matrixWorld);
+                return toScreenPosition(worldCorner, camera);
+            });
+        }
+
+        // Function to render a polygon on the 2D canvas
+        function renderPolygon(corners, canvasId, color = 'red') {
+            const canvas = document.getElementById(canvasId);
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(corners[0].x, corners[0].y);
+            for (let i = 1; i < corners.length; i++) {
+                ctx.lineTo(corners[i].x, corners[i].y);
+            }
+            ctx.closePath();
+            ctx.stroke();
+        }
+
+        // Resize canvas to match window size
+        function resizeCanvas() {
+            const canvas = document.getElementById('boundsCanvas');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Render loop
+        function animate() {
+            requestAnimationFrame(animate);
+
+            plane.rotation.x += 0.01;
+            plane.rotation.y += 0.01;
+            plane.rotation.z += 0.01;
+            
+            plane.position.x = Math.sin(Date.now() * 0.001) * 1.2;
+            plane.position.y = Math.cos(Date.now() * 0.001) * 1.2;
+            plane.position.z = Math.sin(Date.now() * 0.001) * 1.1 - 3;
+
+            const screenCorners = calculateViewBounds(plane, camera);
+            renderPolygon(screenCorners, 'boundsCanvas');
+
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
+</body>
+</html>
