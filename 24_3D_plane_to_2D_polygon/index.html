@@ -1,3 +1,19 @@
+<!-- 
+    This file contains a short code snippet showing how to map 2D corners of a rectangle to the screenspace coordinates of a plane
+    being rotanted, scaled and translated in the 3D scene.
+
+    Steps:
+    0. Define a canvas for 3D rendering and an overlay canvas for 2D rendering.
+    1. Define a 3D plane and a 2D rectangle with the same proportions.
+    2. Get the matrixWorld of the plane, this matrix contains the position, rotation and scale of the plane in world space.
+    3. Apply the matrixWorld to each corner of the 2D rectangle, this will give us the position of each corner in world space.
+    3. Project the world space corners to screen space, this will give us the 2D coordinates of a polygon overlapping the 3D plane in screen space.
+
+    This is a somewhat convoluted way of doing this, assuming we only have:
+    1. the 2D coordinates of the rectangle.
+    2. the position, rotation and scale of the plane in world space.
+    3. the projection matrix of the camera.
+-->
 <!DOCTYPE html>
 <html>
 <head>
@@ -11,27 +27,35 @@
             overflow: hidden;
         }
 
-        #boundsCanvas {
+        canvas3d {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: 10;
+            z-index: 0;
+        }
+
+        #canvas2d {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
         }
     </style>
 </head>
 <body>
     <script src='../common/libs/three_v87.min.js'></script>
-    <!-- Canvas used to render 2D bounds of the 3D plane. -->
-    <canvas id="boundsCanvas"></canvas>
+    <canvas id="canvas3d"></canvas>
+    <canvas id="canvas2d"></canvas>
     <script>
         // Setup scene, camera, and renderer
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer();
+        const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas3d') });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
 
         // Add directional light
         const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
@@ -49,6 +73,16 @@
         scene.add(plane);
         plane.position.set(0, 0, -3);
 
+        // 2D coordinates of the corners of a rectangle, with the same proportions of the 3D plane. 
+        // These coordinates have no notion of 3D space, of where the 3D plane is and its orientation.
+        // These coordinates will be later transformed to match the screen space position of each corner of the 3D plane.
+        const rectangle = [
+            new THREE.Vector3(-0.5, -0.5, 0),
+            new THREE.Vector3(0.5, -0.5, 0),
+            new THREE.Vector3(0.5, 0.5, 0),
+            new THREE.Vector3(-0.5, 0.5, 0)
+        ];
+
         // Create sphere, used as point of reference to visualize the plane's position in 3D space
         const sphereGeometry = new THREE.SphereGeometry(0.8, 26, 26);
         const sphereMaterial = new THREE.MeshStandardMaterial({ roughness: 1, metalness: 0.1, color: 0x00ff00 });
@@ -57,13 +91,13 @@
         scene.add(sphere);
 
         // Function to project 3D points to 2D screen space
-        function toScreenPosition(vector, camera) {
+        function toScreenPosition(vector, cameraProjectionMatrix) {
             // Used to center drawing in the screen
             const widthHalf = 0.5 * window.innerWidth;
             const heightHalf = 0.5 * window.innerHeight;
 
             // Projects vector from world space into the camera's normalized device coordinate space.
-            vector.project(camera);
+            vector.applyMatrix4(cameraProjectionMatrix);
 
             return {
                 x: (vector.x * widthHalf) + widthHalf,
@@ -71,26 +105,30 @@
             };
         }
 
-        // Calculate view bounds programmatically
-        function calculateViewBounds(plane, camera) {
-          // 2D coordinates of a plane's corners. 
-          // Other than making up a rectangle with right proportions relative to the plane,
-          // these coordinates have no notion of 3D space, of where the 3D plane is and its orientation.
-          // It's just a flat 2D rectangle.
-            const corners = [
-                new THREE.Vector3(-0.5, -0.5, 0),
-                new THREE.Vector3(0.5, -0.5, 0),
-                new THREE.Vector3(0.5, 0.5, 0),
-                new THREE.Vector3(-0.5, 0.5, 0)
-            ];
-
+        // Transform points2d to overlap the 3D plane's corners in screen space.
+        function transform2dPointsToMatchScreenSpacePlane(plane, points2d, camera) {
             // Ensure the plane's world matrix is up-to-date
             plane.updateMatrixWorld();
 
-            return corners.map(corner => {
-                // Applies the matrix transform to the object and updates the object's position, rotation and scale.
-                const worldCorner = corner.clone().applyMatrix4(plane.matrixWorld);
-                return toScreenPosition(worldCorner, camera);
+            return transform2dPoints(
+                points2d, 
+                plane.matrixWorld, 
+                camera.projectionMatrix
+            );
+        }
+
+        // points2d: 2D coordinates of the 2d rectnagle's corners.
+        // planeWorldMatrix: matrix containing the position, rotation and scale of the plane in world space.
+        // cameraProjectionMatrix: the projection matrix of the camera.
+        // Returns: A list of 2D points that match the projection of the 3D points in the screen. When connected togheter these points for a polygon that represents the border of he
+        function transform2dPoints(
+            points2d, 
+            planeWorldMatrix,
+            cameraProjectionMatrix 
+        ) {
+            return points2d.map(point => {
+                const worldCoordinate = point.clone().applyMatrix4(planeWorldMatrix);
+                return toScreenPosition(worldCoordinate, cameraProjectionMatrix );
             });
         }
 
@@ -114,7 +152,7 @@
 
         // Resize canvas to match window size
         function resizeCanvas() {
-            const canvas = document.getElementById('boundsCanvas');
+            const canvas = document.getElementById('canvas2d');
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -136,8 +174,8 @@
             plane.position.y = Math.cos(Date.now() * 0.001) * 1.2;
             plane.position.z = Math.sin(Date.now() * 0.001) * 1.1 - 3;
 
-            const screenCorners = calculateViewBounds(plane, camera);
-            renderPolygon(screenCorners, 'boundsCanvas');
+            const screenCorners = transform2dPointsToMatchScreenSpacePlane(plane, rectangle, camera);
+            renderPolygon(screenCorners, 'canvas2d');
 
             renderer.render(scene, camera);
         }
