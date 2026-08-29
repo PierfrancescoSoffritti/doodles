@@ -13,27 +13,27 @@ function onLoad() {
 
   const images = [
     { 
-      image: "https://firebasestorage.googleapis.com/v0/b/doodling-321e8.appspot.com/o/22_flow_painter%2Fvan_gogh_p2.jpg?alt=media&token=83b68a01-7d1c-4c3f-9a37-2bb6dee6d964", 
+      image: "van_gogh_p2.jpg", 
       bg: "#E9B0B6", 
       border: 70 
     },
     { 
-      image: "https://firebasestorage.googleapis.com/v0/b/doodling-321e8.appspot.com/o/22_flow_painter%2Fvan_gogh_p1.jpg?alt=media&token=c69e6518-1a14-41f6-87da-02a4ad36a30f", 
+      image: "van_gogh_p1.jpg", 
       bg: "#C4E4FF",
       border: 70 
     },
     { 
-      image: "https://firebasestorage.googleapis.com/v0/b/doodling-321e8.appspot.com/o/22_flow_painter%2Fvan_gogh_c.jpg?alt=media&token=21d33c0f-21b0-48e6-8ea7-4bdf0bd6749e",
+      image: "van_gogh_c.jpg",
       bg: "#FFF5D5", 
       border: 150 
     },
     { 
-      image: "https://firebasestorage.googleapis.com/v0/b/doodling-321e8.appspot.com/o/22_flow_painter%2Fvan_gogh_s.jpg?alt=media&token=b86d2f42-7ac8-4a29-aa45-6a9ca7bb2c77",
+      image: "van_gogh_s.jpg",
       bg: "#FFDBDB",
       border: 150
     },
     { 
-      image: "https://firebasestorage.googleapis.com/v0/b/doodling-321e8.appspot.com/o/22_flow_painter%2Fpink_guy.jpg?alt=media&token=51a6aed9-0800-4915-9129-1b998e1dbae4", 
+      image: "pink_guy.jpg", 
       bg: "#D1ECFF",
       border: 150
     }

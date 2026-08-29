@@ -11,7 +11,7 @@ function onLoad() {
   
   resizeCanvas()
 
-  new Pixels(canvas, imageCanvas, screenInfo, "https://firebasestorage.googleapis.com/v0/b/doodling-321e8.appspot.com/o/thumbnails%2F22_flow_painter.jpg?alt=media&token=7880266f-4270-4fa9-b408-59b2612cee7a")
+  new Pixels(canvas, imageCanvas, screenInfo, "../thumbnails/22_flow_painter.jpg")
 
   // let time = 0
   // render()

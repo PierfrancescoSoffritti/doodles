@@ -26,7 +26,7 @@ function onStartClicked() {
     musicManager.startButtonClicked()
     .then( () => {
         startPanel.classList.add("fade");
-        musicManager.loadSong('https://firebasestorage.googleapis.com/v0/b/doodling-321e8.appspot.com/o/music%2Florn_brokenmantra.mp3?alt=media&token=fa997c09-4916-4ab9-83f6-8e6e1358562d') })
+        musicManager.loadSong('brokenmantra.mp3') })
 }
 // --
 

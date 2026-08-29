@@ -3,7 +3,7 @@ const sizeY = 512
 
 let sketch = function(p5) {
   p5.preload = function() {
-    img = p5.loadImage('https://firebasestorage.googleapis.com/v0/b/doodling-321e8.appspot.com/o/23_pixel_sorting%2Fimg2.jpg?alt=media&token=35b42094-b6cc-4993-af01-a83e7296a022')
+    img = p5.loadImage('img2.jpg')
   }
 
   p5.setup = function() {
