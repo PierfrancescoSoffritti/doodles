@@ -10,16 +10,18 @@ import { RIVER_STRIDE, RV, RIVER_KIND, WAKE_STRIDE, surfaceHalfWidth } from './g
 // across it) so the shader can texture the flow without smearing, and the three nearest rocks
 // that break the surface so it can draw their wakes.
 //
-// Two meshes draw the rivers. A static one covers the whole continent with one quad per sample.
-// A near mesh, rebuilt as the player moves, covers the reaches within NEAR_RADIUS with quads a
-// few metres on a side; its vertices are lifted by waves in the vertex shader, so close up the
-// water has a faceted, moving surface with real silhouettes against the banks. The static mesh
-// discards its fragments inside the near radius so the two never fight.
+// Two meshes draw the water. A static one covers the whole continent with one quad per river
+// sample and per half grid cell of lake. A near mesh, rebuilt as the player moves, covers the
+// reaches and lake within NEAR_RADIUS with quads a few metres on a side; its vertices are lifted
+// by waves in the vertex shader (the river's swell, a lake's wind ripples), so close up the water
+// has a faceted, moving surface with real silhouettes against the banks. The static mesh discards
+// its fragments inside the near radius so the two never fight.
 
 export const NEAR_RADIUS = 260;        // where the static ribbon gives way to the waved one
 const NEAR_BUILD = 340;                // reaches gathered for the near mesh
 const NEAR_REBUILD = 40;               // rebuild after moving this far
 const NEAR_ACROSS = 6, NEAR_ALONG = 2; // subdivisions per sample quad
+const NEAR_LAKE_SUB = 4;               // quads per half grid cell on a lake (about 2 m)
 
 export class InlandWater {
 	constructor(scene, heightmap, shared) {
@@ -32,13 +34,13 @@ export class InlandWater {
 		this.uniforms = uniforms;
 		this.material = new THREE.ShaderMaterial({
 			uniforms,
-			vertexShader: waterVertexShader,
+			vertexShader: waterVertexShader(shared),
 			fragmentShader: waterFragmentShader(shared),
 			defines: { NEAR_CULL: '' },
 		});
 		this.nearMaterial = new THREE.ShaderMaterial({
 			uniforms,
-			vertexShader: waterVertexShader,
+			vertexShader: waterVertexShader(shared),
 			fragmentShader: waterFragmentShader(shared),
 			defines: { WAVES: '' },
 			transparent: true,
@@ -48,7 +50,7 @@ export class InlandWater {
 		this.sections = world.rivers.map((r) => this.riverSections(r));
 
 		const b = new Builder();
-		this.buildLakes(b, heightmap);
+		this.buildLakes(b, 1, null);
 		for (let ri = 0; ri < world.rivers.length; ri++) this.buildRiver(b, ri, null, 1, 1);
 		this.mesh = new THREE.Mesh(b.geometry(), this.material);
 		this.mesh.frustumCulled = false;
@@ -60,8 +62,10 @@ export class InlandWater {
 	}
 
 	// ---------- lakes ----------
-	buildLakes(b, heightmap) {
-		const world = this.world;
+	// One quad per half grid cell, or `sub` x `sub` quads per half cell for the near mesh, kept
+	// where `keep(x, z)` says so.
+	buildLakes(b, sub, keep) {
+		const world = this.world, heightmap = this.heightmap;
 		const N = world.res, cell = world.cell, half = cell / 2;
 		const wx = (i) => -world.size / 2 + i * cell - heightmap.ox;
 		const wz = (j) => -world.size / 2 + j * cell - heightmap.oz;
@@ -78,12 +82,17 @@ export class InlandWater {
 					mask[sj * W + si] = 1;
 				}
 			}
-			const y = lake.level;
+			const y = lake.level, q = half / sub;
 			for (let sj = 0; sj < H; sj++) for (let si = 0; si < W; si++) {
 				if (!mask[sj * W + si]) continue;
 				const x0 = wx(i0) - half + si * half, z0 = wz(j0) - half + sj * half;
-				const a = b.still(x0, y, z0), c = b.still(x0, y, z0 + half), d = b.still(x0 + half, y, z0 + half), e = b.still(x0 + half, y, z0);
-				b.idx.push(a, c, e, e, c, d);
+				if (keep && !keep(x0 + half / 2, z0 + half / 2)) continue;
+				for (let v = 0; v < sub; v++) for (let u = 0; u < sub; u++) {
+					const x = x0 + u * q, z = z0 + v * q;
+					const a = b.still(x, y, z), c = b.still(x, y, z + q), d = b.still(x + q, y, z + q), e = b.still(x + q, y, z);
+					// the diagonal alternates so the facets do not all lean the same way
+					if (((si * 7 + sj * 13 + u * 3 + v * 5 + u * v) & 3) < 2) b.idx.push(a, c, e, e, c, d); else b.idx.push(a, c, d, a, d, e);
+				}
 			}
 		}
 	}
@@ -174,6 +183,7 @@ export class InlandWater {
 		}
 		const b = new Builder();
 		const r2 = NEAR_BUILD * NEAR_BUILD;
+		this.buildLakes(b, NEAR_LAKE_SUB, (x, z) => { const dx = x - px, dz = z - pz; return dx * dx + dz * dz < r2; });
 		for (const [ri, set] of perRiver) {
 			const secs = this.sections[ri];
 			this.buildRiver(b, ri, (i) => { if (!set.has(i)) return false; const s = secs[i]; const dx = s.x - px, dz = s.z - pz; return dx * dx + dz * dz < r2; }, NEAR_ALONG, NEAR_ACROSS);

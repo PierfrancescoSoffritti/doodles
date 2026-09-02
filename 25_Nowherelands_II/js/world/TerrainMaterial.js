@@ -184,7 +184,7 @@ export function createTerrainMaterial(shared, heightmap) {
 				vec3 lineColor = hsl2rgb(vec3(uHue, 0.55, 0.55));
 				vec3 contourColor = hsl2rgb(vec3(fract(uHue + 0.45), 0.9, 0.62));
 				float pulse = (0.045 + 0.07 * uBass + 0.16 * uLevel) * (1.0 + 0.5 * uNight) * (1.0 - 0.15 * uSunIntensity) + 0.35 * uHum * (0.5 + 0.5 * sin(uTime * 2.0 - dist * 0.02));
-				color += lineColor * grid * pulse;
+				color += lineColor * grid * pulse * (1.0 - 0.6 * clamp(-h / 1.5, 0.0, 1.0));   // dimmer through the water
 				color += contourColor * contour * (0.03 + 0.1 * uLevel);
 
 				// ripples from notes and footsteps
@@ -199,7 +199,7 @@ export function createTerrainMaterial(shared, heightmap) {
 				// the sea's swash: after each breaker hits the waterline a sheet of foam runs up the sand
 				// and drains back, keeping time with the breakers; it never climbs cliffs
 				float sd = shoreDistAt(vWorldPos.xz);           // negative on land
-				float beach = step(-40.0, sd) * step(sd, 1.0) * (1.0 - smoothstep(1.0, 2.2, hSea)) * smoothstep(0.55, 0.8, n.y);
+				float beach = step(-40.0, sd) * step(sd, 1.0) * (1.0 - smoothstep(1.0, 2.2, hSea)) * smoothstep(0.55, 0.8, n.y) * (1.0 - riverMouthAt(vWorldPos.xz));
 				if (beach > 0.001) {
 					float up = -sd;                                  // metres up the beach from the waterline
 					float run = shoreRunUp(vWorldPos.xz, uTime);

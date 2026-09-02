@@ -100,31 +100,26 @@ export function seaVertexShader(shared) {
 	uniform float uTime, uDisplace;
 	uniform vec3 uCameraPos;
 	uniform mat4 uReflMatrix;
-	attribute vec2 aMorph;
 	varying vec4 vUv4;
 	varying vec3 vWorldPos, vNrm;
-	varying float vJac, vShoreD;
+	varying float vJac, vShoreD, vRiver;
 	${noiseGlsl}
 	${shared.shoreMap.glsl}
 	${shoreWaveGlsl}
 	${seaWaveGlsl}
-	vec3 surface(vec2 p, out vec3 nrm, out float jac, out float d) {
-		d = shoreDistAt(p);
-		vec3 disp = gerstner(p, uTime, d, 1.0, nrm, jac);
-		disp.y += shoreLift(d, p, uTime);
+	vec3 surface(vec2 p, out vec3 nrm, out float jac, out float d, out float river) {
+		vec4 sh = shoreSample(p);
+		d = sh.b;
+		river = sh.a;                                  // the sea lies still over a river mouth
+		vec3 disp = gerstner(p, uTime, d, 1.0 - river, nrm, jac);
+		disp.y += shoreLift(d, p, uTime) * (1.0 - river);
 		return disp;
 	}
 	void main() {
 		vec3 wp = (modelMatrix * vec4(position, 1.0)).xyz;
 		vec2 p = wp.xz;
-		vec3 nrm; float jac, d;
-		vec3 disp = surface(p, nrm, jac, d);
-		// a vertex on the rim of a finer ring sits on the coarser ring's edge: it takes the mean of its
-		// two neighbours there so the rings meet without a crack
-		if (aMorph.x != 0.0 || aMorph.y != 0.0) {
-			vec3 n1, n2; float j1, j2, d1, d2;
-			disp = 0.5 * (surface(p - aMorph, n1, j1, d1) + surface(p + aMorph, n2, j2, d2));
-		}
+		vec3 nrm; float jac, d, river;
+		vec3 disp = surface(p, nrm, jac, d, river);
 		// the far rim eases down to the flat horizon plane
 		float fade = uDisplace * (1.0 - smoothstep(5200.0, 7600.0, distance(p, uCameraPos.xz)));
 		wp += disp * fade;
@@ -132,6 +127,7 @@ export function seaVertexShader(shared) {
 		vNrm = nrm;
 		vJac = jac;
 		vShoreD = d;
+		vRiver = river;
 		vUv4 = uReflMatrix * vec4(wp, 1.0);
 		gl_Position = projectionMatrix * viewMatrix * vec4(wp, 1.0);
 	}`;
@@ -144,7 +140,7 @@ export function seaFragmentShader(shared) {
 	uniform float uSunIntensity, uTime, uMoonIntensity, uWaterLevel, uRain;
 	varying vec4 vUv4;
 	varying vec3 vWorldPos, vNrm;
-	varying float vJac, vShoreD;
+	varying float vJac, vShoreD, vRiver;
 	${hslGlsl}
 	${noiseGlsl}
 	${Ripples.glsl()}
@@ -196,7 +192,9 @@ export function seaFragmentShader(shared) {
 		body *= 1.0 + 0.1 * tilt * (1.0 - smoothstep(700.0, 1600.0, dist));
 		vec3 coord = vUv4.xyz / max(vUv4.w, 1e-4);
 		coord.xy += n.xz * 0.06 / (1.0 + dist * 0.003);   // a nudge only: a large one reads below the mirrored horizon
-		vec3 refl = texture2D(tDiffuse, clamp(coord.xy, 0.001, 0.999)).rgb;
+		// the moon's disc is far brighter than white in the mirror; unclamped it burns through even a
+		// near-transparent facet as a pale blot
+		vec3 refl = min(texture2D(tDiffuse, clamp(coord.xy, 0.001, 0.999)).rgb, vec3(1.3));
 		vec3 col = mix(body, refl * 0.85, fres);
 
 		// glints: a hard fleck where a facet mirrors the moon, a red one for the dwarf star
@@ -226,7 +224,7 @@ export function seaFragmentShader(shared) {
 		float trail = step(1.0 - cover, trailN);
 		// the waterline: a thin broken seam where the water meets the sand
 		float lap = (1.0 - smoothstep(0.0, 0.5, abs(d))) * step(0.35, vnoise(p * 0.45 + t * 0.12));
-		float foam = clamp(cap + lip + trail + lap, 0.0, 1.0);
+		float foam = clamp(cap + lip + trail + lap, 0.0, 1.0) * (1.0 - vRiver);
 		col = mix(col, foamCol, foam * 0.85);
 
 		col += rippleGlow(p, t) * 1.2;

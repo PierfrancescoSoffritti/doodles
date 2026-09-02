@@ -49,9 +49,24 @@ export const riverWaveGlsl = /* glsl */`
 		return amp * y;
 	}`;
 
-export const waterVertexShader = /* glsl */`
+// Wind ripples on a lake: four short deep-water waves, gusting, dying out in the shallows.
+export const lakeWaveGlsl = /* glsl */`
+	float lakeWave(vec2 p, float t, float depth) {
+		float gust = 0.55 + 0.45 * vnoise(p * 0.015 + t * 0.04);
+		float y = sin(dot(p, vec2(0.83, 0.55)) * 0.55 - t * 2.3) * 0.09
+			+ sin(dot(p, vec2(0.3, -0.95)) * 0.95 - t * 3.05 + 1.7) * 0.06
+			+ sin(dot(p, vec2(-0.6, 0.8)) * 1.6 - t * 3.96 + 0.4) * 0.035
+			+ sin(dot(p, vec2(0.95, 0.3)) * 2.4 - t * 4.85) * 0.02;
+		return y * 0.85 * gust * smoothstep(0.0, 1.2, depth);
+	}`;
+
+export function waterVertexShader(shared) {
+	return /* glsl */`
 	uniform float uTime;
+	${noiseGlsl}
+	${shared.shoreMap.glsl}
 	${riverWaveGlsl}
+	${lakeWaveGlsl}
 	varying vec3 vWorldPos;
 	attribute vec4 aInfo0, aInfo1;
 	attribute float aFade;
@@ -65,6 +80,7 @@ export const waterVertexShader = /* glsl */`
 		// the near surface heaves: a swell on calm water, short steep standing waves in the rapids,
 		// nothing on the riffle ramps or at the banks, quieter where the water goes still
 		if (aInfo0.y > 0.0 && aInfo1.z <= 0.0) worldPosition.y += riverWave(aInfo0, aInfo1, aFade, uTime);
+		else if (aInfo0.y < 0.0) worldPosition.y += lakeWave(worldPosition.xz, uTime, worldPosition.y - terrainHeightAt(worldPosition.xz));
 		#endif
 		vWorldPos = worldPosition.xyz;
 		vInfo0 = aInfo0;
@@ -73,6 +89,7 @@ export const waterVertexShader = /* glsl */`
 		vWake0 = aWake0; vWake1 = aWake1; vWake2 = aWake2;
 		gl_Position = projectionMatrix * viewMatrix * worldPosition;
 	}`;
+}
 
 export function waterFragmentShader(shared) {
 	return /* glsl */`
@@ -103,8 +120,8 @@ export function waterFragmentShader(shared) {
 	void main() {
 		vec2 p = vWorldPos.xz;
 		#ifdef NEAR_CULL
-		// inside the near radius the waved mesh draws the rivers instead
-		if (vInfo0.y > 0.0 && distance(vWorldPos.xz, uCameraPos.xz) < uNearRadius) discard;
+		// inside the near radius the waved mesh draws the water instead
+		if (distance(vWorldPos.xz, uCameraPos.xz) < uNearRadius) discard;
 		#endif
 		// rivers are textured in their own space: metres along the channel (scrolling with the
 		// current) by metres across it. Scrolling world coordinates by a per-vertex flow direction
@@ -112,6 +129,8 @@ export function waterFragmentShader(shared) {
 		float vFoam = vInfo0.x, vDepth = vInfo0.y, vAcross = vInfo0.z, vWidth = vInfo0.w;
 		float vAlong = vInfo1.x, vSpeed = vInfo1.y, vFall = vInfo1.z, vBase = vInfo1.w;
 		bool river = vDepth > 0.0;
+		// a river that has run out under the sea is the sea's from there on
+		if (river && vWorldPos.y < uWaterLevel - 0.03) discard;
 		float speed = 0.6 + vSpeed * 2.2;      // metres per second the pattern travels: 1.3 in a pool, 7 in a chute
 		float across = vAcross * vWidth * 0.5;
 		vec2 fuv = river ? vec2(vAlong - uTime * speed, across) : p;
@@ -175,18 +194,19 @@ export function waterFragmentShader(shared) {
 		}
 
 		float whiteOut = 0.0;      // how much foam covers this point, for the near surface's opacity
+		vec3 foamCol = vec3(0.55, 0.58, 0.7);
+		float live = river ? 1.0 - vFade : 0.0;   // running-water features die away into still water
+		float fast = river ? clamp((vSpeed - 0.3) / 2.7, 0.0, 1.0) : 0.0;
+		vec3 gn = normalize(cross(dFdx(vWorldPos), dFdy(vWorldPos)));
 		if (river) {
 			// running water in three flat tones: the deep channel, a pale band in the shallows, foam
 			float along = fuv.x;
 			float grazing = 1.0 - 0.75 * fresnel;   // seen along the surface the river is a dark mirror of a dark sky
-			vec3 foamCol = vec3(0.55, 0.58, 0.7);
 			float wob = vnoise(vec2(along * 0.09, across * 0.3)) - 0.5;
-			float live = 1.0 - vFade;                 // running-water features die away into still water
 			float shallowBand = 1.0 - step(0.85, channelDepth + wob * 0.7);
 			col = mix(col, vec3(0.11, 0.23, 0.33), shallowBand * 0.55 * grazing * live);
 			// flow lines: thin bright streaks drifting with the current
 			// fast water draws more and longer streaks
-			float fast = clamp((vSpeed - 0.3) / 2.7, 0.0, 1.0);
 			float ln = vnoise(vec2(along * (0.06 - 0.03 * fast), across * 0.8 + 3.0));
 			float lines = step(0.77 - 0.06 * fast, ln) * smoothstep(0.0, 0.02, channelDepth);
 			col += vec3(0.22, 0.25, 0.38) * lines * 0.18 * grazing * live;
@@ -212,26 +232,6 @@ export function waterFragmentShader(shared) {
 			col = mix(col, foamCol, white * 0.8 * (1.0 - 0.35 * fresnel) * live);
 			whiteOut = white * live;
 			// the riffle ramps: steep quads where the surface drops a step, all white water
-			vec3 gn = normalize(cross(dFdx(vWorldPos), dFdy(vWorldPos)));
-			#ifdef WAVES
-			// the facets of the waved surface: those turned away from the eye show the sky, those
-			// turned toward it show the deep, in flat bands; a flat facet keeps the far ribbon's colour
-			// so the two meshes meet without a seam. Facets that mirror the moon glint.
-			{
-				vec3 Vv = normalize(uCameraPos - vWorldPos);
-				float tilt = dot(gn, Vv) - clamp(Vv.y, 0.0, 1.0);
-				float band = clamp(floor(tilt * 14.0 + 0.5), -2.0, 2.0);
-				vec3 skyGlimpse = mix(vec3(0.3, 0.34, 0.52), uSkyTone * 1.8, 0.3);
-				col = mix(col, skyGlimpse, clamp(-band, 0.0, 2.0) * 0.36);
-				col *= 1.0 + clamp(band, 0.0, 2.0) * 0.16;
-				float g = pow(max(dot(reflect(-Vv, gn), uMoonDir), 0.0), 12.0);
-				float glint = step(0.28, g) * uMoonIntensity * (1.0 - 0.5 * vFade);
-				col = mix(col, uMoonColor * 0.85, glint * 0.55);
-				// white breaks only on the genuinely steep faces of fast water
-				float crest = (1.0 - smoothstep(0.6, 0.72, gn.y)) * fast * live * (1.0 - step(0.02, vFall));
-				col = mix(col, foamCol, crest * 0.6);
-			}
-			#endif
 			float steepness = 1.0 - smoothstep(0.7, 0.92, abs(gn.y));
 			if (vFall > 0.02 && steepness > 0.01) {
 				float frac = clamp((vWorldPos.y - vBase) / max(vFall, 0.3), 0.0, 1.0);
@@ -241,6 +241,35 @@ export function waterFragmentShader(shared) {
 				col = mix(col, fallCol, steepness);
 			}
 		}
+
+		#ifdef WAVES
+		// the facets of the waved surface: those turned away from the eye show the sky, those
+		// turned toward it show the deep, in flat bands; a flat facet keeps the far mesh's colour
+		// so the two meet without a seam. Facets that mirror the moon glint. A lake's ripples are
+		// small, so its bands are cut finer.
+		{
+			vec3 Vv = normalize(uCameraPos - vWorldPos);
+			float tilt = dot(gn, Vv) - clamp(Vv.y, 0.0, 1.0);
+			// a lake's facets fade out before the far mesh takes over, so no line marks the hand-over
+			float reach = river ? 1.0 : 1.0 - smoothstep(170.0, 250.0, distance(vWorldPos.xz, uCameraPos.xz));
+			float band = clamp(floor(tilt * (river ? 14.0 : 18.0) + 0.5), -2.0, 2.0) * reach;
+			if (!river) col *= 1.0 + clamp(tilt, -0.15, 0.15) * 1.2 * reach;   // every ripple facet shades a little
+			vec3 skyGlimpse = mix(vec3(0.3, 0.34, 0.52), uSkyTone * 1.8, 0.3);
+			col = mix(col, skyGlimpse, clamp(-band, 0.0, 2.0) * (river ? 0.36 : 0.16));
+			col *= 1.0 + clamp(band, 0.0, 2.0) * (river ? 0.16 : 0.09);
+			// on flat water (a lake, a river gone slow) every facet near the moon's mirror point would
+			// glint at once, one pale blot; only a few do, and they change from moment to moment. Fast
+			// water's facets are steep enough to glint one by one.
+			float g = pow(max(dot(reflect(-Vv, gn), uMoonDir), 0.0), mix(40.0, 12.0, fast));
+			float twinkle = step(0.72 * (1.0 - fast), hash21(floor(p / 2.6) + floor(uTime * 2.5) * 0.37));
+			// only a tilted facet glitters; flat water keeps the soft highlight and never a hard blot
+			float glint = step(0.28, g) * uMoonIntensity * (1.0 - 0.5 * vFade) * twinkle * reach * smoothstep(0.015, 0.05, 1.0 - gn.y);
+			col = mix(col, uMoonColor * 0.85, glint * 0.55);
+			// white breaks only on the genuinely steep faces of fast water
+			float crest = (1.0 - smoothstep(0.6, 0.72, gn.y)) * fast * live * (1.0 - step(0.02, vFall));
+			col = mix(col, foamCol, crest * 0.6);
+		}
+		#endif
 
 		float spec = pow(max(dot(R, uMoonDir), 0.0), 500.0) * 0.8 + pow(max(dot(R, uMoonDir), 0.0), 60.0) * 0.04;
 		col += uMoonColor * spec * uMoonIntensity;
@@ -272,7 +301,7 @@ export function waterFragmentShader(shared) {
 		float alpha = 1.0;
 		#ifdef WAVES
 		// close up the shallows are see-through: the cobbled bed shows under the surface
-		alpha = mix(0.55, 1.0, smoothstep(0.25, 1.6, channelDepth)) + 0.45 * whiteOut;
+		alpha = river ? mix(0.55, 1.0, smoothstep(0.25, 1.6, channelDepth)) + 0.45 * whiteOut : mix(0.5, 1.0, smoothstep(0.2, 3.0, depth));
 		alpha = min(alpha + vFade * 0.5, 1.0);
 		#endif
 		gl_FragColor = vec4(col, alpha);

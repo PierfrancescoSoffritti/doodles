@@ -38,7 +38,8 @@ export class Water {
 		this.levels = [];
 		for (let L = 0; L < LEVELS; L++) {
 			const cell = CELL0 << L;
-			const mesh = new THREE.Mesh(ringGeometry(cell, CELLS, L === 0 ? 0 : CELLS / 2, false), this.material);
+			// each ring's hole is one cell wider than the finer ring, which fills the gap with its stitch strip
+			const mesh = new THREE.Mesh(ringGeometry(cell, CELLS, L === 0 ? 0 : CELLS / 2 + 2, false, L < LEVELS - 1), this.material);
 			mesh.frustumCulled = false;
 			mesh.renderOrder = 0;
 			mesh.position.y = waterLevel;
@@ -76,33 +77,51 @@ export class Water {
 }
 
 // A square grid of `cells` cells of size `cell`, with a hole of `hole` cells in the middle, on the
-// XZ plane (or XY for the reflector, whose mirror normal is its local Z). The odd vertices on the
-// outer rim carry the offset to their neighbours along the edge (aMorph) so the vertex shader can
-// place them on the coarser ring's edge.
-function ringGeometry(cell, cells, hole, xy) {
+// XZ plane (or XY for the reflector, whose mirror normal is its local Z). With `stitch` the grid
+// gains a strip one coarser cell wide around its rim whose outer vertices are spaced two cells
+// apart, matching the next ring's hole edge vertex for vertex: no edge ends in the middle of
+// another (a T-junction), which would leave a hairline of pinholes along the seam.
+function ringGeometry(cell, cells, hole, xy, stitch) {
 	const n = cells + 1, half = cells * cell / 2;
-	const pos = new Float32Array(n * n * 3), morph = new Float32Array(n * n * 2);
-	for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
-		const k = j * n + i, x = i * cell - half, z = j * cell - half;
-		if (xy) { pos[k * 3] = x; pos[k * 3 + 1] = -z; pos[k * 3 + 2] = 0; }
-		else { pos[k * 3] = x; pos[k * 3 + 1] = 0; pos[k * 3 + 2] = z; }
-		const onX = i === 0 || i === cells, onZ = j === 0 || j === cells;
-		if (onX && (j & 1)) { morph[k * 2 + 1] = cell; }
-		else if (onZ && (i & 1)) { morph[k * 2] = cell; }
-	}
+	const pos = [];
+	const vert = (x, z) => { if (xy) pos.push(x, -z, 0); else pos.push(x, 0, z); return pos.length / 3 - 1; };
+	// a triangle wound counter-clockwise seen from the water's top, whichever order it is given in
 	const idx = [];
+	const tri = (a, b, c) => {
+		const ax = pos[a * 3], bx = pos[b * 3], cx = pos[c * 3];
+		const az = xy ? -pos[a * 3 + 1] : pos[a * 3 + 2], bz = xy ? -pos[b * 3 + 1] : pos[b * 3 + 2], cz = xy ? -pos[c * 3 + 1] : pos[c * 3 + 2];
+		const cross = (bx - ax) * (cz - az) - (bz - az) * (cx - ax);
+		if (cross < 0) idx.push(a, b, c); else idx.push(a, c, b);
+	};
+	for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) vert(i * cell - half, j * cell - half);
 	const h0 = (cells - hole) / 2, h1 = h0 + hole;
 	for (let j = 0; j < cells; j++) for (let i = 0; i < cells; i++) {
 		if (hole && i >= h0 && i < h1 && j >= h0 && j < h1) continue;
 		const a = j * n + i, b = a + 1, c = a + n, d = c + 1;
 		// alternate the diagonal so the facets are not all cut the same way
-		const flip = ((i * 7 + j * 13 + i * j) & 3) < 2;
-		// counter-clockwise seen from the water's top (the same in both frames)
-		if (flip) idx.push(a, d, b, a, c, d); else idx.push(a, c, b, b, c, d);
+		if (((i * 7 + j * 13 + i * j) & 3) < 2) { tri(a, d, b); tri(a, c, d); } else { tri(a, c, b); tri(b, c, d); }
+	}
+	if (stitch) {
+		const c2 = cell * 2, outer = half + c2, M = cells / 2 + 2;
+		// each side: the rim's fine vertices F (existing) against a new coarse row C one coarse cell out
+		const sides = [
+			{ F: (i) => i, C: (k) => vert(-outer + k * c2, -outer) },                          // z = -half
+			{ F: (i) => cells * n + i, C: (k) => vert(-outer + k * c2, outer) },               // z = +half
+			{ F: (i) => i * n, C: (k) => vert(-outer, -outer + k * c2) },                      // x = -half
+			{ F: (i) => i * n + cells, C: (k) => vert(outer, -outer + k * c2) },               // x = +half
+		];
+		for (const side of sides) {
+			const C = []; for (let k = 0; k <= M; k++) C.push(side.C(k));
+			tri(side.F(0), C[1], C[0]);
+			tri(side.F(cells), C[M], C[M - 1]);
+			for (let m = 0; m < cells / 2; m++) {
+				const f0 = side.F(2 * m), f1 = side.F(2 * m + 1), f2 = side.F(2 * m + 2);
+				tri(f0, f1, C[m + 1]); tri(f1, C[m + 2], C[m + 1]); tri(f1, f2, C[m + 2]);
+			}
+		}
 	}
 	const g = new THREE.BufferGeometry();
-	g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-	g.setAttribute('aMorph', new THREE.BufferAttribute(morph, 2));
+	g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
 	g.setIndex(idx);
 	return g;
 }

@@ -2,8 +2,10 @@ import * as THREE from 'three';
 
 // Textures of the terrain around the player that the water and terrain shaders read:
 //   R = ground height, G = the local water surface (sea, lake or river),
-//   B = signed distance to the sea's shoreline in metres (positive out to sea, negative on land,
-//       rivers and lakes count as land so the sea's waves stop at a river mouth).
+//   B = signed distance to the sea's shoreline in metres (positive out to sea, negative on land;
+//       a river's last reaches at sea level count as sea, a lake as land),
+//   A = how much a river owns the point: 1 in the channel, 0 some forty metres out. The sea's
+//       waves and foam die away over it, so a river runs out into still water.
 // Two tiers: a fine one a few hundred metres across for the breakers and the swash at the
 // player's feet, and a coarse one out to the horizon for the far coasts. Both are refilled a few
 // rows per frame as the player moves; a tier keeps showing its old map until the new one is done.
@@ -12,6 +14,8 @@ const TIERS = [
 	{ res: 384, size: 3072, rows: 6 },    // 8 m per texel
 ];
 const OUTSIDE = 1000;
+
+function smoothstep(a, b, x) { const t = Math.min(Math.max((x - a) / (b - a), 0), 1); return t * t * (3 - 2 * t); }
 
 class Tier {
 	constructor(spec, heightmap) {
@@ -54,14 +58,16 @@ class Tier {
 				const k = (j * res + i) * 4;
 				next[k] = h;
 				next[k + 1] = hm._water;
-				// sea: under the sea level, with no lake or river surface above the ground
-				const sea = h < hm.waterLevel && hm._water <= hm.waterLevel + 0.01 && !(hm._riverDist < hm._riverWidth * 0.6 + 2);
+				// sea: under the sea level, with no lake (or river well above the sea) over the ground
+				const sea = h < hm.waterLevel && hm._water <= hm.waterLevel + 0.5;
 				next[k + 2] = sea ? 1 : 0;
+				next[k + 3] = hm._riverDist < hm._riverWidth * 0.5 + 1 ? 1 : 0;   // in a channel; dilated below
 			}
 		}
 		this.row = end;
 		if (this.row >= res) {
 			shoreDistance(next, res, size / (res - 1));
+			riverReach(next, res, size / (res - 1));
 			this.data.set(next);
 			this.texture.needsUpdate = true;
 			this.origin.copy(o);
@@ -86,6 +92,15 @@ function shoreDistance(data, res, texel) {
 		const d = (Math.sqrt(s ? sea[k] : land[k]) - 0.5) * texel;
 		data[k * 4 + 2] = s ? d : -d;
 	}
+}
+
+// The river-mouth factor: 1 in a channel, falling to 0 forty metres from its edge.
+function riverReach(data, res, texel) {
+	const INF = 1e12;
+	const f = new Float64Array(res * res);
+	for (let k = 0; k < res * res; k++) f[k] = data[k * 4 + 3] > 0.5 ? 0 : INF;
+	edt2d(f, res);
+	for (let k = 0; k < res * res; k++) data[k * 4 + 3] = 1 - smoothstep(0, 40 / texel, Math.sqrt(f[k]));
 }
 
 function edt2d(f, res) {
@@ -136,21 +151,22 @@ export class ShoreMap {
 			uniform sampler2D uShoreNear, uShoreFar;
 			uniform vec2 uShoreNearOrigin, uShoreFarOrigin;
 			uniform float uShoreNearSize, uShoreFarSize;
-			// ground height, water level, signed distance to the sea shore
-			vec3 shoreSample(vec2 p) {
+			// ground height, water level, signed distance to the sea shore, river-mouth factor
+			vec4 shoreSample(vec2 p) {
 				vec2 uv = (p - uShoreFarOrigin) / uShoreFarSize + 0.5;
-				vec3 far = vec3(-1000.0, -1000.0, ${OUTSIDE.toFixed(1)});
-				if (all(greaterThan(uv, vec2(0.003))) && all(lessThan(uv, vec2(0.997)))) far = texture2D(uShoreFar, uv).rgb;
+				vec4 far = vec4(-1000.0, -1000.0, ${OUTSIDE.toFixed(1)}, 0.0);
+				if (all(greaterThan(uv, vec2(0.003))) && all(lessThan(uv, vec2(0.997)))) far = texture2D(uShoreFar, uv);
 				vec2 nuv = (p - uShoreNearOrigin) / uShoreNearSize + 0.5;
 				float edge = max(abs(nuv.x - 0.5), abs(nuv.y - 0.5));
 				if (edge > 0.49) return far;
-				vec3 near = texture2D(uShoreNear, nuv).rgb;
+				vec4 near = texture2D(uShoreNear, nuv);
 				// the last few texels of the fine map blend into the coarse one so its edge never shows
 				return mix(near, far, smoothstep(0.44, 0.49, edge));
 			}
 			float terrainHeightAt(vec2 p) { return shoreSample(p).r; }
 			float waterLevelAt(vec2 p) { return shoreSample(p).g; }
-			float shoreDistAt(vec2 p) { return shoreSample(p).b; }`;
+			float shoreDistAt(vec2 p) { return shoreSample(p).b; }
+			float riverMouthAt(vec2 p) { return shoreSample(p).a; }`;
 	}
 
 	// Fill synchronously (used once at start so the first frame has shores).
