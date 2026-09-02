@@ -29,7 +29,7 @@ export class Mirrors {
 			mesh.material = this.fallback;
 			const ground = heightmap.height(spot.x, spot.z);
 			// at the water's edge the disc wades in, roughly half of it below the surface
-			const y = spot.edge ? Math.max(heightmap.waterLevel + size * rnd.range(0.35, 0.6), ground + size * 0.3) : ground + size + 2;
+			const y = spot.edge ? Math.max(heightmap.waterAt(spot.x, spot.z) + size * rnd.range(0.35, 0.6), ground + size * 0.3) : ground + size + 2;
 			mesh.position.set(spot.x, y, spot.z);
 			mesh.rotation.y = rnd.range(0, Math.PI * 2);
 			scene.add(mesh);

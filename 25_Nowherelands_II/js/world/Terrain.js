@@ -3,141 +3,192 @@ import { config } from '../core/Config.js';
 import { createTerrainMaterial } from './TerrainMaterial.js';
 import { Vegetation } from './Vegetation.js';
 
-// Endless chunked terrain streamed around the player, with vegetation attached per chunk.
+// Quadtree terrain: the whole continent is always on screen, from 3 m cells at the player's feet
+// to 300 m cells on the far horizon. Every node is a 48x48 grid with a skirt hanging off its
+// edges to hide the cracks between neighbours of different detail.
+const SEG = 48;
+const ROOT = 40960;                  // covers the 16 km world wherever the spawn ends up
+const MAX_DEPTH = 8;                 // 160 m leaves
+const LOD_FACTOR = config.isTouch ? 1.3 : 1.7;
+const BUILD_BUDGET_MS = 6;
+const KEEP_FRAMES = 900;
+
+function buildIndex(seg) {
+	const n = seg + 1;
+	const idx = [];
+	for (let j = 0; j < seg; j++) for (let i = 0; i < seg; i++) {
+		const a = j * n + i, b = a + 1, c = a + n, d = c + 1;
+		idx.push(a, c, b, b, c, d);
+	}
+	// skirts: 4 rows of n vertices appended after the grid, one per edge
+	let base = n * n;
+	const edge = (grid, skirt, flip) => {
+		for (let k = 0; k < seg; k++) {
+			const g0 = grid(k), g1 = grid(k + 1), s0 = skirt(k), s1 = skirt(k + 1);
+			if (flip) idx.push(g0, s0, g1, g1, s0, s1); else idx.push(g0, g1, s0, g1, s1, s0);
+		}
+	};
+	edge((k) => k, (k) => base + k, false); base += n;                                  // z = 0 (top)
+	edge((k) => seg * n + k, (k) => base + k, true); base += n;                         // z = seg (bottom)
+	edge((k) => k * n, (k) => base + k, true); base += n;                               // x = 0 (left)
+	edge((k) => k * n + seg, (k) => base + k, false);                                   // x = seg (right)
+	return new THREE.BufferAttribute(new Uint32Array(idx), 1);
+}
+
 export class Terrain {
 	constructor(scene, heightmap, shared) {
 		this.scene = scene;
 		this.heightmap = heightmap;
-		this.material = createTerrainMaterial(shared);
+		this.shared = shared;
+		this.material = createTerrainMaterial(shared, heightmap);
+		shared.terrainUniforms = this.material.uniforms;
 		this.vegetation = new Vegetation(scene, heightmap, shared);
-		this.chunks = new Map();
-		this.queue = [];
-		this.size = config.world.chunkSize;
-		this.segments = config.world.chunkSegments;
-		this.viewRadius = config.world.viewRadius;
-		this.lastKey = null;
-		// far tier: big coarse chunks that carry the horizon out to several kilometres
-		this.far = { size: 1280, segments: 16, radius: 5, chunks: new Map(), queue: [], lastKey: null };
+		this.index = buildIndex(SEG);
+		this.nodes = new Map();
+		this.requests = [];
+		this.frame = 0;
+		this.vegKey = null;
+		this.vegQueue = [];
+		this.stats = { nodes: 0, drawn: 0, builds: 0 };
 	}
 
-	key(cx, cz) { return cx + ',' + cz; }
+	key(depth, ix, iz) { return depth * 1e6 + ix * 1000 + iz; }
 
 	update(playerPos, dt) {
-		const cx = Math.round(playerPos.x / this.size);
-		const cz = Math.round(playerPos.z / this.size);
-		const key = this.key(cx, cz);
+		this.frame++;
+		const drawn = new Set();
+		this.requests.length = 0;
+		this.select(0, 0, 0, playerPos, drawn);
 
-		this.vegetation.centerX = cx;
-		this.vegetation.centerZ = cz;
-		if (key !== this.lastKey) {
-			this.lastKey = key;
-			this.refreshNeeded(cx, cz);
+		for (const [k, node] of this.nodes) node.mesh.visible = drawn.has(k);
+
+		// build the most urgent missing children within a time budget
+		this.requests.sort((a, b) => a.priority - b.priority);
+		const t0 = performance.now();
+		for (const r of this.requests) {
+			if (this.nodes.has(r.key)) continue;
+			this.build(r.depth, r.ix, r.iz);
+			if (performance.now() - t0 > BUILD_BUDGET_MS) break;
 		}
 
-		// Build a few chunks per frame, nearest first.
-		let budget = this.chunks.size === 0 ? 40 : 3;
-		while (budget-- > 0 && this.queue.length) {
-			const [x, z] = this.queue.shift();
-			const k = this.key(x, z);
-			if (!this.chunks.has(k)) this.chunks.set(k, this.buildChunk(x, z));
-		}
+		if (this.frame % 120 === 0) this.sweep();
+		this.stats.nodes = this.nodes.size;
+		this.stats.drawn = drawn.size;
 
-		this.vegetation.update(dt, cx, cz);
-		this.updateFar(playerPos);
+		this.updateVegetation(playerPos, dt);
 	}
 
-	updateFar(playerPos) {
-		const f = this.far;
-		const cx = Math.round(playerPos.x / f.size), cz = Math.round(playerPos.z / f.size);
-		const key = this.key(cx, cz);
-		if (key !== f.lastKey) {
-			f.lastKey = key;
-			const needed = new Set();
-			f.queue.length = 0;
-			const fineReach = this.viewRadius * this.size;
-			for (let dz = -f.radius; dz <= f.radius; dz++) {
-				for (let dx = -f.radius; dx <= f.radius; dx++) {
-					const k = this.key(cx + dx, cz + dz);
-					// skip coarse chunks that the fine tier fully covers
-					const ox = (cx + dx) * f.size - playerPos.x, oz = (cz + dz) * f.size - playerPos.z;
-					const farthestCorner = Math.hypot(Math.abs(ox) + f.size / 2, Math.abs(oz) + f.size / 2);
-					if (farthestCorner < fineReach * 0.85) continue;
-					needed.add(k);
-					if (!f.chunks.has(k)) f.queue.push([cx + dx, cz + dz, dx * dx + dz * dz]);
+	// Build everything needed for the first view before the player enters.
+	prewarm(playerPos, maxMs = 1500) {
+		const t0 = performance.now();
+		for (let i = 0; i < 40 && performance.now() - t0 < maxMs; i++) {
+			this.update(playerPos, 0);
+			if (this.requests.every((r) => this.nodes.has(r.key))) break;
+		}
+		this.vegetation.centerX = Math.round(playerPos.x / config.world.chunkSize);
+		this.vegetation.centerZ = Math.round(playerPos.z / config.world.chunkSize);
+		const t1 = performance.now();
+		while (this.vegQueue.length && performance.now() - t1 < maxMs * 0.6) {
+			const [x, z] = this.vegQueue.shift();
+			this.vegetation.addChunk(this.vegetation.key(x, z), x, z);
+		}
+	}
+
+	select(depth, ix, iz, pos, drawn) {
+		const size = ROOT / (1 << depth);
+		const cx = -ROOT / 2 + (ix + 0.5) * size, cz = -ROOT / 2 + (iz + 0.5) * size;
+		if (this.heightmap.maxHeightIn(cx, cz, size) < -9) return;   // under the sea, out of sight
+		const dx = Math.max(Math.abs(pos.x - cx) - size / 2, 0), dz = Math.max(Math.abs(pos.z - cz) - size / 2, 0);
+		const dist = Math.hypot(dx, dz);
+		const key = this.key(depth, ix, iz);
+
+		if (depth < MAX_DEPTH && dist < size * LOD_FACTOR) {
+			let ready = true;
+			for (let q = 0; q < 4; q++) {
+				const kx = ix * 2 + (q & 1), kz = iz * 2 + (q >> 1);
+				const ks = size / 2, kcx = -ROOT / 2 + (kx + 0.5) * ks, kcz = -ROOT / 2 + (kz + 0.5) * ks;
+				if (this.heightmap.maxHeightIn(kcx, kcz, ks) < -9) continue;
+				const kk = this.key(depth + 1, kx, kz);
+				if (!this.nodes.has(kk)) {
+					ready = false;
+					const kd = Math.hypot(Math.max(Math.abs(pos.x - kcx) - ks / 2, 0), Math.max(Math.abs(pos.z - kcz) - ks / 2, 0));
+					this.requests.push({ key: kk, depth: depth + 1, ix: kx, iz: kz, priority: kd / ks });
 				}
 			}
-			f.queue.sort((a, b) => a[2] - b[2]);
-			for (const [k, mesh] of f.chunks) {
-				if (!needed.has(k)) { this.scene.remove(mesh); mesh.geometry.dispose(); f.chunks.delete(k); }
+			if (ready) {
+				const node = this.nodes.get(key);
+				if (node) node.used = this.frame;
+				for (let q = 0; q < 4; q++) this.select(depth + 1, ix * 2 + (q & 1), iz * 2 + (q >> 1), pos, drawn);
+				return;
 			}
 		}
-		let budget = f.chunks.size === 0 ? 100 : 2;
-		while (budget-- > 0 && f.queue.length) {
-			const [x, z] = f.queue.shift();
-			const k = this.key(x, z);
-			if (!f.chunks.has(k)) f.chunks.set(k, this.buildFarChunk(x, z));
-		}
+		let node = this.nodes.get(key);
+		if (!node) node = this.build(depth, ix, iz);
+		node.used = this.frame;
+		drawn.add(key);
 	}
 
-	buildFarChunk(cx, cz) {
-		const f = this.far, size = f.size, seg = f.segments;
-		const ox = cx * size, oz = cz * size;
-		const geometry = new THREE.PlaneGeometry(size, size, seg, seg);
-		geometry.rotateX(-Math.PI / 2);
-		const pos = geometry.attributes.position;
-		for (let i = 0; i < pos.count; i++) {
-			const x = pos.getX(i) + ox, z = pos.getZ(i) + oz;
-			pos.setXYZ(i, x, this.heightmap.height(x, z) - 3, z);   // sits just under the fine tier where they overlap
-		}
-		geometry.deleteAttribute('normal');
-		geometry.deleteAttribute('uv');
-		geometry.computeBoundingSphere();
-		const mesh = new THREE.Mesh(geometry, this.material);
-		this.scene.add(mesh);
-		return mesh;
-	}
-
-	refreshNeeded(cx, cz) {
-		const r = this.viewRadius;
-		const needed = new Set();
-		this.queue.length = 0;
-		for (let dz = -r; dz <= r; dz++) {
-			for (let dx = -r; dx <= r; dx++) {
-				if (dx * dx + dz * dz > (r + 0.5) * (r + 0.5)) continue;
-				const k = this.key(cx + dx, cz + dz);
-				needed.add(k);
-				if (!this.chunks.has(k)) this.queue.push([cx + dx, cz + dz, dx * dx + dz * dz]);
+	build(depth, ix, iz) {
+		const size = ROOT / (1 << depth);
+		const cx = -ROOT / 2 + (ix + 0.5) * size, cz = -ROOT / 2 + (iz + 0.5) * size;
+		const n = SEG + 1, step = size / SEG;
+		const skirt = step * 0.22 + 2.5;
+		const pos = new Float32Array((n * n + 4 * n) * 3);
+		const hm = this.heightmap;
+		let p = 0;
+		for (let j = 0; j < n; j++) {
+			const z = cz - size / 2 + j * step;
+			for (let i = 0; i < n; i++) {
+				const x = cx - size / 2 + i * step;
+				pos[p++] = x; pos[p++] = hm.height(x, z); pos[p++] = z;
 			}
 		}
-		this.queue.sort((a, b) => a[2] - b[2]);
+		const copyDown = (gi) => { pos[p++] = pos[gi * 3]; pos[p++] = pos[gi * 3 + 1] - skirt; pos[p++] = pos[gi * 3 + 2]; };
+		for (let k = 0; k < n; k++) copyDown(k);
+		for (let k = 0; k < n; k++) copyDown(SEG * n + k);
+		for (let k = 0; k < n; k++) copyDown(k * n);
+		for (let k = 0; k < n; k++) copyDown(k * n + SEG);
 
-		for (const [k, chunk] of this.chunks) {
-			if (!needed.has(k)) {
-				this.scene.remove(chunk.mesh);
-				chunk.mesh.geometry.dispose();
-				this.vegetation.removeChunk(k);
-				this.chunks.delete(k);
-			}
-		}
-	}
-
-	buildChunk(cx, cz) {
-		const size = this.size, seg = this.segments;
-		const ox = cx * size, oz = cz * size;
-		const geometry = new THREE.PlaneGeometry(size, size, seg, seg);
-		geometry.rotateX(-Math.PI / 2);
-		const pos = geometry.attributes.position;
-		for (let i = 0; i < pos.count; i++) {
-			const x = pos.getX(i) + ox, z = pos.getZ(i) + oz;
-			pos.setXYZ(i, x, this.heightmap.height(x, z), z);
-		}
-		geometry.deleteAttribute('normal');
-		geometry.deleteAttribute('uv');
+		const geometry = new THREE.BufferGeometry();
+		geometry.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+		geometry.setIndex(this.index);
 		geometry.computeBoundingSphere();
 		const mesh = new THREE.Mesh(geometry, this.material);
 		mesh.frustumCulled = true;
+		mesh.visible = false;
 		this.scene.add(mesh);
-		this.vegetation.addChunk(this.key(cx, cz), cx, cz);
-		return { mesh, cx, cz };
+		const node = { mesh, depth, used: this.frame };
+		this.nodes.set(this.key(depth, ix, iz), node);
+		this.stats.builds++;
+		return node;
+	}
+
+	sweep() {
+		for (const [k, node] of this.nodes) {
+			if (this.frame - node.used > KEEP_FRAMES && node.depth > 2) {
+				this.scene.remove(node.mesh);
+				node.mesh.geometry.dispose();
+				this.nodes.delete(k);
+			}
+		}
+	}
+
+	updateVegetation(playerPos, dt) {
+		const size = config.world.chunkSize, r = config.world.vegetationRadius;
+		const cx = Math.round(playerPos.x / size), cz = Math.round(playerPos.z / size);
+		const key = cx + ',' + cz;
+		if (key !== this.vegKey) {
+			this.vegKey = key;
+			this.vegQueue.length = 0;
+			for (let dz = -r; dz <= r; dz++) for (let dx = -r; dx <= r; dx++) {
+				if (!this.vegetation.chunks.has(this.vegetation.key(cx + dx, cz + dz))) this.vegQueue.push([cx + dx, cz + dz, dx * dx + dz * dz]);
+			}
+			this.vegQueue.sort((a, b) => a[2] - b[2]);
+		}
+		if (this.vegQueue.length) {
+			const [x, z] = this.vegQueue.shift();
+			this.vegetation.addChunk(this.vegetation.key(x, z), x, z);
+		}
+		this.vegetation.update(dt, cx, cz);
 	}
 }

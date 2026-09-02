@@ -60,7 +60,9 @@ html, body {
 	border-radius: 999px;
 	transition: box-shadow 0.4s, border-color 0.4s;
 }
-#enter:hover { border-color: var(--accent); box-shadow: 0 0 30px rgba(255, 106, 213, 0.4); }
+#enter:hover:not(:disabled) { border-color: var(--accent); box-shadow: 0 0 30px rgba(255, 106, 213, 0.4); }
+#enter:disabled { cursor: progress; opacity: 0.6; border-color: rgba(255, 255, 255, 0.15); animation: breathe 2.4s ease-in-out infinite; }
+@keyframes breathe { 50% { opacity: 0.35; } }
 
 .controls {
 	margin-top: 2.6rem;

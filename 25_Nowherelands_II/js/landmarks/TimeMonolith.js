@@ -12,7 +12,7 @@ export class TimeMonolith {
 		this.position = new THREE.Vector3(x, y, z);
 		this.radius = 100;
 		this.group = new THREE.Group();
-		this.group.position.set(x, Math.max(y, heightmap.waterLevel + 0.5) - 1, z);
+		this.group.position.set(x, Math.max(y, heightmap.waterAt(x, z) + 0.5) - 1, z);
 		scene.add(this.group);
 
 		const stone = new THREE.MeshStandardMaterial({ color: '#1a1530', roughness: 0.9, metalness: 0, envMapIntensity: 0.15, flatShading: true });

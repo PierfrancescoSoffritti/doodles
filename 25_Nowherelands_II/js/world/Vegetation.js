@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { Random } from '../core/Random.js';
 import { config } from '../core/Config.js';
-import { hslGlsl } from './TerrainMaterial.js';
+import { hslGlsl, createRockMaterial } from './TerrainMaterial.js';
 
 const UNBORN = 1e9;
 const TREE_HEIGHT = 60;
@@ -16,6 +16,7 @@ const KINDS = {
 	tuft:    { reveal: 140, preborn: 0.35, dur: 1.5, back: 1.0 },   // wireframe grass everywhere: part there from the start, the rest rises as you approach
 	reed:    { reveal: 170, preborn: 0.3, dur: 1.8, back: 0.8 },
 	sprout:  { reveal: 160, preborn: 0.1, dur: 2.2, back: 1.0 },
+	rock:    { reveal: 0, preborn: 1.0, dur: 0.6, back: 0.0 },      // boulders are simply there
 };
 
 // ---------- geometry builders ----------
@@ -105,6 +106,24 @@ function buildSprout() {
 	return mergeGeometries(parts, false);
 }
 
+// a boulder: a jittered icosahedron, squashed a little, flat-shaded by the material
+function buildBoulder(rnd) {
+	const g = new THREE.IcosahedronGeometry(1, 1);   // already non-indexed
+	const pos = g.attributes.position;
+	const v = new THREE.Vector3();
+	const seed = [rnd.range(0, 10), rnd.range(0, 10), rnd.range(0, 10)];
+	for (let i = 0; i < pos.count; i++) {
+		v.fromBufferAttribute(pos, i);
+		const k = 0.72 + 0.28 * Math.abs(Math.sin(v.x * 3.1 + seed[0]) * Math.cos(v.y * 2.7 + seed[1]) + Math.sin(v.z * 3.7 + seed[2]) * 0.5);
+		v.multiplyScalar(k);
+		v.y *= 0.72;
+		pos.setXYZ(i, v.x, v.y, v.z);
+	}
+	g.deleteAttribute('uv');
+	g.computeVertexNormals();
+	return g;
+}
+
 function hexPrism(r, h) {
 	const g = new THREE.CylinderGeometry(r * 0.85, r, h, 6, 1);
 	g.translate(0, h / 2, 0);
@@ -115,7 +134,7 @@ function edgePositions(geometry, angle = 1) { return new THREE.EdgesGeometry(geo
 
 // ---------- shaders ----------
 const growthGlsl = /* glsl */`
-	uniform float uTime, uWind, uHeightRef, uPulse, uDur, uBack;
+	uniform float uTime, uWind, uHeightRef, uPulse, uDur, uBack, uNearFade;
 	attribute float aBorn;
 	float easeOutCubic(float t) { return 1.0 - pow(1.0 - t, 3.0); }
 	float easeOutBack(float t) { float c1 = 1.70158, c3 = c1 + 1.0; float u = t - 1.0; return 1.0 + c3 * u * u * u + c1 * u * u; }
@@ -132,7 +151,7 @@ const growthGlsl = /* glsl */`
 		float exz = easeOutCubic(t);
 		p.xz *= 0.55 + 0.45 * exz;
 		p.y = p.y * ey - (1.0 - exz) * 2.5;
-		float near = smoothstep(1.5, 5.0, distance(ipos.xz, cameraPosition.xz));
+		float near = mix(1.0, smoothstep(1.5, 5.0, distance(ipos.xz, cameraPosition.xz)), uNearFade);
 		p *= near;
 	}`;
 
@@ -167,14 +186,16 @@ export class Vegetation {
 		this.crystalEdges = edgePositions(hexPrism(1, 1));
 		this.tuftEdges = edgePositions(new THREE.CylinderGeometry(0.2, 0.45, 1, 2).translate(0, 0.5, 0));
 
-		const U = (dur, back, heightRef) => ({ uTime: { value: 0 }, uWind: { value: 1 }, uPulse: { value: 0 }, uHeightRef: { value: heightRef }, uDur: { value: dur }, uBack: { value: back } });
+		const U = (dur, back, heightRef, nearFade = 1) => ({ uTime: { value: 0 }, uWind: { value: 1 }, uPulse: { value: 0 }, uHeightRef: { value: heightRef }, uDur: { value: dur }, uBack: { value: back }, uNearFade: { value: nearFade } });
 		this.uniformSets = [];
-		const mk = (kind, heightRef) => { const u = U(KINDS[kind].dur, KINDS[kind].back, heightRef); this.uniformSets.push(u); return u; };
+		const mk = (kind, heightRef, nearFade) => { const u = U(KINDS[kind].dur, KINDS[kind].back, heightRef, nearFade); this.uniformSets.push(u); return u; };
+		this.boulders = [0, 1, 2, 3].map(() => buildBoulder(rnd));
+		this.rockMaterial = createRockMaterial(shared, shared.terrainUniforms);
 
 		this.treeMaterial = instancedMaterial(new THREE.MeshStandardMaterial({ color: '#0a0716', roughness: 0.95, metalness: 0.05, flatShading: true, side: THREE.DoubleSide }), mk('tree', TREE_HEIGHT), 2.5);
 		this.crystalMaterial = instancedMaterial(new THREE.MeshBasicMaterial({ color: '#05030c' }), mk('crystal', 1), 0, 'transformed.y *= 1.0 + uPulse * 0.25;');
 		this.bladeMaterial = instancedMaterial(new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, fog: true }), mk('blade', 1), 0.35,
-			'float keep = mix(1.0, 0.3, smoothstep(50.0, 320.0, distance(ipos.xz, cameraPosition.xz)));\nfloat rnd = fract(sin(dot(ipos.xz, vec2(12.9898, 78.233))) * 43758.5453);\ntransformed *= 1.0 - smoothstep(keep - 0.12, keep + 0.02, rnd);', (fs) => fs
+			'float keep = mix(1.0, 0.3, smoothstep(50.0, 320.0, distance(ipos.xz, cameraPosition.xz)));\nvec2 hp = fract(ipos.xz * 0.0731) * 97.0;\nfloat rnd = fract(sin(dot(hp, vec2(12.9898, 78.233))) * 43758.5453);\ntransformed *= 1.0 - smoothstep(keep - 0.12, keep + 0.02, rnd);', (fs) => fs
 			.replace('#include <common>', '#include <common>\nuniform float uHue, uPulse;\n' + hslGlsl)
 			.replace('#include <color_fragment>', /* glsl */`
 				float t = vColor.r;
@@ -275,6 +296,8 @@ export class Vegetation {
 		chunk.groups.push({ kind: KINDS[kind], attr: geom.getAttribute('aBorn'), pos, ranges: null, count: items.length, pending: items.length });
 	}
 
+	key(cx, cz) { return cx + ',' + cz; }
+
 	addChunk(key, cx, cz) {
 		if (Math.abs(cx - this.centerX) > this.radius || Math.abs(cz - this.centerZ) > this.radius) return;
 		if (this.chunks.has(key)) return;
@@ -285,26 +308,26 @@ export class Vegetation {
 		const chunk = { meshes: [], groups: [] };
 		// biomes by elevation above the water: shore (reeds, sprouts), lowland meadow (grass, bare trees),
 		// forest belt (tall trees), highland (sparse dead trees, crystals). Nothing but reeds right at the waterline.
-		const H = (x, z) => hm.height(x, z) - hm.waterLevel;
-		const land = (margin, maxSlope) => (x, z) => hm.isLand(x, z, margin) && hm.slope(x, z) < maxSlope;
+		// H: height above the local water (sea, lake or river). Bands use height above the sea.
+		const H = (x, z) => hm.sample(x, z) - hm._water;
 		const shore = (x, z) => { const h = H(x, z); return h > -0.5 && h < 3.5 && hm.slope(x, z) < 0.6; };
-		const inBand = (lo, hi, maxSlope) => (x, z) => { const h = H(x, z); return h > lo && h < hi && hm.slope(x, z) < maxSlope; };
+		const inBand = (lo, hi, maxSlope) => (x, z) => { const h = hm.sample(x, z); const local = h - hm._water; return local > lo && h - hm.waterLevel < hi && hm._bank < 0.35 && hm.slope(x, z) < maxSlope; };
 		const density = hm.forestDensity(ox, oz);
-		const chunkH = H(ox, oz);
-		const lowland = chunkH < 60, highland = chunkH > 160;
+		const chunkH = hm.height(ox, oz) - hm.waterLevel;
+		const lowland = chunkH < 80, highland = chunkH > 450, alpine = chunkH > 720;
 
 		// trees: bare in the open, tall slender ones in the deep forest
-		const treeCount = Math.round((highland ? 3 : 6 + density * 34) * rnd.range(0.6, 1.3));
-		const treeSpots = this.spots(rnd, ox, oz, size, treeCount, (x, z) => inBand(6, 999, 0.75)(x, z) && Math.hypot(x, z) > 60);
+		const treeCount = alpine ? 0 : Math.round((highland ? 3 : 6 + density * 34) * rnd.range(0.6, 1.3));
+		const treeSpots = this.spots(rnd, ox, oz, size, treeCount, (x, z) => inBand(6, 760, 0.75)(x, z) && Math.hypot(x, z) > 60);
 		const tallShare = highland ? 0 : (density > 0.55 ? 0.6 : (density > 0.3 ? 0.3 : 0.05));
 		const pineSpots = treeSpots.filter(([x, z]) => H(x, z) > 45 && rnd.next() < tallShare);
 		const bareSpots = treeSpots.filter((s) => !pineSpots.includes(s));
-		const placeTree = (x, z, p, q, s, r, yAxis) => { const high = H(x, z) > 160; const sc = r.range(0.7, 1.5) * (high ? 0.6 : 1); p.set(x, hm.height(x, z), z); q.setFromAxisAngle(yAxis, r.range(0, Math.PI * 2)); s.set(sc, sc * r.range(1.0, 1.5), sc); };
+		const placeTree = (x, z, p, q, s, r, yAxis) => { const high = hm.height(x, z) - hm.waterLevel > 450; const sc = r.range(0.7, 1.5) * (high ? 0.6 : 1); p.set(x, hm.height(x, z), z); q.setFromAxisAngle(yAxis, r.range(0, Math.PI * 2)); s.set(sc, sc * r.range(1.0, 1.5), sc); };
 		this.makeInstanced(rnd.pick(this.bareTrees), this.treeMaterial, 'tree', bareSpots, rnd, chunk, placeTree);
 		this.makeInstanced(rnd.pick(this.tallTrees), this.treeMaterial, 'tree', pineSpots, rnd, chunk, placeTree);
 
 		// solid blades: the meadow grass seen from afar, thinning out with altitude
-		const bladeSpots = this.spots(rnd, ox, oz, size, highland ? 110 : 480, inBand(3.5, 200, 0.9));
+		const bladeSpots = this.spots(rnd, ox, oz, size, highland ? 110 : 480, inBand(3.5, 620, 0.9));
 		this.makeInstanced(this.blade, this.bladeMaterial, 'blade', bladeSpots, rnd, chunk, (x, z, p, q, s, r, yAxis) => { p.set(x, hm.height(x, z) - 0.3, z); q.setFromAxisAngle(yAxis, r.range(0, 6.3)); s.set(r.range(0.8, 1.4), r.range(2.5, 6.5), 1); });
 
 		// glowing sprouts, rare
@@ -316,7 +339,7 @@ export class Vegetation {
 		// crystal columns: clusters of hex prisms, the old cylinders
 		const crystals = [];
 		if (rnd.chance(highland ? 0.85 : (lowland ? 0.15 : 0.4))) {
-			const clusters = this.spots(rnd, ox, oz, size, rnd.int(1, highland ? 3 : 2), inBand(3, 999, 0.4));
+			const clusters = this.spots(rnd, ox, oz, size, rnd.int(1, highland ? 3 : 2), inBand(3, 1500, 0.4));
 			for (const [cx2, cz2] of clusters) {
 				const n = rnd.int(3, 7);
 				for (let i = 0; i < n; i++) {
@@ -344,7 +367,51 @@ export class Vegetation {
 		const beginPlant = (x, z, kind) => { ranges.push([verts.length / 3, 0]); pos.push(x, z); kinds.push(kind); };
 		const endPlant = () => { ranges[ranges.length - 1][1] = verts.length / 3; };
 
-		for (const [x, z] of this.spots(rnd, ox, oz, size, highland ? 160 : 560, inBand(3.5, 230, 0.9))) {
+		// boulders: scree on steep ground and under cliffs, outcrops on hard rock, stones in the rapids
+		{
+			const rocks = [];
+			for (const [x, z] of this.spots(rnd, ox, oz, size, 70, (x, z) => {
+				const h = hm.sample(x, z);
+				if (h < hm._water + 0.5 || hm._bank > 0.3) return false;
+				const s = hm._slope;
+				return s > 0.35 && rnd.next() < (s - 0.3) * (0.4 + hm._hardness);
+			})) rocks.push({ x, z, r: rnd.range(0.8, 3.0) * (1 + 1.6 * Math.pow(rnd.next(), 3)), sink: 0.35 });
+			if (rnd.chance(0.55)) {
+				for (const [x, z] of this.spots(rnd, ox, oz, size, rnd.int(1, 3), (x, z) => { const h = hm.sample(x, z); return h > hm._water + 3 && hm._hardness > 0.6 && hm._slope > 0.15 && hm._slope < 1.3 && hm._bank < 0.2; }))
+					rocks.push({ x, z, r: rnd.range(4.5, 11), sink: 0.4 });
+			}
+			const seg = hm.rivers.seg;
+			for (const sIdx of hm.rivers.segmentsIn(ox - size / 2, oz - size / 2, ox + size / 2, oz + size / 2)) {
+				const o = sIdx * 12;
+				const foam = Math.max(seg[o + 10], seg[o + 11]);
+				if (foam < 0.3 || rnd.next() > 0.3) continue;
+				const t = rnd.next();
+				const x = seg[o] + (seg[o + 2] - seg[o]) * t, z = seg[o + 1] + (seg[o + 3] - seg[o + 1]) * t;
+				if (Math.abs(x - ox) > size / 2 || Math.abs(z - oz) > size / 2) continue;
+				const w = seg[o + 6] + (seg[o + 7] - seg[o + 6]) * t;
+				const dx = seg[o + 2] - seg[o], dz = seg[o + 3] - seg[o + 1], len = Math.hypot(dx, dz) || 1;
+				const off = rnd.range(-0.42, 0.42) * w;
+				rocks.push({ x: x + (-dz / len) * off, z: z + (dx / len) * off, r: rnd.range(1.0, 2.2) + w * 0.025, sink: 0.25 });
+			}
+			// beach cobbles and lakeside stones, sparse
+			for (const [x, z] of this.spots(rnd, ox, oz, size, 8, (x, z) => { const h = H(x, z); return h > 0.2 && h < 2.5 && hm.slope(x, z) < 0.4 && hm._hardness > 0.45; })) rocks.push({ x, z, r: rnd.range(0.7, 1.8), sink: 0.4 });
+			chunk.colliders = [];
+			const byVariant = [[], [], [], []];
+			for (const r of rocks) byVariant[rnd.int(0, 3)].push(r);
+			byVariant.forEach((list, v) => {
+				if (!list.length) return;
+				this.makeInstanced(this.boulders[v], this.rockMaterial, 'rock', list.map((r) => [r.x, r.z]), rnd, chunk, (x, z, p, q, s, r, yAxis) => {
+					const rock = list.find((c) => c.x === x && c.z === z);
+					const y = hm.height(x, z) - rock.r * rock.sink;
+					p.set(x, y, z);
+					q.setFromEuler(new THREE.Euler(r.range(-0.4, 0.4), r.range(0, 6.3), r.range(-0.4, 0.4)));
+					s.set(rock.r * r.range(0.8, 1.25), rock.r * r.range(0.7, 1.1), rock.r * r.range(0.8, 1.25));
+					if (rock.r >= 3.5) { const c = { position: new THREE.Vector3(x, y, z), radius: rock.r * 0.9 }; chunk.colliders.push(c); this.shared.colliders.push(c); }
+				});
+			});
+		}
+
+		for (const [x, z] of this.spots(rnd, ox, oz, size, alpine ? 40 : (highland ? 160 : 560), inBand(3.5, 900, 0.9))) {
 			const y = hm.height(x, z) - 0.2, h = rnd.range(2.5, 6.5), rot = rnd.range(0, 6.3), phase = rnd.range(0, 6.3);
 			beginPlant(x, z, 'tuft');
 			for (const [dx, dz, sh] of [[0, 0, h], [rnd.range(-2.5, 2.5), rnd.range(-2.5, 2.5), h * 0.5], [rnd.range(-2.5, 2.5), rnd.range(-2.5, 2.5), h * 0.55]])
@@ -388,6 +455,7 @@ export class Vegetation {
 		const chunk = this.chunks.get(key);
 		if (!chunk) return;
 		for (const mesh of chunk.meshes) { this.scene.remove(mesh); mesh.geometry.dispose(); if (mesh.dispose) mesh.dispose(); }
+		if (chunk.colliders && chunk.colliders.length) { const drop = new Set(chunk.colliders); this.shared.colliders = this.shared.colliders.filter((c) => !drop.has(c)); }
 		this.chunks.delete(key);
 	}
 

@@ -82,8 +82,8 @@ export class Fireflies {
 				if (dx > half) f.x -= RANGE; else if (dx < -half) f.x += RANGE;
 				if (dz > half) f.z -= RANGE; else if (dz < -half) f.z += RANGE;
 			}
-			if ((i + this.frame) % 4 === 0 || f.y === 0) f.groundY = hm.height(f.x, f.z);
-			const g = Math.max(f.groundY, hm.waterLevel);
+			if ((i + this.frame) % 4 === 0 || f.y === 0) { f.groundY = hm.height(f.x, f.z); f.waterY = hm._water; }
+			const g = Math.max(f.groundY, f.waterY || hm.waterLevel);
 			f.y = g + 2.5 + f.size * 2 + Math.sin(time * 0.9 + f.phase) * 1.8;
 			pos[i * 3] = f.x; pos[i * 3 + 1] = f.y; pos[i * 3 + 2] = f.z;
 		}

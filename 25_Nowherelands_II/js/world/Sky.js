@@ -11,6 +11,7 @@ export class Sky {
 	constructor(scene, shared) {
 		this.shared = shared;
 		this.group = new THREE.Group();
+		this.group.scale.setScalar(4);   // sky bodies sit beyond the farthest terrain
 		scene.add(this.group);
 
 		this.zenith = new THREE.Color('#080418');
@@ -98,6 +99,7 @@ export class Sky {
 					gl_FragColor = vec4(col, 1.0);
 				}`,
 		});
+		this.moonMaterial.depthWrite = false;
 		this.moon = new THREE.Mesh(new THREE.SphereGeometry(400, 48, 32), this.moonMaterial);
 		this.moon.renderOrder = -9;
 		this.group.add(this.moon);

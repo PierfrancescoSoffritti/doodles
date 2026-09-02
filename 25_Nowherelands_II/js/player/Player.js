@@ -12,7 +12,7 @@ export class Player {
 		this.heightmap = heightmap;
 		this.shared = shared;
 		camera.rotation.order = 'YXZ';
-		this.yaw = Math.PI;      // face -z
+		this.yaw = heightmap.world ? heightmap.world.spawn.yaw : Math.PI;
 		this.pitch = 0;
 		this.position = camera.position;
 		this.position.set(0, 20, 0);
@@ -195,9 +195,10 @@ export class Player {
 		this.speed = Math.hypot(this.velocity.x, this.velocity.z) * slopeK;
 		this.speed01 = clamp01(this.speed / SPRINT);
 
-		// ground
-		const h = this.heightmap.height(this.position.x, this.position.z);
-		const ground = Math.max(h, this.heightmap.waterLevel - 1.5);
+		// ground: wade through shallows, float over anything deeper
+		const h = this.heightmap.sample(this.position.x, this.position.z);
+		const waterY = this.heightmap._water;
+		const ground = Math.max(h, waterY - 1.5);
 		this.groundY = damp(this.groundY, ground, 12, dt);
 
 		// bob & sway
@@ -218,7 +219,7 @@ export class Player {
 		dy = Math.atan2(Math.sin(dy), Math.cos(dy));
 		this.yawRate = damp(this.yawRate, dt > 0 ? dy / dt : 0, 10, dt);
 		this.prevYaw = this.yaw;
-		this.wading = h <= this.heightmap.waterLevel - 1;
+		this.wading = h <= waterY - 1;
 
 		// footsteps leave faint rings and play along
 		this.stepAccumulator += this.speed * dt;

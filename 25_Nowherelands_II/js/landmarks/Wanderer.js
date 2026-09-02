@@ -53,7 +53,7 @@ export class Wanderer {
 		dir.applyAxisAngle(new THREE.Vector3(0, 1, 0), (Math.random() - 0.5) * 1.2);
 		const dist = 110 + Math.random() * 70;
 		let x = player.position.x + dir.x * dist, z = player.position.z + dir.z * dist;
-		for (let i = 0; i < 6 && this.heightmap.height(x, z) < this.heightmap.waterLevel + 2; i++) {
+		for (let i = 0; i < 6 && this.heightmap.depthAt(x, z) > -2; i++) {
 			dir.applyAxisAngle(new THREE.Vector3(0, 1, 0), 0.7);
 			x = player.position.x + dir.x * dist; z = player.position.z + dir.z * dist;
 		}
@@ -84,7 +84,7 @@ export class Wanderer {
 		this.fleeing = damp(this.fleeing, 0, 1.2, dt);
 		this.spin = damp(this.spin, 0, 1.5, dt);
 		const speed = 0.6 + this.fleeing * 6;
-		const gy = Math.max(this.heightmap.height(this.mesh.position.x, this.mesh.position.z), this.heightmap.waterLevel);
+		const gy = Math.max(this.heightmap.height(this.mesh.position.x, this.mesh.position.z), this.heightmap._water);
 		this.target.y = gy + 6 + Math.sin(this.time * 1.3) * 1.5;
 		this.mesh.position.lerp(this.target, 1 - Math.exp(-speed * dt));
 		this.mesh.position.y = damp(this.mesh.position.y, this.target.y, 3, dt);

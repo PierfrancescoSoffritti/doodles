@@ -25,7 +25,7 @@ export class Sprouts {
 
 	add(x, z, time) {
 		const y = this.heightmap.height(x, z);
-		if (y < this.heightmap.waterLevel + 1) return false;
+		if (y < this.heightmap._water + 1) return false;
 		const idx = this.items.length < MAX ? this.items.length : (this.cursor = ((this.cursor || 0) + 1) % MAX);
 		const item = { x, y, z, born: time, rot: Math.random() * Math.PI * 2, idx, scale: 0.7 + Math.random() * 0.6 };
 		if (this.items.length < MAX) this.items.push(item); else this.items[idx] = item;

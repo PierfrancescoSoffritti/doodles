@@ -26,8 +26,20 @@ export class HUD {
 		bus.on(Events.KEY_CHANGE, () => {});
 	}
 
+	setLoading(label, p) {
+		this.isReady = false;
+		this.enterBtn.disabled = true;
+		this.enterBtn.textContent = label + (p > 0 && p < 1 ? ' · ' + Math.round(p * 100) + '%' : ' …');
+	}
+
+	ready() {
+		this.isReady = true;
+		this.enterBtn.disabled = false;
+		this.enterBtn.textContent = 'enter';
+	}
+
 	onEnter(fn) {
-		const go = (e) => { e.preventDefault(); e.stopPropagation(); fn(); };
+		const go = (e) => { e.preventDefault(); e.stopPropagation(); if (this.isReady) fn(); };
 		this.enterBtn.addEventListener('click', go);
 		this.intro.addEventListener('click', go);
 	}
