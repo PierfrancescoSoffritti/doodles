@@ -2,7 +2,7 @@
 
 A procedural night landscape that sings back. Walk a 16 km continent of mountain ranges, river valleys, lakes and sea cliffs, find the landmarks, and the music grows with what you discover.
 
-Open `index.html` through any static server (ES modules need `http://`). A seed can be pinned with `?seed=word`; the link in the corner shares the current world. Each seed bakes its own continent in a worker while the intro shows, a few seconds on a laptop.
+Open `index.html` through any static server (ES modules need `http://`). A seed can be pinned with `?seed=word`; the link in the corner shares the current world. Each seed bakes its own continent in a worker while the intro shows, five to eight seconds on a laptop.
 
 ## Controls
 
@@ -25,10 +25,10 @@ The world is not noise: it is a landscape evolution model run at load time (`js/
 1. A warped island mask gives coast and coastal plain; two or three tectonic spines give uplift.
 2. Stream-power erosion (Braun & Willett ordering, implicit solve) cuts drainage networks into the uplifted ranges, with hillslope diffusion and talus. Hard rock erodes slowly, so it leaves cliffs, gorges and stepped strata; soft rock gives beaches and rounded hills. A coarse pass shapes the ranges, an upsampled fine pass carves the small valleys.
 3. Depression filling finds the lakes, from lowland lake districts to cirque tarns high in the ranges.
-4. Drainage area traces the rivers. Each river grades its own bed to a concave profile (the maximum gradient falls with catchment), cutting a gorge where the land drops too fast and a waterfall where a gorge would grow too deep. The water surface is quantised into pools and drops, riffles spaced by channel width, and gentle reaches meander with a wavelength of about eleven widths.
+4. Drainage area traces the rivers. Each river grades its own bed to a concave profile (the maximum gradient falls with catchment), cutting a gorge where the land drops too fast and taking the height in a waterfall once a gorge would grow too deep. The water surface is quantised into pools and drops of varying height, riffles spaced by channel width, widths that swell in the pools and pinch at the lips, and gentle reaches meander with a wavelength of about eleven widths.
 5. You spawn on a lowland shore near the largest river's mouth, facing upstream toward the mountains.
 
-The baked height grid is sampled bicubically with procedural close-up relief; river channels are carved analytically from the polylines so streams stay crisp at any distance. The terrain renderer is a quadtree with skirts: 3 m cells underfoot, 300 m cells on the horizon, the entire continent always in view under a height fog that pools in the valleys. The sea is a reflective plane; lakes and rivers are their own meshes with per-vertex level, flow direction and white water. Boulders sit on scree, at cliff feet, on hard-rock outcrops and in the rapids.
+The baked height grid is sampled bicubically with procedural close-up relief; river channels are carved analytically from the polylines so streams stay crisp at any distance. The terrain renderer is a quadtree with skirts: 3 m cells underfoot, 300 m cells on the horizon, the entire continent always in view under a height fog that pools in the valleys. The sea is a reflective plane; lakes and rivers are their own meshes with per-vertex level, flow direction and white water; every drop is a vertical face, a foaming lip for a riffle or a streaked curtain for a waterfall, with mist rising from the plunge pool. Boulders sit on scree, at cliff feet, on hard-rock outcrops, across every riffle lip and in the shallows, with driftwood stranded on the banks.
 
 ## What reacts to what
 

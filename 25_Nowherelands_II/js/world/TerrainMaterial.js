@@ -25,10 +25,13 @@ float fbm2(vec2 p) { float s = 0.0, a = 0.5; for (int i = 0; i < 3; i++) { s += 
 // Lighting shared with the boulders so rocks match the ground they sit on.
 export const terrainLightGlsl = /* glsl */`
 vec3 terrainLight(vec3 albedo, vec3 n) {
-	float diff = max(dot(n, uMoonDir), 0.0);
-	vec3 hemi = mix(uGroundColor, uSkyColor, n.y * 0.5 + 0.5);
-	float sunDiff = max(dot(n, uSunDir), 0.0);
-	return albedo * (hemi * 1.1 + uMoonColor * diff * uMoonIntensity * 0.65 + uSunColor * pow(sunDiff, 2.0) * uSunIntensity * 0.12);
+	// moon and red dwarf both wrap a little past the terminator so slopes facing away still read;
+	// the sky itself lights everything, steep faces included
+	float diff = max(dot(n, uMoonDir) * 0.9 + 0.1, 0.0);
+	vec3 hemi = mix(uGroundColor, uSkyColor, n.y * 0.4 + 0.6);
+	float sunDiff = max(dot(n, uSunDir) * 0.8 + 0.2, 0.0);
+	vec3 ambient = uSkyColor * 0.22 + vec3(0.06, 0.04, 0.1) + uSunColor * 0.09 * uSunIntensity;   // the red dwarf leaves an ember glow on everything
+	return albedo * (ambient + hemi * 1.0 + uMoonColor * diff * uMoonIntensity * 0.95 + uSunColor * pow(sunDiff, 1.3) * uSunIntensity * 1.1);
 }`;
 
 // Boulders: instanced, flat-shaded with the terrain's own lighting and fog so they belong to the ground.
@@ -137,10 +140,10 @@ export function createTerrainMaterial(shared, heightmap) {
 				float hard = texture2D(uRockMap, (vWorldPos.xz - uRockOrigin) / uRockSize + 0.5).r;
 
 				// height-banded base colour
-				vec3 deep = vec3(0.02, 0.014, 0.07);
-				vec3 mid = vec3(0.075, 0.035, 0.17);
-				vec3 high = vec3(0.19, 0.1, 0.25);
-				vec3 peak = vec3(0.3, 0.2, 0.36);
+				vec3 deep = vec3(0.03, 0.02, 0.09);
+				vec3 mid = vec3(0.095, 0.05, 0.2);
+				vec3 high = vec3(0.21, 0.12, 0.28);
+				vec3 peak = vec3(0.32, 0.22, 0.38);
 				vec3 albedo = mix(deep, mid, smoothstep(-2.0, 140.0, hSea));
 				albedo = mix(albedo, high, smoothstep(160.0, 560.0, hSea));
 				albedo = mix(albedo, peak, smoothstep(600.0, 1150.0, hSea));
@@ -161,7 +164,7 @@ export function createTerrainMaterial(shared, heightmap) {
 				float snowLine = 780.0 + (vnoise(vWorldPos.xz * 0.003) - 0.5) * 220.0;
 				float caps = smoothstep(snowLine - 60.0, snowLine + 90.0, hSea) * smoothstep(0.4, 0.8, n.y);
 				float snowMask = max(smoothstep(0.55, 0.9, n.y) * smoothstep(1.0, 16.0, h) * uSnow, caps);
-				albedo = mix(albedo, vec3(0.4, 0.4, 0.56), snowMask * 0.65);
+				albedo = mix(albedo, vec3(0.4, 0.4, 0.56), snowMask * 0.55);
 
 				vec3 color = terrainLight(albedo, n);
 				// cliff faces catch a little moonlight glint so they read even when turned away

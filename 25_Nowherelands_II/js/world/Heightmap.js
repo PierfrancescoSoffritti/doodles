@@ -160,7 +160,9 @@ export class Heightmap {
 				rDist = dist; rWidth = w;
 				if (dist < hw) {
 					const u = dist / hw;
-					const bed = wl - d * (0.15 + 0.85 * Math.sqrt(Math.max(0, 1 - u * u)));
+					// cobbled bed: small bumps, more of them toward the banks
+					const cobble = (1 - Math.abs(this.detail.noise(x / 3.2 + 4.1, z / 3.2 - 2.7))) * (0.25 + 0.45 * u * u);
+					const bed = wl - d * (0.15 + 0.85 * Math.sqrt(Math.max(0, 1 - u * u))) + cobble;
 					h = Math.min(h, bed);
 					bank = 1;
 					water = Math.max(water, wl);

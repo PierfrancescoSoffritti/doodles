@@ -8,6 +8,7 @@ import { ShoreMap } from './world/ShoreMap.js';
 import { Terrain } from './world/Terrain.js';
 import { Water } from './world/Water.js';
 import { InlandWater } from './world/InlandWater.js';
+import { Waterfalls } from './world/Waterfalls.js';
 import { createFogUniforms } from './world/FogGlsl.js';
 import { Sky } from './world/Sky.js';
 import { Snow } from './world/Snow.js';
@@ -77,6 +78,7 @@ function start(world) {
 	const terrain = new Terrain(scene, heightmap, shared);
 	const water = new Water(scene, shared, heightmap.waterLevel);
 	const inland = new InlandWater(scene, heightmap, shared);
+	const waterfalls = new Waterfalls(scene, world, shared);
 	const sky = new Sky(scene, shared);
 	const snow = new Snow(scene, shared);
 	const rain = new Rain(scene, shared);
@@ -158,6 +160,7 @@ function start(world) {
 		scene.fog.color.copy(shared.fogColor);
 		water.update(t, camera.position, shared);
 		inland.update(t, camera.position, shared);
+		waterfalls.update(t, camera.position);
 		snow.update(t, dt, camera.position, renderer);
 		rain.update(dt, camera.position, renderer);
 		fireflies.update(t, dt, player.position, renderer);
@@ -177,7 +180,7 @@ function start(world) {
 		fu.uFogDensity.value = 2.4e-4 * weather;
 		fu.uFogDistance.value = (1 / 15000) * (1 + 0.6 * (weather - 1));
 		fu.uFogColor.value.copy(shared.fogColor);
-		fu.uFogFar.value.copy(shared.fogColor).multiplyScalar(0.42);
+		fu.uFogFar.value.copy(shared.fogColor).multiplyScalar(0.62);
 		scene.fog.density = FOG_NEAR * weather;
 
 		// terrain uniforms
@@ -236,6 +239,6 @@ function start(world) {
 
 		post.render(t, shared);
 	}
-	window.__debug = { scene, renderer, camera, shared, post, terrain, player, landmarksList: landmarks.list, director, shoreMap, water, inland, heightmap, world };
+	window.__debug = { scene, renderer, camera, shared, post, terrain, player, landmarksList: landmarks.list, director, shoreMap, water, inland, waterfalls, heightmap, world };
 	frame();
 }

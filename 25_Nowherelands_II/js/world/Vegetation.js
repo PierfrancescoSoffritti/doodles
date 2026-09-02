@@ -190,6 +190,8 @@ export class Vegetation {
 		this.uniformSets = [];
 		const mk = (kind, heightRef, nearFade) => { const u = U(KINDS[kind].dur, KINDS[kind].back, heightRef, nearFade); this.uniformSets.push(u); return u; };
 		this.boulders = [0, 1, 2, 3].map(() => buildBoulder(rnd));
+		this.log = new THREE.CylinderGeometry(0.8, 1, 1, 6, 1);   // a fallen trunk lying along +x
+		this.log.rotateZ(Math.PI / 2);
 		this.rockMaterial = createRockMaterial(shared, shared.terrainUniforms);
 
 		this.treeMaterial = instancedMaterial(new THREE.MeshStandardMaterial({ color: '#0a0716', roughness: 0.95, metalness: 0.05, flatShading: true, side: THREE.DoubleSide }), mk('tree', TREE_HEIGHT), 2.5);
@@ -380,18 +382,50 @@ export class Vegetation {
 				for (const [x, z] of this.spots(rnd, ox, oz, size, rnd.int(1, 3), (x, z) => { const h = hm.sample(x, z); return h > hm._water + 3 && hm._hardness > 0.6 && hm._slope > 0.15 && hm._slope < 1.3 && hm._bank < 0.2; }))
 					rocks.push({ x, z, r: rnd.range(4.5, 11), sink: 0.4 });
 			}
+			// river beds: a row of stones across every drop lip, cobbles in the shallows near the banks,
+			// the odd boulder mid-pool, and driftwood stranded on the bank
+			const logs = [];
 			const seg = hm.rivers.seg;
 			for (const sIdx of hm.rivers.segmentsIn(ox - size / 2, oz - size / 2, ox + size / 2, oz + size / 2)) {
 				const o = sIdx * 12;
-				const foam = Math.max(seg[o + 10], seg[o + 11]);
-				if (foam < 0.3 || rnd.next() > 0.3) continue;
-				const t = rnd.next();
-				const x = seg[o] + (seg[o + 2] - seg[o]) * t, z = seg[o + 1] + (seg[o + 3] - seg[o + 1]) * t;
-				if (Math.abs(x - ox) > size / 2 || Math.abs(z - oz) > size / 2) continue;
-				const w = seg[o + 6] + (seg[o + 7] - seg[o + 6]) * t;
-				const dx = seg[o + 2] - seg[o], dz = seg[o + 3] - seg[o + 1], len = Math.hypot(dx, dz) || 1;
-				const off = rnd.range(-0.42, 0.42) * w;
-				rocks.push({ x: x + (-dz / len) * off, z: z + (dx / len) * off, r: rnd.range(1.0, 2.2) + w * 0.025, sink: 0.25 });
+				const ax = seg[o], az = seg[o + 1];
+				if (Math.abs(ax - ox) > size / 2 || Math.abs(az - oz) > size / 2) continue;
+				const dx = seg[o + 2] - ax, dz = seg[o + 3] - az, len = Math.hypot(dx, dz) || 1;
+				const tx = dx / len, tz = dz / len, nx = -tz, nz = tx;
+				const w = seg[o + 6];
+				const wlA = seg[o + 4], wlB = seg[o + 5];
+				const drop = wlA - wlB;
+				const at = (along, acrossFrac) => [ax + tx * along + nx * acrossFrac * w * 0.5, az + tz * along + nz * acrossFrac * w * 0.5];
+				if (seg[o + 10] >= 0.99) {
+					// lip of a drop: stones the water has to find its way around
+					const count = 2 + Math.floor(w / 9);
+					for (let k = 0; k < count; k++) {
+						const [x, z] = at(rnd.range(-3, 1), rnd.range(-0.85, 0.85));
+						rocks.push({ x, z, r: rnd.range(0.7, 1.6) + w * 0.02 + Math.min(drop, 8) * 0.12, sink: 0.35 });
+					}
+				}
+				if (rnd.next() < 0.6) {
+					const side = rnd.next() < 0.5 ? -1 : 1;
+					const [x, z] = at(rnd.range(0, 8), side * rnd.range(0.55, 0.95));
+					rocks.push({ x, z, r: rnd.range(0.35, 1.0), sink: 0.5 });
+				}
+				if (rnd.next() < 0.07) {
+					const [x, z] = at(rnd.range(0, 8), rnd.range(-0.4, 0.4));
+					rocks.push({ x, z, r: rnd.range(1.4, 3.0) + w * 0.02, sink: 0.3 });
+				}
+				if (rnd.next() < 0.045 && seg[o + 10] < 0.2) {
+					const side = rnd.next() < 0.5 ? -1 : 1;
+					const [x, z] = at(rnd.range(0, 8), side * rnd.range(1.05, 1.3));
+					logs.push({ x, z, len: rnd.range(6, 14), r: rnd.range(0.3, 0.6), yaw: Math.atan2(tx, tz) + rnd.range(-0.6, 0.6) });
+				}
+			}
+			if (logs.length) {
+				this.makeInstanced(this.log, this.rockMaterial, 'rock', logs.map((l) => [l.x, l.z]), rnd, chunk, (x, z, p, q, s, r, yAxis) => {
+					const log = logs.find((c) => c.x === x && c.z === z);
+					p.set(x, hm.height(x, z) + log.r * 0.6, z);
+					q.setFromEuler(new THREE.Euler(r.range(-0.15, 0.15), log.yaw + Math.PI / 2, r.range(-0.1, 0.1)));
+					s.set(log.len, log.r, log.r);
+				});
 			}
 			// beach cobbles and lakeside stones, sparse
 			for (const [x, z] of this.spots(rnd, ox, oz, size, 8, (x, z) => { const h = H(x, z); return h > 0.2 && h < 2.5 && hm.slope(x, z) < 0.4 && hm._hardness > 0.45; })) rocks.push({ x, z, r: rnd.range(0.7, 1.8), sink: 0.4 });
