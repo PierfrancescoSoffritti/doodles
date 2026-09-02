@@ -37,6 +37,7 @@ export class InlandWater {
 			vertexShader: waterVertexShader(shared),
 			fragmentShader: waterFragmentShader(shared),
 			defines: { NEAR_CULL: '' },
+			transparent: true,
 		});
 		this.nearMaterial = new THREE.ShaderMaterial({
 			uniforms,
@@ -54,7 +55,10 @@ export class InlandWater {
 		for (let ri = 0; ri < world.rivers.length; ri++) this.buildRiver(b, ri, null, 1, 1);
 		this.mesh = new THREE.Mesh(b.geometry(), this.material);
 		this.mesh.frustumCulled = false;
+		this.mesh.renderOrder = 1;          // over the sea, so a river mouth shows the river until it fades
 		scene.add(this.mesh);
+		shared.mirrorHide.add(this.mesh);   // reads the sea's mirror, so it cannot be drawn into it
+		this.shared = shared;
 		this.triangles = b.idx.length / 3;
 
 		this.near = null;
@@ -188,8 +192,9 @@ export class InlandWater {
 			const secs = this.sections[ri];
 			this.buildRiver(b, ri, (i) => { if (!set.has(i)) return false; const s = secs[i]; const dx = s.x - px, dz = s.z - pz; return dx * dx + dz * dz < r2; }, NEAR_ALONG, NEAR_ACROSS);
 		}
-		if (this.near) { this.scene.remove(this.near); this.near.geometry.dispose(); }
+		if (this.near) { this.scene.remove(this.near); this.near.geometry.dispose(); this.shared.mirrorHide.delete(this.near); }
 		this.near = new THREE.Mesh(b.geometry(), this.nearMaterial);
+		this.shared.mirrorHide.add(this.near);
 		this.near.frustumCulled = false;
 		this.near.renderOrder = 1;
 		this.scene.add(this.near);

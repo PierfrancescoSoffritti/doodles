@@ -2,10 +2,11 @@ import * as THREE from 'three';
 
 // Textures of the terrain around the player that the water and terrain shaders read:
 //   R = ground height, G = the local water surface (sea, lake or river),
-//   B = signed distance to the sea's shoreline in metres (positive out to sea, negative on land;
-//       a river's last reaches at sea level count as sea, a lake as land),
+//   B = signed distance to the nearest shoreline in metres, positive in the water and negative on
+//       land; sea, lakes and rivers all count as water, so a lake has a shore of its own and the
+//       sea's swell dies away of itself in a river mouth as the shores close in,
 //   A = how much a river owns the point: 1 in the channel, 0 some forty metres out. The sea's
-//       waves and foam die away over it, so a river runs out into still water.
+//       breakers and the swash on the sand keep off a river's banks.
 // Two tiers: a fine one a few hundred metres across for the breakers and the swash at the
 // player's feet, and a coarse one out to the horizon for the far coasts. Both are refilled a few
 // rows per frame as the player moves; a tier keeps showing its old map until the new one is done.
@@ -14,6 +15,17 @@ const TIERS = [
 	{ res: 384, size: 3072, rows: 6 },    // 8 m per texel
 ];
 const OUTSIDE = 1000;
+
+// the highest lake level among the grid cells within one cell of the point
+function lakeLevelNear(hm, x, z) {
+	const N = hm.N, ci = Math.round(hm.gx(x)), cj = Math.round(hm.gz(z));
+	let best = -Infinity;
+	for (let j = Math.max(cj - 1, 0); j <= Math.min(cj + 1, N - 1); j++) for (let i = Math.max(ci - 1, 0); i <= Math.min(ci + 1, N - 1); i++) {
+		const l = hm.lakeLevel[j * N + i];
+		if (l > best) best = l;
+	}
+	return best;
+}
 
 function smoothstep(a, b, x) { const t = Math.min(Math.max((x - a) / (b - a), 0), 1); return t * t * (3 - 2 * t); }
 
@@ -56,11 +68,15 @@ class Tier {
 				const x = o.x + (i / (res - 1) - 0.5) * size;
 				const h = hm.sample(x, z);
 				const k = (j * res + i) * 4;
+				// a lake's sheet reaches a cell past its own grid cells over any ground below its level
+				// (InlandWater dilates the mask by one cell), so the water here is the highest lake
+				// within a cell if the ground lies under it
+				let water = hm._water;
+				const lake = lakeLevelNear(hm, x, z);
+				if (lake > water && h < lake - 0.02) water = lake;
 				next[k] = h;
-				next[k + 1] = hm._water;
-				// sea: under the sea level, with no lake (or river well above the sea) over the ground
-				const sea = h < hm.waterLevel && hm._water <= hm.waterLevel + 0.5;
-				next[k + 2] = sea ? 1 : 0;
+				next[k + 1] = water;
+				next[k + 2] = h < water - 0.02 ? 1 : 0;   // under water of any kind
 				next[k + 3] = hm._riverDist < hm._riverWidth * 0.5 + 1 ? 1 : 0;   // in a channel; dilated below
 			}
 		}
@@ -78,7 +94,7 @@ class Tier {
 	}
 }
 
-// Signed Euclidean distance to the shoreline, in place of the sea mask in channel B.
+// Signed Euclidean distance to the shoreline, in place of the water mask in channel B.
 // Felzenszwalb & Huttenlocher's 1D squared-distance transform, run over rows then columns,
 // once for the sea and once for the land.
 function shoreDistance(data, res, texel) {
@@ -178,7 +194,7 @@ export class ShoreMap {
 		for (const t of this.tiers) t.update(playerPos);
 	}
 
-	// Signed distance to the sea shore at a point, from the finest map that covers it (CPU side).
+	// Signed distance to the nearest shore at a point, from the finest map that covers it (CPU side).
 	shoreDist(x, z) {
 		for (const t of this.tiers) {
 			if (Number.isNaN(t.origin.x)) continue;

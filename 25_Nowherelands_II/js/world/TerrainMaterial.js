@@ -199,18 +199,32 @@ export function createTerrainMaterial(shared, heightmap) {
 				// the sea's swash: after each breaker hits the waterline a sheet of foam runs up the sand
 				// and drains back, keeping time with the breakers; it never climbs cliffs
 				float sd = shoreDistAt(vWorldPos.xz);           // negative on land
-				float beach = step(-40.0, sd) * step(sd, 1.0) * (1.0 - smoothstep(1.0, 2.2, hSea)) * smoothstep(0.55, 0.8, n.y) * (1.0 - riverMouthAt(vWorldPos.xz));
+				float offRiver = 1.0 - riverMouthAt(vWorldPos.xz);
+				float onSea = step(waterY, uWaterLevel + 0.3);
+				vec3 foamCol = vec3(0.5, 0.53, 0.66) * (0.55 + 0.45 * uMoonIntensity) + vec3(0.4, 0.14, 0.1) * uSunIntensity;
+				float beach = step(-40.0, sd) * step(sd, 1.0) * (1.0 - smoothstep(1.0, 2.2, hSea)) * smoothstep(0.55, 0.8, n.y) * offRiver * onSea;
+				// a lake's shore: the wind lap runs a hand's breadth up the bank and darkens it
+				float lakeBeach = step(-12.0, sd) * step(sd, 1.0) * (1.0 - onSea) * (1.0 - smoothstep(0.6, 1.4, h)) * smoothstep(0.55, 0.8, n.y) * offRiver;
+				if (lakeBeach > 0.001) {
+					float up = -sd;
+					float run = lakeRunUp(vWorldPos.xz, uTime);
+					float wobble = (vnoise(vWorldPos.xz * 0.8) - 0.5) * 0.8;
+					float front = step(up + wobble, run) * step(-0.2, up);   // on the bank, not under the water
+					float edge = step(run - 0.3, up + wobble) * front * step(0.4, vnoise(vWorldPos.xz * 1.5 + 3.0));
+					float damp = (1.0 - smoothstep(1.0, 2.2, up)) * step(0.0, up);
+					color *= 1.0 - damp * 0.15;
+					color = mix(color, foamCol, lakeBeach * edge * 0.8);
+				}
 				if (beach > 0.001) {
 					float up = -sd;                                  // metres up the beach from the waterline
 					float run = shoreRunUp(vWorldPos.xz, uTime);
 					float wobble = (vnoise(vWorldPos.xz * 0.35) - 0.5) * 2.5;
-					float front = step(up + wobble, run);            // under the sheet
+					float front = step(up + wobble, run) * step(-0.2, up);   // under the sheet, on the sand
 					float edge = step(run - 0.6, up + wobble) * front * step(0.45, vnoise(vWorldPos.xz * 0.9 + 3.0));   // its torn leading edge
 					float body = front * step(0.66, vnoise(vWorldPos.xz * 0.5 + uTime * 0.15)) * step(0.0, up);
 					float reach = 7.5 * shoreSet(vWorldPos.xz, uTime);
 					float damp = (1.0 - smoothstep(reach * 0.6, reach + 1.0, up)) * step(0.0, up);   // sand the sea has reached stays dark
 					color *= 1.0 - damp * 0.18;
-					vec3 foamCol = vec3(0.5, 0.53, 0.66) * (0.55 + 0.45 * uMoonIntensity) + vec3(0.4, 0.14, 0.1) * uSunIntensity;
 					color = mix(color, foamCol, beach * max(edge, body * 0.6));
 				}
 				color = applyFog(color, vWorldPos, uCameraPos);

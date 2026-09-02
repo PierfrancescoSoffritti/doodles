@@ -27,6 +27,8 @@ export class Water {
 		// Reflector clones its uniforms; share the live ones and take its texture and matrix
 		for (const k of Object.keys(uniforms)) if (k !== 'uDisplace' && k !== 'tDiffuse') this.far.material.uniforms[k] = uniforms[k];
 		uniforms.tDiffuse = this.far.material.uniforms.tDiffuse;
+		// the rivers ride the waves and take the sea's look at their mouths
+		shared.sea = { uWaves: uniforms.uWaves, uWaves2: uniforms.uWaves2, uSwell: uniforms.uSwell, tDiffuse: uniforms.tDiffuse, uReflMatrix: uniforms.uReflMatrix };
 		this.far.material.transparent = true;
 		this.far.rotation.x = -Math.PI / 2;
 		this.far.frustumCulled = false;
@@ -48,14 +50,16 @@ export class Water {
 		}
 		this.far.position.y = waterLevel;
 
-		// the rings must not appear in their own reflection; the world-to-mirror matrix is read off
-		// the reflector once it has rendered
+		// the rings must not appear in their own reflection, nor may anything that reads the mirror
+		// (the rivers do at their mouths) be drawn into it; the world-to-mirror matrix is read off the
+		// reflector once it has rendered
+		shared.mirrorHide = new Set(this.levels);
 		const orig = this.far.onBeforeRender;
-		const far = this.far, levels = this.levels, inv = new THREE.Matrix4();
+		const far = this.far, inv = new THREE.Matrix4();
 		this.far.onBeforeRender = function (renderer, scene, camera, ...rest) {
-			for (const m of levels) m.visible = false;
+			for (const m of shared.mirrorHide) m.visible = false;
 			orig.call(far, renderer, scene, camera, ...rest);
-			for (const m of levels) m.visible = true;
+			for (const m of shared.mirrorHide) m.visible = true;
 			inv.copy(far.matrixWorld).invert();
 			uniforms.uReflMatrix.value.copy(far.material.uniforms.textureMatrix.value).multiply(inv);
 		};

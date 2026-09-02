@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { Ripples } from './Ripples.js';
 import { hslGlsl, noiseGlsl } from './TerrainMaterial.js';
 import { fogGlsl } from './FogGlsl.js';
+import { shoreWaveGlsl } from './ShoreWaves.js';
+import { seaWaveGlsl, seaShadeGlsl } from './SeaShader.js';
 
 // The inland water look, shared by the lakes and the rivers (the sea has its own, SeaShader.js):
 // the reflection is faked from the sky tone; flow and foam come per vertex.
@@ -20,7 +22,7 @@ export function createWaterUniforms(shared, waterLevel) {
 		uRain: { value: 0 },
 		uSkyTone: { value: new THREE.Color('#3a1460') },
 	};
-	Object.assign(uniforms, shared.ripples.uniforms, shared.shoreMap.uniforms, shared.fogUniforms);
+	Object.assign(uniforms, shared.ripples.uniforms, shared.shoreMap.uniforms, shared.fogUniforms, shared.sea);
 	return uniforms;
 }
 
@@ -62,12 +64,16 @@ export const lakeWaveGlsl = /* glsl */`
 
 export function waterVertexShader(shared) {
 	return /* glsl */`
-	uniform float uTime;
+	uniform float uTime, uWaterLevel;
+	uniform mat4 uReflMatrix;
 	${noiseGlsl}
 	${shared.shoreMap.glsl}
+	${seaWaveGlsl}
 	${riverWaveGlsl}
 	${lakeWaveGlsl}
 	varying vec3 vWorldPos;
+	varying float vLevel;
+	varying vec4 vUv4;
 	attribute vec4 aInfo0, aInfo1;
 	attribute float aFade;
 	attribute vec3 aWake0, aWake1, aWake2;
@@ -76,6 +82,12 @@ export function waterVertexShader(shared) {
 	flat varying vec3 vWake0, vWake1, vWake2;
 	void main() {
 		vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+		vLevel = worldPosition.y;
+		// a river's last reaches ride the sea's swell as they run out into it
+		if (aInfo0.y > 0.0) {
+			float ride = 1.0 - smoothstep(1.5, 3.0, worldPosition.y - uWaterLevel);
+			if (ride > 0.001) { vec3 nrm; float jac; worldPosition.y += gerstner(worldPosition.xz, uTime, shoreDistAt(worldPosition.xz), ride, nrm, jac).y; }
+		}
 		#ifdef WAVES
 		// the near surface heaves: a swell on calm water, short steep standing waves in the rapids,
 		// nothing on the riffle ramps or at the banks, quieter where the water goes still
@@ -83,6 +95,7 @@ export function waterVertexShader(shared) {
 		else if (aInfo0.y < 0.0) worldPosition.y += lakeWave(worldPosition.xz, uTime, worldPosition.y - terrainHeightAt(worldPosition.xz));
 		#endif
 		vWorldPos = worldPosition.xyz;
+		vUv4 = uReflMatrix * vec4(worldPosition.xyz, 1.0);
 		vInfo0 = aInfo0;
 		vInfo1 = aInfo1;
 		vFade = aFade;
@@ -93,10 +106,10 @@ export function waterVertexShader(shared) {
 
 export function waterFragmentShader(shared) {
 	return /* glsl */`
-	uniform vec3 color, uMoonDir, uMoonColor, uCameraPos, uSunDir, uSkyTone;
-	uniform float uSunIntensity, uNearRadius;
-	uniform float uTime, uMoonIntensity, uHue, uBass, uWaterLevel, uRain;
+	uniform float uNearRadius, uTime, uHue, uBass, uRain;
 	varying vec3 vWorldPos;
+	varying float vLevel;
+	varying vec4 vUv4;
 	varying vec4 vInfo0, vInfo1;
 	varying float vFade;
 	flat varying vec3 vWake0, vWake1, vWake2;
@@ -104,6 +117,8 @@ export function waterFragmentShader(shared) {
 	${noiseGlsl}
 	${Ripples.glsl()}
 	${shared.shoreMap.glsl}
+	${shoreWaveGlsl}
+	${seaShadeGlsl}
 	${fogGlsl}
 	// foam around a rock in the channel: rock = (along, across, radius)
 	float rockWake(float along, float across, vec3 rock, float flowAlong) {
@@ -130,7 +145,7 @@ export function waterFragmentShader(shared) {
 		float vAlong = vInfo1.x, vSpeed = vInfo1.y, vFall = vInfo1.z, vBase = vInfo1.w;
 		bool river = vDepth > 0.0;
 		// a river that has run out under the sea is the sea's from there on
-		if (river && vWorldPos.y < uWaterLevel - 0.03) discard;
+		if (river && vLevel < uWaterLevel + 0.2) discard;
 		float speed = 0.6 + vSpeed * 2.2;      // metres per second the pattern travels: 1.3 in a pool, 7 in a chute
 		float across = vAcross * vWidth * 0.5;
 		vec2 fuv = river ? vec2(vAlong - uTime * speed, across) : p;
@@ -174,18 +189,20 @@ export function waterFragmentShader(shared) {
 		float sunSpec = pow(max(dot(R, uSunDir), 0.0), 220.0) * 0.5 + pow(max(dot(R, uSunDir), 0.0), 40.0) * 0.04;
 		col += vec3(1.0, 0.25, 0.1) * sunSpec * uSunIntensity;
 
-		// cel-shaded foam: hard-edged outline rings that follow the shore and drift slowly
-		float wobble = vnoise(pd * 0.11 + uTime * 0.08) * 1.0 + vnoise(pd * 0.03 - uTime * 0.04) * 1.2;
-		float dd = depth + wobble - 1.4;
-		float edge = 1.0 - step(0.4, dd);                                  // solid band at the waterline
-		float ring1 = step(abs(dd - 1.55), 0.16);
-		float ring2 = step(abs(dd - 2.75), 0.11) * step(0.35, vnoise(pd * 0.3 + uTime * 0.05));
-		float gapNoise = step(0.28, vnoise(pd * 0.22 - uTime * 0.06));     // breaks the rings into dashes
-		float foam = clamp(edge + (ring1 + ring2) * gapNoise, 0.0, 1.0) * step(0.0, depth + 0.3);
 		if (!river) {
-			// still water: a thin lap right at the shore and nothing else
-			float lap = (1.0 - smoothstep(0.0, 0.35, depth + wobble * 0.1)) * step(0.0, depth + 0.3);
-			col = mix(col, vec3(0.3, 0.33, 0.46), lap * 0.6);
+			// a lake's shore: wind lap. Short crests arrive every few seconds, break into a torn line
+			// at the waterline and leave a few flecks behind them, the sea's breakers writ small
+			float d = shoreDistAt(p);
+			float ph = lakePhase(d, p, uTime);
+			float age = shoreAge(ph);
+			float nearShore = (1.0 - smoothstep(1.0, 5.0, d)) * step(-0.3, d);
+			float crestL = step(0.9, sin(ph)) * nearShore * step(0.62, vnoise(p * 0.45 + 3.0));
+			float trailN = vnoise(p * 0.6 + vec2(0.0, uTime * 0.2)) * 0.6 + vnoise(p * 0.2 + 4.0) * 0.4;
+			float trailL = step(1.0 - exp(-age * 3.5) * nearShore * 0.3, trailN);
+			float seam = (1.0 - smoothstep(0.0, 0.3, abs(d))) * step(0.55, vnoise(p * 0.7 + uTime * 0.15));
+			float foamL = clamp(seam + crestL + trailL, 0.0, 1.0) * (1.0 - smoothstep(600.0, 1500.0, distance(vWorldPos, uCameraPos)));
+			vec3 lapCol = vec3(0.5, 0.53, 0.66) * (0.55 + 0.45 * uMoonIntensity) + vec3(0.4, 0.14, 0.1) * uSunIntensity;
+			col = mix(col, lapCol, foamL * 0.7);
 		} else {
 			// rivers: a thin broken line where the water actually meets the bank
 			float shoreDepth = vWorldPos.y - terrainHeightAt(p);
@@ -242,6 +259,15 @@ export function waterFragmentShader(shared) {
 			}
 		}
 
+		// a river running out into the sea takes on the sea's own look over its last metres of fall,
+		// so the two meet in one colour where the ribbon dissolves
+		float seaMix = river ? 1.0 - smoothstep(0.2, 2.5, vLevel - uWaterLevel) : 0.0;
+		if (seaMix > 0.001) {
+			vec3 sn = gn.y < 0.0 ? -gn : gn;
+			float fr;
+			vec3 seaCol = seaShade(vWorldPos, sn, V, vWorldPos.y - terrainHeightAt(p), distance(vWorldPos, uCameraPos), vUv4, fr);
+			col = mix(col, seaCol, seaMix);
+		}
 		#ifdef WAVES
 		// the facets of the waved surface: those turned away from the eye show the sky, those
 		// turned toward it show the deep, in flat bands; a flat facet keeps the far mesh's colour
@@ -252,7 +278,7 @@ export function waterFragmentShader(shared) {
 			float tilt = dot(gn, Vv) - clamp(Vv.y, 0.0, 1.0);
 			// a lake's facets fade out before the far mesh takes over, so no line marks the hand-over
 			float reach = river ? 1.0 : 1.0 - smoothstep(170.0, 250.0, distance(vWorldPos.xz, uCameraPos.xz));
-			float band = clamp(floor(tilt * (river ? 14.0 : 18.0) + 0.5), -2.0, 2.0) * reach;
+			float band = clamp(floor(tilt * (river ? 14.0 : 18.0) + 0.5), -2.0, 2.0) * reach * (1.0 - seaMix);
 			if (!river) col *= 1.0 + clamp(tilt, -0.15, 0.15) * 1.2 * reach;   // every ripple facet shades a little
 			vec3 skyGlimpse = mix(vec3(0.3, 0.34, 0.52), uSkyTone * 1.8, 0.3);
 			col = mix(col, skyGlimpse, clamp(-band, 0.0, 2.0) * (river ? 0.36 : 0.16));
@@ -304,6 +330,9 @@ export function waterFragmentShader(shared) {
 		alpha = river ? mix(0.55, 1.0, smoothstep(0.25, 1.6, channelDepth)) + 0.45 * whiteOut : mix(0.5, 1.0, smoothstep(0.2, 3.0, depth));
 		alpha = min(alpha + vFade * 0.5, 1.0);
 		#endif
+		// a river dissolves into the sea, which lies just under it riding the same swell, over the last
+		// metre of its fall to sea level
+		if (river) alpha *= smoothstep(0.2, 1.2, vLevel - uWaterLevel);
 		gl_FragColor = vec4(col, alpha);
 	}`;
 }

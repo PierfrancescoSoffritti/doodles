@@ -28,5 +28,13 @@ export const shoreWaveGlsl = /* glsl */`
 		float age = shoreAge(shorePhase(0.0, p, t));
 		float f = age < 0.32 ? sin(age / 0.32 * 1.5708) : cos((age - 0.32) / 0.68 * 1.5708);
 		return 7.5 * shoreSet(p, t) * f;
+	}
+	// a lake's wind lap: the same thing writ small, short quick crests and a hand's breadth of run-up
+	const float LAKE_K = 6.2832 / 4.5, LAKE_W = 6.2832 / 3.1;
+	float lakePhase(float d, vec2 p, float t) { return d * LAKE_K + t * LAKE_W + (vnoise(p * 0.06) - 0.5) * 2.0; }
+	float lakeRunUp(vec2 p, float t) {
+		float age = shoreAge(lakePhase(0.0, p, t));
+		float f = age < 0.35 ? sin(age / 0.35 * 1.5708) : cos((age - 0.35) / 0.65 * 1.5708);
+		return 1.6 * (0.6 + 0.4 * vnoise(p * 0.01 + t * 0.02)) * f;
 	}`;
 
