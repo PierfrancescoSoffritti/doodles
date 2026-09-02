@@ -3,13 +3,10 @@ import { Ripples } from './Ripples.js';
 import { hslGlsl, noiseGlsl } from './TerrainMaterial.js';
 import { fogGlsl } from './FogGlsl.js';
 
-// One water look for the sea, the lakes and the rivers. The sea reflects the scene (REFLECTIVE);
-// inland water fakes its reflection from the sky tone and carries flow and foam per vertex (FLOW).
+// The inland water look, shared by the lakes and the rivers (the sea has its own, SeaShader.js):
+// the reflection is faked from the sky tone; flow and foam come per vertex.
 export function createWaterUniforms(shared, waterLevel) {
 	const uniforms = {
-		color: { value: new THREE.Color('#ffffff') },
-		tDiffuse: { value: null },
-		textureMatrix: { value: new THREE.Matrix4() },
 		uTime: { value: 0 },
 		uMoonDir: { value: new THREE.Vector3(0, 1, 0) },
 		uMoonColor: { value: new THREE.Color('#ffd7f3') },
@@ -53,19 +50,15 @@ export const riverWaveGlsl = /* glsl */`
 	}`;
 
 export const waterVertexShader = /* glsl */`
-	uniform mat4 textureMatrix;
 	uniform float uTime;
 	${riverWaveGlsl}
-	varying vec4 vUv4;
 	varying vec3 vWorldPos;
-	#ifdef FLOW
 	attribute vec4 aInfo0, aInfo1;
 	attribute float aFade;
 	attribute vec3 aWake0, aWake1, aWake2;
 	varying vec4 vInfo0, vInfo1;
 	varying float vFade;
 	flat varying vec3 vWake0, vWake1, vWake2;
-	#endif
 	void main() {
 		vec4 worldPosition = modelMatrix * vec4(position, 1.0);
 		#ifdef WAVES
@@ -74,35 +67,27 @@ export const waterVertexShader = /* glsl */`
 		if (aInfo0.y > 0.0 && aInfo1.z <= 0.0) worldPosition.y += riverWave(aInfo0, aInfo1, aFade, uTime);
 		#endif
 		vWorldPos = worldPosition.xyz;
-		vUv4 = textureMatrix * vec4(position, 1.0);
-		#ifdef FLOW
 		vInfo0 = aInfo0;
 		vInfo1 = aInfo1;
 		vFade = aFade;
 		vWake0 = aWake0; vWake1 = aWake1; vWake2 = aWake2;
-		#endif
 		gl_Position = projectionMatrix * viewMatrix * worldPosition;
 	}`;
 
 export function waterFragmentShader(shared) {
 	return /* glsl */`
-	uniform sampler2D tDiffuse;
 	uniform vec3 color, uMoonDir, uMoonColor, uCameraPos, uSunDir, uSkyTone;
 	uniform float uSunIntensity, uNearRadius;
 	uniform float uTime, uMoonIntensity, uHue, uBass, uWaterLevel, uRain;
-	varying vec4 vUv4;
 	varying vec3 vWorldPos;
-	#ifdef FLOW
 	varying vec4 vInfo0, vInfo1;
 	varying float vFade;
 	flat varying vec3 vWake0, vWake1, vWake2;
-	#endif
 	${hslGlsl}
 	${noiseGlsl}
 	${Ripples.glsl()}
 	${shared.shoreMap.glsl}
 	${fogGlsl}
-	#ifdef FLOW
 	// foam around a rock in the channel: rock = (along, across, radius)
 	float rockWake(float along, float across, vec3 rock, float flowAlong) {
 		if (rock.z <= 0.0) return 0.0;
@@ -115,14 +100,12 @@ export function waterFragmentShader(shared) {
 		float tex = vnoise(vec2(flowAlong * 0.45 + rock.x, across * 1.1));
 		return max(bow, inV * step(0.58 - 0.35 * fade, tex));
 	}
-	#endif
 	void main() {
 		vec2 p = vWorldPos.xz;
 		#ifdef NEAR_CULL
 		// inside the near radius the waved mesh draws the rivers instead
 		if (vInfo0.y > 0.0 && distance(vWorldPos.xz, uCameraPos.xz) < uNearRadius) discard;
 		#endif
-		#ifdef FLOW
 		// rivers are textured in their own space: metres along the channel (scrolling with the
 		// current) by metres across it. Scrolling world coordinates by a per-vertex flow direction
 		// shears the pattern into streaks as time passes; this does not.
@@ -133,12 +116,8 @@ export function waterFragmentShader(shared) {
 		float across = vAcross * vWidth * 0.5;
 		vec2 fuv = river ? vec2(vAlong - uTime * speed, across) : p;
 		vec2 pd = fuv;
-		#else
-		vec2 pd = p;
-		#endif
 		float w1 = sin(pd.x * 0.09 + uTime * 0.6) + sin(pd.y * 0.07 - uTime * 0.45);
 		float w2 = sin((pd.x + pd.y) * 0.05 + uTime * 0.35);
-		#ifdef FLOW
 		vec3 n;
 		if (river) {
 			// running water is rougher: small tumbling ripples travelling with the current
@@ -147,15 +126,11 @@ export function waterFragmentShader(shared) {
 			float rough = 0.6 + 0.5 * vInfo1.y;          // fast water is rougher
 			n = normalize(vec3((r1 * 0.05 + r3 * 0.02) * rough, 1.0, r2 * 0.05 * rough));
 		} else n = normalize(vec3(w1 * 0.004, 1.0, w2 * 0.004));
-		#else
-		vec3 n = normalize(vec3(w1 * 0.006, 1.0, w2 * 0.006));
-		#endif
 		vec3 V = normalize(uCameraPos - vWorldPos);
 		vec3 R = reflect(-V, n);
 		float fresnel = pow(clamp(1.0 - dot(V, n), 0.0, 1.0), 2.5);
 
 		float depth = vWorldPos.y - terrainHeightAt(p);          // how deep the water is here
-		#ifdef FLOW
 		float channelDepth = 0.0;
 		if (river) {
 			// rivers know their own channel: deep in the middle, shallow along the banks
@@ -164,39 +139,20 @@ export function waterFragmentShader(shared) {
 			channelDepth = u < 1.0 ? (0.4 + 0.6 * sqrt(1.0 - u * u)) * vDepth : 0.3;
 			depth = channelDepth * 2.0;
 		}
-		#endif
 		float shallow = 1.0 - smoothstep(0.0, 6.0, depth);
 
 		vec3 ripple = rippleGlow(p, uTime);
-		#ifdef REFLECTIVE
-		vec3 coord = vUv4.xyz / max(vUv4.w, 1e-4);
-		coord.xy += n.xz * 0.12;
-		vec3 refl = texture2D(tDiffuse, coord.xy).rgb;
-		#else
 		vec3 refl = uSkyTone * (0.7 + 0.3 * fresnel);
-		#endif
 
 		// flat stylized water: a deep violet-blue with only a hint of the reflection
 		vec3 base = vec3(0.03, 0.03, 0.11);
-		#ifdef FLOW
 		// running water carries a little more body than a still lake, so it reads as water from above
 		vec3 stillCol = mix(vec3(0.02, 0.02, 0.08), refl * 0.45, 0.14 + 0.24 * fresnel);
 		vec3 col = river ? mix(mix(vec3(0.07, 0.085, 0.24), refl * 0.6, 0.15 + 0.35 * fresnel), stillCol, vFade) : stillCol;
-		#else
-		vec3 col = mix(base, refl * 0.6, 0.18 + 0.3 * fresnel);
-		#endif
-		#ifdef FLOW
 		col = mix(col, vec3(0.06, 0.16, 0.24), shallow * (vDepth < 0.0 ? 0.12 : 0.2));
-		#else
-		col = mix(col, vec3(0.06, 0.16, 0.24), shallow * 0.35);
-		#endif
 		col = mix(col, vec3(0.12, 0.04, 0.11), uSunIntensity * 0.2);
 		// a long red glitter path under the low sun; rivers are narrow and broken up, so theirs is a thin one
-		#ifdef FLOW
 		float sunSpec = pow(max(dot(R, uSunDir), 0.0), 220.0) * 0.5 + pow(max(dot(R, uSunDir), 0.0), 40.0) * 0.04;
-		#else
-		float sunSpec = pow(max(dot(R, uSunDir), 0.0), 220.0) * 2.2 + pow(max(dot(R, uSunDir), 0.0), 10.0) * 0.2;
-		#endif
 		col += vec3(1.0, 0.25, 0.1) * sunSpec * uSunIntensity;
 
 		// cel-shaded foam: hard-edged outline rings that follow the shore and drift slowly
@@ -207,7 +163,6 @@ export function waterFragmentShader(shared) {
 		float ring2 = step(abs(dd - 2.75), 0.11) * step(0.35, vnoise(pd * 0.3 + uTime * 0.05));
 		float gapNoise = step(0.28, vnoise(pd * 0.22 - uTime * 0.06));     // breaks the rings into dashes
 		float foam = clamp(edge + (ring1 + ring2) * gapNoise, 0.0, 1.0) * step(0.0, depth + 0.3);
-		#ifdef FLOW
 		if (!river) {
 			// still water: a thin lap right at the shore and nothing else
 			float lap = (1.0 - smoothstep(0.0, 0.35, depth + wobble * 0.1)) * step(0.0, depth + 0.3);
@@ -218,11 +173,7 @@ export function waterFragmentShader(shared) {
 			float edgeR = (1.0 - smoothstep(0.0, 0.25, shoreDepth)) * step(-0.3, shoreDepth) * step(0.35, vnoise(vec2(fuv.x * 0.5, 7.0)));
 			col = mix(col, vec3(0.42, 0.45, 0.58), edgeR * 0.6);
 		}
-		#else
-		col = mix(col, vec3(0.56, 0.6, 0.72), foam);
-		#endif
 
-		#ifdef FLOW
 		float whiteOut = 0.0;      // how much foam covers this point, for the near surface's opacity
 		if (river) {
 			// running water in three flat tones: the deep channel, a pale band in the shallows, foam
@@ -290,13 +241,8 @@ export function waterFragmentShader(shared) {
 				col = mix(col, fallCol, steepness);
 			}
 		}
-		#endif
 
-		#ifdef FLOW
 		float spec = pow(max(dot(R, uMoonDir), 0.0), 500.0) * 0.8 + pow(max(dot(R, uMoonDir), 0.0), 60.0) * 0.04;
-		#else
-		float spec = pow(max(dot(R, uMoonDir), 0.0), 500.0) * 2.5 + pow(max(dot(R, uMoonDir), 0.0), 24.0) * 0.18;
-		#endif
 		col += uMoonColor * spec * uMoonIntensity;
 		col += ripple * 1.2;
 

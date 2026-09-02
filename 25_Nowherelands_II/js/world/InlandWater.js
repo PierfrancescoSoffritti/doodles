@@ -34,13 +34,13 @@ export class InlandWater {
 			uniforms,
 			vertexShader: waterVertexShader,
 			fragmentShader: waterFragmentShader(shared),
-			defines: { FLOW: '', NEAR_CULL: '' },
+			defines: { NEAR_CULL: '' },
 		});
 		this.nearMaterial = new THREE.ShaderMaterial({
 			uniforms,
 			vertexShader: waterVertexShader,
 			fragmentShader: waterFragmentShader(shared),
-			defines: { FLOW: '', WAVES: '' },
+			defines: { WAVES: '' },
 			transparent: true,
 		});
 

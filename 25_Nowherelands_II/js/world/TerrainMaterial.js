@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { Ripples } from './Ripples.js';
 import { fogGlsl } from './FogGlsl.js';
+import { shoreWaveGlsl } from './ShoreWaves.js';
 
 export const hslGlsl = /* glsl */`
 vec3 hsl2rgb(vec3 c) {
@@ -121,6 +122,7 @@ export function createTerrainMaterial(shared, heightmap) {
 			${noiseGlsl}
 			${Ripples.glsl()}
 			${shared.shoreMap.glsl}
+			${shoreWaveGlsl}
 			${fogGlsl}
 			${terrainLightGlsl}
 
@@ -191,14 +193,26 @@ export function createTerrainMaterial(shared, heightmap) {
 				// the bed under the water darkens and blues with depth (seen through the near river surface)
 				float under = clamp(-h / 2.5, 0.0, 1.0);
 				color = mix(color, color * vec3(0.45, 0.55, 0.85) * 0.55, under * 0.85);
-				// wet ground just above any water line; the surf wash only where the sea laps the shore
-				float sea = 1.0 - smoothstep(0.05, 0.6, waterY - uWaterLevel);
+				// wet ground just above any water line
 				float wet = (1.0 - smoothstep(0.0, 2.5, h)) * step(0.0, h);
-				color *= 1.0 - wet * (0.25 + 0.2 * sea);
-				float washN = hash21(mod(floor(vWorldPos.xz * 0.6), 1024.0));
-				float wash = (1.0 - smoothstep(0.0, 0.45 + 0.3 * sin(uTime * 1.6 + vWorldPos.x * 0.07 + vWorldPos.z * 0.05), h)) * step(0.0, h) * sea;
-				color += vec3(0.7, 0.75, 0.9) * wash * (0.25 + 0.25 * washN) * (0.5 + 0.5 * uMoonIntensity);
-
+				color *= 1.0 - wet * 0.25;
+				// the sea's swash: after each breaker hits the waterline a sheet of foam runs up the sand
+				// and drains back, keeping time with the breakers; it never climbs cliffs
+				float sd = shoreDistAt(vWorldPos.xz);           // negative on land
+				float beach = step(-40.0, sd) * step(sd, 1.0) * (1.0 - smoothstep(1.0, 2.2, hSea)) * smoothstep(0.55, 0.8, n.y);
+				if (beach > 0.001) {
+					float up = -sd;                                  // metres up the beach from the waterline
+					float run = shoreRunUp(vWorldPos.xz, uTime);
+					float wobble = (vnoise(vWorldPos.xz * 0.35) - 0.5) * 2.5;
+					float front = step(up + wobble, run);            // under the sheet
+					float edge = step(run - 0.6, up + wobble) * front * step(0.45, vnoise(vWorldPos.xz * 0.9 + 3.0));   // its torn leading edge
+					float body = front * step(0.66, vnoise(vWorldPos.xz * 0.5 + uTime * 0.15)) * step(0.0, up);
+					float reach = 7.5 * shoreSet(vWorldPos.xz, uTime);
+					float damp = (1.0 - smoothstep(reach * 0.6, reach + 1.0, up)) * step(0.0, up);   // sand the sea has reached stays dark
+					color *= 1.0 - damp * 0.18;
+					vec3 foamCol = vec3(0.5, 0.53, 0.66) * (0.55 + 0.45 * uMoonIntensity) + vec3(0.4, 0.14, 0.1) * uSunIntensity;
+					color = mix(color, foamCol, beach * max(edge, body * 0.6));
+				}
 				color = applyFog(color, vWorldPos, uCameraPos);
 				gl_FragColor = vec4(color, 1.0);
 			}`,

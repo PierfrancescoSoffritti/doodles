@@ -209,12 +209,12 @@ function start(world) {
 		envTimer -= dt;
 		if (envTimer <= 0) {
 			envTimer = 5;
-			water.mesh.visible = false;
+			water.setVisible(false);
 			const old = envTarget;
 			envTarget = pmrem.fromScene(scene, 0.02, 1, config.world.far, { size: 128, position: camera.position });
 			scene.environment = envTarget.texture;
 			scene.environmentIntensity = 0.55;
-			water.mesh.visible = true;
+			water.setVisible(true);
 			if (old) old.dispose();
 		}
 
