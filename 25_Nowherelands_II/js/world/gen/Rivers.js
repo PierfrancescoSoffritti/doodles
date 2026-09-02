@@ -383,7 +383,7 @@ function shapeRiver(river, rivers, ctx) {
 				continue;
 			}
 			const ramp = clamp(hs * 0.8, 0.5, 1.8);
-			const f = clamp(0.35 + hs * 0.5, 0.4, 1);
+			const f = clamp(0.3 + hs * 0.45, 0.35, 0.9);
 			emit(i, P[i][0], P[i][1], pooled[i], KIND.STEP_TOP, { foam: f * 0.7, step: hs });
 			emit(i, P[i][0] + tx * ramp, P[i][1] + tz * ramp, pooled[i] - hs, KIND.STEP_BOTTOM, { foam: f, step: hs, bank: bankBase[i] + (wl[i] - pooled[i]) + hs });
 			continue;
@@ -431,7 +431,7 @@ function shapeRiver(river, rivers, ctx) {
 	// foam: bright below every drop, fading over a few widths, and a little ahead of it
 	for (let q = 1; q < m; q++) {
 		const prev = out[q - 1];
-		const len = prev.kind === KIND.POOL ? clamp(5 * prev.w, 20, 120) : clamp(1.5 * prev.w, 8, 40);
+		const len = prev.kind === KIND.POOL ? clamp(5 * prev.w, 20, 120) : clamp(0.9 * prev.w, 5, 30);
 		const carry = prev.foam - (out[q].along - prev.along) / len;
 		if (carry > out[q].foam) out[q].foam = carry;
 	}

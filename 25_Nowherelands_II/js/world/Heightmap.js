@@ -23,6 +23,7 @@ class RiverIndex {
 		for (const r of rivers) nSeg += Math.max(0, r.count - 1);
 		this.seg = new Float32Array(nSeg * SEG);
 		this.segRiver = new Int32Array(nSeg);
+		this.segIndex = new Int32Array(nSeg);      // the sample a segment starts at
 		let s = 0;
 		rivers.forEach((r, ri) => {
 			const d = r.data;
@@ -38,6 +39,7 @@ class RiverIndex {
 				this.seg[o + 14] = ka === RIVER_KIND.LIP ? SEG_KIND.GAP : (ka === RIVER_KIND.STEP_TOP && kb === RIVER_KIND.STEP_BOTTOM ? SEG_KIND.STEP : SEG_KIND.FLOW);
 				this.seg[o + 15] = d[a + RV.ALONG];
 				this.segRiver[s] = ri;
+				this.segIndex[s] = i;
 				const reach = Math.max(d[a + RV.W], d[b + RV.W]) * 1.2 + 18;
 				const x0 = Math.floor((Math.min(d[a], d[b]) - reach) / HASH), x1 = Math.floor((Math.max(d[a], d[b]) + reach) / HASH);
 				const z0 = Math.floor((Math.min(d[a + 1], d[b + 1]) - reach) / HASH), z1 = Math.floor((Math.max(d[a + 1], d[b + 1]) + reach) / HASH);

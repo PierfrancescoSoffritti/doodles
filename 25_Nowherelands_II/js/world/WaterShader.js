@@ -29,6 +29,7 @@ export function createWaterUniforms(shared, waterLevel) {
 
 export const waterVertexShader = /* glsl */`
 	uniform mat4 textureMatrix;
+	uniform float uTime;
 	varying vec4 vUv4;
 	varying vec3 vWorldPos;
 	#ifdef FLOW
@@ -41,6 +42,27 @@ export const waterVertexShader = /* glsl */`
 	#endif
 	void main() {
 		vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+		#ifdef WAVES
+		// the near surface heaves: a slow swell on calm water, short steep standing waves in the
+		// rapids, nothing on the riffle ramps or at the banks, quieter where the water goes still
+		if (aInfo0.y > 0.0 && aInfo1.z <= 0.0) {
+			float sp = aInfo1.y;
+			float fast = clamp((sp - 0.3) / 2.7, 0.0, 1.0);
+			float u = aInfo0.z;
+			float across = u * aInfo0.w * 0.5;
+			float edge = 1.0 - smoothstep(0.55, 1.0, abs(u));
+			float amp = mix(0.12, 0.28, fast) * edge * (1.0 - 0.75 * aFade) * clamp(aInfo0.w * 0.1, 0.35, 1.0);
+			float lambda = mix(5.5, 3.2, fast);
+			float k = 6.2832 / lambda;
+			float along = aInfo1.x;
+			// travelling swell, a little slower than the flow
+			float ph = along * k - uTime * k * (0.4 + sp * 0.9) + across * 0.35;
+			float y = sin(ph) * 0.6 + sin(ph * 1.63 + across * 1.1 + uTime * 0.7) * 0.4;
+			// standing waves in the rapids, rocking in place
+			y += fast * 0.9 * sin(along * k * 1.37 + across * 0.8) * (0.6 + 0.4 * sin(uTime * 2.6 + along * 0.4));
+			worldPosition.y += amp * y;
+		}
+		#endif
 		vWorldPos = worldPosition.xyz;
 		vUv4 = textureMatrix * vec4(position, 1.0);
 		#ifdef FLOW
@@ -56,7 +78,7 @@ export function waterFragmentShader(shared) {
 	return /* glsl */`
 	uniform sampler2D tDiffuse;
 	uniform vec3 color, uMoonDir, uMoonColor, uCameraPos, uSunDir, uSkyTone;
-	uniform float uSunIntensity;
+	uniform float uSunIntensity, uNearRadius;
 	uniform float uTime, uMoonIntensity, uHue, uBass, uWaterLevel, uRain;
 	varying vec4 vUv4;
 	varying vec3 vWorldPos;
@@ -86,6 +108,10 @@ export function waterFragmentShader(shared) {
 	#endif
 	void main() {
 		vec2 p = vWorldPos.xz;
+		#ifdef NEAR_CULL
+		// inside the near radius the waved mesh draws the rivers instead
+		if (vInfo0.y > 0.0 && distance(vWorldPos.xz, uCameraPos.xz) < uNearRadius) discard;
+		#endif
 		#ifdef FLOW
 		// rivers are textured in their own space: metres along the channel (scrolling with the
 		// current) by metres across it. Scrolling world coordinates by a per-vertex flow direction
@@ -200,14 +226,14 @@ export function waterFragmentShader(shared) {
 			// fast water draws more and longer streaks
 			float fast = clamp((vSpeed - 0.3) / 2.7, 0.0, 1.0);
 			float ln = vnoise(vec2(along * (0.06 - 0.03 * fast), across * 0.8 + 3.0));
-			float lines = step(0.77 - 0.1 * fast, ln) * smoothstep(0.0, 0.02, channelDepth);
+			float lines = step(0.77 - 0.06 * fast, ln) * smoothstep(0.0, 0.02, channelDepth);
 			col += vec3(0.22, 0.25, 0.38) * lines * 0.18 * grazing * live;
 			// white water below every drop and in the chutes: hard-edged blobs torn by the current
 			// finer on a narrow stream, streaked along the flow
 			float fs = 1.0 / clamp(vWidth * 0.12, 0.55, 1.0);
 			float fn = vnoise(vec2(along * 0.1 * fs, across * 1.4 * fs)) * 0.55 + vnoise(vec2(along * 0.035 * fs + 9.0, across * 0.55 * fs)) * 0.45;
 			float inChannel = step(abs(vAcross), 1.0);
-			float white = step(0.76 - 0.28 * vFoam, fn) * step(0.05, vFoam) * inChannel;
+			float white = step(0.8 - 0.3 * vFoam, fn) * step(0.05, vFoam) * inChannel;
 			// wakes: a bow of foam ahead of every rock that breaks the surface, a V behind it
 			white = max(white, rockWake(vAlong, across, vWake0, along));
 			white = max(white, rockWake(vAlong, across, vWake1, along));
@@ -217,13 +243,26 @@ export function waterFragmentShader(shared) {
 				vec2 fc = vec2(along / 4.0, across / 2.2);
 				vec2 ci = floor(fc), cf = fract(fc) - 0.5;
 				vec2 off = vec2(hash21(ci + 7.1), hash21(ci + 3.7)) - 0.5;
-				float keep = step(0.93 - 0.3 * vFoam - 0.08 * fast, hash21(ci * 1.7));
+				float keep = step(0.94 - 0.28 * vFoam - 0.05 * fast, hash21(ci * 1.7));
 				float fleck = step(length((cf - off * 0.6) * vec2(1.0, 1.8)), 0.14) * keep;
 				white = max(white, fleck * inChannel);
 			}
 			col = mix(col, foamCol, white * 0.8 * (1.0 - 0.35 * fresnel) * live);
 			// the riffle ramps: steep quads where the surface drops a step, all white water
 			vec3 gn = normalize(cross(dFdx(vWorldPos), dFdy(vWorldPos)));
+			#ifdef WAVES
+			// the facets of the waved surface take the moon in three flat tones; a flat facet keeps
+			// the colour of the far ribbon so the two meet without a seam
+			{
+				float lit = dot(gn, uMoonDir) * 0.5 + 0.5;
+				float litFlat = uMoonDir.y * 0.5 + 0.5;
+				float band = floor(lit * 5.0 + 0.5) - floor(litFlat * 5.0 + 0.5);
+				col *= 1.0 + clamp(band, -2.0, 2.0) * 0.13 * (0.4 + 0.6 * uMoonIntensity);
+				// white breaks only on the genuinely steep faces of fast water
+				float crest = (1.0 - smoothstep(0.6, 0.72, gn.y)) * fast * live * (1.0 - step(0.02, vFall));
+				col = mix(col, foamCol, crest * 0.6);
+			}
+			#endif
 			float steepness = 1.0 - smoothstep(0.7, 0.92, abs(gn.y));
 			if (vFall > 0.02 && steepness > 0.01) {
 				float frac = clamp((vWorldPos.y - vBase) / max(vFall, 0.3), 0.0, 1.0);
