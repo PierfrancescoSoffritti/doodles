@@ -117,7 +117,8 @@ export class Heightmap {
 		this.oz = world.spawn.z;
 		this.waterLevel = config.world.waterLevel;
 		this.detail = new Simplex2D(new Random(seed + ':detail'));
-		this.forestNoise = new Simplex2D(new Random(seed + ':forest'));
+		this.habitatMap = world.habitat;
+		this._hab = { forest: 0, wet: 0, coast: 0, alt: 1 };
 		this.rivers = new RiverIndex(world.rivers);
 		this.falls = new FallIndex(world.rivers);
 		this.maxPyramid = this.buildMaxPyramid();
@@ -333,9 +334,28 @@ export class Heightmap {
 		return Math.hypot(dx, dz);
 	}
 
-	forestDensity(x, z) {
-		const h = this.gridAt(this.gx(x), this.gz(z));
-		return smoothstep(-0.15, 0.5, this.forestNoise.fbm(x / 900, z / 900, 3)) * (1 - smoothstep(520, 760, h));
+	// The baked habitat (see gen/Habitat.js), bilinear, into the scratch _hab: forest, wet, coast, alt in 0..1.
+	habitat(x, z) {
+		const N = this.N, m = this.habitatMap, o = this._hab;
+		const fx = clamp(this.gx(x), 0, N - 1.001), fz = clamp(this.gz(z), 0, N - 1.001);
+		const i = fx | 0, j = fz | 0, tx = fx - i, tz = fz - j;
+		const k00 = (j * N + i) * 4, k10 = k00 + 4, k01 = k00 + N * 4, k11 = k01 + 4;
+		const w00 = (1 - tx) * (1 - tz), w10 = tx * (1 - tz), w01 = (1 - tx) * tz, w11 = tx * tz;
+		const at = (c) => (m[k00 + c] * w00 + m[k10 + c] * w10 + m[k01 + c] * w01 + m[k11 + c] * w11) / 255;
+		o.forest = at(0); o.wet = at(1); o.coast = at(2); o.alt = at(3);
+		return o;
+	}
+	forestDensity(x, z) { return this.habitat(x, z).forest; }
+
+	// Which way is inland? The gradient of the coast exposure, for the lean of wind-pruned trees.
+	inlandDir(x, z, out) {
+		const e = this.cell * 2;
+		const dx = this.habitat(x + e, z).coast - this.habitat(x - e, z).coast;
+		const dz = this.habitat(x, z + e).coast - this.habitat(x, z - e).coast;
+		const l = Math.hypot(dx, dz);
+		if (l < 1e-4) { out.x = 0; out.z = 0; return out; }
+		out.x = -dx / l; out.z = -dz / l;
+		return out;
 	}
 
 	isLand(x, z, margin = 3) { const h = this.sample(x, z); return h > this._water + margin; }

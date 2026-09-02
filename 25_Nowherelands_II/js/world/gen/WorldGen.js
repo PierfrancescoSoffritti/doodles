@@ -1,5 +1,6 @@
 import { Random, Simplex2D } from '../../core/Random.js';
 import { shapeRivers, RIVER_STRIDE, RV } from './Rivers.js';
+import { computeHabitat } from './Habitat.js';
 
 // Offline world generation: a finite continent shaped by uplift and river erosion.
 // Pure JS with no DOM or three.js dependency so it can run in a worker (or node for tests).
@@ -559,7 +560,9 @@ function chooseSpawn(rivers, h, lakeLevel, N, cell, size, rnd) {
 	const gentle = (x, z) => Math.abs(H(x + 10, z) - H(x - 10, z)) / 20 < 0.25 && Math.abs(H(x, z + 10) - H(x, z - 10)) / 20 < 0.25;
 
 	const S = RIVER_STRIDE;
-	const seaRivers = rivers.filter((r) => r.mouthType === 'sea').sort((a, b) => b.data[(b.count - 1) * S + RV.W] - a.data[(a.count - 1) * S + RV.W]);
+	// the widest rivers first (a delta trunk ends as one narrow distributary among several, so
+	// its mouth width says little; its widest reach says everything)
+	const seaRivers = rivers.filter((r) => r.mouthType === 'sea' && r.count > 0).sort((a, b) => (b.maxWidth + (b.delta ? 1000 : 0)) - (a.maxWidth + (a.delta ? 1000 : 0)));
 	for (const r of seaRivers.slice(0, 5)) {
 		const d = r.data;
 		for (let i = r.count - 1 - Math.round(300 / 8); i > 30; i -= 8) {
@@ -571,7 +574,8 @@ function chooseSpawn(rivers, h, lakeLevel, N, cell, size, rnd) {
 				for (const off of [w / 2 + 40, w / 2 + 70]) {
 					const sx = x + nx * off * side, sz = z + nz * off * side;
 					const hh = H(sx, sz);
-					if (hh < 3 || hh > 40 || !gentle(sx, sz) || landFrac(sx, sz, 180) < 0.85 || landFrac(sx, sz, 60) < 0.99) continue;
+					// a delta plain is low but dry: the trunk's bank on it is a fine place to start
+					if (hh < (r.delta ? 1.2 : 3) || hh > 40 || !gentle(sx, sz) || landFrac(sx, sz, 180) < 0.85 || landFrac(sx, sz, 60) < 0.99) continue;
 					// face upstream, toward the mountains
 					const ux = d[Math.max(0, i - 60) * S] - sx, uz = d[Math.max(0, i - 60) * S + 1] - sz;
 					return { x: sx, z: sz, yaw: Math.atan2(-ux, -uz), river: r.id };
@@ -605,6 +609,9 @@ export function generateWorld(seed, progress = null, opts = {}) {
 		detail: new Simplex2D(new Random(seed + ':detail')),
 		meander: new Simplex2D(new Random(seed + ':meander')),
 		outcrop: new Simplex2D(new Random(seed + ':outcrop')),
+		forest: new Simplex2D(new Random(seed + ':forest')),
+		stand: new Simplex2D(new Random(seed + ':stand')),
+		clearing: new Simplex2D(new Random(seed + ':clearing')),
 	};
 	const t0 = performance.now();
 	const timings = {};
@@ -648,8 +655,12 @@ export function generateWorld(seed, progress = null, opts = {}) {
 	const cellRiver = new Int32Array(M).fill(-1);
 	for (const r of rivers) for (const c of r.cells) cellRiver[c] = r.id;
 	for (const r of rivers) r.parentId = r.mouthType === 'river' ? cellRiver[r.junction] : -1;
-	shapeRivers(rivers, { h, N, cell, size, lakes, lakeId, hard: fine.hard, area, debug: !!opts.debug, riverLimit: opts.riverLimit, noSoften: !!opts.noSoften }, rnd, noise);
+	const deltas = shapeRivers(rivers, { h, N, cell, size, lakes, lakeId, hard: fine.hard, area, debug: !!opts.debug, riverLimit: opts.riverLimit, noSoften: !!opts.noSoften }, rnd, noise);
 	mark('rivers');
+
+	if (progress) progress('growing the forests', 0);
+	const habitat = computeHabitat({ h, area, lakeId, lakeLevel, hard: fine.hard, rivers, N, cell, size, waterLevel: 0 }, noise);
+	mark('habitat');
 
 	const spawn = chooseSpawn(rivers, h, lakeLevel, N, cell, size, rnd);
 	mark('spawn');
@@ -660,6 +671,7 @@ export function generateWorld(seed, progress = null, opts = {}) {
 		for (let i = 0; i < r.rocks.length; i += 5) { r.rocks[i] -= spawn.x; r.rocks[i + 1] -= spawn.z; }
 		for (const f of r.falls) { f.x -= spawn.x; f.z -= spawn.z; }
 	}
+	for (const d of deltas) { d.x -= spawn.x; d.z -= spawn.z; }
 
 	// rock hardness as bytes for shading and boulder placement
 	const rock = new Uint8Array(M);
@@ -675,10 +687,12 @@ export function generateWorld(seed, progress = null, opts = {}) {
 		lakeLevel,
 		lakeId,
 		rock,
+		habitat,
 		area,
 		lakes: lakes.map((l) => ({ id: l.id, level: l.level, cells: l.cells, area: l.area, maxDepth: l.maxDepth })),
-		rivers: rivers.map((r) => ({ id: r.id, data: r.data, count: r.count, maxWidth: r.maxWidth, mouthType: r.mouthType, parentId: r.parentId, falls: r.falls, rocks: r.rocks, wakes: r.wakes, stats: r.stats, probe: r.probe })),
+		rivers: rivers.map((r) => ({ id: r.id, data: r.data, count: r.count, maxWidth: r.maxWidth, mouthType: r.mouthType, parentId: r.parentId, fromRiver: r.fromRiver ?? -1, falls: r.falls, rocks: r.rocks, wakes: r.wakes, stats: r.stats, probe: r.probe })),
+		deltas,
 		spawn,
-		stats: { maxH, landFraction: land / M, lakes: lakes.length, rivers: rivers.length, cirques, timings, total: Math.round(performance.now() - t0) },
+		stats: { maxH, landFraction: land / M, lakes: lakes.length, rivers: rivers.length, deltas: deltas.length, cirques, timings, total: Math.round(performance.now() - t0) },
 	};
 }

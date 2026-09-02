@@ -76,6 +76,11 @@ export function createTerrainMaterial(shared, heightmap) {
 	rockTex.minFilter = THREE.LinearFilter;
 	rockTex.wrapS = rockTex.wrapT = THREE.ClampToEdgeWrapping;
 	rockTex.needsUpdate = true;
+	const habTex = new THREE.DataTexture(world.habitat, world.res, world.res, THREE.RGBAFormat, THREE.UnsignedByteType);
+	habTex.magFilter = THREE.LinearFilter;
+	habTex.minFilter = THREE.LinearFilter;
+	habTex.wrapS = habTex.wrapT = THREE.ClampToEdgeWrapping;
+	habTex.needsUpdate = true;
 
 	const uniforms = {
 		uTime: { value: 0 },
@@ -97,6 +102,7 @@ export function createTerrainMaterial(shared, heightmap) {
 		uWaterLevel: { value: heightmap.waterLevel },
 		uCameraPos: { value: new THREE.Vector3() },
 		uRockMap: { value: rockTex },
+		uHabitatMap: { value: habTex },
 		uRockOrigin: { value: new THREE.Vector2(-heightmap.ox, -heightmap.oz) },
 		uRockSize: { value: world.size },
 	};
@@ -115,7 +121,7 @@ export function createTerrainMaterial(shared, heightmap) {
 			uniform float uTime, uMoonIntensity, uHue, uBass, uLevel, uSnow, uHum, uWaterLevel, uNight, uRain, uRockSize;
 			uniform vec3 uMoonDir, uMoonColor, uSkyColor, uGroundColor, uCameraPos, uSunDir, uSunColor;
 			uniform float uSunIntensity;
-			uniform sampler2D uRockMap;
+			uniform sampler2D uRockMap, uHabitatMap;
 			uniform vec2 uRockOrigin;
 			varying vec3 vWorldPos;
 			${hslGlsl}
@@ -139,7 +145,9 @@ export function createTerrainMaterial(shared, heightmap) {
 				float waterY = max(waterLevelAt(vWorldPos.xz), uWaterLevel);
 				float h = vWorldPos.y - waterY;          // above the local water (sea, lake or river)
 				float dist = distance(vWorldPos, uCameraPos);
-				float hard = texture2D(uRockMap, (vWorldPos.xz - uRockOrigin) / uRockSize + 0.5).r;
+				vec2 mapUv = (vWorldPos.xz - uRockOrigin) / uRockSize + 0.5;
+				float hard = texture2D(uRockMap, mapUv).r;
+				vec4 hab = texture2D(uHabitatMap, mapUv);   // forest, wet, coast, alt
 
 				// height-banded base colour
 				vec3 deep = vec3(0.03, 0.02, 0.09);
@@ -161,6 +169,17 @@ export function createTerrainMaterial(shared, heightmap) {
 				// scree fans below the cliffs
 				float scree = smoothstep(0.7, 0.82, n.y) * (1.0 - smoothstep(0.86, 0.95, n.y)) * smoothstep(80.0, 400.0, hSea);
 				albedo = mix(albedo, rockDark * 1.4, scree * 0.5);
+
+				// the forests, seen from afar: the ground darkens under the stands, broken by a canopy-scale
+				// speckle, so the far slopes carry the same pattern the near chunks fill with trees.
+				// Wet meadows lean a little toward blue-green, dry ground stays the bare purple.
+				float gentle = 1.0 - steep;
+				float forestT = hab.r * gentle;
+				float fdist = smoothstep(120.0, 900.0, dist);
+				float speck = vnoise(vWorldPos.xz * 0.055) * 0.6 + vnoise(vWorldPos.xz * 0.19) * 0.4;
+				vec3 forestCol = albedo * vec3(0.3, 0.27, 0.45);
+				albedo = mix(albedo, forestCol, forestT * (0.45 + 0.5 * fdist) * (0.5 + 0.5 * speck));
+				albedo = mix(albedo, albedo * vec3(0.8, 0.98, 1.02), hab.g * (1.0 - forestT) * gentle * 0.45 * smoothstep(1.0, 8.0, h));
 
 				// snow: seasonal on gentle ground, permanent above the snow line
 				float snowLine = 780.0 + (vnoise(vWorldPos.xz * 0.003) - 0.5) * 220.0;

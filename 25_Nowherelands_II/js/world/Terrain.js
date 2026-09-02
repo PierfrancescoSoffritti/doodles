@@ -102,8 +102,9 @@ export class Terrain {
 		this.vegetation.centerZ = Math.round(playerPos.z / config.world.chunkSize);
 		const t1 = performance.now();
 		while (this.vegQueue.length && performance.now() - t1 < maxMs * 0.6) {
-			const [x, z] = this.vegQueue.shift();
-			this.vegetation.addChunk(this.vegetation.key(x, z), x, z);
+			const e = this.vegQueue.shift();
+			if (e.far) this.vegetation.addFarChunk(this.vegetation.farKey(e.x, e.z), e.x, e.z);
+			else this.vegetation.addChunk(this.vegetation.key(e.x, e.z), e.x, e.z);
 		}
 	}
 
@@ -194,13 +195,23 @@ export class Terrain {
 			this.vegKey = key;
 			this.vegQueue.length = 0;
 			for (let dz = -r; dz <= r; dz++) for (let dx = -r; dx <= r; dx++) {
-				if (!this.vegetation.chunks.has(this.vegetation.key(cx + dx, cz + dz))) this.vegQueue.push([cx + dx, cz + dz, dx * dx + dz * dz]);
+				if (!this.vegetation.chunks.has(this.vegetation.key(cx + dx, cz + dz))) this.vegQueue.push({ x: cx + dx, z: cz + dz, d2: dx * dx + dz * dz });
 			}
-			this.vegQueue.sort((a, b) => a[2] - b[2]);
+			// the far layer of giants: blocks of two by two chunks, out to the giant radius
+			const fr = config.world.giantRadius, fcx = Math.floor(cx / 2), fcz = Math.floor(cz / 2);
+			for (let dz = -fr; dz <= fr; dz++) for (let dx = -fr; dx <= fr; dx++) {
+				const fx = fcx + dx, fz = fcz + dz;
+				if (!this.vegetation.farChunks.has(this.vegetation.farKey(fx, fz))) this.vegQueue.push({ far: true, x: fx, z: fz, d2: (fx * 2 + 0.5 - cx) ** 2 + (fz * 2 + 0.5 - cz) ** 2 });
+			}
+			this.vegQueue.sort((a, b) => a.d2 - b.d2);
 		}
-		if (this.vegQueue.length) {
-			const [x, z] = this.vegQueue.shift();
-			this.vegetation.addChunk(this.vegetation.key(x, z), x, z);
+		this.vegetation.centerX = cx;
+		this.vegetation.centerZ = cz;
+		// one near chunk a frame, or a few of the cheap far blocks
+		for (let budget = 3; budget > 0 && this.vegQueue.length;) {
+			const e = this.vegQueue.shift();
+			if (e.far) { this.vegetation.addFarChunk(this.vegetation.farKey(e.x, e.z), e.x, e.z); budget--; }
+			else { this.vegetation.addChunk(this.vegetation.key(e.x, e.z), e.x, e.z); budget = 0; }
 		}
 		this.vegetation.update(dt, cx, cz);
 	}

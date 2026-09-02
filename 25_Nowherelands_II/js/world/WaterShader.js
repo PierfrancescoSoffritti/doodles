@@ -261,8 +261,10 @@ export function waterFragmentShader(shared) {
 		}
 
 		// a river running out into the sea takes on the sea's own look over its last metres of fall,
-		// so the two meet in one colour where the ribbon dissolves
-		float seaMix = river ? 1.0 - smoothstep(1.5, 3.5, vLevel - uWaterLevel) : 0.0;
+		// so the two meet in one colour where the ribbon dissolves; only over its last reach (the
+		// end fade), so a delta's channels, low as they lie, stay rivers until their mouths
+		float atSea = smoothstep(0.0, 0.5, vFade);
+		float seaMix = river ? (1.0 - smoothstep(1.5, 3.5, vLevel - uWaterLevel)) * atSea : 0.0;
 		if (seaMix > 0.001) {
 			vec3 sn = gn.y < 0.0 ? -gn : gn;
 			float fr;
@@ -333,7 +335,7 @@ export function waterFragmentShader(shared) {
 		#endif
 		// a river dissolves into the sea, which lies just under it riding the same swell, over the last
 		// metre of its fall to sea level
-		if (river) alpha *= smoothstep(0.35, 1.5, vLevel - uWaterLevel);
+		if (river) alpha *= mix(smoothstep(0.35, 0.6, vLevel - uWaterLevel), smoothstep(0.35, 1.5, vLevel - uWaterLevel), atSea);
 		gl_FragColor = vec4(col, alpha);
 	}`;
 }

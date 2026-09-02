@@ -16,6 +16,8 @@
 //   - rocks in and beside the channel are world data, shared by the terrain, the water shader
 //     (wakes) and the vegetation (boulders)
 
+import { planDeltas } from './Deltas.js';
+
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 const smoothstep = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -91,7 +93,7 @@ const tangentAt = (P, i) => {
 	return [dx / l, dz / l];
 };
 
-const baseWidth = (aM2) => clamp(4 + Math.sqrt(aM2) * 0.0075, 6, 110);
+export const baseWidth = (aM2) => clamp(4 + Math.sqrt(aM2) * 0.0075, 6, 110);
 const maxGrade = (aKm2) => clamp(0.09 * Math.pow(Math.max(aKm2, 0.05), -0.5), 0.004, 0.15);
 
 // ---------- entry ----------
@@ -113,9 +115,13 @@ export function shapeRivers(rivers, world, rnd, noise) {
 		}
 	}
 	const ctx = Object.assign({ rnd, noise, carved: new Uint8Array(M), nearLake, rimFloor }, world);
-	// parents come before their tributaries in id order, so a tributary always finds its parent shaped
+	// the big rivers build their deltas first (lobes on the grid, distributaries as new river records)
+	const deltas = planDeltas(rivers, ctx);
+	// parents come before their tributaries in id order, so a tributary always finds its parent
+	// shaped; a delta's branches come after every traced river, so they find their trunk shaped
 	for (const r of rivers) { if (ctx.riverLimit !== undefined && r.id >= ctx.riverLimit) { r.data = new Float32Array(0); r.count = 0; r.rocks = new Float32Array(0); r.wakes = new Float32Array(0); r.falls = []; r.maxWidth = 0; r.stats = {}; continue; } shapeRiver(r, rivers, ctx); }
 	if (!ctx.noSoften) softenCreases(ctx);
+	return deltas;
 }
 
 // ---------- one river ----------
@@ -131,11 +137,31 @@ function shapeRiver(river, rivers, ctx) {
 	const parent = river.mouthType === 'river' ? rivers[river.parentId] : null;
 
 	// ---- 1. centreline ----
+	// from the traced grid cells, or from a planned polyline (a delta branch), or both (a delta
+	// trunk continues past its last cell along its main channel); isDelta marks the delta plain
 	const cells = river.cells.slice();
 	if (river.junction >= 0) cells.push(river.junction);
 	let pts = cells.map(toWorld);
+	let Araw = cells.map((k) => area[k] * cell * cell);
+	const chainT = [];
+	for (let i = 0; i < cells.length; i++) chainT.push(i ? Math.min(chainT[i - 1], h[cells[i]]) : h[cells[i]]);
+	const deltaFlag = cells.map(() => 0), underFlag = cells.map(() => 0);
+	if (river.pts) {
+		for (let i = 0; i < river.pts.length; i++) { const p = river.pts[i]; pts.push([p[0], p[1]]); Araw.push(river.areas[i]); chainT.push(Math.min(chainT.length ? chainT[chainT.length - 1] : Infinity, groundAt(p[0], p[1]))); deltaFlag.push(1); underFlag.push(river.under ? river.under[i] : 0); }
+	}
+	if (river.delta && river.delta.ext) {
+		for (let i = 0; i < river.delta.ext.length; i++) { const p = river.delta.ext[i]; pts.push([p[0], p[1]]); Araw.push(river.delta.extA[i]); chainT.push(Math.min(chainT[chainT.length - 1], groundAt(p[0], p[1]))); deltaFlag.push(1); underFlag.push(0); }
+	}
+	const p0 = pts[0].slice();
 	pts = smoothPts(pts, 2);
-	pts[0] = toWorld(cells[0]);
+	pts[0] = p0;
+	if (river.fromRiver >= 0) {
+		// a distributary leaves its parent from the parent's own centreline
+		const par = rivers[river.fromRiver];
+		const near = par.nearest(pts[0][0], pts[0][1]);
+		pts[0] = [near.x, near.z];
+		for (let q = 1; q < 6 && q < pts.length - 1; q++) { const p = pts[q], f = (6 - q) / 6 * 0.5; pts[q] = [lerp(p[0], near.x, f * (1 - q / 6)), lerp(p[1], near.z, f * (1 - q / 6))]; }
+	}
 	if (parent) {
 		// meet the parent on its own centreline, not at the grid cell it happened to flow through
 		const near = parent.nearest(pts[pts.length - 1][0], pts[pts.length - 1][1]);
@@ -145,18 +171,18 @@ function shapeRiver(river, rivers, ctx) {
 			pts[pts.length - 1 - q] = [lerp(p[0], near.x, f * (1 - q / 6)), lerp(p[1], near.z, f * (1 - q / 6))];
 		}
 	}
-	const chainT = [];
-	for (let i = 0; i < cells.length; i++) chainT.push(i ? Math.min(chainT[i - 1], h[cells[i]]) : h[cells[i]]);
-	const rs = resample(pts, [cells.map((k) => area[k] * cell * cell), chainT], SP);
+	const rs = resample(pts, [Araw, chainT, deltaFlag, underFlag], SP);
 	let P = rs.P;
 	const A = rs.scalars[0], Tc = rs.scalars[1];
 	const n = P.length;
+	const onDelta = rs.scalars[2].map((v) => v > 0.5 ? 1 : 0);
+	const underParent = rs.scalars[3];
 	const W0 = A.map(baseWidth);
 
 	// ---- relief: how mountainous the land around each sample is ----
 	const gradeWide = Tc.map((v, i) => { const a = Tc[clamp(i - 25, 0, n - 1)], b = Tc[clamp(i + 25, 0, n - 1)]; return Math.max(0, (a - b) / ((Math.min(i, 25) + Math.min(n - 1 - i, 25)) * SP || 1)); });
 	let relief = Tc.map((t, i) => Math.max(smoothstep(0.045, 0.2, gradeWide[i]), 0.7 * smoothstep(150, 520, t)));
-	relief = smoothArr(relief, 10);
+	relief = smoothArr(relief, 10).map((r, i) => r * (1 - onDelta[i]));
 
 	// ---- 2. bends: pushed off hard rock and outcrops ----
 	const push = new Float64Array(n);
@@ -169,7 +195,8 @@ function shapeRiver(river, rivers, ctx) {
 		const hl = hardAt(P[i][0] - nx * pd, P[i][1] - nz * pd), hr = hardAt(P[i][0] + nx * pd, P[i][1] + nz * pd);
 		const ol = outcropAt(P[i][0] - nx * pd * 1.3, P[i][1] - nz * pd * 1.3), orr = outcropAt(P[i][0] + nx * pd * 1.3, P[i][1] + nz * pd * 1.3);
 		// positive: pushed to the right (+n)
-		push[i] = (clamp((hl - hr) * 12, -0.5, 0.5) + (ol - orr)) * (1 - relief[i] * 0.85);
+		// a planned delta channel keeps its planned course: its sinuosity is already in the plan
+		push[i] = onDelta[i] ? 0 : (clamp((hl - hr) * 12, -0.5, 0.5) + (ol - orr)) * (1 - relief[i] * 0.85);
 	}
 	let pushS = smoothArr(smoothArr(Array.from(push), 10), 10);
 	const bendSide = new Int8Array(n), bendStrength = new Float32Array(n);
@@ -203,7 +230,7 @@ function shapeRiver(river, rivers, ctx) {
 	for (let i = 0; i < n; i++) Tmono[i] = i ? Math.min(Tmono[i - 1], Tc[i]) : Tc[i];
 	const tgSmooth = new Float64Array(n);
 	for (let i = 0; i < n; i++) { const a = Tmono[clamp(i - 3, 0, n - 1)], b = Tmono[clamp(i + 3, 0, n - 1)]; tgSmooth[i] = Math.max(0, (a - b) / ((Math.min(i, 3) + Math.min(n - 1 - i, 3)) * SP || 1)); }
-	const bankBase = relief.map((r, i) => lerp(0.45, 2.4, r) + 0.012 * W0[i]);
+	const bankBase = relief.map((r, i) => onDelta[i] ? 0.5 + 0.004 * W0[i] : lerp(0.45, 2.4, r) + 0.012 * W0[i]);
 	// a tributary's banks lower to its parent's over its last reach, so no ledge stands at the mouth
 	if (parent) {
 		const pb = parent.nearest(P[n - 1][0], P[n - 1][1]).bank;
@@ -241,6 +268,19 @@ function shapeRiver(river, rivers, ctx) {
 		for (let i = 1; i < n; i++) if (wl[i] > level) wl[i] = level;
 		// the lip the lake spills over is a cliff of its own when it is tall enough
 		if (wl[0] - wl[1] >= FALL_MIN) cliff[0] = 1;
+	}
+	if (river.fromRiver >= 0) {
+		// a distributary starts at its parent's level; while it is still inside the parent's surface
+		// it runs a hair under it, so the fork is the parent's own edge and nothing rides on top
+		const par = rivers[river.fromRiver];
+		let k = 0;
+		for (; k < n - 1; k++) {
+			const q = par.nearest(P[k][0], P[k][1]);
+			// inside while the plan says so (the shared bar zone of a split) or while the centreline is still under the parent's surface
+			if (underParent[k] < 0.5 && Math.hypot(q.x - P[k][0], q.z - P[k][1]) >= surfaceHalfWidth(q.w, q.d, q.bank) + 1.5) break;
+			wl[k] = q.wl - 0.12;
+		}
+		if (k === 0) wl[0] = par.nearest(P[0][0], P[0][1]).wl - 0.12;
 	}
 	for (let i = 1; i < n; i++) if (wl[i] > wl[i - 1]) wl[i] = wl[i - 1];
 	// the surface stays clear of the water it flows into until the very end, where it slips under
@@ -336,11 +376,17 @@ function shapeRiver(river, rivers, ctx) {
 	for (let i = 0; i < n; i++) {
 		const type = reachType[i];
 		let w = W0[i] * (type === 2 ? 0.62 : type === 1 ? 0.9 : 1.0) * (1 - 0.25 * relief[i]);
-		w *= 1 + 0.32 * nM.noise(rs.spacing * i / (W0[i] * 22) + seed, seed * 0.7);
-		if (type <= 1) w *= 0.86 + 0.3 * Math.sin(poolU[i] * Math.PI);
-		if (river.mouthType === 'sea') w *= 1 + 0.45 * smoothstep(40, 0, n - 1 - i);
+		if (onDelta[i]) {
+			// a planned delta channel keeps its planned width (the two channels of a split must agree
+			// at the node), with only the widening of its mouth
+			if (river.mouthType === 'sea') w *= 1 + 0.2 * smoothstep(15, 0, n - 1 - i);
+		} else {
+			w *= 1 + 0.32 * nM.noise(rs.spacing * i / (W0[i] * 22) + seed, seed * 0.7);
+			if (type <= 1) w *= 0.86 + 0.3 * Math.sin(poolU[i] * Math.PI);
+			if (river.mouthType === 'sea') w *= 1 + 0.45 * smoothstep(40, 0, n - 1 - i);
+		}
 		W[i] = w;
-		D[i] = (0.7 + 0.08 * w) * (type === 2 ? 0.6 : type === 1 ? 1.0 : 1.2) * (1 + 0.35 * Math.sin(poolU[i] * Math.PI));
+		D[i] = (0.7 + 0.08 * w) * (type === 2 ? 0.6 : type === 1 ? 1.0 : 1.2) * (1 + 0.35 * Math.sin(poolU[i] * Math.PI)) * (onDelta[i] ? 0.6 : 1);
 	}
 	const Ws = smoothArr(Array.from(W), 4), Ds = smoothArr(Array.from(D), 4);
 
@@ -497,7 +543,7 @@ function shapeRiver(river, rivers, ctx) {
 	}
 	// the outcrops that turned the river: on the outer bank of each bend
 	for (let i = 8; i < n - 8; i++) {
-		if (bendStrength[i] < 0.35) continue;
+		if (bendStrength[i] < 0.35 || onDelta[i]) continue;
 		let peak = true;
 		for (let o = -12; o <= 12 && peak; o++) if (bendStrength[clamp(i + o, 0, n - 1)] > bendStrength[i]) peak = false;
 		if (!peak) continue;

@@ -71,6 +71,7 @@ worker.onmessage = (e) => {
 function start(world) {
 	const heightmap = new Heightmap(config.seed, world);
 	shared.heightmap = heightmap;
+	shared.renderer = renderer;
 	shared.world = world;
 	const ripples = new Ripples();
 	shared.ripples = ripples;
@@ -98,6 +99,7 @@ function start(world) {
 	// ---- events ----
 	bus.on(Events.RIPPLE, ({ x, z, size, hue, saturation }) => ripples.add(x, z, size, hue % 1, saturation));
 	bus.on(Events.NOTE, (n) => {
+		if (n.position) terrain.vegetation.noteAt(n.position.x, n.position.z, 0.5 + (n.velocity || 0.3));
 		if (n.position && n.layer !== 'sequencer') ripples.add(n.position.x, n.position.z, 0.6 + n.velocity * 2, (shared.hue + 0.15) % 1);
 		else if (n.layer === 'sequencer') ripples.add(n.position.x, n.position.z, 0.5, (shared.hue + 0.05) % 1);
 	});

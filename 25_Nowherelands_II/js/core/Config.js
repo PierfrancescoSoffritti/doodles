@@ -17,6 +17,7 @@ export const config = {
 	world: {
 		chunkSize: 256,         // vegetation chunk
 		vegetationRadius: 4,    // chunks
+		giantRadius: 6,         // far chunks of two vegetation chunks a side: the giants stand out to 3 km
 		waterLevel: 0,          // sea level
 		eyeHeight: 11,
 		far: 30000,
