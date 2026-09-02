@@ -41,6 +41,7 @@ export class InlandWater {
 			vertexShader: waterVertexShader,
 			fragmentShader: waterFragmentShader(shared),
 			defines: { FLOW: '', WAVES: '' },
+			transparent: true,
 		});
 
 		// the cross-sections of every river, computed once
@@ -180,6 +181,7 @@ export class InlandWater {
 		if (this.near) { this.scene.remove(this.near); this.near.geometry.dispose(); }
 		this.near = new THREE.Mesh(b.geometry(), this.nearMaterial);
 		this.near.frustumCulled = false;
+		this.near.renderOrder = 1;
 		this.scene.add(this.near);
 		this.nearCentre.set(px, pz);
 	}

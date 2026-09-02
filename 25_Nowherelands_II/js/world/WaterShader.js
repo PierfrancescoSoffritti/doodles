@@ -27,9 +27,35 @@ export function createWaterUniforms(shared, waterLevel) {
 	return uniforms;
 }
 
+// Lift of the waved near surface at a point of a river, in metres. Shared by the water vertex
+// shader and the drifting foam so the clumps ride exactly on the surface.
+// info0: foam, depth, across (1 at the channel edge), width. info1: along, speed, step, base.
+export const riverWaveGlsl = /* glsl */`
+	float riverWave(vec4 info0, vec4 info1, float fade, float t) {
+		float sp = info1.y;
+		float fast = clamp((sp - 0.3) / 2.7, 0.0, 1.0);
+		float u = info0.z, w = info0.w;
+		float across = u * w * 0.5;
+		float edge = 1.0 - smoothstep(0.55, 1.0, abs(u));
+		float amp = mix(0.3, 0.5, fast) * edge * (1.0 - 0.75 * fade) * clamp(w * 0.1, 0.35, 1.0);
+		// longer waves on a wide river, short steep ones in a fast narrow one
+		float lambda = mix(6.5, 3.6, fast) * clamp(w * 0.06, 1.0, 2.2);
+		float k = 6.2832 / lambda;
+		float along = info1.x;
+		// travelling swell, moving with the flow
+		float ph = along * k - t * k * (0.6 + sp * 1.3) + across * 0.35;
+		float y = sin(ph) * 0.6 + sin(ph * 1.63 + across * 1.1 + t * 0.7) * 0.4;
+		// a slower cross swell so the facets are diamonds, not corrugations
+		y += 0.5 * sin(across * k * 0.9 + along * k * 0.3 - t * 1.1);
+		// standing waves in the rapids, rocking in place
+		y += fast * 0.9 * sin(along * k * 1.37 + across * 0.8) * (0.6 + 0.4 * sin(t * 2.6 + along * 0.4));
+		return amp * y;
+	}`;
+
 export const waterVertexShader = /* glsl */`
 	uniform mat4 textureMatrix;
 	uniform float uTime;
+	${riverWaveGlsl}
 	varying vec4 vUv4;
 	varying vec3 vWorldPos;
 	#ifdef FLOW
@@ -43,29 +69,9 @@ export const waterVertexShader = /* glsl */`
 	void main() {
 		vec4 worldPosition = modelMatrix * vec4(position, 1.0);
 		#ifdef WAVES
-		// the near surface heaves: a slow swell on calm water, short steep standing waves in the
-		// rapids, nothing on the riffle ramps or at the banks, quieter where the water goes still
-		if (aInfo0.y > 0.0 && aInfo1.z <= 0.0) {
-			float sp = aInfo1.y;
-			float fast = clamp((sp - 0.3) / 2.7, 0.0, 1.0);
-			float u = aInfo0.z;
-			float across = u * aInfo0.w * 0.5;
-			float edge = 1.0 - smoothstep(0.55, 1.0, abs(u));
-			float w = aInfo0.w;
-			float amp = mix(0.2, 0.36, fast) * edge * (1.0 - 0.75 * aFade) * clamp(w * 0.1, 0.35, 1.0);
-			// longer waves on a wide river, short steep ones in a fast narrow one
-			float lambda = mix(6.0, 3.4, fast) * clamp(w * 0.06, 1.0, 2.2);
-			float k = 6.2832 / lambda;
-			float along = aInfo1.x;
-			// travelling swell, a little slower than the flow
-			float ph = along * k - uTime * k * (0.4 + sp * 0.9) + across * 0.35;
-			float y = sin(ph) * 0.6 + sin(ph * 1.63 + across * 1.1 + uTime * 0.7) * 0.4;
-			// a slower cross swell so the facets are diamonds, not corrugations
-			y += 0.5 * sin(across * k * 0.9 + along * k * 0.3 - uTime * 1.1);
-			// standing waves in the rapids, rocking in place
-			y += fast * 0.9 * sin(along * k * 1.37 + across * 0.8) * (0.6 + 0.4 * sin(uTime * 2.6 + along * 0.4));
-			worldPosition.y += amp * y;
-		}
+		// the near surface heaves: a swell on calm water, short steep standing waves in the rapids,
+		// nothing on the riffle ramps or at the banks, quieter where the water goes still
+		if (aInfo0.y > 0.0 && aInfo1.z <= 0.0) worldPosition.y += riverWave(aInfo0, aInfo1, aFade, uTime);
 		#endif
 		vWorldPos = worldPosition.xyz;
 		vUv4 = textureMatrix * vec4(position, 1.0);
@@ -209,14 +215,15 @@ export function waterFragmentShader(shared) {
 		} else {
 			// rivers: a thin broken line where the water actually meets the bank
 			float shoreDepth = vWorldPos.y - terrainHeightAt(p);
-			float edgeR = (1.0 - smoothstep(0.0, 0.2, shoreDepth)) * step(-0.3, shoreDepth) * step(0.4, vnoise(vec2(fuv.x * 0.5, 7.0)));
-			col = mix(col, vec3(0.3, 0.33, 0.46), edgeR * 0.4);
+			float edgeR = (1.0 - smoothstep(0.0, 0.25, shoreDepth)) * step(-0.3, shoreDepth) * step(0.35, vnoise(vec2(fuv.x * 0.5, 7.0)));
+			col = mix(col, vec3(0.42, 0.45, 0.58), edgeR * 0.6);
 		}
 		#else
 		col = mix(col, vec3(0.56, 0.6, 0.72), foam);
 		#endif
 
 		#ifdef FLOW
+		float whiteOut = 0.0;      // how much foam covers this point, for the near surface's opacity
 		if (river) {
 			// running water in three flat tones: the deep channel, a pale band in the shallows, foam
 			float along = fuv.x;
@@ -252,6 +259,7 @@ export function waterFragmentShader(shared) {
 				white = max(white, fleck * inChannel);
 			}
 			col = mix(col, foamCol, white * 0.8 * (1.0 - 0.35 * fresnel) * live);
+			whiteOut = white * live;
 			// the riffle ramps: steep quads where the surface drops a step, all white water
 			vec3 gn = normalize(cross(dFdx(vWorldPos), dFdy(vWorldPos)));
 			#ifdef WAVES
@@ -261,13 +269,13 @@ export function waterFragmentShader(shared) {
 			{
 				vec3 Vv = normalize(uCameraPos - vWorldPos);
 				float tilt = dot(gn, Vv) - clamp(Vv.y, 0.0, 1.0);
-				float band = clamp(floor(tilt * 12.0 + 0.5), -2.0, 2.0);
-				vec3 skyGlimpse = mix(vec3(0.26, 0.29, 0.46), uSkyTone * 1.8, 0.35);
-				col = mix(col, skyGlimpse, clamp(-band, 0.0, 2.0) * 0.28);
-				col *= 1.0 + clamp(band, 0.0, 2.0) * 0.12;
-				float g = pow(max(dot(reflect(-Vv, gn), uMoonDir), 0.0), 18.0);
-				float glint = step(0.3, g) * uMoonIntensity * (1.0 - 0.5 * vFade);
-				col = mix(col, uMoonColor * 0.85, glint * 0.5);
+				float band = clamp(floor(tilt * 14.0 + 0.5), -2.0, 2.0);
+				vec3 skyGlimpse = mix(vec3(0.3, 0.34, 0.52), uSkyTone * 1.8, 0.3);
+				col = mix(col, skyGlimpse, clamp(-band, 0.0, 2.0) * 0.36);
+				col *= 1.0 + clamp(band, 0.0, 2.0) * 0.16;
+				float g = pow(max(dot(reflect(-Vv, gn), uMoonDir), 0.0), 12.0);
+				float glint = step(0.28, g) * uMoonIntensity * (1.0 - 0.5 * vFade);
+				col = mix(col, uMoonColor * 0.85, glint * 0.55);
 				// white breaks only on the genuinely steep faces of fast water
 				float crest = (1.0 - smoothstep(0.6, 0.72, gn.y)) * fast * live * (1.0 - step(0.02, vFall));
 				col = mix(col, foamCol, crest * 0.6);
@@ -315,7 +323,13 @@ export function waterFragmentShader(shared) {
 			col = mix(col, uFogColor, hf);
 			col = mix(col, mix(uFogColor, uFogFar, 0.4), df);
 		}
-		gl_FragColor = vec4(col, 1.0);
+		float alpha = 1.0;
+		#ifdef WAVES
+		// close up the shallows are see-through: the cobbled bed shows under the surface
+		alpha = mix(0.55, 1.0, smoothstep(0.25, 1.6, channelDepth)) + 0.45 * whiteOut;
+		alpha = min(alpha + vFade * 0.5, 1.0);
+		#endif
+		gl_FragColor = vec4(col, alpha);
 	}`;
 }
 
