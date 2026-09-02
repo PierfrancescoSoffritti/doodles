@@ -21,12 +21,13 @@ export class InlandWater {
 		});
 		this.uniforms = uniforms;
 
-		const pos = [], info0 = [], info1 = [], wake0 = [], wake1 = [], wake2 = [], idx = [];
+		const pos = [], info0 = [], info1 = [], fade = [], wake0 = [], wake1 = [], wake2 = [], idx = [];
 		const NO_WAKE = [0, 0, 0];
 		// info0: foam, depth (-1 for still water), across (signed, 1 at the channel edge), width
 		// info1: along, speed, step height, step base level
-		const vert = (x, y, z, i0, i1, wk) => {
+		const vert = (x, y, z, i0, i1, wk, fd = 0) => {
 			pos.push(x, y, z);
+			fade.push(fd);
 			info0.push(i0[0], i0[1], i0[2], i0[3]);
 			info1.push(i1[0], i1[1], i1[2], i1[3]);
 			wake0.push(wk[0][0], wk[0][1], wk[0][2]); wake1.push(wk[1][0], wk[1][1], wk[1][2]); wake2.push(wk[2][0], wk[2][1], wk[2][2]);
@@ -82,7 +83,7 @@ export class InlandWater {
 			// a cross-section of the surface at sample i
 			const section = (i) => {
 				const o = i * S;
-				const x = d[o + RV.X], z = d[o + RV.Z], wl = d[o + RV.WL] - 0.08, w = d[o + RV.W], dep = d[o + RV.D], foam = d[o + RV.FOAM], bank = d[o + RV.BANK], speed = d[o + RV.SPEED], along = d[o + RV.ALONG], kind = d[o + RV.KIND];
+				const x = d[o + RV.X], z = d[o + RV.Z], wl = d[o + RV.WL] - 0.08, w = d[o + RV.W], dep = d[o + RV.D], foam = d[o + RV.FOAM], bank = d[o + RV.BANK], speed = d[o + RV.SPEED], along = d[o + RV.ALONG], kind = d[o + RV.KIND], fd = d[o + RV.FADE];
 				// tangent: forward at a pool start, backward at a lip, centred elsewhere
 				const ia = kind === RIVER_KIND.POOL ? i : Math.max(0, i - 1), ib = kind === RIVER_KIND.LIP ? i : Math.min(count - 1, i + 1);
 				let tx = d[ib * S + RV.X] - d[ia * S + RV.X], tz = d[ib * S + RV.Z] - d[ia * S + RV.Z];
@@ -96,7 +97,7 @@ export class InlandWater {
 				else if (kind === RIVER_KIND.STEP_BOTTOM && i > 0) { stepH = d[o - S + RV.WL] - d[o + RV.WL]; stepBase = d[o + RV.WL] - 0.08; }
 				// a riffle's lip runs askew across the channel rather than straight, so the steps do not read as stairs
 				if (stepH > 0) { const seedI = kind === RIVER_KIND.STEP_TOP ? i : i - 1; skew = (Math.sin(seedI * 12.9898 + along * 0.017) * 0.5) * Math.min(w * 0.12, 1.4); }
-				return { l: [x + nx * hw + tx * skew, wl, z + nz * hw + tz * skew], r: [x - nx * hw - tx * skew, wl, z - nz * hw - tz * skew], acr: hw / (w * 0.5), foam, dep, w, along, speed, stepH, stepBase, kind };
+				return { l: [x + nx * hw + tx * skew, wl, z + nz * hw + tz * skew], r: [x - nx * hw - tx * skew, wl, z - nz * hw - tz * skew], acr: hw / (w * 0.5), foam, dep, w, along, speed, stepH, stepBase, kind, fd };
 			};
 			// every quad owns its four vertices, so the wake attributes (constant per quad) never
 			// depend on which vertex the GPU treats as provoking
@@ -106,7 +107,7 @@ export class InlandWater {
 				if (prev) {
 					const a = prev, b = cs;
 					const wk = wakesFor(a.along, b.along);
-					const v = (sec, side) => vert(sec[side][0], sec[side][1], sec[side][2], [sec.foam, sec.dep, side === 'l' ? sec.acr : -sec.acr, sec.w], [sec.along, sec.speed, sec.stepH, sec.stepBase], wk);
+					const v = (sec, side) => vert(sec[side][0], sec[side][1], sec[side][2], [sec.foam, sec.dep, side === 'l' ? sec.acr : -sec.acr, sec.w], [sec.along, sec.speed, sec.stepH, sec.stepBase], wk, sec.fd);
 					const aL = v(a, 'l'), aR = v(a, 'r'), bL = v(b, 'l'), bR = v(b, 'r');
 					// two triangles across the diagonal, counter-clockwise seen from above
 					idx.push(aR, aL, bL, aR, bL, bR);
@@ -119,6 +120,7 @@ export class InlandWater {
 		geometry.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
 		geometry.setAttribute('aInfo0', new THREE.Float32BufferAttribute(info0, 4));
 		geometry.setAttribute('aInfo1', new THREE.Float32BufferAttribute(info1, 4));
+		geometry.setAttribute('aFade', new THREE.Float32BufferAttribute(fade, 1));
 		geometry.setAttribute('aWake0', new THREE.Float32BufferAttribute(wake0, 3));
 		geometry.setAttribute('aWake1', new THREE.Float32BufferAttribute(wake1, 3));
 		geometry.setAttribute('aWake2', new THREE.Float32BufferAttribute(wake2, 3));

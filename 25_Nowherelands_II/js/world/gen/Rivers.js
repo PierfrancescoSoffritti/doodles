@@ -20,9 +20,9 @@ const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 const smoothstep = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 const lerp = (a, b, t) => a + (b - a) * t;
 
-export const RIVER_STRIDE = 10;
-// per-sample fields
-export const RV = { X: 0, Z: 1, WL: 2, W: 3, D: 4, FOAM: 5, BANK: 6, SPEED: 7, ALONG: 8, KIND: 9 };
+export const RIVER_STRIDE = 11;
+// per-sample fields; FADE is how far the water has become the still water it joins or leaves (0..1)
+export const RV = { X: 0, Z: 1, WL: 2, W: 3, D: 4, FOAM: 5, BANK: 6, SPEED: 7, ALONG: 8, KIND: 9, FADE: 10 };
 // FLOW: ordinary sample. STEP_TOP/STEP_BOTTOM: the two ends of a short steep riffle ramp.
 // LIP: the ribbon ends here (a waterfall follows). POOL: the first sample after a fall's foot.
 export const RIVER_KIND = { FLOW: 0, STEP_TOP: 1, STEP_BOTTOM: 2, LIP: 3, POOL: 4 };
@@ -259,7 +259,12 @@ function shapeRiver(river, rivers, ctx) {
 		let first = n - 1;
 		while (first > 0 && inside[first - 1]) first--;
 		const under = mouth - 0.12;
-		for (let i = 0; i < n - 1; i++) { const cap = i >= first ? under : under + (first - i) * SP * 0.006; if (wl[i] > cap) wl[i] = cap; }
+		for (let i = 0; i < n - 1; i++) {
+			if (i >= first) { if (wl[i] > under) wl[i] = under; continue; }
+			// only the last few decimetres of drop are eased; upstream the profile is its own
+			const cap = under + (first - i) * SP * 0.006;
+			if (wl[i] > cap && wl[i] - under < 0.4) wl[i] = cap;
+		}
 	}
 
 	// ---- 4. reach types, falls, steps ----
@@ -387,17 +392,37 @@ function shapeRiver(river, rivers, ctx) {
 	// arc length along the emitted samples
 	const m = out.length;
 	for (let q = 0; q < m; q++) out[q].along = q ? out[q - 1].along + Math.hypot(out[q].x - out[q - 1].x, out[q].z - out[q - 1].z) : 0;
-	// flow speed from the slope of the water surface itself: a pool crawls, a ramp or a chute races
+	// flow speed: the local slope of the surface, and the energy grade of the whole reach around it
+	// (drops at falls and steps included), so the pools of a cascade race while a meadow river drifts
 	{
 		const slope = new Float64Array(m);
 		for (let q = 0; q < m; q++) {
 			const a = out[Math.max(0, q - 1)], b = out[Math.min(m - 1, q + 1)];
 			slope[q] = Math.max(0, (a.wl - b.wl) / Math.max(b.along - a.along, 1));
 		}
+		const WIN = 35;
+		let lo = 0, hi = 0;
 		for (let q = 0; q < m; q++) {
+			while (lo < q && out[q].along - out[lo].along > WIN) lo++;
+			while (hi < m - 1 && out[hi + 1].along - out[q].along <= WIN) hi++;
+			const reach = Math.max(0, (out[lo].wl - out[hi].wl) / Math.max(out[hi].along - out[lo].along, 1));
 			let s = 0, c = 0;
 			for (let o = -2; o <= 2; o++) { const k = q + o; if (k >= 0 && k < m) { s += slope[k]; c++; } }
-			out[q].speed = clamp(0.3 + (s / c) * 14, 0.3, 3);
+			out[q].speed = clamp(0.3 + Math.max(s / c, reach * 0.7) * 14, 0.3, 3);
+		}
+	}
+	// running water becomes still water over its last reach into a lake or the sea (and its first
+	// reach out of a lake), so the join is a soft change of tone rather than a seam
+	{
+		const total = out[m - 1].along;
+		const wEnd = out[m - 1].w, wStart = out[0].w;
+		const lenEnd = river.mouthType === 'river' ? clamp(3 * wEnd, 16, 60) : clamp(6 * wEnd, 40, 140);
+		const strEnd = river.mouthType === 'river' ? 0.45 : 1;
+		const lenStart = river.fromLake >= 0 ? clamp(4 * wStart, 24, 80) : 0;
+		for (let q = 0; q < m; q++) {
+			let f = strEnd * smoothstep(lenEnd, 0, total - out[q].along);
+			if (lenStart > 0) f = Math.max(f, smoothstep(lenStart, 0, out[q].along));
+			out[q].fade = f;
 		}
 	}
 	// foam: bright below every drop, fading over a few widths, and a little ahead of it
@@ -446,6 +471,17 @@ function shapeRiver(river, rivers, ctx) {
 			addRock(x, z, s.wl - r * 0.4, r, ROCK_KIND.POOL);
 			wakes.push(s.along + 3, fr * s.w * 0.5, r);
 		}
+		if (s.kind === KIND.LIP) {
+			// stones standing in the lip of the fall break its straight edge
+			const count = 2 + Math.floor(s.w / 6);
+			for (let k = 0; k < count; k++) {
+				const fr = rnd.range(-0.95, 0.95);
+				const [x, z] = at(rnd.range(-4, -0.5), fr);
+				const r = rnd.range(0.7, 1.5) + s.w * 0.02;
+				addRock(x, z, s.wl - r * 0.3, r, ROCK_KIND.LIP);
+				if (r > 1.05) wakes.push(s.along + rnd.range(-4, -0.5), fr * s.w * 0.5, r);
+			}
+		}
 		if (s.kind === KIND.POOL) {
 			// boulders that came down with the fall, at the sides of the plunge pool
 			for (let k = 0; k < 2 + Math.floor(s.w / 12); k++) {
@@ -487,7 +523,7 @@ function shapeRiver(river, rivers, ctx) {
 	for (let q = 0; q < m; q++) {
 		const s = out[q], o = q * RIVER_STRIDE;
 		data[o + RV.X] = s.x; data[o + RV.Z] = s.z; data[o + RV.WL] = s.wl; data[o + RV.W] = s.w; data[o + RV.D] = s.d;
-		data[o + RV.FOAM] = s.foam; data[o + RV.BANK] = s.bank; data[o + RV.SPEED] = s.speed; data[o + RV.ALONG] = s.along; data[o + RV.KIND] = s.kind;
+		data[o + RV.FOAM] = s.foam; data[o + RV.BANK] = s.bank; data[o + RV.SPEED] = s.speed; data[o + RV.ALONG] = s.along; data[o + RV.KIND] = s.kind; data[o + RV.FADE] = s.fade;
 	}
 	river.data = data;
 	river.count = m;

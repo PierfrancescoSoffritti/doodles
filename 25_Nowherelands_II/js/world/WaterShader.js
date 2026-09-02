@@ -33,8 +33,10 @@ export const waterVertexShader = /* glsl */`
 	varying vec3 vWorldPos;
 	#ifdef FLOW
 	attribute vec4 aInfo0, aInfo1;
+	attribute float aFade;
 	attribute vec3 aWake0, aWake1, aWake2;
 	varying vec4 vInfo0, vInfo1;
+	varying float vFade;
 	flat varying vec3 vWake0, vWake1, vWake2;
 	#endif
 	void main() {
@@ -44,6 +46,7 @@ export const waterVertexShader = /* glsl */`
 		#ifdef FLOW
 		vInfo0 = aInfo0;
 		vInfo1 = aInfo1;
+		vFade = aFade;
 		vWake0 = aWake0; vWake1 = aWake1; vWake2 = aWake2;
 		#endif
 		gl_Position = projectionMatrix * viewMatrix * worldPosition;
@@ -59,6 +62,7 @@ export function waterFragmentShader(shared) {
 	varying vec3 vWorldPos;
 	#ifdef FLOW
 	varying vec4 vInfo0, vInfo1;
+	varying float vFade;
 	flat varying vec3 vWake0, vWake1, vWake2;
 	#endif
 	${hslGlsl}
@@ -104,7 +108,8 @@ export function waterFragmentShader(shared) {
 			// running water is rougher: small tumbling ripples travelling with the current
 			float r1 = vnoise(fuv * 0.7) - 0.5, r2 = vnoise(fuv * 0.7 + 13.0) - 0.5;
 			float r3 = vnoise(fuv * 2.1 + 5.0) - 0.5;
-			n = normalize(vec3((r1 * 0.05 + r3 * 0.02), 1.0, r2 * 0.05));
+			float rough = 0.6 + 0.5 * vInfo1.y;          // fast water is rougher
+			n = normalize(vec3((r1 * 0.05 + r3 * 0.02) * rough, 1.0, r2 * 0.05 * rough));
 		} else n = normalize(vec3(w1 * 0.004, 1.0, w2 * 0.004));
 		#else
 		vec3 n = normalize(vec3(w1 * 0.006, 1.0, w2 * 0.006));
@@ -139,7 +144,8 @@ export function waterFragmentShader(shared) {
 		vec3 base = vec3(0.03, 0.03, 0.11);
 		#ifdef FLOW
 		// running water carries a little more body than a still lake, so it reads as water from above
-		vec3 col = river ? mix(vec3(0.07, 0.085, 0.24), refl * 0.6, 0.15 + 0.35 * fresnel) : mix(vec3(0.02, 0.02, 0.08), refl * 0.45, 0.14 + 0.24 * fresnel);
+		vec3 stillCol = mix(vec3(0.02, 0.02, 0.08), refl * 0.45, 0.14 + 0.24 * fresnel);
+		vec3 col = river ? mix(mix(vec3(0.07, 0.085, 0.24), refl * 0.6, 0.15 + 0.35 * fresnel), stillCol, vFade) : stillCol;
 		#else
 		vec3 col = mix(base, refl * 0.6, 0.18 + 0.3 * fresnel);
 		#endif
@@ -187,12 +193,15 @@ export function waterFragmentShader(shared) {
 			float grazing = 1.0 - 0.75 * fresnel;   // seen along the surface the river is a dark mirror of a dark sky
 			vec3 foamCol = vec3(0.55, 0.58, 0.7);
 			float wob = vnoise(vec2(along * 0.09, across * 0.3)) - 0.5;
+			float live = 1.0 - vFade;                 // running-water features die away into still water
 			float shallowBand = 1.0 - step(0.85, channelDepth + wob * 0.7);
-			col = mix(col, vec3(0.11, 0.23, 0.33), shallowBand * 0.55 * grazing);
+			col = mix(col, vec3(0.11, 0.23, 0.33), shallowBand * 0.55 * grazing * live);
 			// flow lines: thin bright streaks drifting with the current
-			float ln = vnoise(vec2(along * 0.05, across * 0.8 + 3.0));
-			float lines = step(0.75, ln) * smoothstep(0.0, 0.02, channelDepth);
-			col += vec3(0.22, 0.25, 0.38) * lines * 0.18 * grazing;
+			// fast water draws more and longer streaks
+			float fast = clamp((vSpeed - 0.3) / 2.7, 0.0, 1.0);
+			float ln = vnoise(vec2(along * (0.06 - 0.03 * fast), across * 0.8 + 3.0));
+			float lines = step(0.77 - 0.1 * fast, ln) * smoothstep(0.0, 0.02, channelDepth);
+			col += vec3(0.22, 0.25, 0.38) * lines * 0.18 * grazing * live;
 			// white water below every drop and in the chutes: hard-edged blobs torn by the current
 			// finer on a narrow stream, streaked along the flow
 			float fs = 1.0 / clamp(vWidth * 0.12, 0.55, 1.0);
@@ -208,19 +217,19 @@ export function waterFragmentShader(shared) {
 				vec2 fc = vec2(along / 4.0, across / 2.2);
 				vec2 ci = floor(fc), cf = fract(fc) - 0.5;
 				vec2 off = vec2(hash21(ci + 7.1), hash21(ci + 3.7)) - 0.5;
-				float keep = step(0.92 - 0.3 * vFoam, hash21(ci * 1.7));
+				float keep = step(0.93 - 0.3 * vFoam - 0.08 * fast, hash21(ci * 1.7));
 				float fleck = step(length((cf - off * 0.6) * vec2(1.0, 1.8)), 0.14) * keep;
 				white = max(white, fleck * inChannel);
 			}
-			col = mix(col, foamCol, white * 0.8 * (1.0 - 0.35 * fresnel));
+			col = mix(col, foamCol, white * 0.8 * (1.0 - 0.35 * fresnel) * live);
 			// the riffle ramps: steep quads where the surface drops a step, all white water
 			vec3 gn = normalize(cross(dFdx(vWorldPos), dFdy(vWorldPos)));
 			float steepness = 1.0 - smoothstep(0.7, 0.92, abs(gn.y));
 			if (vFall > 0.02 && steepness > 0.01) {
 				float frac = clamp((vWorldPos.y - vBase) / max(vFall, 0.3), 0.0, 1.0);
 				float strands = vnoise(vec2(across * 1.4 + 9.0, vWorldPos.y * 0.8 + uTime * 6.0)) * 0.55 + vnoise(vec2(across * 3.0, vWorldPos.y * 1.5 + uTime * 9.0)) * 0.45;
-				float sheet = step(0.42, strands + frac * 0.1);
-				vec3 fallCol = mix(vec3(0.2, 0.23, 0.36), foamCol, sheet);
+				float sheet = step(0.36, strands + frac * 0.1);
+				vec3 fallCol = mix(vec3(0.28, 0.32, 0.46), foamCol, sheet);
 				col = mix(col, fallCol, steepness);
 			}
 		}
