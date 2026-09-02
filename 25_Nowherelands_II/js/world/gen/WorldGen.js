@@ -516,7 +516,12 @@ function traceRivers(h, hf, recv, area, lakeId, N, cell, threshold, work) {
 		const id = rivers.length;
 		for (const p of path) mark[p] = id;
 		path.reverse();
-		rivers.push({ id, cells: path, junction, mouthType });
+		let fromLake = -1;
+		{
+			const s = path[0], si = s % M % N, sj = (s / N) | 0;
+			for (let d = 0; d < 8 && fromLake < 0; d++) { const ni = si + DX[d], nj = sj + DZ[d]; if (ni >= 0 && nj >= 0 && ni < N && nj < N && lakeId[nj * N + ni] >= 0) fromLake = lakeId[nj * N + ni]; }
+		}
+		rivers.push({ id, cells: path, junction, mouthType, fromLake });
 	};
 
 	const cells = [];
@@ -550,11 +555,12 @@ function traceRivers(h, hf, recv, area, lakeId, N, cell, threshold, work) {
 function gradeRivers(rivers, h, area, N, cell, size, lakes, lakeId, rnd, opts = {}) {
 	const channelWidth = (aKm2) => clamp(3.5 + Math.sqrt(aKm2 * 1e6) * 0.0075, 5, 110);
 	const maxGrade = (aKm2) => clamp(0.09 * Math.pow(Math.max(aKm2, 0.05), -0.5), 0.004, 0.15);
-	const GORGE = opts.gorge || 55, FALL_MAX = 42, WALL = 0.7;
+	const GORGE = opts.gorge || 80, FALL_MAX = 42, WALL = 0.7;
 	// never cut a lake's rim
 	const M = N * N;
-	const nearLake = new Uint8Array(M), carved = new Uint8Array(M);
-	for (let k = 0; k < M; k++) if (lakeId[k] >= 0) { const i = k % N, j = (k / N) | 0; for (let d = 0; d < 8; d++) { const ni = i + DX[d], nj = j + DZ[d]; if (ni >= 0 && nj >= 0 && ni < N && nj < N) nearLake[nj * N + ni] = 1; } }
+	// a lake's rim may be cut down to the lake level, never below it, so an outlet is a notch, not a dam
+	const nearLake = new Uint8Array(M), carved = new Uint8Array(M), rimFloor = new Float32Array(M).fill(-1e4);
+	for (let k = 0; k < M; k++) if (lakeId[k] >= 0) { const i = k % N, j = (k / N) | 0; const lvl = lakes[lakeId[k]].level; for (let d = 0; d < 8; d++) { const ni = i + DX[d], nj = j + DZ[d]; if (ni >= 0 && nj >= 0 && ni < N && nj < N) { const kk = nj * N + ni; nearLake[kk] = 1; if (lvl > rimFloor[kk]) rimFloor[kk] = lvl; } } }
 	for (const r of rivers) {
 		const cells = r.cells.slice();
 		if (r.junction >= 0) cells.push(r.junction);
@@ -567,18 +573,35 @@ function gradeRivers(rivers, h, area, N, cell, size, lakes, lakeId, rnd, opts = 
 		else mouth = T[n - 1];
 		const prof = new Float64Array(n);
 		const fallH = new Float32Array(n);     // drop between cell i and i+1 taken as a fall
+		const dist = (i) => { const a = cells[i], b = cells[i + 1]; return ((a % N) !== (b % N) && ((a / N) | 0) !== ((b / N) | 0)) ? cell * Math.SQRT2 : cell; };
 		prof[n - 1] = Math.min(T[n - 1], mouth);
+		let lastFall = n - 1;
 		for (let i = n - 2; i >= 0; i--) {
-			const a = cells[i], b = cells[i + 1];
-			const d = ((a % N) !== (b % N) && ((a / N) | 0) !== ((b / N) | 0)) ? cell * Math.SQRT2 : cell;
-			let p = Math.min(T[i], prof[i + 1] + maxGrade(A[i]) * d);
+			let p = Math.min(T[i], prof[i + 1] + maxGrade(A[i]) * dist(i));
 			if (T[i] - p > GORGE) {
-				// the gorge would be too deep: the river falls here instead
-				const F = clamp(T[i] - 4 - prof[i + 1], 6, rnd.range(FALL_MAX * 0.3, FALL_MAX));
-				p = prof[i + 1] + F;
-				fallH[i] = F;
+				// the gorge would be too deep: put a fall on the steepest natural ledge downstream of here,
+				// where the land already drops, rather than cutting a terrace into a smooth slope
+				let best = -1, bestS = -1;
+				for (let k = i + 1; k < lastFall; k++) {
+					if (T[k] - prof[k] < 12) continue;
+					const steep = T[Math.max(k - 1, 0)] - T[k + 1];
+					if (steep > bestS) { bestS = steep; best = k; }
+				}
+				if (best < 0) best = i;
+				const F = clamp(T[best] - 4 - prof[best + 1], 6, rnd.range(FALL_MAX * 0.35, FALL_MAX));
+				prof[best] = prof[best + 1] + F;
+				fallH[best] = F;
+				for (let j = best - 1; j >= i; j--) prof[j] = Math.min(T[j], prof[j + 1] + maxGrade(A[j]) * dist(j));
+				lastFall = best;
+				continue;
 			}
 			prof[i] = p;
+		}
+		// a lake outlet leaves at the lake level and drops over its lip
+		if (r.fromLake >= 0) {
+			const level = lakes[r.fromLake].level;
+			prof[0] = Math.max(prof[0], Math.min(level, T[0]));
+			if (prof[0] - prof[1] > 1.5) fallH[0] = prof[0] - prof[1];
 		}
 		r.profile = prof;
 		r.fallH = fallH;
@@ -608,7 +631,9 @@ function gradeRivers(rivers, h, area, N, cell, size, lakes, lakeId, rnd, opts = 
 						if (dist > radius) continue;
 						const target = floor + Math.max(0, dist - w) * WALL;
 						const kk = j * N + ii;
-						if (target < h[kk] && !nearLake[kk]) { h[kk] = target; carved[kk] = 1; }
+						if (lakeId[kk] >= 0) continue;
+						const tgt = nearLake[kk] ? Math.max(target, rimFloor[kk] + 0.2) : target;
+						if (tgt < h[kk]) { h[kk] = tgt; carved[kk] = 1; }
 					}
 				}
 			}
@@ -619,8 +644,9 @@ function gradeRivers(rivers, h, area, N, cell, size, lakes, lakeId, rnd, opts = 
 	for (let j = 1; j < N - 1; j++) for (let i = 1; i < N - 1; i++) {
 		const k = j * N + i;
 		if (!carved[k] && !carved[k - 1] && !carved[k + 1] && !carved[k - N] && !carved[k + N]) continue;
-		if (nearLake[k]) continue;
-		h[k] = src[k] * 0.5 + (src[k - 1] + src[k + 1] + src[k - N] + src[k + N]) * 0.125;
+		if (lakeId[k] >= 0) continue;
+		const sm = src[k] * 0.5 + (src[k - 1] + src[k + 1] + src[k - N] + src[k + N]) * 0.125;
+		h[k] = nearLake[k] ? Math.max(sm, rimFloor[k] + 0.2) : sm;
 	}
 }
 
@@ -704,6 +730,10 @@ function buildRiverGeometry(river, h, area, N, cell, size, lakes, lakeId, rivers
 	const bankH = W.map((w) => 1.6 + 0.09 * w);
 	const m = new Float32Array(count);
 	for (let i = 0; i < count; i++) m[i] = F[i] - bankH[i];
+	if (river.fromLake >= 0) {
+		const level = lakes[river.fromLake].level;
+		for (let i = 0; i < count && F[i] > level - 0.5; i++) m[i] = level;
+	}
 	for (let i = 1; i < count; i++) if (m[i] > m[i - 1]) m[i] = m[i - 1];
 	let mouthLevel;
 	if (river.mouthType === 'sea') mouthLevel = 0;
@@ -765,7 +795,11 @@ function buildRiverGeometry(river, h, area, N, cell, size, lakes, lakeId, rivers
 	river.count = count;
 	river.maxWidth = Math.max(...W);
 	river.drops = Array.from(dropAt);
-	river.falls = falls.map(({ i, drop }) => ({ i, x: P2[i][0], z: P2[i][1], top: wl[Math.max(0, i - 1)], bottom: wl[i], drop, w: W[i] }));
+	river.falls = falls.map(({ i, drop }) => {
+		const a = P2[Math.max(0, i - 4)], b = P2[Math.min(count - 1, i + 1)];
+		const len = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+		return { i, x: P2[i][0], z: P2[i][1], top: wl[Math.max(0, i - 1)], bottom: wl[i], drop, w: W[i], dx: (b[0] - a[0]) / len, dz: (b[1] - a[1]) / len };
+	});
 	river.levelAtCell = (k) => {
 		const [x, z] = toWorld(k);
 		let best = 0, bd = Infinity;

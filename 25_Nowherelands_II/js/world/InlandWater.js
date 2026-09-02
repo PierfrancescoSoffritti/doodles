@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { createWaterUniforms, waterVertexShader, waterFragmentShader, updateWaterUniforms } from './WaterShader.js';
 
+export const FALL_MESH_MIN = 3;
+
 // Lakes and rivers: flat lake sheets at each lake's own level, and river ribbons whose surface
 // steps down pool by pool. Both share one non-reflective water material.
 export class InlandWater {
@@ -15,8 +17,8 @@ export class InlandWater {
 		});
 		this.uniforms = uniforms;
 
-		const pos = [], foam = [], flow = [], depth = [], across = [], fall = [], base = [], idx = [];
-		const vert = (x, y, z, f, fx, fz, dep = 0, acr = 0, fl = 0, bs = 0) => { pos.push(x, y, z); foam.push(f); flow.push(fx, fz); depth.push(dep); across.push(acr); fall.push(fl); base.push(bs); return pos.length / 3 - 1; };
+		const pos = [], foam = [], flow = [], depth = [], across = [], fall = [], base = [], along = [], width = [], idx = [];
+		const vert = (x, y, z, f, fx, fz, dep = 0, acr = 0, fl = 0, bs = 0, al = 0, wd = 0) => { pos.push(x, y, z); foam.push(f); flow.push(fx, fz); depth.push(dep); across.push(acr); fall.push(fl); base.push(bs); along.push(al); width.push(wd); return pos.length / 3 - 1; };
 
 		// lakes: half-cell tiles over every lake cell and its immediate rim, at the lake level
 		const N = world.res, cell = world.cell, half = cell / 2;
@@ -61,14 +63,22 @@ export class InlandWater {
 				const hw = fl > 0 ? w * 0.5 * 0.92 : w * 0.5 + (w * 0.6 + 8) * 0.3;
 				const acr = hw / (w * 0.5);      // 1 at the channel edge, a little more at the ribbon edge
 				const nx = -tz, nz = tx;
-				const l = vert(x + nx * hw, wl, z + nz * hw, f, tx, tz, dep, acr, fl, bs);
-				const rr = vert(x - nx * hw, wl, z - nz * hw, f, tx, tz, dep, -acr, fl, bs);
+				// arc length along the river: the texture space for everything that flows
+				const al = i * 8;
+				const l = vert(x + nx * hw, wl, z + nz * hw, f, tx, tz, dep, acr, fl, bs, al, w);
+				const rr = vert(x - nx * hw, wl, z - nz * hw, f, tx, tz, dep, -acr, fl, bs, al, w);
 				return [l, rr];
 			};
 			const connect = (a, b) => idx.push(a[0], b[0], a[1], a[1], b[0], b[1]);
 			for (let i = 0; i < r.count; i++) {
 				const wl = d[i * 6 + 2] - 0.08;
-				if (prev && drops[i] > 0.8) {
+				if (prev && drops[i] >= FALL_MESH_MIN) {
+					// a real waterfall: the ribbon ends at the lip and starts again in the plunge pool;
+					// the sheet itself is a separate mesh (Waterfalls.js)
+					const top = section(i, wl + drops[i], 0, 0);
+					connect(prev, top);
+					prev = section(i, wl, 0, 0);
+				} else if (prev && drops[i] > 0.8) {
 					const top = section(i, wl + drops[i], drops[i], wl);
 					connect(prev, top);
 					const bot = section(i, wl, drops[i], wl);
@@ -90,6 +100,8 @@ export class InlandWater {
 		geometry.setAttribute('aAcross', new THREE.Float32BufferAttribute(across, 1));
 		geometry.setAttribute('aFall', new THREE.Float32BufferAttribute(fall, 1));
 		geometry.setAttribute('aBase', new THREE.Float32BufferAttribute(base, 1));
+		geometry.setAttribute('aAlong', new THREE.Float32BufferAttribute(along, 1));
+		geometry.setAttribute('aWidth', new THREE.Float32BufferAttribute(width, 1));
 		geometry.setIndex(idx);
 		geometry.computeBoundingSphere();
 		this.mesh = new THREE.Mesh(geometry, this.material);

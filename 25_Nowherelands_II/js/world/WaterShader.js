@@ -32,9 +32,9 @@ export const waterVertexShader = /* glsl */`
 	varying vec4 vUv4;
 	varying vec3 vWorldPos;
 	#ifdef FLOW
-	attribute float aFoam, aDepth, aAcross, aFall, aBase;
+	attribute float aFoam, aDepth, aAcross, aFall, aBase, aAlong, aWidth;
 	attribute vec2 aFlow;
-	varying float vFoam, vDepth, vAcross, vFall, vBase;
+	varying float vFoam, vDepth, vAcross, vFall, vBase, vAlong, vWidth;
 	varying vec2 vFlow;
 	#endif
 	void main() {
@@ -48,6 +48,8 @@ export const waterVertexShader = /* glsl */`
 		vAcross = aAcross;
 		vFall = aFall;
 		vBase = aBase;
+		vAlong = aAlong;
+		vWidth = aWidth;
 		#endif
 		gl_Position = projectionMatrix * viewMatrix * worldPosition;
 	}`;
@@ -61,7 +63,7 @@ export function waterFragmentShader(shared) {
 	varying vec4 vUv4;
 	varying vec3 vWorldPos;
 	#ifdef FLOW
-	varying float vFoam, vDepth, vAcross, vFall, vBase;
+	varying float vFoam, vDepth, vAcross, vFall, vBase, vAlong, vWidth;
 	varying vec2 vFlow;
 	#endif
 	${hslGlsl}
@@ -72,17 +74,28 @@ export function waterFragmentShader(shared) {
 	void main() {
 		vec2 p = vWorldPos.xz;
 		#ifdef FLOW
-		vec2 drift = vFlow * uTime * 2.6;
+		// rivers are textured in their own space: metres along the channel (scrolling with the
+		// current) by metres across it. Scrolling world coordinates by a per-vertex flow direction
+		// shears the pattern into streaks as time passes; this does not.
+		bool river = vDepth > 0.0;
+		float speed = 2.2 + vWidth * 0.02;
+		vec2 fuv = river ? vec2(vAlong - uTime * speed, vAcross * vWidth * 0.5) : p;
+		vec2 pd = fuv;
 		#else
-		vec2 drift = vec2(0.0);
+		vec2 pd = p;
 		#endif
-		vec2 pd = p - drift;
 		float w1 = sin(pd.x * 0.09 + uTime * 0.6) + sin(pd.y * 0.07 - uTime * 0.45);
 		float w2 = sin((pd.x + pd.y) * 0.05 + uTime * 0.35);
 		#ifdef FLOW
-		// running water is rougher: small tumbling ripples travelling with the flow
-		float r1 = vnoise(pd * 0.6) - 0.5, r2 = vnoise(pd * 0.6 + 13.0) - 0.5;
-		vec3 n = normalize(vec3(w1 * 0.02 + r1 * 0.06, 1.0, w2 * 0.02 + r2 * 0.06));
+		vec3 n;
+		if (river) {
+			// running water is rougher: small tumbling ripples travelling with the current, turned into the flow frame
+			float r1 = vnoise(fuv * 0.7) - 0.5, r2 = vnoise(fuv * 0.7 + 13.0) - 0.5;
+			float r3 = vnoise(fuv * 2.1 + 5.0) - 0.5;
+			vec2 perp = vec2(-vFlow.y, vFlow.x);
+			vec2 slope = vFlow * (r1 * 0.05 + r3 * 0.02) + perp * (r2 * 0.05);
+			n = normalize(vec3(slope.x, 1.0, slope.y));
+		} else n = normalize(vec3(w1 * 0.004, 1.0, w2 * 0.004));
 		#else
 		vec3 n = normalize(vec3(w1 * 0.006, 1.0, w2 * 0.006));
 		#endif
@@ -139,32 +152,35 @@ export function waterFragmentShader(shared) {
 		float gapNoise = step(0.28, vnoise(pd * 0.22 - uTime * 0.06));     // breaks the rings into dashes
 		float foam = clamp(edge + (ring1 + ring2) * gapNoise, 0.0, 1.0) * step(0.0, depth + 0.3);
 		#ifdef FLOW
-		if (vDepth < 0.0) {
-			// still water: a soft lap at the shore and nothing else
-			float lap = (1.0 - smoothstep(0.0, 1.2, depth + wobble * 0.4)) * step(0.0, depth + 0.3);
-			col = mix(col, vec3(0.34, 0.37, 0.5), lap * 0.7);
+		if (!river) {
+			// still water: a thin lap right at the shore and nothing else
+			float lap = (1.0 - smoothstep(0.0, 0.35, depth + wobble * 0.1)) * step(0.0, depth + 0.3);
+			col = mix(col, vec3(0.3, 0.33, 0.46), lap * 0.6);
 		} else {
-			float edgeR = 1.0 - step(0.1, dd);
-			col = mix(col, vec3(0.3, 0.33, 0.46), edgeR * step(0.0, depth + 0.3) * 0.5);   // rivers: a thin line at the waterline, no rings
+			// rivers: a thin broken line where the water actually meets the bank
+			float shoreDepth = vWorldPos.y - terrainHeightAt(p);
+			float edgeR = (1.0 - smoothstep(0.0, 0.3, shoreDepth)) * step(-0.3, shoreDepth) * step(0.35, vnoise(vec2(fuv.x * 0.5, 7.0)));
+			col = mix(col, vec3(0.3, 0.33, 0.46), edgeR * 0.5);
 		}
 		#else
 		col = mix(col, vec3(0.56, 0.6, 0.72), foam);
 		#endif
 
 		#ifdef FLOW
+		if (river) {
 		// running water: streaks stretched along the flow, white water below each drop
-		float along = dot(p, vFlow), across = dot(p, vec2(-vFlow.y, vFlow.x));
-		float streak = vnoise(vec2(along * 0.07 - uTime * 1.5, across * 0.3));
-		float streak2 = vnoise(vec2(along * 0.16 - uTime * 2.4 + 7.0, across * 0.55));
+		float along = fuv.x, across = fuv.y;
+		float streak = vnoise(vec2(along * 0.07, across * 0.3));
+		float streak2 = vnoise(vec2(along * 0.16 - uTime * 0.6 + 7.0, across * 0.55));
 		float grazing = 1.0 - 0.75 * fresnel;   // seen along the surface the river is a dark mirror of a dark sky
 		col += vec3(0.42, 0.47, 0.62) * smoothstep(0.62, 0.8, streak) * 0.02 * grazing;
 		// white water is streaky, not a wash: a hard-thresholded turbulence pattern gated by the foam weight
-		float turb = vnoise(vec2(along * 0.3 - uTime * 3.5, across * 0.7)) * 0.6 + vnoise(vec2(along * 0.12 - uTime * 2.0 + 7.0, across * 0.35)) * 0.4;
+		float turb = vnoise(vec2(along * 0.3 - uTime * 1.5, across * 0.7)) * 0.6 + vnoise(vec2(along * 0.12 - uTime * 0.5 + 7.0, across * 0.35)) * 0.4;
 		float white = vFoam * (1.0 - 0.5 * fresnel) * smoothstep(0.58, 0.72, turb + vFoam * 0.12);
 		col = mix(col, vec3(0.52, 0.55, 0.68), clamp(white, 0.0, 1.0) * 0.7);
 		// small flecks of foam drifting downstream
-		float patches = smoothstep(0.6, 0.82, vnoise(vec2(along * 0.14 - uTime * 1.3, across * 0.5)) * 0.6 + vnoise(vec2(along * 0.4 - uTime * 2.0 + 5.0, across * 1.2)) * 0.4);
-		col = mix(col, vec3(0.45, 0.48, 0.6), patches * 0.1 * grazing);
+		float patches = smoothstep(0.6, 0.82, vnoise(vec2(along * 0.14, across * 0.5)) * 0.6 + vnoise(vec2(along * 0.4 - uTime * 0.4 + 5.0, across * 1.2)) * 0.4);
+		col = mix(col, vec3(0.45, 0.48, 0.6), patches * 0.06 * grazing);
 		// falling water: a coherent sheet leaving the lip that breaks into strands and spray on the way down.
 		// Only the vertical face is the fall; the flat pool quads beside it just carry its foam.
 		vec3 gn = normalize(cross(dFdx(vWorldPos), dFdy(vWorldPos)));
@@ -180,6 +196,7 @@ export function waterFragmentShader(shared) {
 			float sides = 1.0 - smoothstep(0.7, 1.0, abs(vAcross)) * 0.5;
 			vec3 fallCol = mix(vec3(0.16, 0.18, 0.3), vec3(0.58, 0.61, 0.74), white * sides);
 			col = mix(col, fallCol, (0.55 + 0.45 * tall) * vertical);
+		}
 		}
 		#endif
 
