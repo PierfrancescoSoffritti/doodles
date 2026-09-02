@@ -2,35 +2,43 @@ import { Random, Simplex2D } from '../core/Random.js';
 import { config } from '../core/Config.js';
 import { smoothstep, clamp } from '../core/Utils.js';
 import { NO_WATER } from './gen/WorldGen.js';
+import { RIVER_STRIDE, RV, RIVER_KIND, bedProfile, bankWidth, EDGE_DEPTH } from './gen/Rivers.js';
 
 // The baked world, sampled continuously. Height is the bicubic grid plus procedural close-up
 // detail, with river channels carved analytically from the river polylines so streams stay
 // crisp at any resolution. The world origin sits at the spawn point.
 
 const SQRT2 = Math.SQRT2;
-const HASH = 128;   // river spatial hash cell, world units
+const HASH = 128;   // spatial hash cell, world units
+
+// Flat segment table over every river's samples, hashed by cell so a point finds its channel fast.
+const SEG = 16;     // ax az bx bz wlA wlB wA wB dA dB fA fB bankA bankB kind alongA
+export const SEG_KIND = { FLOW: 0, GAP: 1, STEP: 2 };   // GAP: a waterfall face (no channel), STEP: a riffle ramp
 
 class RiverIndex {
 	constructor(rivers) {
 		this.rivers = rivers;
 		this.map = new Map();
-		// flat segment table: ax az bx bz wlA wlB wA wB dA dB fA fB
 		let nSeg = 0;
 		for (const r of rivers) nSeg += Math.max(0, r.count - 1);
-		this.seg = new Float32Array(nSeg * 12);
+		this.seg = new Float32Array(nSeg * SEG);
 		this.segRiver = new Int32Array(nSeg);
 		let s = 0;
 		rivers.forEach((r, ri) => {
 			const d = r.data;
 			for (let i = 0; i < r.count - 1; i++, s++) {
-				const a = i * 6, b = a + 6, o = s * 12;
-				this.seg[o] = d[a]; this.seg[o + 1] = d[a + 1]; this.seg[o + 2] = d[b]; this.seg[o + 3] = d[b + 1];
-				this.seg[o + 4] = d[a + 2]; this.seg[o + 5] = d[b + 2];
-				this.seg[o + 6] = d[a + 3]; this.seg[o + 7] = d[b + 3];
-				this.seg[o + 8] = d[a + 4]; this.seg[o + 9] = d[b + 4];
-				this.seg[o + 10] = d[a + 5]; this.seg[o + 11] = d[b + 5];
+				const a = i * RIVER_STRIDE, b = a + RIVER_STRIDE, o = s * SEG;
+				this.seg[o] = d[a + RV.X]; this.seg[o + 1] = d[a + RV.Z]; this.seg[o + 2] = d[b + RV.X]; this.seg[o + 3] = d[b + RV.Z];
+				this.seg[o + 4] = d[a + RV.WL]; this.seg[o + 5] = d[b + RV.WL];
+				this.seg[o + 6] = d[a + RV.W]; this.seg[o + 7] = d[b + RV.W];
+				this.seg[o + 8] = d[a + RV.D]; this.seg[o + 9] = d[b + RV.D];
+				this.seg[o + 10] = d[a + RV.FOAM]; this.seg[o + 11] = d[b + RV.FOAM];
+				this.seg[o + 12] = d[a + RV.BANK]; this.seg[o + 13] = d[b + RV.BANK];
+				const ka = d[a + RV.KIND], kb = d[b + RV.KIND];
+				this.seg[o + 14] = ka === RIVER_KIND.LIP ? SEG_KIND.GAP : (ka === RIVER_KIND.STEP_TOP && kb === RIVER_KIND.STEP_BOTTOM ? SEG_KIND.STEP : SEG_KIND.FLOW);
+				this.seg[o + 15] = d[a + RV.ALONG];
 				this.segRiver[s] = ri;
-				const reach = Math.max(d[a + 3], d[b + 3]) * 1.1 + 10;
+				const reach = Math.max(d[a + RV.W], d[b + RV.W]) * 1.2 + 18;
 				const x0 = Math.floor((Math.min(d[a], d[b]) - reach) / HASH), x1 = Math.floor((Math.max(d[a], d[b]) + reach) / HASH);
 				const z0 = Math.floor((Math.min(d[a + 1], d[b + 1]) - reach) / HASH), z1 = Math.floor((Math.max(d[a + 1], d[b + 1]) + reach) / HASH);
 				for (let cz = z0; cz <= z1; cz++) for (let cx = x0; cx <= x1; cx++) {
@@ -54,6 +62,44 @@ class RiverIndex {
 		}
 		return out;
 	}
+
+	// Fields of segment s at parameter t.
+	at(s, t) {
+		const o = s * SEG, g = this.seg;
+		return { x: g[o] + (g[o + 2] - g[o]) * t, z: g[o + 1] + (g[o + 3] - g[o + 1]) * t, wl: g[o + 4] + (g[o + 5] - g[o + 4]) * t, w: g[o + 6] + (g[o + 7] - g[o + 6]) * t, d: g[o + 8] + (g[o + 9] - g[o + 8]) * t, foam: g[o + 10] + (g[o + 11] - g[o + 10]) * t, bank: g[o + 12] + (g[o + 13] - g[o + 12]) * t, kind: g[o + 14], along: g[o + 15], dx: g[o + 2] - g[o], dz: g[o + 3] - g[o + 1] };
+	}
+}
+
+// Waterfall faces, hashed the same way. Inside a fall's footprint the ground is shaped
+// analytically: the channel bed up to the lip, a near-vertical rock face, the plunge pool.
+class FallIndex {
+	constructor(rivers) {
+		this.falls = rivers.flatMap((r) => r.falls);
+		this.map = new Map();
+		this.falls.forEach((f, idx) => {
+			f.hw = f.w * 0.5;
+			f.cMax = f.hw + 16 + 0.25 * f.drop;
+			f.sMin = -8; f.sMax = f.run + 12;
+			const R = Math.max(f.cMax, f.sMax) + 2;
+			for (let cz = Math.floor((f.z - R) / HASH); cz <= Math.floor((f.z + R) / HASH); cz++) for (let cx = Math.floor((f.x - R) / HASH); cx <= Math.floor((f.x + R) / HASH); cx++) {
+				const key = cx * 65536 + cz;
+				let list = this.map.get(key);
+				if (!list) { list = []; this.map.set(key, list); }
+				list.push(idx);
+			}
+		});
+	}
+	cellList(x, z) { return this.map.get(Math.floor(x / HASH) * 65536 + Math.floor(z / HASH)); }
+}
+
+// ground level across a channel at a given water level: the bed inside, the bank rising outside
+function channelLevel(dist, wl, w, depth, bank, floor) {
+	const hw = w * 0.5;
+	if (dist < hw) return wl - depth * bedProfile(dist / hw);
+	const tt = Math.min((dist - hw) / bankWidth(bank, depth, w), 1);
+	const s = tt * tt * (3 - 2 * tt);
+	const edge = wl - EDGE_DEPTH * depth;
+	return edge + (floor - edge) * s;
 }
 
 export class Heightmap {
@@ -71,6 +117,7 @@ export class Heightmap {
 		this.detail = new Simplex2D(new Random(seed + ':detail'));
 		this.forestNoise = new Simplex2D(new Random(seed + ':forest'));
 		this.rivers = new RiverIndex(world.rivers);
+		this.falls = new FallIndex(world.rivers);
 		this.maxPyramid = this.buildMaxPyramid();
 		// scratch results of the last sample()
 		this._water = NO_WATER;
@@ -78,6 +125,9 @@ export class Heightmap {
 		this._foam = 0;
 		this._riverDist = Infinity;
 		this._riverWidth = 0;
+		this._riverAlong = 0;
+		this._riverAcross = 0;
+		this._riverSeg = -1;
 	}
 
 	// ---- grid access ----
@@ -129,15 +179,16 @@ export class Heightmap {
 		const hardness = this.rock[k] / 255;
 		let water = Math.max(this.waterLevel, this.lakeLevel[k]);
 
-		// river channel
-		let bank = 0, foam = 0, rDist = Infinity, rWidth = 0;
+		// river channel: the nearest segment (by plain distance, so a wide-banked neighbour never
+		// steals ground from the segment actually abreast of the point) shapes the bed and the banks
+		let bank = 0, foam = 0, rDist = Infinity, rWidth = 0, rAlong = 0, rAcross = 0, rSeg = -1;
 		const list = this.rivers.cellList(x, z);
 		if (list) {
 			const seg = this.rivers.seg;
-			let nearest = -1, nearestN = Infinity;
-			let nd = 0, nt = 0;
+			let nearest = -1, nearestD = Infinity;
+			let nd = 0, nt = 0, ns = 0;
 			for (let q = 0; q < list.length; q++) {
-				const o = list[q] * 12;
+				const o = list[q] * SEG;
 				const ax = seg[o], az = seg[o + 1], bx = seg[o + 2], bz = seg[o + 3];
 				const dx = bx - ax, dz = bz - az;
 				const l2 = dx * dx + dz * dz;
@@ -146,36 +197,82 @@ export class Heightmap {
 				const px = ax + dx * t - x, pz = az + dz * t - z;
 				const dist = Math.sqrt(px * px + pz * pz);
 				const w = seg[o + 6] + (seg[o + 7] - seg[o + 6]) * t;
-				const reach = w * 0.5 + w * 0.6 + 8;
-				const nrm = dist / reach;
-				if (nrm < nearestN) { nearestN = nrm; nearest = o; nd = dist; nt = t; }
+				const bk = seg[o + 12] + (seg[o + 13] - seg[o + 12]) * t;
+				const d = seg[o + 8] + (seg[o + 9] - seg[o + 8]) * t;
+				const reach = w * 0.5 + bankWidth(bk, d, w) + 2;
+				if (dist < reach && dist < nearestD) { nearestD = dist; nearest = o; nd = dist; nt = t; ns = list[q]; }
 			}
-			if (nearest >= 0 && nearestN < 1) {
+			if (nearest >= 0) {
 				const o = nearest, t = nt, dist = nd;
 				const wl = seg[o + 4] + (seg[o + 5] - seg[o + 4]) * t;
 				const w = seg[o + 6] + (seg[o + 7] - seg[o + 6]) * t;
 				const d = seg[o + 8] + (seg[o + 9] - seg[o + 8]) * t;
+				const bk = seg[o + 12] + (seg[o + 13] - seg[o + 12]) * t;
+				const kind = seg[o + 14];
 				foam = seg[o + 10] + (seg[o + 11] - seg[o + 10]) * t;
-				const hw = w * 0.5, bankW = w * 0.6 + 8;
-				rDist = dist; rWidth = w;
-				if (dist < hw) {
+				const hw = w * 0.5, bankW = bankWidth(bk, d, w);
+				rDist = dist; rWidth = w; rSeg = ns;
+				{
+					const ax = seg[o], az = seg[o + 1], dx = seg[o + 2] - ax, dz = seg[o + 3] - az, l = Math.hypot(dx, dz) || 1;
+					rAlong = seg[o + 15] + t * l;
+					rAcross = ((x - ax) * (-dz) + (z - az) * dx) / l;
+				}
+				if (kind === SEG_KIND.GAP) {
+					bank = 1;      // the fall face below takes over; no close-up relief here
+				} else if (dist < hw) {
 					const u = dist / hw;
-					// cobbled bed: small bumps, more of them toward the banks
-					const cobble = (1 - Math.abs(this.detail.noise(x / 3.2 + 4.1, z / 3.2 - 2.7))) * (0.25 + 0.45 * u * u);
-					const bed = wl - d * (0.15 + 0.85 * Math.sqrt(Math.max(0, 1 - u * u))) + cobble;
+					// cobbled bed: small bumps, more of them toward the banks, never above the water
+					const cobble = (1 - Math.abs(this.detail.noise(x / 3.2 + 4.1, z / 3.2 - 2.7))) * (0.15 + 0.3 * u * u) * Math.min(d * 0.3, 1);
+					const bed = wl - d * bedProfile(u) + cobble;
 					h = Math.min(h, bed);
 					bank = 1;
 					water = Math.max(water, wl);
 				} else {
 					const tt = (dist - hw) / bankW;
 					const s = tt * tt * (3 - 2 * tt);
-					const edge = wl - d * 0.15;
+					const edge = wl - EDGE_DEPTH * d;
 					let hb = edge + (h - edge) * s;
-					if (h < wl + 0.6) hb = Math.max(hb, wl + 0.6 * (1 - s));
+					// where the land beside the river lies below the water, a low natural levee keeps it in
+					if (h < wl + 0.25) { const lip = wl + 0.35 * (1 - s); if (hb < lip) hb = lip; }
 					h = hb;
 					bank = 1 - s;
-					if (dist < hw + 1.5) water = Math.max(water, wl);
+					if (dist < hw + bankW * 0.5) water = Math.max(water, wl);
 				}
+			}
+		}
+
+		// waterfall faces
+		const flist = this.falls.cellList(x, z);
+		if (flist) {
+			const falls = this.falls.falls;
+			for (let q = 0; q < flist.length; q++) {
+				const f = falls[flist[q]];
+				const rx = x - f.x, rz = z - f.z;
+				const sAlong = rx * f.dx + rz * f.dz, c = rx * -f.dz + rz * f.dx;
+				const ac = Math.abs(c);
+				if (sAlong < f.sMin || sAlong > f.sMax || ac > f.cMax) continue;
+				const ms = smoothstep(f.sMin, f.sMin + 5, sAlong) * (1 - smoothstep(f.sMax - 6, f.sMax, sAlong));
+				const mc = 1 - smoothstep(f.cMax - 8, f.cMax, ac);
+				const mask = ms * mc;
+				if (mask <= 0.001) continue;
+				const up = channelLevel(ac, f.top, f.w, f.dTop, f.bankTop, f.top + f.bankTop);
+				const down = channelLevel(ac, f.bottom, f.w, f.dBot, f.bankBot, f.bottom + f.bankBot);
+				// the crest is straight across the channel and recedes downstream at the sides (a horseshoe)
+				const side = Math.max(0, ac - f.hw);
+				const sFace = side * 0.45 + (side > 0 ? this.detail.noise(c / 9 + f.seed, f.seed) * 1.6 : 0);
+				let G;
+				if (sAlong < sFace) G = up;
+				else G = Math.max(down, up - (up - down) * (sAlong - sFace) / f.run);
+				// ledges and columns on the face so the rock reads as rock, not a plane
+				if (sAlong >= sFace && G > down + 0.5) {
+					const inFace = Math.min(1, (up - G) / 4) * Math.min(1, (G - down) / 4);
+					const ledges = (1 - Math.abs(this.detail.noise(c / 7 + f.seed, G / 6))) * 1.8 + (1 - Math.abs(this.detail.noise(c / 2.6 + 3, G / 2.6 + f.seed))) * 0.6;
+					G += ledges * inFace;
+				}
+				h = h + (G - h) * mask;
+				if (mask > bank) bank = mask;
+				if (sAlong < sFace && ac < f.hw + 1) water = Math.max(water, f.top);
+				if (sAlong > sFace + f.run * 0.5 && ac < f.hw + 1) water = Math.max(water, f.bottom);
 			}
 		}
 
@@ -196,6 +293,9 @@ export class Heightmap {
 		this._foam = foam;
 		this._riverDist = rDist;
 		this._riverWidth = rWidth;
+		this._riverAlong = rAlong;
+		this._riverAcross = rAcross;
+		this._riverSeg = rSeg;
 		this._slope = slope;
 		this._hardness = hardness;
 		return h;

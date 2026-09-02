@@ -8,7 +8,8 @@ import { Vegetation } from './Vegetation.js';
 // edges to hide the cracks between neighbours of different detail.
 const SEG = 48;
 const ROOT = 40960;                  // covers the 16 km world wherever the spawn ends up
-const MAX_DEPTH = 8;                 // 160 m leaves
+const MAX_DEPTH = 9;                 // 80 m leaves, only where a river runs; 160 m elsewhere
+const RIVER_DEPTH = 8;               // the finest level away from rivers
 const LOD_FACTOR = config.isTouch ? 1.3 : 1.7;
 const BUILD_BUDGET_MS = 6;
 const KEEP_FRAMES = 900;
@@ -45,6 +46,7 @@ export class Terrain {
 		this.vegetation = new Vegetation(scene, heightmap, shared);
 		this.index = buildIndex(SEG);
 		this.nodes = new Map();
+		this.riverNodes = new Map();
 		this.requests = [];
 		this.frame = 0;
 		this.vegKey = null;
@@ -53,6 +55,17 @@ export class Terrain {
 	}
 
 	key(depth, ix, iz) { return depth * 1e6 + ix * 1000 + iz; }
+
+	// Streams are a few metres wide: only nodes they run through get the finest level.
+	hasRiver(key, cx, cz, size) {
+		let v = this.riverNodes.get(key);
+		if (v === undefined) {
+			const m = size * 0.5 + 12;
+			v = this.heightmap.rivers.segmentsIn(cx - m, cz - m, cx + m, cz + m).size > 0;
+			this.riverNodes.set(key, v);
+		}
+		return v;
+	}
 
 	update(playerPos, dt) {
 		this.frame++;
@@ -102,7 +115,7 @@ export class Terrain {
 		const dist = Math.hypot(dx, dz);
 		const key = this.key(depth, ix, iz);
 
-		if (depth < MAX_DEPTH && dist < size * LOD_FACTOR) {
+		if (depth < MAX_DEPTH && dist < size * LOD_FACTOR && (depth < RIVER_DEPTH || this.hasRiver(key, cx, cz, size))) {
 			let ready = true;
 			for (let q = 0; q < 4; q++) {
 				const kx = ix * 2 + (q & 1), kz = iz * 2 + (q >> 1);

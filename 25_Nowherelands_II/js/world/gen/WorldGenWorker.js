@@ -14,6 +14,6 @@ self.onmessage = (e) => {
 	delete world.area;
 	const transfer = [world.height.buffer, world.lakeLevel.buffer, world.lakeId.buffer, world.rock.buffer];
 	for (const l of world.lakes) transfer.push(l.cells.buffer);
-	for (const r of world.rivers) transfer.push(r.data.buffer);
+	for (const r of world.rivers) transfer.push(r.data.buffer, r.rocks.buffer, r.wakes.buffer);
 	self.postMessage({ type: 'done', world }, transfer);
 };

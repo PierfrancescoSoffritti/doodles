@@ -188,11 +188,12 @@ export function createTerrainMaterial(shared, heightmap) {
 				// ripples from notes and footsteps
 				color += rippleGlow(vWorldPos.xz, uTime) * 1.4;
 
-				// wet sand and foam wash just above the water line
+				// wet ground just above any water line; the surf wash only where the sea laps the shore
+				float sea = 1.0 - smoothstep(0.05, 0.6, waterY - uWaterLevel);
 				float wet = (1.0 - smoothstep(0.0, 2.5, h)) * step(0.0, h);
-				color *= 1.0 - wet * 0.45;
+				color *= 1.0 - wet * (0.25 + 0.2 * sea);
 				float washN = hash21(mod(floor(vWorldPos.xz * 0.6), 1024.0));
-				float wash = (1.0 - smoothstep(0.0, 0.45 + 0.3 * sin(uTime * 1.6 + vWorldPos.x * 0.07 + vWorldPos.z * 0.05), h)) * step(0.0, h);
+				float wash = (1.0 - smoothstep(0.0, 0.45 + 0.3 * sin(uTime * 1.6 + vWorldPos.x * 0.07 + vWorldPos.z * 0.05), h)) * step(0.0, h) * sea;
 				color += vec3(0.7, 0.75, 0.9) * wash * (0.25 + 0.25 * washN) * (0.5 + 0.5 * uMoonIntensity);
 
 				color = applyFog(color, vWorldPos, uCameraPos);

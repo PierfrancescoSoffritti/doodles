@@ -3,6 +3,8 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { Random } from '../core/Random.js';
 import { config } from '../core/Config.js';
 import { hslGlsl, createRockMaterial } from './TerrainMaterial.js';
+import { ROCK_STRIDE } from './gen/Rivers.js';
+import { SEG_KIND } from './Heightmap.js';
 
 const UNBORN = 1e9;
 const TREE_HEIGHT = 60;
@@ -382,42 +384,30 @@ export class Vegetation {
 				for (const [x, z] of this.spots(rnd, ox, oz, size, rnd.int(1, 3), (x, z) => { const h = hm.sample(x, z); return h > hm._water + 3 && hm._hardness > 0.6 && hm._slope > 0.15 && hm._slope < 1.3 && hm._bank < 0.2; }))
 					rocks.push({ x, z, r: rnd.range(4.5, 11), sink: 0.4 });
 			}
-			// river beds: a row of stones across every drop lip, cobbles in the shallows near the banks,
-			// the odd boulder mid-pool, and driftwood stranded on the bank
+			// river rocks are world data: the stones the water pours over, boulders in the chutes and
+			// pools, the outcrops that turned the river. Driftwood is stranded on the calm banks.
 			const logs = [];
-			const seg = hm.rivers.seg;
-			for (const sIdx of hm.rivers.segmentsIn(ox - size / 2, oz - size / 2, ox + size / 2, oz + size / 2)) {
-				const o = sIdx * 12;
-				const ax = seg[o], az = seg[o + 1];
-				if (Math.abs(ax - ox) > size / 2 || Math.abs(az - oz) > size / 2) continue;
-				const dx = seg[o + 2] - ax, dz = seg[o + 3] - az, len = Math.hypot(dx, dz) || 1;
-				const tx = dx / len, tz = dz / len, nx = -tz, nz = tx;
-				const w = seg[o + 6];
-				const wlA = seg[o + 4], wlB = seg[o + 5];
-				const drop = wlA - wlB;
-				const at = (along, acrossFrac) => [ax + tx * along + nx * acrossFrac * w * 0.5, az + tz * along + nz * acrossFrac * w * 0.5];
-				if (seg[o + 10] >= 0.99) {
-					// lip of a drop: stones the water has to find its way around
-					const count = 2 + Math.floor(w / 9);
-					for (let k = 0; k < count; k++) {
-						const [x, z] = at(rnd.range(-3, 1), rnd.range(-0.85, 0.85));
-						rocks.push({ x, z, r: rnd.range(0.7, 1.6) + w * 0.02 + Math.min(drop, 8) * 0.12, sink: 0.35 });
+			{
+				const x0 = ox - size / 2, x1 = ox + size / 2, z0 = oz - size / 2, z1 = oz + size / 2;
+				for (const r of hm.world.rivers) {
+					const rk = r.rocks;
+					for (let q = 0; q < rk.length; q += ROCK_STRIDE) {
+						const x = rk[q], z = rk[q + 1];
+						if (x < x0 || x >= x1 || z < z0 || z >= z1) continue;
+						rocks.push({ x, z, y: rk[q + 2], r: rk[q + 3], sink: 0.35, kind: rk[q + 4] });
 					}
 				}
-				if (rnd.next() < 0.6) {
+				const seg = hm.rivers.seg;
+				for (const sIdx of hm.rivers.segmentsIn(x0, z0, x1, z1)) {
+					const a = hm.rivers.at(sIdx, 0);
+					if (a.x < x0 || a.x >= x1 || a.z < z0 || a.z >= z1) continue;
+					if (a.kind !== SEG_KIND.FLOW || a.foam > 0.2 || rnd.next() > 0.05) continue;
+					const len = Math.hypot(a.dx, a.dz) || 1, tx = a.dx / len, tz = a.dz / len;
 					const side = rnd.next() < 0.5 ? -1 : 1;
-					const [x, z] = at(rnd.range(0, 8), side * rnd.range(0.55, 0.95));
-					rocks.push({ x, z, r: rnd.range(0.35, 1.0), sink: 0.5 });
+					const off = a.w * 0.5 + rnd.range(2, 6);
+					logs.push({ x: a.x + -tz * off * side, z: a.z + tx * off * side, len: rnd.range(6, 14), r: rnd.range(0.3, 0.6), yaw: Math.atan2(tx, tz) + rnd.range(-0.6, 0.6) });
 				}
-				if (rnd.next() < 0.07) {
-					const [x, z] = at(rnd.range(0, 8), rnd.range(-0.4, 0.4));
-					rocks.push({ x, z, r: rnd.range(1.4, 3.0) + w * 0.02, sink: 0.3 });
-				}
-				if (rnd.next() < 0.045 && seg[o + 10] < 0.2) {
-					const side = rnd.next() < 0.5 ? -1 : 1;
-					const [x, z] = at(rnd.range(0, 8), side * rnd.range(1.05, 1.3));
-					logs.push({ x, z, len: rnd.range(6, 14), r: rnd.range(0.3, 0.6), yaw: Math.atan2(tx, tz) + rnd.range(-0.6, 0.6) });
-				}
+				void seg;
 			}
 			if (logs.length) {
 				this.makeInstanced(this.log, this.rockMaterial, 'rock', logs.map((l) => [l.x, l.z]), rnd, chunk, (x, z, p, q, s, r, yAxis) => {
@@ -436,7 +426,8 @@ export class Vegetation {
 				if (!list.length) return;
 				this.makeInstanced(this.boulders[v], this.rockMaterial, 'rock', list.map((r) => [r.x, r.z]), rnd, chunk, (x, z, p, q, s, r, yAxis) => {
 					const rock = list.find((c) => c.x === x && c.z === z);
-					const y = hm.height(x, z) - rock.r * rock.sink;
+					// river rocks sit at the height the generator gave them (partly out of the water); the rest rest on the ground
+					const y = rock.y !== undefined && !Number.isNaN(rock.y) ? rock.y : hm.height(x, z) - rock.r * rock.sink;
 					p.set(x, y, z);
 					q.setFromEuler(new THREE.Euler(r.range(-0.4, 0.4), r.range(0, 6.3), r.range(-0.4, 0.4)));
 					s.set(rock.r * r.range(0.8, 1.25), rock.r * r.range(0.7, 1.1), rock.r * r.range(0.8, 1.25));

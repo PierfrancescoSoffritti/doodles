@@ -1,10 +1,14 @@
 import * as THREE from 'three';
 import { createWaterUniforms, waterVertexShader, waterFragmentShader, updateWaterUniforms } from './WaterShader.js';
+import { RIVER_STRIDE, RV, RIVER_KIND, WAKE_STRIDE, surfaceHalfWidth } from './gen/Rivers.js';
 
-export const FALL_MESH_MIN = 3;
-
-// Lakes and rivers: flat lake sheets at each lake's own level, and river ribbons whose surface
-// steps down pool by pool. Both share one non-reflective water material.
+// Lakes and rivers: flat lake sheets at each lake's own level, and river ribbons that follow the
+// water surface sample by sample: sloping runs, short steep riffle ramps, and gaps where a
+// waterfall (its own mesh) takes over. Both share one non-reflective water material.
+//
+// River vertices carry their position in river space (metres along the channel, signed metres
+// across it) so the shader can texture the flow without smearing, and the three nearest rocks
+// that break the surface so it can draw their wakes.
 export class InlandWater {
 	constructor(scene, heightmap, shared) {
 		const world = heightmap.world;
@@ -17,13 +21,23 @@ export class InlandWater {
 		});
 		this.uniforms = uniforms;
 
-		const pos = [], foam = [], flow = [], depth = [], across = [], fall = [], base = [], along = [], width = [], idx = [];
-		const vert = (x, y, z, f, fx, fz, dep = 0, acr = 0, fl = 0, bs = 0, al = 0, wd = 0) => { pos.push(x, y, z); foam.push(f); flow.push(fx, fz); depth.push(dep); across.push(acr); fall.push(fl); base.push(bs); along.push(al); width.push(wd); return pos.length / 3 - 1; };
+		const pos = [], info0 = [], info1 = [], wake0 = [], wake1 = [], wake2 = [], idx = [];
+		const NO_WAKE = [0, 0, 0];
+		// info0: foam, depth (-1 for still water), across (signed, 1 at the channel edge), width
+		// info1: along, speed, step height, step base level
+		const vert = (x, y, z, i0, i1, wk) => {
+			pos.push(x, y, z);
+			info0.push(i0[0], i0[1], i0[2], i0[3]);
+			info1.push(i1[0], i1[1], i1[2], i1[3]);
+			wake0.push(wk[0][0], wk[0][1], wk[0][2]); wake1.push(wk[1][0], wk[1][1], wk[1][2]); wake2.push(wk[2][0], wk[2][1], wk[2][2]);
+			return pos.length / 3 - 1;
+		};
 
 		// lakes: half-cell tiles over every lake cell and its immediate rim, at the lake level
 		const N = world.res, cell = world.cell, half = cell / 2;
 		const wx = (i) => -world.size / 2 + i * cell - heightmap.ox;
 		const wz = (j) => -world.size / 2 + j * cell - heightmap.oz;
+		const still = [0, -1, 0, 0], noStep = [0, 0, 0, 0], noWake = [NO_WAKE, NO_WAKE, NO_WAKE];
 		for (const lake of world.lakes) {
 			let i0 = N, i1 = 0, j0 = N, j1 = 0;
 			for (const k of lake.cells) { const i = k % N, j = (k / N) | 0; if (i < i0) i0 = i; if (i > i1) i1 = i; if (j < j0) j0 = j; if (j > j1) j1 = j; }
@@ -32,7 +46,6 @@ export class InlandWater {
 			const mask = new Uint8Array(W * H);
 			for (const k of lake.cells) {
 				const i = (k % N) - i0, j = ((k / N) | 0) - j0;
-				// the cell's own square plus half a cell beyond it on every side: up to the rim centres
 				for (let sj = 2 * j - 1; sj <= 2 * j + 2; sj++) for (let si = 2 * i - 1; si <= 2 * i + 2; si++) {
 					if (si < 0 || sj < 0 || si >= W || sj >= H) continue;
 					mask[sj * W + si] = 1;
@@ -42,66 +55,73 @@ export class InlandWater {
 			for (let sj = 0; sj < H; sj++) for (let si = 0; si < W; si++) {
 				if (!mask[sj * W + si]) continue;
 				const x0 = wx(i0) - half + si * half, z0 = wz(j0) - half + sj * half;
-				// aDepth = -1 marks still water: lakes read depth from the shore map but foam only at the shore
-				const a = vert(x0, y, z0, 0, 0, 0, -1), b = vert(x0 + half, y, z0, 0, 0, 0, -1), c = vert(x0, y, z0 + half, 0, 0, 0, -1), d = vert(x0 + half, y, z0 + half, 0, 0, 0, -1);
+				const a = vert(x0, y, z0, still, noStep, noWake), b = vert(x0 + half, y, z0, still, noStep, noWake), c = vert(x0, y, z0 + half, still, noStep, noWake), d = vert(x0 + half, y, z0 + half, still, noStep, noWake);
 				idx.push(a, c, b, b, c, d);
 			}
 		}
 
-		// rivers: ribbons a little wider than the channel; the banks hide the excess. Every drop of the
-		// water surface is a vertical face: a riffle lip, or a waterfall curtain where the drop is tall.
+		// rivers
+		const S = RIVER_STRIDE;
 		for (const r of world.rivers) {
-			const d = r.data, drops = r.drops;
-			let prev = null;
-			const section = (i, wl, fl = 0, bs = 0) => {
-				const x = d[i * 6], z = d[i * 6 + 1], w = d[i * 6 + 3], dep = d[i * 6 + 4], f = d[i * 6 + 5];
-				const ia = Math.max(0, i - 1), ib = Math.min(r.count - 1, i + 1);
-				let tx = d[ib * 6] - d[ia * 6], tz = d[ib * 6 + 1] - d[ia * 6 + 1];
+			const d = r.data, count = r.count;
+			const wakes = r.wakes;
+			const nWakes = wakes.length / WAKE_STRIDE;
+			// the rocks whose wakes may cross the quad ending at this sample, nearest first
+			const wakesFor = (alongA, alongB) => {
+				const picks = [];
+				for (let k = 0; k < nWakes; k++) {
+					const a = wakes[k * WAKE_STRIDE], rad = wakes[k * WAKE_STRIDE + 2];
+					if (a > alongB + rad * 1.6 || a < alongA - rad * 10) continue;
+					picks.push([Math.abs(a - alongB), k]);
+				}
+				picks.sort((p, q) => p[0] - q[0]);
+				const out = [NO_WAKE, NO_WAKE, NO_WAKE];
+				for (let k = 0; k < Math.min(3, picks.length); k++) { const o = picks[k][1] * WAKE_STRIDE; out[k] = [wakes[o], wakes[o + 1], wakes[o + 2]]; }
+				return out;
+			};
+			// a cross-section of the surface at sample i
+			const section = (i) => {
+				const o = i * S;
+				const x = d[o + RV.X], z = d[o + RV.Z], wl = d[o + RV.WL] - 0.08, w = d[o + RV.W], dep = d[o + RV.D], foam = d[o + RV.FOAM], bank = d[o + RV.BANK], speed = d[o + RV.SPEED], along = d[o + RV.ALONG], kind = d[o + RV.KIND];
+				// tangent: forward at a pool start, backward at a lip, centred elsewhere
+				const ia = kind === RIVER_KIND.POOL ? i : Math.max(0, i - 1), ib = kind === RIVER_KIND.LIP ? i : Math.min(count - 1, i + 1);
+				let tx = d[ib * S + RV.X] - d[ia * S + RV.X], tz = d[ib * S + RV.Z] - d[ia * S + RV.Z];
 				const len = Math.hypot(tx, tz) || 1;
 				tx /= len; tz /= len;
-				// a fall face only spans the water itself; the ribbon's hidden margin stays on the flat reaches
-				const hw = fl > 0 ? w * 0.5 * 0.92 : w * 0.5 + (w * 0.6 + 8) * 0.3;
-				const acr = hw / (w * 0.5);      // 1 at the channel edge, a little more at the ribbon edge
 				const nx = -tz, nz = tx;
-				// arc length along the river: the texture space for everything that flows
-				const al = i * 8;
-				const l = vert(x + nx * hw, wl, z + nz * hw, f, tx, tz, dep, acr, fl, bs, al, w);
-				const rr = vert(x - nx * hw, wl, z - nz * hw, f, tx, tz, dep, -acr, fl, bs, al, w);
-				return [l, rr];
+				// the surface runs just under the bank, to where the ground stands clear of it
+				const hw = surfaceHalfWidth(w, dep, bank);
+				let stepH = 0, stepBase = 0, skew = 0;
+				if (kind === RIVER_KIND.STEP_TOP && i < count - 1) { stepH = d[o + RV.WL] - d[o + S + RV.WL]; stepBase = d[o + S + RV.WL] - 0.08; }
+				else if (kind === RIVER_KIND.STEP_BOTTOM && i > 0) { stepH = d[o - S + RV.WL] - d[o + RV.WL]; stepBase = d[o + RV.WL] - 0.08; }
+				// a riffle's lip runs askew across the channel rather than straight, so the steps do not read as stairs
+				if (stepH > 0) { const seedI = kind === RIVER_KIND.STEP_TOP ? i : i - 1; skew = (Math.sin(seedI * 12.9898 + along * 0.017) * 0.5) * Math.min(w * 0.12, 1.4); }
+				return { l: [x + nx * hw + tx * skew, wl, z + nz * hw + tz * skew], r: [x - nx * hw - tx * skew, wl, z - nz * hw - tz * skew], acr: hw / (w * 0.5), foam, dep, w, along, speed, stepH, stepBase, kind };
 			};
-			const connect = (a, b) => idx.push(a[0], b[0], a[1], a[1], b[0], b[1]);
-			for (let i = 0; i < r.count; i++) {
-				const wl = d[i * 6 + 2] - 0.08;
-				if (prev && drops[i] >= FALL_MESH_MIN) {
-					// a real waterfall: the ribbon ends at the lip and starts again in the plunge pool;
-					// the sheet itself is a separate mesh (Waterfalls.js)
-					const top = section(i, wl + drops[i], 0, 0);
-					connect(prev, top);
-					prev = section(i, wl, 0, 0);
-				} else if (prev && drops[i] > 0.8) {
-					const top = section(i, wl + drops[i], drops[i], wl);
-					connect(prev, top);
-					const bot = section(i, wl, drops[i], wl);
-					connect(top, bot);
-					prev = bot;
-				} else {
-					const cs = section(i, wl, 0);
-					if (prev) connect(prev, cs);
-					prev = cs;
+			// every quad owns its four vertices, so the wake attributes (constant per quad) never
+			// depend on which vertex the GPU treats as provoking
+			let prev = null;
+			for (let i = 0; i < count; i++) {
+				const cs = section(i);
+				if (prev) {
+					const a = prev, b = cs;
+					const wk = wakesFor(a.along, b.along);
+					const v = (sec, side) => vert(sec[side][0], sec[side][1], sec[side][2], [sec.foam, sec.dep, side === 'l' ? sec.acr : -sec.acr, sec.w], [sec.along, sec.speed, sec.stepH, sec.stepBase], wk);
+					const aL = v(a, 'l'), aR = v(a, 'r'), bL = v(b, 'l'), bR = v(b, 'r');
+					// two triangles across the diagonal, counter-clockwise seen from above
+					idx.push(aR, aL, bL, aR, bL, bR);
 				}
+				prev = cs.kind === RIVER_KIND.LIP ? null : cs;
 			}
 		}
 
 		const geometry = new THREE.BufferGeometry();
 		geometry.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-		geometry.setAttribute('aFoam', new THREE.Float32BufferAttribute(foam, 1));
-		geometry.setAttribute('aFlow', new THREE.Float32BufferAttribute(flow, 2));
-		geometry.setAttribute('aDepth', new THREE.Float32BufferAttribute(depth, 1));
-		geometry.setAttribute('aAcross', new THREE.Float32BufferAttribute(across, 1));
-		geometry.setAttribute('aFall', new THREE.Float32BufferAttribute(fall, 1));
-		geometry.setAttribute('aBase', new THREE.Float32BufferAttribute(base, 1));
-		geometry.setAttribute('aAlong', new THREE.Float32BufferAttribute(along, 1));
-		geometry.setAttribute('aWidth', new THREE.Float32BufferAttribute(width, 1));
+		geometry.setAttribute('aInfo0', new THREE.Float32BufferAttribute(info0, 4));
+		geometry.setAttribute('aInfo1', new THREE.Float32BufferAttribute(info1, 4));
+		geometry.setAttribute('aWake0', new THREE.Float32BufferAttribute(wake0, 3));
+		geometry.setAttribute('aWake1', new THREE.Float32BufferAttribute(wake1, 3));
+		geometry.setAttribute('aWake2', new THREE.Float32BufferAttribute(wake2, 3));
 		geometry.setIndex(idx);
 		geometry.computeBoundingSphere();
 		this.mesh = new THREE.Mesh(geometry, this.material);
