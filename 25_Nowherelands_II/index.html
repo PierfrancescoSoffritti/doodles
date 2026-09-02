@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+	<title>Nowherelands</title>
+	<link href="https://fonts.googleapis.com/css?family=Comfortaa:300,400&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="css/style.css">
+	<script type="importmap">
+	{
+		"imports": {
+			"three": "../common/libs/three-0.185/build/three.module.min.js",
+			"three/addons/": "../common/libs/three-0.185/examples/jsm/"
+		}
+	}
+	</script>
+</head>
+<body>
+	<canvas id="canvas"></canvas>
+
+	<div id="intro">
+		<div class="intro-inner">
+			<h1>Nowherelands</h1>
+			<p class="tagline">a place that sings back</p>
+			<button id="enter">enter</button>
+			<p class="controls">
+				<span>W A S D <em>move</em></span>
+				<span>mouse <em>look</em></span>
+				<span>click <em>touch</em></span>
+				<span>hold <em>charge</em></span>
+				<span>R <em>record</em></span>
+			</p>
+			<p class="controls touch-only"><span>left half <em>move</em></span><span>right half <em>look</em></span><span>tap <em>touch</em></span></p>
+		</div>
+	</div>
+
+	<div id="hud">
+		<svg class="crosshair" viewBox="0 0 100 100" width="48" height="48">
+			<circle id="crosshair-ring" cx="50" cy="50" r="4" stroke="#fff" stroke-width="2.5" fill="none"/>
+			<circle id="crosshair-charge" cx="50" cy="50" r="0" stroke="#fff" stroke-width="1.5" fill="none" opacity="0.7"/>
+		</svg>
+		<div id="toast"></div>
+		<div id="hint"></div>
+		<div id="corner">
+			<span id="rec" hidden>● rec</span>
+			<a id="seed" title="share this world"></a>
+		</div>
+		<div id="joystick" hidden><div id="joystick-knob"></div></div>
+	</div>
+
+	<script type="module" src="js/main.js"></script>
+</body>
+</html>
