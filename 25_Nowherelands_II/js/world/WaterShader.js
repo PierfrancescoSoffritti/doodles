@@ -32,9 +32,9 @@ export const waterVertexShader = /* glsl */`
 	varying vec4 vUv4;
 	varying vec3 vWorldPos;
 	#ifdef FLOW
-	attribute float aFoam, aDepth, aAcross, aFall;
+	attribute float aFoam, aDepth, aAcross, aFall, aBase;
 	attribute vec2 aFlow;
-	varying float vFoam, vDepth, vAcross, vFall;
+	varying float vFoam, vDepth, vAcross, vFall, vBase;
 	varying vec2 vFlow;
 	#endif
 	void main() {
@@ -47,6 +47,7 @@ export const waterVertexShader = /* glsl */`
 		vDepth = aDepth;
 		vAcross = aAcross;
 		vFall = aFall;
+		vBase = aBase;
 		#endif
 		gl_Position = projectionMatrix * viewMatrix * worldPosition;
 	}`;
@@ -60,7 +61,7 @@ export function waterFragmentShader(shared) {
 	varying vec4 vUv4;
 	varying vec3 vWorldPos;
 	#ifdef FLOW
-	varying float vFoam, vDepth, vAcross, vFall;
+	varying float vFoam, vDepth, vAcross, vFall, vBase;
 	varying vec2 vFlow;
 	#endif
 	${hslGlsl}
@@ -110,16 +111,20 @@ export function waterFragmentShader(shared) {
 
 		// flat stylized water: a deep violet-blue with only a hint of the reflection
 		vec3 base = vec3(0.03, 0.03, 0.11);
-		vec3 col = mix(base, refl * 0.6, 0.18 + 0.3 * fresnel);
 		#ifdef FLOW
-		col = mix(col, vec3(0.06, 0.16, 0.24), shallow * 0.2);
+		vec3 col = mix(vec3(0.02, 0.02, 0.08), refl * 0.45, 0.14 + 0.24 * fresnel);
+		#else
+		vec3 col = mix(base, refl * 0.6, 0.18 + 0.3 * fresnel);
+		#endif
+		#ifdef FLOW
+		col = mix(col, vec3(0.06, 0.16, 0.24), shallow * (vDepth < 0.0 ? 0.12 : 0.2));
 		#else
 		col = mix(col, vec3(0.06, 0.16, 0.24), shallow * 0.35);
 		#endif
 		col = mix(col, vec3(0.12, 0.04, 0.11), uSunIntensity * 0.2);
 		// a long red glitter path under the low sun; rivers are narrow and broken up, so theirs is a thin one
 		#ifdef FLOW
-		float sunSpec = pow(max(dot(R, uSunDir), 0.0), 220.0) * 0.5 + pow(max(dot(R, uSunDir), 0.0), 40.0) * 0.08;
+		float sunSpec = pow(max(dot(R, uSunDir), 0.0), 220.0) * 0.5 + pow(max(dot(R, uSunDir), 0.0), 40.0) * 0.04;
 		#else
 		float sunSpec = pow(max(dot(R, uSunDir), 0.0), 220.0) * 2.2 + pow(max(dot(R, uSunDir), 0.0), 10.0) * 0.2;
 		#endif
@@ -134,8 +139,14 @@ export function waterFragmentShader(shared) {
 		float gapNoise = step(0.28, vnoise(pd * 0.22 - uTime * 0.06));     // breaks the rings into dashes
 		float foam = clamp(edge + (ring1 + ring2) * gapNoise, 0.0, 1.0) * step(0.0, depth + 0.3);
 		#ifdef FLOW
-		float edgeR = 1.0 - step(0.1, dd);
-		col = mix(col, vec3(0.3, 0.33, 0.46), edgeR * step(0.0, depth + 0.3) * 0.8);   // rivers: a thin line at the waterline, no rings
+		if (vDepth < 0.0) {
+			// still water: a soft lap at the shore and nothing else
+			float lap = (1.0 - smoothstep(0.0, 1.2, depth + wobble * 0.4)) * step(0.0, depth + 0.3);
+			col = mix(col, vec3(0.34, 0.37, 0.5), lap * 0.7);
+		} else {
+			float edgeR = 1.0 - step(0.1, dd);
+			col = mix(col, vec3(0.3, 0.33, 0.46), edgeR * step(0.0, depth + 0.3) * 0.5);   // rivers: a thin line at the waterline, no rings
+		}
 		#else
 		col = mix(col, vec3(0.56, 0.6, 0.72), foam);
 		#endif
@@ -146,32 +157,34 @@ export function waterFragmentShader(shared) {
 		float streak = vnoise(vec2(along * 0.07 - uTime * 1.5, across * 0.3));
 		float streak2 = vnoise(vec2(along * 0.16 - uTime * 2.4 + 7.0, across * 0.55));
 		float grazing = 1.0 - 0.75 * fresnel;   // seen along the surface the river is a dark mirror of a dark sky
-		col += vec3(0.42, 0.47, 0.62) * smoothstep(0.62, 0.8, streak) * 0.05 * grazing;
+		col += vec3(0.42, 0.47, 0.62) * smoothstep(0.62, 0.8, streak) * 0.02 * grazing;
 		// white water is streaky, not a wash: a hard-thresholded turbulence pattern gated by the foam weight
 		float turb = vnoise(vec2(along * 0.3 - uTime * 3.5, across * 0.7)) * 0.6 + vnoise(vec2(along * 0.12 - uTime * 2.0 + 7.0, across * 0.35)) * 0.4;
 		float white = vFoam * (1.0 - 0.5 * fresnel) * smoothstep(0.58, 0.72, turb + vFoam * 0.12);
 		col = mix(col, vec3(0.52, 0.55, 0.68), clamp(white, 0.0, 1.0) * 0.7);
-		// rafts of foam drifting downstream
-		float patches = smoothstep(0.66, 0.74, vnoise(vec2(along * 0.05 - uTime * 1.1, across * 0.22)) * 0.7 + vnoise(vec2(along * 0.15 - uTime * 1.6 + 5.0, across * 0.5)) * 0.3);
-		col = mix(col, vec3(0.5, 0.53, 0.66), patches * 0.12 * grazing);
-		float alpha = 1.0;
-		// falling water: long streaks racing down the face, sheer at the edges; a riffle lip only foams
-		if (vFall > 0.02) {
-			float fy = vWorldPos.y * 0.5 + uTime * 9.0;
-			float streaks = vnoise(vec2(across * 1.3, fy * 0.06)) * 0.55 + vnoise(vec2(across * 3.1 + 5.0, fy * 0.25)) * 0.3 + vnoise(vec2(across * 0.4 + 9.0, fy * 0.02)) * 0.15;
-			float curtain = smoothstep(0.38, 0.7, streaks);
-			float tall = smoothstep(0.6, 6.0, vFall);
-			// the water gathers toward the middle of the lip; the sides thin out and let the rock show
-			float edgeFade = (1.0 - smoothstep(0.45, 0.95, abs(vAcross))) * (0.6 + 0.4 * vnoise(vec2(across * 0.5, 3.0)));
-			vec3 fallCol = mix(vec3(0.26, 0.28, 0.44), vec3(0.72, 0.75, 0.9), curtain);
-			col = mix(col, fallCol, edgeFade * (0.4 + 0.5 * tall));
-			col = mix(col, vec3(0.44, 0.47, 0.6), (1.0 - tall) * 0.3 * edgeFade);
-			alpha = mix(1.0, (0.25 + 0.6 * curtain) * edgeFade + 0.1, tall);
+		// small flecks of foam drifting downstream
+		float patches = smoothstep(0.6, 0.82, vnoise(vec2(along * 0.14 - uTime * 1.3, across * 0.5)) * 0.6 + vnoise(vec2(along * 0.4 - uTime * 2.0 + 5.0, across * 1.2)) * 0.4);
+		col = mix(col, vec3(0.45, 0.48, 0.6), patches * 0.1 * grazing);
+		// falling water: a coherent sheet leaving the lip that breaks into strands and spray on the way down.
+		// Only the vertical face is the fall; the flat pool quads beside it just carry its foam.
+		vec3 gn = normalize(cross(dFdx(vWorldPos), dFdy(vWorldPos)));
+		float vertical = 1.0 - smoothstep(0.3, 0.7, abs(gn.y));
+		if (vFall > 0.02 && vertical > 0.01) {
+			float frac = clamp((vWorldPos.y - vBase) / max(vFall, 0.5), 0.0, 1.0);   // 1 at the lip, 0 in the pool
+			float fy = vWorldPos.y * 0.6 + uTime * 10.0;
+			float sheet = vnoise(vec2(across * 0.9, fy * 0.05)) * 0.6 + vnoise(vec2(across * 2.4 + 5.0, fy * 0.2)) * 0.4;
+			float strands = vnoise(vec2(across * 4.0 + 9.0, fy * 0.35)) * 0.5 + vnoise(vec2(across * 8.0 + 2.0, fy * 0.6)) * 0.5;
+			float turbulence = mix(strands, sheet, frac);
+			float white = smoothstep(0.42, 0.62, turbulence + (1.0 - frac) * 0.15);
+			float tall = smoothstep(0.6, 4.0, vFall);
+			float sides = 1.0 - smoothstep(0.7, 1.0, abs(vAcross)) * 0.5;
+			vec3 fallCol = mix(vec3(0.16, 0.18, 0.3), vec3(0.58, 0.61, 0.74), white * sides);
+			col = mix(col, fallCol, (0.55 + 0.45 * tall) * vertical);
 		}
 		#endif
 
 		#ifdef FLOW
-		float spec = pow(max(dot(R, uMoonDir), 0.0), 500.0) * 0.8 + pow(max(dot(R, uMoonDir), 0.0), 60.0) * 0.08;
+		float spec = pow(max(dot(R, uMoonDir), 0.0), 500.0) * 0.8 + pow(max(dot(R, uMoonDir), 0.0), 60.0) * 0.04;
 		#else
 		float spec = pow(max(dot(R, uMoonDir), 0.0), 500.0) * 2.5 + pow(max(dot(R, uMoonDir), 0.0), 24.0) * 0.18;
 		#endif
@@ -201,11 +214,7 @@ export function waterFragmentShader(shared) {
 			col = mix(col, uFogColor, hf);
 			col = mix(col, mix(uFogColor, uFogFar, 0.4), df);
 		}
-		#ifdef FLOW
-		gl_FragColor = vec4(col, alpha);
-		#else
 		gl_FragColor = vec4(col, 1.0);
-		#endif
 	}`;
 }
 

@@ -12,12 +12,11 @@ export class InlandWater {
 			vertexShader: waterVertexShader,
 			fragmentShader: waterFragmentShader(shared),
 			defines: { FLOW: '' },
-			transparent: true,
 		});
 		this.uniforms = uniforms;
 
-		const pos = [], foam = [], flow = [], depth = [], across = [], fall = [], idx = [];
-		const vert = (x, y, z, f, fx, fz, dep = 0, acr = 0, fl = 0) => { pos.push(x, y, z); foam.push(f); flow.push(fx, fz); depth.push(dep); across.push(acr); fall.push(fl); return pos.length / 3 - 1; };
+		const pos = [], foam = [], flow = [], depth = [], across = [], fall = [], base = [], idx = [];
+		const vert = (x, y, z, f, fx, fz, dep = 0, acr = 0, fl = 0, bs = 0) => { pos.push(x, y, z); foam.push(f); flow.push(fx, fz); depth.push(dep); across.push(acr); fall.push(fl); base.push(bs); return pos.length / 3 - 1; };
 
 		// lakes: half-cell tiles over every lake cell and its immediate rim, at the lake level
 		const N = world.res, cell = world.cell, half = cell / 2;
@@ -41,7 +40,8 @@ export class InlandWater {
 			for (let sj = 0; sj < H; sj++) for (let si = 0; si < W; si++) {
 				if (!mask[sj * W + si]) continue;
 				const x0 = wx(i0) - half + si * half, z0 = wz(j0) - half + sj * half;
-				const a = vert(x0, y, z0, 0, 0, 0), b = vert(x0 + half, y, z0, 0, 0, 0), c = vert(x0, y, z0 + half, 0, 0, 0), d = vert(x0 + half, y, z0 + half, 0, 0, 0);
+				// aDepth = -1 marks still water: lakes read depth from the shore map but foam only at the shore
+				const a = vert(x0, y, z0, 0, 0, 0, -1), b = vert(x0 + half, y, z0, 0, 0, 0, -1), c = vert(x0, y, z0 + half, 0, 0, 0, -1), d = vert(x0 + half, y, z0 + half, 0, 0, 0, -1);
 				idx.push(a, c, b, b, c, d);
 			}
 		}
@@ -51,26 +51,27 @@ export class InlandWater {
 		for (const r of world.rivers) {
 			const d = r.data, drops = r.drops;
 			let prev = null;
-			const section = (i, wl, fl) => {
+			const section = (i, wl, fl = 0, bs = 0) => {
 				const x = d[i * 6], z = d[i * 6 + 1], w = d[i * 6 + 3], dep = d[i * 6 + 4], f = d[i * 6 + 5];
 				const ia = Math.max(0, i - 1), ib = Math.min(r.count - 1, i + 1);
 				let tx = d[ib * 6] - d[ia * 6], tz = d[ib * 6 + 1] - d[ia * 6 + 1];
 				const len = Math.hypot(tx, tz) || 1;
 				tx /= len; tz /= len;
-				const hw = w * 0.5 + (w * 0.6 + 8) * 0.3;
+				// a fall face only spans the water itself; the ribbon's hidden margin stays on the flat reaches
+				const hw = fl > 0 ? w * 0.5 * 0.92 : w * 0.5 + (w * 0.6 + 8) * 0.3;
 				const acr = hw / (w * 0.5);      // 1 at the channel edge, a little more at the ribbon edge
 				const nx = -tz, nz = tx;
-				const l = vert(x + nx * hw, wl, z + nz * hw, f, tx, tz, dep, acr, fl);
-				const rr = vert(x - nx * hw, wl, z - nz * hw, f, tx, tz, dep, -acr, fl);
+				const l = vert(x + nx * hw, wl, z + nz * hw, f, tx, tz, dep, acr, fl, bs);
+				const rr = vert(x - nx * hw, wl, z - nz * hw, f, tx, tz, dep, -acr, fl, bs);
 				return [l, rr];
 			};
 			const connect = (a, b) => idx.push(a[0], b[0], a[1], a[1], b[0], b[1]);
 			for (let i = 0; i < r.count; i++) {
 				const wl = d[i * 6 + 2] - 0.08;
 				if (prev && drops[i] > 0.8) {
-					const top = section(i, wl + drops[i], drops[i]);
+					const top = section(i, wl + drops[i], drops[i], wl);
 					connect(prev, top);
-					const bot = section(i, wl, drops[i]);
+					const bot = section(i, wl, drops[i], wl);
 					connect(top, bot);
 					prev = bot;
 				} else {
@@ -88,6 +89,7 @@ export class InlandWater {
 		geometry.setAttribute('aDepth', new THREE.Float32BufferAttribute(depth, 1));
 		geometry.setAttribute('aAcross', new THREE.Float32BufferAttribute(across, 1));
 		geometry.setAttribute('aFall', new THREE.Float32BufferAttribute(fall, 1));
+		geometry.setAttribute('aBase', new THREE.Float32BufferAttribute(base, 1));
 		geometry.setIndex(idx);
 		geometry.computeBoundingSphere();
 		this.mesh = new THREE.Mesh(geometry, this.material);

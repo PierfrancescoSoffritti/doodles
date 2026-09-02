@@ -720,8 +720,8 @@ function buildRiverGeometry(river, h, area, N, cell, size, lakes, lakeId, rivers
 	let stepJitter = rnd.range(0.6, 1.5);
 	const falls = [];
 	for (let i = 0; i < count; i++) {
-		// riffles and pools spaced about five channel widths apart, never two alike
-		const stepH = clamp(grad[i] * 4 * W[i] * stepJitter, 0.3, 3);
+		// pools at least six widths (and 40 m) long, so a steep reach is pools between small falls, not stairs
+		const stepH = clamp(grad[i] * Math.max(6 * W[i], 40) * stepJitter, 0.4, 6);
 		if (isFall[i] && m[i] < pool - 1) {
 			const drop = pool - m[i];
 			falls.push({ i, drop });
@@ -732,7 +732,7 @@ function buildRiverGeometry(river, h, area, N, cell, size, lakes, lakeId, rivers
 			pool = m[i];
 		}
 		wl[i] = pool;
-		const foamLen = (2 + lastStepH * 1.5) / spacing;
+		const foamLen = Math.min((2 + lastStepH * 1.5) / spacing, 3);
 		foam[i] = i - lastStep < foamLen ? 1 - (i - lastStep) / foamLen : 0;
 	}
 	wl[count - 1] = Math.min(wl[count - 1], mouthLevel);

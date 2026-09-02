@@ -13,7 +13,7 @@ export class Waterfalls {
 				const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random());
 				base.push(f.x, f.bottom, f.z);
 				// phase, spread x, spread z, scale
-				info.push(Math.random(), Math.cos(a) * r * (f.w * 0.55 + 3), Math.sin(a) * r * (f.w * 0.55 + 3), 1 + f.drop * 0.05);
+				info.push(Math.random(), Math.cos(a) * r * (f.w * 0.7 + 4), Math.sin(a) * r * (f.w * 0.7 + 4), 0.6 + f.drop * 0.02);
 			}
 		}
 		this.uniforms = { uTime: { value: 0 }, uCameraPos: { value: new THREE.Vector3() }, uPixelRatio: { value: shared.renderer.getPixelRatio() }, uFogColor: shared.fogUniforms.uFogColor };
@@ -30,12 +30,13 @@ export class Waterfalls {
 				varying float vAlpha;
 				void main() {
 					float t = fract(uTime * 0.22 + aInfo.x);
-					float rise = t * (5.0 + aInfo.w * 8.0);
-					vec3 p = position + vec3(aInfo.y * (0.4 + t * 0.9), rise, aInfo.z * (0.4 + t * 0.9));
+					// spray stays low: it billows out from the plunge pool and settles
+					float rise = t * (2.0 + aInfo.w * 4.0) * (1.0 - t * 0.4);
+					vec3 p = position + vec3(aInfo.y * (0.3 + t * 1.1), rise, aInfo.z * (0.3 + t * 1.1));
 					float dist = distance(p, uCameraPos);
-					vAlpha = sin(t * 3.14159) * 0.22 * (1.0 - smoothstep(250.0, 600.0, dist)) * smoothstep(4.0, 12.0, dist);
+					vAlpha = sin(t * 3.14159) * 0.12 * (1.0 - smoothstep(200.0, 500.0, dist)) * smoothstep(4.0, 12.0, dist);
 					vec4 mv = viewMatrix * vec4(p, 1.0);
-					gl_PointSize = (3.0 + t * 7.0) * aInfo.w * uPixelRatio * 260.0 / max(-mv.z, 1.0);
+					gl_PointSize = (1.5 + t * 3.5) * aInfo.w * uPixelRatio * 260.0 / max(-mv.z, 1.0);
 					gl_Position = projectionMatrix * mv;
 				}`,
 			fragmentShader: /* glsl */`

@@ -184,10 +184,11 @@ export class Heightmap {
 		const fade = smoothstep(0.4, 4, rel) * (1 - bank);
 		if (fade > 0.001) {
 			const rocky = smoothstep(0.3, 0.9, slope);
-			const amp = 1.1 + 3.5 * rocky;
+			const amp = 1.1 + 3.0 * rocky;
 			const dn = this.detail.fbm(x / 47, z / 47, 3);
-			const rn = 1 - Math.abs(this.detail.noise(x / 23 + 7.3, z / 23 - 3.1));
-			h += (dn * amp + rn * 2.6 * rocky * (0.4 + hardness)) * fade;
+			// broken rock, not corrugation: two ridged octaves at different scales and orientations
+			const rn = (1 - Math.abs(this.detail.noise(x / 31 + 7.3, z / 23 - 3.1))) * 0.7 + (1 - Math.abs(this.detail.noise(x / 9 - 5.1, z / 13 + 2.2))) * 0.3;
+			h += (dn * amp + rn * 1.6 * rocky * (0.4 + hardness)) * fade;
 		}
 
 		this._water = water;

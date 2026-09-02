@@ -70,7 +70,7 @@ export class PostProcessing {
 		this.film.uniforms.uGlare.value = shared.sunGlare || 0;
 		if (shared.sunScreen) this.film.uniforms.uSunScreen.value.copy(shared.sunScreen);
 		this.film.uniforms.uPulse.value = shared.audio ? shared.audio.analysis.bass * 0.6 : 0;
-		this.bloom.strength = 0.42 + (shared.audio ? shared.audio.analysis.attack * 0.15 : 0) + shared.state.eclipse * 0.12;
+		this.bloom.strength = shared.debugNoBloom ? 0 : 0.42 + (shared.audio ? shared.audio.analysis.attack * 0.15 : 0) + shared.state.eclipse * 0.12;
 		this.composer.render();
 	}
 }
