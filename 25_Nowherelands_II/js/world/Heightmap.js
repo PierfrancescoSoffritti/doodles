@@ -214,9 +214,10 @@ export class Heightmap {
 				foam = seg[o + 10] + (seg[o + 11] - seg[o + 10]) * t;
 				const hw = w * 0.5, bankW = bankWidth(bk, d, w);
 				rDist = dist; rWidth = w; rSeg = ns;
-				// under the sea the channel fills in over the river's last reaches, so it ends in the seabed
-				// rather than a wall
+				// under the sea the channel shoals to a bar over the river's last reaches, so it ends in a
+				// shallow seabed rather than a wall (never in the land it cut through to get there)
 				const carve = wl < this.waterLevel ? clamp(1 + (wl - this.waterLevel) / 0.5, 0, 1) : 1;
+				const bar = this.waterLevel - 1.5;
 				{
 					const ax = seg[o], az = seg[o + 1], dx = seg[o + 2] - ax, dz = seg[o + 3] - az, l = Math.hypot(dx, dz) || 1;
 					rAlong = seg[o + 15] + t * l;
@@ -229,7 +230,8 @@ export class Heightmap {
 					// cobbled bed: small bumps, more of them toward the banks, never above the water
 					const cobble = (1 - Math.abs(this.detail.noise(x / 3.2 + 4.1, z / 3.2 - 2.7))) * (0.15 + 0.3 * u * u) * Math.min(d * 0.3, 1);
 					const bed = wl - d * bedProfile(u) + cobble;
-					h = Math.min(h, h + (bed - h) * carve);
+					const shoal = Math.max(bed, bar);
+					h = Math.min(h, bed + (shoal - bed) * (1 - carve));
 					bank = 1;
 					water = Math.max(water, wl);
 				} else {
@@ -238,8 +240,8 @@ export class Heightmap {
 					const edge = wl - EDGE_DEPTH * d;
 					let hb = edge + (h - edge) * s;
 					// where the land beside the river lies below the water, a low natural levee keeps it in
-					if (h < wl + 0.25) { const lip = wl + 0.35 * (1 - s); if (hb < lip) hb = lip; }
-					h = h + (hb - h) * carve;
+					if (h < wl + 0.25 && wl >= this.waterLevel) { const lip = wl + 0.35 * (1 - s); if (hb < lip) hb = lip; }
+					h = hb + (Math.max(hb, bar) - hb) * (1 - carve);
 					bank = 1 - s;
 					if (dist < hw + bankW * 0.5) water = Math.max(water, wl);
 				}

@@ -85,8 +85,9 @@ export function waterVertexShader(shared) {
 		vLevel = worldPosition.y;
 		// a river's last reaches ride the sea's swell as they run out into it
 		if (aInfo0.y > 0.0) {
-			float ride = 1.0 - smoothstep(1.5, 3.0, worldPosition.y - uWaterLevel);
-			if (ride > 0.001) { vec3 nrm; float jac; worldPosition.y += gerstner(worldPosition.xz, uTime, shoreDistAt(worldPosition.xz), ride, nrm, jac).y; }
+			float ride = 1.0 - smoothstep(2.0, 4.0, worldPosition.y - uWaterLevel);
+			// the whole displacement, sideways too: that is what sharpens the sea's crests into facets
+			if (ride > 0.001) { vec3 nrm; float jac; worldPosition.xyz += gerstner(worldPosition.xz, uTime, shoreDistAt(worldPosition.xz), ride, nrm, jac); }
 		}
 		#ifdef WAVES
 		// the near surface heaves: a swell on calm water, short steep standing waves in the rapids,
@@ -145,7 +146,7 @@ export function waterFragmentShader(shared) {
 		float vAlong = vInfo1.x, vSpeed = vInfo1.y, vFall = vInfo1.z, vBase = vInfo1.w;
 		bool river = vDepth > 0.0;
 		// a river that has run out under the sea is the sea's from there on
-		if (river && vLevel < uWaterLevel + 0.2) discard;
+		if (river && vLevel < uWaterLevel + 0.35) discard;
 		float speed = 0.6 + vSpeed * 2.2;      // metres per second the pattern travels: 1.3 in a pool, 7 in a chute
 		float across = vAcross * vWidth * 0.5;
 		vec2 fuv = river ? vec2(vAlong - uTime * speed, across) : p;
@@ -261,7 +262,7 @@ export function waterFragmentShader(shared) {
 
 		// a river running out into the sea takes on the sea's own look over its last metres of fall,
 		// so the two meet in one colour where the ribbon dissolves
-		float seaMix = river ? 1.0 - smoothstep(0.2, 2.5, vLevel - uWaterLevel) : 0.0;
+		float seaMix = river ? 1.0 - smoothstep(1.5, 3.5, vLevel - uWaterLevel) : 0.0;
 		if (seaMix > 0.001) {
 			vec3 sn = gn.y < 0.0 ? -gn : gn;
 			float fr;
@@ -332,7 +333,7 @@ export function waterFragmentShader(shared) {
 		#endif
 		// a river dissolves into the sea, which lies just under it riding the same swell, over the last
 		// metre of its fall to sea level
-		if (river) alpha *= smoothstep(0.2, 1.2, vLevel - uWaterLevel);
+		if (river) alpha *= smoothstep(0.35, 1.5, vLevel - uWaterLevel);
 		gl_FragColor = vec4(col, alpha);
 	}`;
 }

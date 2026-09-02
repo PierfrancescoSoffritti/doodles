@@ -20,7 +20,7 @@ import { RIVER_STRIDE, RV, RIVER_KIND, WAKE_STRIDE, surfaceHalfWidth } from './g
 export const NEAR_RADIUS = 260;        // where the static ribbon gives way to the waved one
 const NEAR_BUILD = 340;                // reaches gathered for the near mesh
 const NEAR_REBUILD = 40;               // rebuild after moving this far
-const NEAR_ACROSS = 6, NEAR_ALONG = 2; // subdivisions per sample quad
+const NEAR_QUAD = 2.2;                 // metres per quad on the near mesh, the sea's facet size
 const NEAR_LAKE_SUB = 4;               // quads per half grid cell on a lake (about 2 m)
 
 export class InlandWater {
@@ -52,7 +52,7 @@ export class InlandWater {
 
 		const b = new Builder();
 		this.buildLakes(b, 1, null);
-		for (let ri = 0; ri < world.rivers.length; ri++) this.buildRiver(b, ri, null, 1, 1);
+		for (let ri = 0; ri < world.rivers.length; ri++) this.buildRiver(b, ri, null, 0);
 		this.mesh = new THREE.Mesh(b.geometry(), this.material);
 		this.mesh.frustumCulled = false;
 		this.mesh.renderOrder = 1;          // over the sea, so a river mouth shows the river until it fades
@@ -143,13 +143,17 @@ export class InlandWater {
 
 	// Quads between consecutive samples of one river, subdivided `subAlong` times along the flow
 	// and `subAcross` times across it. `keep(i)` selects the sample pairs (i, i+1) to build.
-	buildRiver(b, ri, keep, subAlong, subAcross) {
+	// `quad` is the target quad size in metres for the near mesh (0 for the static mesh's one quad per sample).
+	buildRiver(b, ri, keep, quad) {
 		const r = this.world.rivers[ri], secs = this.sections[ri];
 		const count = r.count;
 		for (let i = 0; i < count - 1; i++) {
 			const a = secs[i], c = secs[i + 1];
 			if (a.kind === RIVER_KIND.LIP) continue;                    // the fall covers the gap
 			if (keep && !keep(i)) continue;
+			// as many quads as it takes to match the sea's facets, so a river's last reaches look like the sea
+			const subAcross = quad ? Math.min(Math.max(Math.round(a.hw * 2 / quad), 3), 24) : 1;
+			const subAlong = quad ? Math.min(Math.max(Math.round(Math.hypot(c.x - a.x, c.z - a.z) / quad), 1), 8) : 1;
 			const wk = this.wakesFor(r, a.along, c.along);
 			// a riffle ramp is exactly one quad: the step height belongs to the quad, never interpolated into its neighbours
 			const stepH = a.kind === RIVER_KIND.STEP_TOP && c.kind === RIVER_KIND.STEP_BOTTOM ? a.stepH : 0, stepBase = stepH > 0 ? a.stepBase : 0;
@@ -166,10 +170,11 @@ export class InlandWater {
 				}
 				rows.push(row);
 			}
-			// two triangles across the diagonal, counter-clockwise seen from above
+			// two triangles across the diagonal, counter-clockwise seen from above; the diagonal
+			// alternates so the facets do not all lean the same way
 			for (let j = 0; j < subAlong; j++) for (let k = 0; k < subAcross; k++) {
 				const aL = rows[j][k + 1], aR = rows[j][k], bL = rows[j + 1][k + 1], bR = rows[j + 1][k];
-				b.idx.push(aR, aL, bL, aR, bL, bR);
+				if (((i * 7 + j * 13 + k * 5 + j * k) & 3) < 2) b.idx.push(aR, aL, bL, aR, bL, bR); else b.idx.push(aR, aL, bR, aL, bL, bR);
 			}
 		}
 	}
@@ -190,7 +195,7 @@ export class InlandWater {
 		this.buildLakes(b, NEAR_LAKE_SUB, (x, z) => { const dx = x - px, dz = z - pz; return dx * dx + dz * dz < r2; });
 		for (const [ri, set] of perRiver) {
 			const secs = this.sections[ri];
-			this.buildRiver(b, ri, (i) => { if (!set.has(i)) return false; const s = secs[i]; const dx = s.x - px, dz = s.z - pz; return dx * dx + dz * dz < r2; }, NEAR_ALONG, NEAR_ACROSS);
+			this.buildRiver(b, ri, (i) => { if (!set.has(i)) return false; const s = secs[i]; const dx = s.x - px, dz = s.z - pz; return dx * dx + dz * dz < r2; }, NEAR_QUAD);
 		}
 		if (this.near) { this.scene.remove(this.near); this.near.geometry.dispose(); this.shared.mirrorHide.delete(this.near); }
 		this.near = new THREE.Mesh(b.geometry(), this.nearMaterial);

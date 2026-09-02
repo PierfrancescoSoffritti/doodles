@@ -227,7 +227,9 @@ export function seaFragmentShader(shared) {
 		float nearF = 1.0 - smoothstep(900.0, 2200.0, dist);
 		// whitecaps where the swell folds over
 		float capN = vnoise(p * 0.3 + t * 0.15) * 0.6 + vnoise(p * 0.09 - t * 0.05) * 0.4;
-		float cap = step(vJac, 0.5 + 0.2 * capN) * nearF * deepEnv(d);
+		// more where a river's current meets the swell, at the edge of its reach
+		float plume = vRiver * (1.0 - vRiver) * 4.0;
+		float cap = step(vJac, 0.5 + 0.2 * capN + 0.1 * plume) * nearF * deepEnv(d);
 		// breakers: a solid lip on the face of the wave where it breaks, then a torn trail behind it
 		float ph = shorePhase(d, p, t);
 		float age = shoreAge(ph);
@@ -240,7 +242,8 @@ export function seaFragmentShader(shared) {
 		float trail = step(1.0 - cover, trailN);
 		// the waterline: a thin broken seam where the water meets the sand
 		float lap = (1.0 - smoothstep(0.0, 0.5, abs(d))) * step(0.35, vnoise(p * 0.45 + t * 0.12));
-		float foam = clamp(cap + lip + trail + lap, 0.0, 1.0) * (1.0 - vRiver);
+		// no breakers on a river's banks, but the waterline seam runs along them like any shore
+		float foam = clamp((cap + lip + trail) * (1.0 - vRiver) + lap, 0.0, 1.0);
 		col = mix(col, foamCol, foam * 0.85);
 
 		col += rippleGlow(p, t) * 1.2;
