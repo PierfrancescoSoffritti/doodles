@@ -10,17 +10,34 @@ export class Heightmap {
 		this.noise = new Simplex2D(rnd);
 		this.detail = new Simplex2D(new Random(seed + ':detail'));
 		this.forestNoise = new Simplex2D(new Random(seed + ':forest'));
+		this.warp = new Simplex2D(new Random(seed + ':warp'));
+		this.plateau = new Simplex2D(new Random(seed + ':plateau'));
 		this.waterLevel = config.world.waterLevel;
 	}
 
 	height(x, z) {
 		const n = this.noise;
-		const continent = n.fbm(x / 2600, z / 2600, 3, 2.1, 0.55);           // -1..1 large basins/highlands
-		const hills = n.fbm(x / 480 + 13.7, z / 480 - 4.2, 5, 2.0, 0.5);      // rolling hills
-		const ridge = 1 - Math.abs(this.detail.noise(x / 1100 + 100, z / 1100 - 50)); // 0..1 ridged
-		const highland = smoothstep(-0.1, 0.6, continent);
+		// domain warp: bends every feature so nothing reads as a noise grid
+		const wx = x + this.warp.fbm(x / 1900, z / 1900, 3) * 480;
+		const wz = z + this.warp.fbm(x / 1900 + 37.1, z / 1900 - 11.4, 3) * 480;
 
-		let h = continent * 34 + hills * 42 + ridge * ridge * 95 * highland + 8;
+		const continent = n.fbm(wx / 5200, wz / 5200, 3, 2.1, 0.55);            // -1..1 basins and highlands, kilometres across
+		const hills = n.fbm(wx / 950 + 13.7, wz / 950 - 4.2, 5, 2.0, 0.5);      // rolling hills
+		const crest = 1 - Math.abs(this.detail.noise(wx / 2400 + 100, wz / 2400 - 50));   // long sharp ranges
+		const spur = 1 - Math.abs(this.detail.noise(wx / 720 + 7, wz / 720 + 3));         // side ridges
+		const highland = smoothstep(-0.05, 0.6, continent);
+		const mountains = (Math.pow(crest, 1.7) * 260 + spur * crest * 70) * highland;
+
+		let h = continent * 60 + hills * 70 + mountains + 8;
+
+		// terraced plateaus on some of the high ground
+		const plateau = smoothstep(0.3, 0.8, this.plateau.fbm(wx / 1600, wz / 1600, 2)) * highland;
+		if (plateau > 0.001 && h > 40) {
+			const step = 42;
+			const f = h / step;
+			const terraced = (Math.floor(f) + smoothstep(0.2, 0.8, f - Math.floor(f))) * step;
+			h += (terraced - h) * plateau;
+		}
 
 		// Shallow lake beds: pull everything under the water line down gently so shores read as beaches.
 		if (h < 3) h = 3 - (3 - h) * 0.55 - 1.5;

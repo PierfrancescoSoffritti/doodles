@@ -16,6 +16,8 @@ export class Terrain {
 		this.segments = config.world.chunkSegments;
 		this.viewRadius = config.world.viewRadius;
 		this.lastKey = null;
+		// far tier: big coarse chunks that carry the horizon out to several kilometres
+		this.far = { size: 1280, segments: 16, radius: 5, chunks: new Map(), queue: [], lastKey: null };
 	}
 
 	key(cx, cz) { return cx + ',' + cz; }
@@ -41,6 +43,58 @@ export class Terrain {
 		}
 
 		this.vegetation.update(dt, cx, cz);
+		this.updateFar(playerPos);
+	}
+
+	updateFar(playerPos) {
+		const f = this.far;
+		const cx = Math.round(playerPos.x / f.size), cz = Math.round(playerPos.z / f.size);
+		const key = this.key(cx, cz);
+		if (key !== f.lastKey) {
+			f.lastKey = key;
+			const needed = new Set();
+			f.queue.length = 0;
+			const fineReach = this.viewRadius * this.size;
+			for (let dz = -f.radius; dz <= f.radius; dz++) {
+				for (let dx = -f.radius; dx <= f.radius; dx++) {
+					const k = this.key(cx + dx, cz + dz);
+					// skip coarse chunks that the fine tier fully covers
+					const ox = (cx + dx) * f.size - playerPos.x, oz = (cz + dz) * f.size - playerPos.z;
+					const farthestCorner = Math.hypot(Math.abs(ox) + f.size / 2, Math.abs(oz) + f.size / 2);
+					if (farthestCorner < fineReach * 0.85) continue;
+					needed.add(k);
+					if (!f.chunks.has(k)) f.queue.push([cx + dx, cz + dz, dx * dx + dz * dz]);
+				}
+			}
+			f.queue.sort((a, b) => a[2] - b[2]);
+			for (const [k, mesh] of f.chunks) {
+				if (!needed.has(k)) { this.scene.remove(mesh); mesh.geometry.dispose(); f.chunks.delete(k); }
+			}
+		}
+		let budget = f.chunks.size === 0 ? 100 : 2;
+		while (budget-- > 0 && f.queue.length) {
+			const [x, z] = f.queue.shift();
+			const k = this.key(x, z);
+			if (!f.chunks.has(k)) f.chunks.set(k, this.buildFarChunk(x, z));
+		}
+	}
+
+	buildFarChunk(cx, cz) {
+		const f = this.far, size = f.size, seg = f.segments;
+		const ox = cx * size, oz = cz * size;
+		const geometry = new THREE.PlaneGeometry(size, size, seg, seg);
+		geometry.rotateX(-Math.PI / 2);
+		const pos = geometry.attributes.position;
+		for (let i = 0; i < pos.count; i++) {
+			const x = pos.getX(i) + ox, z = pos.getZ(i) + oz;
+			pos.setXYZ(i, x, this.heightmap.height(x, z) - 3, z);   // sits just under the fine tier where they overlap
+		}
+		geometry.deleteAttribute('normal');
+		geometry.deleteAttribute('uv');
+		geometry.computeBoundingSphere();
+		const mesh = new THREE.Mesh(geometry, this.material);
+		this.scene.add(mesh);
+		return mesh;
 	}
 
 	refreshNeeded(cx, cz) {

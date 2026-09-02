@@ -15,13 +15,13 @@ export const config = {
 	get seedHash() { return hashString(this.seed); },
 
 	world: {
-		chunkSize: 256,
-		chunkSegments: 24,
-		viewRadius: 6,          // chunks
+		chunkSize: 320,
+		chunkSegments: 32,
+		viewRadius: 7,          // chunks
 		vegetationRadius: 4,    // chunks
 		waterLevel: 0,
 		eyeHeight: 11,
-		far: 12000,
+		far: 16000,
 	},
 
 	audio: {

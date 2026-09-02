@@ -28,7 +28,7 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2('#2a1046', 0.00082);
+scene.fog = new THREE.FogExp2('#2a1046', 0.00028);
 const camera = new THREE.PerspectiveCamera(66, innerWidth / innerHeight, 0.5, config.world.far);
 
 // Shared world state every module reads from.
@@ -157,7 +157,7 @@ function frame() {
 	u.uNight.value = shared.night || 0;
 	u.uRain.value = shared.state.rainVisible || 0;
 	water.uniforms.uRain.value = shared.state.rainVisible || 0;
-	scene.fog.density = 0.00082 * (1 + 0.5 * (shared.state.rainVisible || 0) + 0.25 * (shared.state.snowVisible || 0));
+	scene.fog.density = 0.00028 * (1 + 0.8 * (shared.state.rainVisible || 0) + 0.4 * (shared.state.snowVisible || 0));
 	u.uWaterLevel.value = heightmap.waterLevel;
 	const dim = shared.skyDim || 1;
 	shared.night = 1 - Math.max(shared.moon.intensity, shared.sun.intensity * 0.35);

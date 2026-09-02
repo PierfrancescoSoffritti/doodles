@@ -67,22 +67,23 @@ export function createTerrainMaterial(shared) {
 				// height-banded base colour
 				vec3 deep = vec3(0.02, 0.014, 0.07);
 				vec3 mid = vec3(0.075, 0.035, 0.17);
-				vec3 high = vec3(0.24, 0.12, 0.3);
-				vec3 peak = vec3(0.5, 0.34, 0.56);
-				vec3 albedo = mix(deep, mid, smoothstep(-2.0, 45.0, h));
-				albedo = mix(albedo, high, smoothstep(45.0, 120.0, h));
-				albedo = mix(albedo, peak, smoothstep(120.0, 190.0, h));
+				vec3 high = vec3(0.19, 0.1, 0.25);
+				vec3 peak = vec3(0.3, 0.2, 0.36);
+				vec3 albedo = mix(deep, mid, smoothstep(-2.0, 70.0, h));
+				albedo = mix(albedo, high, smoothstep(70.0, 220.0, h));
+				albedo = mix(albedo, peak, smoothstep(220.0, 380.0, h));
 				albedo *= 0.75 + 0.25 * n.y;
 
-				// snow settles on gentle slopes
-				float snowMask = smoothstep(0.55, 0.9, n.y) * smoothstep(1.0, 16.0, h) * uSnow;
-				albedo = mix(albedo, vec3(0.62, 0.62, 0.8), snowMask * 0.85);
+				// snow settles on gentle slopes, and the high peaks keep their caps all year
+				float caps = smoothstep(240.0, 330.0, h) * smoothstep(0.45, 0.85, n.y);
+				float snowMask = max(smoothstep(0.55, 0.9, n.y) * smoothstep(1.0, 16.0, h) * uSnow, caps);
+				albedo = mix(albedo, vec3(0.4, 0.4, 0.56), snowMask * 0.65);
 
 				// lighting: moon + hemisphere
 				float diff = max(dot(n, uMoonDir), 0.0);
 				vec3 hemi = mix(uGroundColor, uSkyColor, n.y * 0.5 + 0.5);
 				float sunDiff = max(dot(n, uSunDir), 0.0);
-				vec3 color = albedo * (hemi * 1.1 + uMoonColor * diff * uMoonIntensity * 0.9 + uSunColor * pow(sunDiff, 2.0) * uSunIntensity * 0.45);
+				vec3 color = albedo * (hemi * 1.1 + uMoonColor * diff * uMoonIntensity * 0.65 + uSunColor * pow(sunDiff, 2.0) * uSunIntensity * 0.12);
 
 				// rain darkens and glosses the ground
 				color *= 1.0 - uRain * 0.3;
@@ -110,11 +111,14 @@ export function createTerrainMaterial(shared) {
 				color += vec3(0.7, 0.75, 0.9) * wash * (0.35 + 0.3 * washN) * (0.5 + 0.5 * uMoonIntensity);
 
 				// valley haze
-				float haze = (1.0 - smoothstep(-4.0, 28.0, h)) * 0.45;
+				float haze = (1.0 - smoothstep(-4.0, 40.0, h)) * 0.45;
 				color = mix(color, fogColor * 1.2, haze);
 
 				gl_FragColor = vec4(color, 1.0);
-				#include <fog_fragment>
+				// custom fog: distant land fades toward a darker tone than the sky, so ranges stay as silhouettes on the horizon
+				float fogFactor = 1.0 - exp(-fogDensity * fogDensity * vFogDepth * vFogDepth);
+				vec3 farTone = fogColor * 0.42;
+				gl_FragColor.rgb = mix(gl_FragColor.rgb, farTone, fogFactor);
 			}`,
 	});
 

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 // A coarse height texture of the terrain around the player so the water shader
 // knows how deep it is: foam, shallows and caustics all come from this.
-const RES = 256, SIZE = 2048, ROWS_PER_FRAME = 12;
+const RES = 256, SIZE = 2560, ROWS_PER_FRAME = 12;
 
 export class ShoreMap {
 	constructor(heightmap) {

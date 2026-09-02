@@ -117,7 +117,7 @@ export class Water {
 				}`,
 		};
 
-		const geometry = new THREE.PlaneGeometry(7000, 7000);
+		const geometry = new THREE.PlaneGeometry(14000, 14000);
 		this.mesh = new Reflector(geometry, { textureWidth: 768, textureHeight: 768, clipBias: 0.02, shader, multisample: 0 });
 		this.mesh.material.fog = true;
 		this.mesh.rotation.x = -Math.PI / 2;

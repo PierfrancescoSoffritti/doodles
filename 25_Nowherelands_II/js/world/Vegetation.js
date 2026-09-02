@@ -291,20 +291,20 @@ export class Vegetation {
 		const inBand = (lo, hi, maxSlope) => (x, z) => { const h = H(x, z); return h > lo && h < hi && hm.slope(x, z) < maxSlope; };
 		const density = hm.forestDensity(ox, oz);
 		const chunkH = H(ox, oz);
-		const lowland = chunkH < 40, highland = chunkH > 85;
+		const lowland = chunkH < 60, highland = chunkH > 160;
 
 		// trees: bare in the open, tall slender ones in the deep forest
 		const treeCount = Math.round((highland ? 3 : 6 + density * 34) * rnd.range(0.6, 1.3));
 		const treeSpots = this.spots(rnd, ox, oz, size, treeCount, (x, z) => inBand(6, 999, 0.75)(x, z) && Math.hypot(x, z) > 60);
 		const tallShare = highland ? 0 : (density > 0.55 ? 0.6 : (density > 0.3 ? 0.3 : 0.05));
-		const pineSpots = treeSpots.filter(([x, z]) => H(x, z) > 30 && rnd.next() < tallShare);
+		const pineSpots = treeSpots.filter(([x, z]) => H(x, z) > 45 && rnd.next() < tallShare);
 		const bareSpots = treeSpots.filter((s) => !pineSpots.includes(s));
-		const placeTree = (x, z, p, q, s, r, yAxis) => { const high = H(x, z) > 85; const sc = r.range(0.7, 1.5) * (high ? 0.6 : 1); p.set(x, hm.height(x, z), z); q.setFromAxisAngle(yAxis, r.range(0, Math.PI * 2)); s.set(sc, sc * r.range(1.0, 1.5), sc); };
+		const placeTree = (x, z, p, q, s, r, yAxis) => { const high = H(x, z) > 160; const sc = r.range(0.7, 1.5) * (high ? 0.6 : 1); p.set(x, hm.height(x, z), z); q.setFromAxisAngle(yAxis, r.range(0, Math.PI * 2)); s.set(sc, sc * r.range(1.0, 1.5), sc); };
 		this.makeInstanced(rnd.pick(this.bareTrees), this.treeMaterial, 'tree', bareSpots, rnd, chunk, placeTree);
 		this.makeInstanced(rnd.pick(this.tallTrees), this.treeMaterial, 'tree', pineSpots, rnd, chunk, placeTree);
 
 		// solid blades: the meadow grass seen from afar, thinning out with altitude
-		const bladeSpots = this.spots(rnd, ox, oz, size, highland ? 110 : 480, inBand(3.5, 110, 0.9));
+		const bladeSpots = this.spots(rnd, ox, oz, size, highland ? 110 : 480, inBand(3.5, 200, 0.9));
 		this.makeInstanced(this.blade, this.bladeMaterial, 'blade', bladeSpots, rnd, chunk, (x, z, p, q, s, r, yAxis) => { p.set(x, hm.height(x, z) - 0.3, z); q.setFromAxisAngle(yAxis, r.range(0, 6.3)); s.set(r.range(0.8, 1.4), r.range(2.5, 6.5), 1); });
 
 		// glowing sprouts, rare
@@ -344,7 +344,7 @@ export class Vegetation {
 		const beginPlant = (x, z, kind) => { ranges.push([verts.length / 3, 0]); pos.push(x, z); kinds.push(kind); };
 		const endPlant = () => { ranges[ranges.length - 1][1] = verts.length / 3; };
 
-		for (const [x, z] of this.spots(rnd, ox, oz, size, highland ? 160 : 560, inBand(3.5, 130, 0.9))) {
+		for (const [x, z] of this.spots(rnd, ox, oz, size, highland ? 160 : 560, inBand(3.5, 230, 0.9))) {
 			const y = hm.height(x, z) - 0.2, h = rnd.range(2.5, 6.5), rot = rnd.range(0, 6.3), phase = rnd.range(0, 6.3);
 			beginPlant(x, z, 'tuft');
 			for (const [dx, dz, sh] of [[0, 0, h], [rnd.range(-2.5, 2.5), rnd.range(-2.5, 2.5), h * 0.5], [rnd.range(-2.5, 2.5), rnd.range(-2.5, 2.5), h * 0.55]])

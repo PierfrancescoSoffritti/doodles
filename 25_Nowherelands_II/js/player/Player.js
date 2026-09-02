@@ -3,7 +3,7 @@ import { bus, Events } from '../core/EventBus.js';
 import { config } from '../core/Config.js';
 import { clamp, clamp01, damp } from '../core/Utils.js';
 
-const WALK = 34, SPRINT = 62;
+const WALK = 42, SPRINT = 80;
 
 export class Player {
 	constructor(camera, canvas, heightmap, shared) {
