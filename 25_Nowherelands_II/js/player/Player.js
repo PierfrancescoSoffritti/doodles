@@ -38,6 +38,7 @@ export class Player {
 		this.yawRate = 0;
 		this.prevYaw = this.yaw;
 		this.wading = false;
+		this.fly = false;      // F: fly freely to look the world over
 
 		this.bind();
 	}
@@ -48,6 +49,7 @@ export class Player {
 			if (e.repeat) return;
 			this.keys.add(e.code);
 			if (e.code === 'KeyR' && this.enabled) bus.emit('record');
+			if (e.code === 'KeyF' && this.enabled) { this.fly = !this.fly; bus.emit(Events.TOAST, { text: this.fly ? 'flying' : 'walking', sub: this.fly ? 'W A S D · space up · C down · shift fast · F to land' : '' }); }
 		});
 		document.addEventListener('keyup', (e) => this.keys.delete(e.code));
 		window.addEventListener('blur', () => this.keys.clear());
@@ -150,6 +152,41 @@ export class Player {
 		if (gp.buttons[1] && gp.buttons[1].pressed) input.sprint = true;
 	}
 
+	// free flight: the camera moves where it looks, space and C climb and dive, nothing snaps to the ground
+	updateFlight(input, dt, time, active) {
+		const k = this.keys;
+		let up = 0;
+		if (active) { if (k.has('Space')) up += 1; if (k.has('KeyC')) up -= 1; }
+		const max = input.sprint ? 520 : 150;
+		const fwd = new THREE.Vector3();
+		this.camera.getWorldDirection(fwd);
+		const right = new THREE.Vector3(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
+		const target = new THREE.Vector3().addScaledVector(fwd, -input.z * max).addScaledVector(right, input.x * max);
+		target.y += up * max * 0.6;
+		this.velocity.x = damp(this.velocity.x, target.x, 5, dt);
+		this.velocity.y = damp(this.velocity.y, target.y, 5, dt);
+		this.velocity.z = damp(this.velocity.z, target.z, 5, dt);
+		this.position.addScaledVector(this.velocity, dt);
+		const floor = this.heightmap.height(this.position.x, this.position.z) + 3;
+		if (this.position.y < floor) this.position.y = floor;
+		this.groundY = this.position.y - config.world.eyeHeight;
+		this.speed = this.velocity.length();
+		this.speed01 = clamp01(this.speed / max);
+		this.camera.rotation.set(this.pitch, this.yaw, 0);
+		this.camera.getWorldDirection(this.forward);
+		this.lookTimer -= dt;
+		this.looking = this.lookTimer > 0;
+		let dy = this.yaw - this.prevYaw;
+		dy = Math.atan2(Math.sin(dy), Math.cos(dy));
+		this.yawRate = damp(this.yawRate, dt > 0 ? dy / dt : 0, 10, dt);
+		this.prevYaw = this.yaw;
+		this.wading = false;
+		this.stillTime = 0;
+		this.fov = damp(this.fov, this.baseFov + this.speed01 * 12, 4, dt);
+		if (Math.abs(this.camera.fov - this.fov) > 0.01) { this.camera.fov = this.fov; this.camera.updateProjectionMatrix(); }
+		this.shared.hud.setCharge(0);
+	}
+
 	update(dt, time) {
 		const input = { x: 0, z: 0, sprint: false };
 		const active = this.enabled && (this.locked || config.isTouch);
@@ -167,6 +204,7 @@ export class Player {
 		const len = Math.hypot(input.x, input.z);
 		if (len > 1) { input.x /= len; input.z /= len; }
 
+		if (this.fly) { this.updateFlight(input, dt, time, active); return; }
 		const max = input.sprint ? SPRINT : WALK;
 		const fwd = new THREE.Vector3(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
 		const right = new THREE.Vector3(Math.cos(this.yaw), 0, -Math.sin(this.yaw));

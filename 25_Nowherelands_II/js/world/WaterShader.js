@@ -51,13 +51,17 @@ export const waterVertexShader = /* glsl */`
 			float u = aInfo0.z;
 			float across = u * aInfo0.w * 0.5;
 			float edge = 1.0 - smoothstep(0.55, 1.0, abs(u));
-			float amp = mix(0.12, 0.28, fast) * edge * (1.0 - 0.75 * aFade) * clamp(aInfo0.w * 0.1, 0.35, 1.0);
-			float lambda = mix(5.5, 3.2, fast);
+			float w = aInfo0.w;
+			float amp = mix(0.2, 0.36, fast) * edge * (1.0 - 0.75 * aFade) * clamp(w * 0.1, 0.35, 1.0);
+			// longer waves on a wide river, short steep ones in a fast narrow one
+			float lambda = mix(6.0, 3.4, fast) * clamp(w * 0.06, 1.0, 2.2);
 			float k = 6.2832 / lambda;
 			float along = aInfo1.x;
 			// travelling swell, a little slower than the flow
 			float ph = along * k - uTime * k * (0.4 + sp * 0.9) + across * 0.35;
 			float y = sin(ph) * 0.6 + sin(ph * 1.63 + across * 1.1 + uTime * 0.7) * 0.4;
+			// a slower cross swell so the facets are diamonds, not corrugations
+			y += 0.5 * sin(across * k * 0.9 + along * k * 0.3 - uTime * 1.1);
 			// standing waves in the rapids, rocking in place
 			y += fast * 0.9 * sin(along * k * 1.37 + across * 0.8) * (0.6 + 0.4 * sin(uTime * 2.6 + along * 0.4));
 			worldPosition.y += amp * y;
@@ -251,13 +255,19 @@ export function waterFragmentShader(shared) {
 			// the riffle ramps: steep quads where the surface drops a step, all white water
 			vec3 gn = normalize(cross(dFdx(vWorldPos), dFdy(vWorldPos)));
 			#ifdef WAVES
-			// the facets of the waved surface take the moon in three flat tones; a flat facet keeps
-			// the colour of the far ribbon so the two meet without a seam
+			// the facets of the waved surface: those turned away from the eye show the sky, those
+			// turned toward it show the deep, in flat bands; a flat facet keeps the far ribbon's colour
+			// so the two meshes meet without a seam. Facets that mirror the moon glint.
 			{
-				float lit = dot(gn, uMoonDir) * 0.5 + 0.5;
-				float litFlat = uMoonDir.y * 0.5 + 0.5;
-				float band = floor(lit * 5.0 + 0.5) - floor(litFlat * 5.0 + 0.5);
-				col *= 1.0 + clamp(band, -2.0, 2.0) * 0.13 * (0.4 + 0.6 * uMoonIntensity);
+				vec3 Vv = normalize(uCameraPos - vWorldPos);
+				float tilt = dot(gn, Vv) - clamp(Vv.y, 0.0, 1.0);
+				float band = clamp(floor(tilt * 12.0 + 0.5), -2.0, 2.0);
+				vec3 skyGlimpse = mix(vec3(0.26, 0.29, 0.46), uSkyTone * 1.8, 0.35);
+				col = mix(col, skyGlimpse, clamp(-band, 0.0, 2.0) * 0.28);
+				col *= 1.0 + clamp(band, 0.0, 2.0) * 0.12;
+				float g = pow(max(dot(reflect(-Vv, gn), uMoonDir), 0.0), 18.0);
+				float glint = step(0.3, g) * uMoonIntensity * (1.0 - 0.5 * vFade);
+				col = mix(col, uMoonColor * 0.85, glint * 0.5);
 				// white breaks only on the genuinely steep faces of fast water
 				float crest = (1.0 - smoothstep(0.6, 0.72, gn.y)) * fast * live * (1.0 - step(0.02, vFall));
 				col = mix(col, foamCol, crest * 0.6);
