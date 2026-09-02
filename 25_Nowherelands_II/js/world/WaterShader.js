@@ -89,7 +89,7 @@ export function waterFragmentShader(shared) {
 		float vFoam = vInfo0.x, vDepth = vInfo0.y, vAcross = vInfo0.z, vWidth = vInfo0.w;
 		float vAlong = vInfo1.x, vSpeed = vInfo1.y, vFall = vInfo1.z, vBase = vInfo1.w;
 		bool river = vDepth > 0.0;
-		float speed = 1.6 + vSpeed * 1.5;
+		float speed = 0.6 + vSpeed * 2.2;      // metres per second the pattern travels: 1.3 in a pool, 7 in a chute
 		float across = vAcross * vWidth * 0.5;
 		vec2 fuv = river ? vec2(vAlong - uTime * speed, across) : p;
 		vec2 pd = fuv;

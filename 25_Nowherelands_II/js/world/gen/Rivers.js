@@ -296,7 +296,7 @@ function shapeRiver(river, rivers, ctx) {
 
 	// ---- 5. width, depth, speed ----
 	const nM = noise.meander;
-	const W = new Float64Array(n), D = new Float64Array(n), speed = new Float64Array(n), reachType = new Uint8Array(n);   // 0 flow, 1 riffle, 2 chute, 3 fall
+	const W = new Float64Array(n), D = new Float64Array(n), reachType = new Uint8Array(n);   // 0 flow, 1 riffle, 2 chute, 3 fall
 	for (let i = 0; i < n; i++) {
 		const g = grade[Math.min(i, n - 2)];
 		reachType[i] = inFall[i] ? 3 : (g > CHUTE_GRADE ? 2 : (g >= RIFFLE_GRADE ? 1 : 0));
@@ -317,16 +317,15 @@ function shapeRiver(river, rivers, ctx) {
 		if (river.mouthType === 'sea') w *= 1 + 0.45 * smoothstep(40, 0, n - 1 - i);
 		W[i] = w;
 		D[i] = (0.7 + 0.08 * w) * (type === 2 ? 0.6 : type === 1 ? 1.0 : 1.2) * (1 + 0.35 * Math.sin(poolU[i] * Math.PI));
-		speed[i] = clamp(0.5 + grade[Math.min(i, n - 2)] * 12, 0.5, 2.5);
 	}
-	const Ws = smoothArr(Array.from(W), 4), Ds = smoothArr(Array.from(D), 4), Ss = smoothArr(Array.from(speed), 3);
+	const Ws = smoothArr(Array.from(W), 4), Ds = smoothArr(Array.from(D), 4);
 
 	// ---- 6. emit samples (steps and falls become explicit geometry) ----
 	const out = [];       // { x, z, wl, w, d, foam, bank, speed, along, kind, floor, fw, sl, i }
 	const KIND = RIVER_KIND;
 	const fallRecs = [];
 	const emit = (i, x, z, level, kind, extra = {}) => {
-		const rec = { x, z, wl: level, w: Ws[i], d: Ds[i], foam: 0, bank: Math.max(0.25, wl[i] + bankBase[i] - level), speed: Ss[i], kind, i, floor: wl[i] + bankBase[i], relief: relief[i], grade: grade[Math.min(i, n - 2)], ...extra };
+		const rec = { x, z, wl: level, w: Ws[i], d: Ds[i], foam: 0, bank: Math.max(0.25, wl[i] + bankBase[i] - level), speed: 0, kind, i, floor: wl[i] + bankBase[i], relief: relief[i], grade: grade[Math.min(i, n - 2)], ...extra };
 		out.push(rec);
 		return rec;
 	};
@@ -371,6 +370,19 @@ function shapeRiver(river, rivers, ctx) {
 	// arc length along the emitted samples
 	const m = out.length;
 	for (let q = 0; q < m; q++) out[q].along = q ? out[q - 1].along + Math.hypot(out[q].x - out[q - 1].x, out[q].z - out[q - 1].z) : 0;
+	// flow speed from the slope of the water surface itself: a pool crawls, a ramp or a chute races
+	{
+		const slope = new Float64Array(m);
+		for (let q = 0; q < m; q++) {
+			const a = out[Math.max(0, q - 1)], b = out[Math.min(m - 1, q + 1)];
+			slope[q] = Math.max(0, (a.wl - b.wl) / Math.max(b.along - a.along, 1));
+		}
+		for (let q = 0; q < m; q++) {
+			let s = 0, c = 0;
+			for (let o = -2; o <= 2; o++) { const k = q + o; if (k >= 0 && k < m) { s += slope[k]; c++; } }
+			out[q].speed = clamp(0.3 + (s / c) * 14, 0.3, 3);
+		}
+	}
 	// foam: bright below every drop, fading over a few widths, and a little ahead of it
 	for (let q = 1; q < m; q++) {
 		const prev = out[q - 1];
