@@ -204,6 +204,11 @@ function shapeRiver(river, rivers, ctx) {
 	const tgSmooth = new Float64Array(n);
 	for (let i = 0; i < n; i++) { const a = Tmono[clamp(i - 3, 0, n - 1)], b = Tmono[clamp(i + 3, 0, n - 1)]; tgSmooth[i] = Math.max(0, (a - b) / ((Math.min(i, 3) + Math.min(n - 1 - i, 3)) * SP || 1)); }
 	const bankBase = relief.map((r, i) => lerp(0.45, 2.4, r) + 0.012 * W0[i]);
+	// a tributary's banks lower to its parent's over its last reach, so no ledge stands at the mouth
+	if (parent) {
+		const pb = parent.nearest(P[n - 1][0], P[n - 1][1]).bank;
+		for (let i = Math.max(0, n - 10); i < n; i++) bankBase[i] = lerp(pb, bankBase[i], clamp((n - 1 - i) / 9, 0, 1));
+	}
 	const cap = relief.map((r) => lerp(3, 40, r));
 	const kCut = relief.map((r) => 1 - 0.45 * r);
 
@@ -243,6 +248,18 @@ function shapeRiver(river, rivers, ctx) {
 		// (unless the land itself lies below the receiving water, as happens on the odd lake rim)
 		for (let i = 0; i < n - 1; i++) if (wl[i] < mouth + clear && Tmin[i] - bankBase[i] >= mouth) wl[i] = mouth + clear;
 		wl[n - 1] = mouth - (river.mouthType === 'river' ? 0.3 : 0.6);
+		// where it has already entered the receiving water it runs just under that surface, and the
+		// approach eases down to it, so the join is the parent's own edge and nothing rides on top
+		const inside = new Uint8Array(n);
+		for (let i = 0; i < n; i++) {
+			if (parent) { const q = parent.nearest(P[i][0], P[i][1]); inside[i] = Math.hypot(q.x - P[i][0], q.z - P[i][1]) < surfaceHalfWidth(q.w, q.d, q.bank) + 1.5 ? 1 : 0; }
+			else if (river.mouthType === 'lake') inside[i] = inLake(P[i][0], P[i][1]) ? 1 : 0;
+			else if (river.mouthType === 'sea') inside[i] = T[i] < 0.5 ? 1 : 0;
+		}
+		let first = n - 1;
+		while (first > 0 && inside[first - 1]) first--;
+		const under = mouth - 0.12;
+		for (let i = 0; i < n - 1; i++) { const cap = i >= first ? under : under + (first - i) * SP * 0.006; if (wl[i] > cap) wl[i] = cap; }
 	}
 
 	// ---- 4. reach types, falls, steps ----
@@ -482,7 +499,7 @@ function shapeRiver(river, rivers, ctx) {
 		let best = 0, bd = Infinity;
 		for (let q = 0; q < m; q++) { const d = (data[q * RIVER_STRIDE] - x) ** 2 + (data[q * RIVER_STRIDE + 1] - z) ** 2; if (d < bd) { bd = d; best = q; } }
 		const o = best * RIVER_STRIDE;
-		return { i: best, x: data[o], z: data[o + 1], wl: data[o + RV.WL], w: data[o + RV.W] };
+		return { i: best, x: data[o], z: data[o + 1], wl: data[o + RV.WL], w: data[o + RV.W], d: data[o + RV.D], bank: data[o + RV.BANK] };
 	};
 	let bendSum = 0, bendMax = 0;
 	for (let i = 0; i < n; i++) { bendSum += bendStrength[i]; if (bendStrength[i] > bendMax) bendMax = bendStrength[i]; }
