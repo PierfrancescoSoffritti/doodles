@@ -239,6 +239,8 @@ function shapeRiver(river, rivers, ctx) {
 		const level = lakes[river.fromLake].level;
 		wl[0] = level;
 		for (let i = 1; i < n; i++) if (wl[i] > level) wl[i] = level;
+		// the lip the lake spills over is a cliff of its own when it is tall enough
+		if (wl[0] - wl[1] >= FALL_MIN) cliff[0] = 1;
 	}
 	for (let i = 1; i < n; i++) if (wl[i] > wl[i - 1]) wl[i] = wl[i - 1];
 	// the surface stays clear of the water it flows into until the very end, where it slips under
@@ -314,7 +316,7 @@ function shapeRiver(river, rivers, ctx) {
 		pooled[i] = poolLevel;
 	}
 	// a lake outlet drops over its lip: whatever the height, the first sample is the lake level
-	if (river.fromLake >= 0 && pooled[0] < wl[0]) { stepH[0] = wl[0] - pooled[0]; pooled[0] = wl[0]; }
+	if (river.fromLake >= 0 && !inFall[0]) { pooled[0] = wl[0]; if (wl[0] - pooled[1] >= 0.35) stepH[0] = wl[0] - pooled[1]; }
 
 	// ---- 5. width, depth, speed ----
 	const nM = noise.meander;
@@ -421,7 +423,8 @@ function shapeRiver(river, rivers, ctx) {
 		const lenStart = river.fromLake >= 0 ? clamp(4 * wStart, 24, 80) : 0;
 		for (let q = 0; q < m; q++) {
 			let f = strEnd * smoothstep(lenEnd, 0, total - out[q].along);
-			if (lenStart > 0) f = Math.max(f, smoothstep(lenStart, 0, out[q].along));
+			// out of a lake the still tone lasts only while the water is still at the lake's level
+			if (lenStart > 0) f = Math.max(f, smoothstep(lenStart, 0, out[q].along) * (1 - smoothstep(0.8, 2.0, out[0].wl - out[q].wl)));
 			out[q].fade = f;
 		}
 	}
