@@ -181,6 +181,14 @@ export function createTerrainMaterial(shared, heightmap) {
 				albedo = mix(albedo, forestCol, forestT * (0.45 + 0.5 * fdist) * (0.5 + 0.5 * speck));
 				albedo = mix(albedo, albedo * vec3(0.8, 0.98, 1.02), hab.g * (1.0 - forestT) * gentle * 0.45 * smoothstep(1.0, 8.0, h));
 
+				// Gravel and sand follow the exposed bed and low bars beside inland channels.
+				float riverBed = riverMouthAt(vWorldPos.xz) * smoothstep(0.3, 1.5, waterY - uWaterLevel);
+				float sediment = riverBed * (1.0 - smoothstep(0.25, 1.4, h)) * gentle;
+				float grain = vnoise(vWorldPos.xz * 1.8);
+				vec3 gravel = mix(vec3(0.16, 0.14, 0.2), vec3(0.32, 0.28, 0.33), smoothstep(0.3, 0.7, grain));
+				vec3 sand = vec3(0.25, 0.21, 0.25) * (0.9 + 0.2 * grain);
+				albedo = mix(albedo, mix(sand, gravel, hard * 0.6 + 0.25), sediment * 0.8);
+
 				// snow: seasonal on gentle ground, permanent above the snow line
 				float snowLine = 780.0 + (vnoise(vWorldPos.xz * 0.003) - 0.5) * 220.0;
 				float caps = smoothstep(snowLine - 60.0, snowLine + 90.0, hSea) * smoothstep(0.4, 0.8, n.y);
@@ -213,8 +221,10 @@ export function createTerrainMaterial(shared, heightmap) {
 				float under = clamp(-h / 2.5, 0.0, 1.0);
 				color = mix(color, color * vec3(0.45, 0.55, 0.85) * 0.55, under * 0.85);
 				// wet ground just above any water line
-				float wet = (1.0 - smoothstep(0.0, 2.5, h)) * step(0.0, h);
-				color *= 1.0 - wet * 0.25;
+				float wetHeight = 0.35 + vnoise(vWorldPos.xz * 0.35) * 0.45;
+				float wet = (1.0 - smoothstep(0.0, mix(2.5, wetHeight, riverBed), h)) * step(0.0, h);
+				color *= 1.0 - wet * 0.32;
+				color += uMoonColor * pow(max(dot(reflect(-uMoonDir, n), normalize(uCameraPos - vWorldPos)), 0.0), 40.0) * wet * 0.08 * uMoonIntensity;
 				// the sea's swash: after each breaker hits the waterline a sheet of foam runs up the sand
 				// and drains back, keeping time with the breakers; it never climbs cliffs
 				float sd = shoreDistAt(vWorldPos.xz);           // negative on land

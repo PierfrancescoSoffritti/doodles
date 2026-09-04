@@ -213,8 +213,15 @@ function start(world) {
 			envTimer = 5;
 			water.setVisible(false);
 			const old = envTarget;
+			const hidden = [inland.mesh, inland.near, drift.points].filter(Boolean).map(mesh => [mesh, mesh.visible]);
+			for (const [mesh] of hidden) mesh.visible = false;
 			envTarget = pmrem.fromScene(scene, 0.02, 1, config.world.far, { size: 128, position: camera.position });
+			for (const [mesh, visible] of hidden) mesh.visible = visible;
 			scene.environment = envTarget.texture;
+			const envImage = envTarget.texture.image;
+			inland.uniforms.uEnvironment.value = envTarget.texture;
+			inland.uniforms.uEnvironmentSize.value.set(1 / envImage.width, 1 / envImage.height, Math.log2(envImage.height) - 2);
+			inland.uniforms.uHasEnvironment.value = 1;
 			scene.environmentIntensity = 0.55;
 			water.setVisible(true);
 			if (old) old.dispose();

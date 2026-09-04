@@ -144,13 +144,13 @@ export function planDeltas(rivers, ctx) {
 		// (a deviation of up to fourteen degrees with a wavelength of about twelve widths, the
 		// low-sinuosity end of Leopold and Wolman's range) and, out of a split, a turn that eases in
 		// over a few widths plus the sideways slide of the centreline off the bar. Width is a
-		// function of arc length. Points carry [x, z, width, underParent].
+		// function of arc length. Points carry [x, z, width, underParent, contributing area].
 		const run = (x, z, base, w, length, path, opts = {}) => {
-			const { turn = null, width = null, under = 0, relax = 0.015, seed2 = 0 } = opts;
+			const { turn = null, width = null, under = 0, relax = 0.015, seed2 = 0, catchment = Math.pow((w - 4) / 0.0075, 2) } = opts;
 			const pts = [];
 			let along = 0, hitLand = false;
 			while (along < length) {
-				pts.push([x, z, width ? width(along) : w, along < under ? 1 : 0]);
+				pts.push([x, z, width ? width(along) : w, along < under ? 1 : 0, catchment]);
 				if (along > 2 * w && hAt(x, z) > apexH + 1.0) { hitLand = true; break; }
 				if (rr(x, z) > 1) {
 					base += angDiff(radialOf(x, z), base) * relax;
@@ -167,7 +167,7 @@ export function planDeltas(rivers, ctx) {
 				x += Math.cos(hdg) * RUN_STEP; z += Math.sin(hdg) * RUN_STEP;
 				along += RUN_STEP;
 			}
-			if (!hitLand) pts.push([x, z, width ? width(along) : w, 0]);
+			if (!hitLand) pts.push([x, z, width ? width(along) : w, 0, catchment]);
 			path.pts.push(...pts);
 			return { x, z, base: base + (turn ? turn.angle : 0), hitLand };
 		};
@@ -221,7 +221,7 @@ export function planDeltas(rivers, ctx) {
 			if (!daughters) {
 				// the terminal run: to the shore, then a couple of widths out over the mouth bar
 				const L = Math.max(remaining, 0.5 * w) + 2.2 * w;
-				const end = run(x, z, base, w, L, path, { seed2: rnd.range(0, 100) });
+				const end = run(x, z, base, w, L, path, { catchment: A, seed2: rnd.range(0, 100) });
 				path.terminal = { x: end.x, z: end.z, hdg: end.base, w };
 				delta.mouths++;
 				return;
@@ -248,7 +248,7 @@ export function planDeltas(rivers, ctx) {
 				if (!isMain) { delta.paths.push(p); delta.branches++; }
 				const turn = { angle: d.angle, len: 3.5 * d.w + 0.5 * Ls, c: d.c, Ls };
 				const free = (2 + rnd.range(0, 3.5)) * d.w;
-				const end = run(x, z, base, d.w, Ls + free, p, { turn, width: (s2) => Wp + (d.w - Wp) * smoothstep(0, Ls, s2), under: isMain ? 0 : 0.85 * Ls, seed2: rnd.range(0, 100) });
+				const end = run(x, z, base, d.w, Ls + free, p, { catchment: A * d.q, turn, width: (s2) => Wp + (d.w - Wp) * smoothstep(0, Ls, s2), under: isMain ? 0 : 0.85 * Ls, seed2: rnd.range(0, 100) });
 				ends.push({ d, p, end });
 			});
 			for (const { d, p, end } of ends) {
@@ -261,7 +261,7 @@ export function planDeltas(rivers, ctx) {
 		delta.paths.push(trunkPath);
 		{
 			// the lead-in: the river's own heading eases round to the lobe's axis before the first split
-			const lead = run(ax, az, riverHeading, Wm, 2.5 * Wm + 40, trunkPath, { relax: 0.06, seed2: rnd.range(0, 100) });
+			const lead = run(ax, az, riverHeading, Wm, 2.5 * Wm + 40, trunkPath, { catchment: A0, relax: 0.06, seed2: rnd.range(0, 100) });
 			channel(lead.x, lead.z, lead.base, A0, 0, trunkPath, true);
 		}
 
@@ -290,11 +290,11 @@ export function planDeltas(rivers, ctx) {
 			// its mouth must not already lie in another channel
 			if (clearance(ab.x, ab.z) < ab.w + 12) continue;
 			delta.paths.push(path);
-			const lead = run(ab.x, ab.z, Math.atan2(ab.z - pz, ab.x - px), ab.w, 30, path, { relax: 0.06, seed2: rnd.range(0, 100) });
+			const lead = run(ab.x, ab.z, Math.atan2(ab.z - pz, ab.x - px), ab.w, 30, path, { catchment: area[o.cells[ab.apexIdx]] * cell * cell, relax: 0.06, seed2: rnd.range(0, 100) });
 			channel(lead.x, lead.z, lead.base, area[o.cells[ab.apexIdx]] * cell * cell, MAX_ORDER, path, false);
 			o.cells = o.cells.slice(0, ab.apexIdx + 1);
 			o.junction = -1;
-			o.delta = { ext: path.pts.slice(1).map((q) => [q[0], q[1]]), extA: path.pts.slice(1).map((q) => Math.pow((q[2] - 4) / 0.0075, 2)), id: deltas.length };
+			o.delta = { ext: path.pts.slice(1).map((q) => [q[0], q[1]]), extA: path.pts.slice(1).map((q) => Math.pow((q[2] - 4) / 0.0075, 2)), extCatchment: path.pts.slice(1).map(q => q[4]), id: deltas.length };
 			path.river = o;
 		}
 
@@ -309,12 +309,12 @@ export function planDeltas(rivers, ctx) {
 		};
 		river.cells = cells.slice(0, apexIdx + 1);
 		river.junction = -1;
-		river.delta = { ext: trunkPath.pts.slice(1).map((p) => [p[0], p[1]]), extA: areasFor(trunkPath).slice(1), id: deltas.length };
+		river.delta = { ext: trunkPath.pts.slice(1).map((p) => [p[0], p[1]]), extA: areasFor(trunkPath).slice(1), extCatchment: trunkPath.pts.slice(1).map(p => p[4]), id: deltas.length };
 		trunkPath.river = river;
 		for (const p of delta.paths) {
 			if (p === trunkPath || p.river) continue;
 			const parentRiver = p.fromPath.river;
-			const rec = { id: rivers.length, cells: [], pts: p.pts.map((q) => [q[0], q[1]]), areas: areasFor(p), under: p.pts.map((q) => q[3] || 0), junction: -1, mouthType: 'sea', fromLake: -1, fromRiver: parentRiver.id, parentId: -1, delta: { id: deltas.length } };
+			const rec = { id: rivers.length, cells: [], pts: p.pts.map((q) => [q[0], q[1]]), areas: areasFor(p), catchments: p.pts.map(q => q[4]), under: p.pts.map((q) => q[3] || 0), junction: -1, mouthType: 'sea', fromLake: -1, fromRiver: parentRiver.id, parentId: -1, delta: { id: deltas.length } };
 			p.river = rec;
 			rivers.push(rec);
 		}

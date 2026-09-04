@@ -457,6 +457,51 @@ function findLakes(h, hf, N, cell) {
 	return { lakes: out, lakeId, lakeLevel };
 }
 
+// Reconnect low ground carved beside a basin without crossing its downstream spill.
+export function reconnectLakeBasins(h, lakes, ids, levels, drainage, N) {
+	for (let id = 0; id < lakes.length; id++) {
+		const lake = lakes[id], queue = Array.from(lake.cells);
+		for (let head = 0; head < queue.length; head++) {
+			const k = queue[head], x = k % N, z = (k / N) | 0;
+			for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+				const ix = x + dx, iz = z + dz, next = iz * N + ix;
+				if (ix < 1 || iz < 1 || ix >= N - 1 || iz >= N - 1 || ids[next] >= 0) continue;
+				if (h[next] >= lake.level - 0.05 || drainage[next] < lake.level - 0.05) continue;
+				ids[next] = id; levels[next] = lake.level; queue.push(next);
+			}
+		}
+		lake.cells = queue;
+	}
+}
+
+// Sub-cell shoals cannot form useful islands; absorb small, enclosed patches into their lake.
+export function fillLakePinholes(h, lakes, ids, levels, N) {
+	const seen = new Uint8Array(N * N);
+	for (let k = 0; k < ids.length; k++) {
+		if (ids[k] >= 0 || seen[k]) continue;
+		const queue = [k]; seen[k] = 1;
+		let id = -1, enclosed = true, max = -Infinity;
+		for (let head = 0; head < queue.length; head++) {
+			const p = queue[head], x = p % N, z = (p / N) | 0;
+			max = Math.max(max, h[p]);
+			if (x === 0 || z === 0 || x === N - 1 || z === N - 1) enclosed = false;
+			for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+				const ix = x + dx, iz = z + dz, n = iz * N + ix;
+				if (ix < 0 || iz < 0 || ix >= N || iz >= N) continue;
+				if (ids[n] >= 0) { if (id >= 0 && id !== ids[n]) enclosed = false; id = ids[n]; }
+				else if (!seen[n]) { seen[n] = 1; queue.push(n); }
+			}
+		}
+		if (!enclosed || id < 0 || queue.length > 12 || max > lakes[id].level + 0.75) continue;
+		for (const p of queue) {
+			ids[p] = id; levels[p] = lakes[id].level;
+			h[p] = Math.min(h[p], levels[p] - 1);
+			if (!Array.isArray(lakes[id].cells)) lakes[id].cells = Array.from(lakes[id].cells);
+			lakes[id].cells.push(p);
+		}
+	}
+}
+
 // Erosion leaves lakes a couple of metres deep; real lakes deepen away from the shore.
 function deepenLakes(h, lakes, lakeId, N) {
 	const dist = new Int32Array(N * N).fill(-1);
@@ -521,7 +566,7 @@ function traceRivers(h, hf, recv, area, lakeId, N, cell, threshold, work) {
 		let fromLake = -1;
 		{
 			const s = path[0], si = s % M % N, sj = (s / N) | 0;
-			for (let d = 0; d < 8 && fromLake < 0; d++) { const ni = si + DX[d], nj = sj + DZ[d]; if (ni >= 0 && nj >= 0 && ni < N && nj < N && lakeId[nj * N + ni] >= 0) fromLake = lakeId[nj * N + ni]; }
+			for (let d = 0; d < 8 && fromLake < 0; d++) { const ni = si + DX[d], nj = sj + DZ[d]; if (ni >= 0 && nj >= 0 && ni < N && nj < N && lakeId[nj * N + ni] >= 0 && recv[nj * N + ni] === s) fromLake = lakeId[nj * N + ni]; }
 		}
 		rivers.push({ id, cells: path, junction, mouthType, fromLake });
 	};
@@ -651,6 +696,8 @@ export function generateWorld(seed, progress = null, opts = {}) {
 	accumulateArea(recv, stack, area, M);
 	const threshold = P.riverAreaKm2 * 1e6 / (cell * cell);
 	const rivers = traceRivers(h, hf, recv, area, lakeId, N, cell, threshold, ev.work);
+	// Channels around an island do not drain their surrounding lake.
+	for (const river of rivers) if (river.mouthType === 'lake' && lakeId[river.junction] === river.fromLake) river.fromLake = -1;
 	// parents for tributaries
 	const cellRiver = new Int32Array(M).fill(-1);
 	for (const r of rivers) for (const c of r.cells) cellRiver[c] = r.id;
@@ -659,6 +706,9 @@ export function generateWorld(seed, progress = null, opts = {}) {
 	mark('rivers');
 
 	if (progress) progress('growing the forests', 0);
+	reconnectLakeBasins(h, lakes, lakeId, lakeLevel, hf, N);
+	fillLakePinholes(h, lakes, lakeId, lakeLevel, N);
+	for (const lake of lakes) { lake.cells = Int32Array.from(lake.cells); lake.area = lake.cells.length * cell * cell; }
 	const habitat = computeHabitat({ h, area, lakeId, lakeLevel, hard: fine.hard, rivers, N, cell, size, waterLevel: 0 }, noise);
 	mark('habitat');
 
@@ -690,7 +740,7 @@ export function generateWorld(seed, progress = null, opts = {}) {
 		habitat,
 		area,
 		lakes: lakes.map((l) => ({ id: l.id, level: l.level, cells: l.cells, area: l.area, maxDepth: l.maxDepth })),
-		rivers: rivers.map((r) => ({ id: r.id, data: r.data, count: r.count, maxWidth: r.maxWidth, mouthType: r.mouthType, parentId: r.parentId, fromRiver: r.fromRiver ?? -1, falls: r.falls, rocks: r.rocks, wakes: r.wakes, stats: r.stats, probe: r.probe })),
+		rivers: rivers.map((r) => ({ id: r.id, data: r.data, count: r.count, maxWidth: r.maxWidth, mouthType: r.mouthType, parentId: r.parentId, fromLake: r.fromLake, toLake: r.mouthType === 'lake' ? lakeId[r.junction] : -1, fromRiver: r.fromRiver ?? -1, falls: r.falls, rocks: r.rocks, wakes: r.wakes, stats: r.stats, probe: r.probe })),
 		deltas,
 		spawn,
 		stats: { maxH, landFraction: land / M, lakes: lakes.length, rivers: rivers.length, deltas: deltas.length, cirques, timings, total: Math.round(performance.now() - t0) },

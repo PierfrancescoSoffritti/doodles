@@ -1,8 +1,10 @@
+import { crestShape, crestOffset } from './RiverGeometry.js';
+import { LakeSurface } from './LakeSurface.js';
 import { Random, Simplex2D } from '../core/Random.js';
 import { config } from '../core/Config.js';
 import { smoothstep, clamp } from '../core/Utils.js';
 import { NO_WATER } from './gen/WorldGen.js';
-import { RIVER_STRIDE, RV, RIVER_KIND, bedProfile, bankWidth, EDGE_DEPTH } from './gen/Rivers.js';
+import { RIVER_STRIDE, RV, RIVER_KIND, bedProfile, bankWidth, bankSpread, EDGE_DEPTH } from './gen/Rivers.js';
 
 // The baked world, sampled continuously. Height is the bicubic grid plus procedural close-up
 // detail, with river channels carved analytically from the river polylines so streams stay
@@ -12,7 +14,7 @@ const SQRT2 = Math.SQRT2;
 const HASH = 128;   // spatial hash cell, world units
 
 // Flat segment table over every river's samples, hashed by cell so a point finds its channel fast.
-const SEG = 16;     // ax az bx bz wlA wlB wA wB dA dB fA fB bankA bankB kind alongA
+const SEG = 22;     // ax az bx bz wlA wlB wA wB dA dB fA fB bankA bankB kind alongA bendA bendB skewA bowA skewB bowB
 export const SEG_KIND = { FLOW: 0, GAP: 1, STEP: 2 };   // GAP: a waterfall face (no channel), STEP: a riffle ramp
 
 class RiverIndex {
@@ -38,6 +40,9 @@ class RiverIndex {
 				const ka = d[a + RV.KIND], kb = d[b + RV.KIND];
 				this.seg[o + 14] = ka === RIVER_KIND.LIP ? SEG_KIND.GAP : (ka === RIVER_KIND.STEP_TOP && kb === RIVER_KIND.STEP_BOTTOM ? SEG_KIND.STEP : SEG_KIND.FLOW);
 				this.seg[o + 15] = d[a + RV.ALONG];
+				this.seg[o + 16] = d[a + RV.BEND]; this.seg[o + 17] = d[b + RV.BEND];
+				const ca = crestShape(r, i), cb = crestShape(r, i + 1);
+				this.seg[o + 18] = ca[0]; this.seg[o + 19] = ca[1]; this.seg[o + 20] = cb[0]; this.seg[o + 21] = cb[1];
 				this.segRiver[s] = ri;
 				this.segIndex[s] = i;
 				const reach = Math.max(d[a + RV.W], d[b + RV.W]) * 1.2 + 18;
@@ -68,7 +73,7 @@ class RiverIndex {
 	// Fields of segment s at parameter t.
 	at(s, t) {
 		const o = s * SEG, g = this.seg;
-		return { x: g[o] + (g[o + 2] - g[o]) * t, z: g[o + 1] + (g[o + 3] - g[o + 1]) * t, wl: g[o + 4] + (g[o + 5] - g[o + 4]) * t, w: g[o + 6] + (g[o + 7] - g[o + 6]) * t, d: g[o + 8] + (g[o + 9] - g[o + 8]) * t, foam: g[o + 10] + (g[o + 11] - g[o + 10]) * t, bank: g[o + 12] + (g[o + 13] - g[o + 12]) * t, kind: g[o + 14], along: g[o + 15], dx: g[o + 2] - g[o], dz: g[o + 3] - g[o + 1] };
+		return { x: g[o] + (g[o + 2] - g[o]) * t, z: g[o + 1] + (g[o + 3] - g[o + 1]) * t, wl: g[o + 4] + (g[o + 5] - g[o + 4]) * t, w: g[o + 6] + (g[o + 7] - g[o + 6]) * t, d: g[o + 8] + (g[o + 9] - g[o + 8]) * t, foam: g[o + 10] + (g[o + 11] - g[o + 10]) * t, bank: g[o + 12] + (g[o + 13] - g[o + 12]) * t, bend: g[o + 16] + (g[o + 17] - g[o + 16]) * t, kind: g[o + 14], along: g[o + 15], dx: g[o + 2] - g[o], dz: g[o + 3] - g[o + 1] };
 	}
 }
 
@@ -80,7 +85,7 @@ class FallIndex {
 		this.map = new Map();
 		this.falls.forEach((f, idx) => {
 			f.hw = f.w * 0.5;
-			f.cMax = f.hw + 16 + 0.25 * f.drop;
+			f.cMax = Math.max(f.w, f.wBottom || f.w) * 0.5 + 16 + 0.25 * f.drop;
 			f.sMin = -8; f.sMax = f.run + 12;
 			const R = Math.max(f.cMax, f.sMax) + 2;
 			for (let cz = Math.floor((f.z - R) / HASH); cz <= Math.floor((f.z + R) / HASH); cz++) for (let cx = Math.floor((f.x - R) / HASH); cx <= Math.floor((f.x + R) / HASH); cx++) {
@@ -121,6 +126,8 @@ export class Heightmap {
 		this._hab = { forest: 0, wet: 0, coast: 0, alt: 1 };
 		this.rivers = new RiverIndex(world.rivers);
 		this.falls = new FallIndex(world.rivers);
+		this.lakes = new LakeSurface(world, false);
+		this.lakes.resolveConnectivity((x, z) => this.height(x, z));
 		this.maxPyramid = this.buildMaxPyramid();
 		// scratch results of the last sample()
 		this._water = NO_WATER;
@@ -180,7 +187,8 @@ export class Heightmap {
 		const k = j * N + i;
 		const slope = Math.hypot(g[k + 1] - g[k - 1], g[k + N] - g[k - N]) / (2 * this.cell);
 		const hardness = this.rock[k] / 255;
-		let water = Math.max(this.waterLevel, this.lakeLevel[k]);
+		let water = Math.max(this.waterLevel, this.lakes.levelAt(x, z));
+		const shoreId = this.lakes.shoreId, shoreDistance = this.lakes.shoreDistance;
 
 		// river channel: the nearest segment (by plain distance, so a wide-banked neighbour never
 		// steals ground from the segment actually abreast of the point) shapes the bed and the banks
@@ -197,13 +205,30 @@ export class Heightmap {
 				const l2 = dx * dx + dz * dz;
 				let t = l2 > 0 ? ((x - ax) * dx + (z - az) * dz) / l2 : 0;
 				t = t < 0 ? 0 : t > 1 ? 1 : t;
-				const px = ax + dx * t - x, pz = az + dz * t - z;
-				const dist = Math.sqrt(px * px + pz * pz);
+				const len = Math.sqrt(l2) || 1;
+				const along = ((x - ax) * dx + (z - az) * dz) / len;
+				const across = ((x - ax) * -dz + (z - az) * dx) / len;
+				let shift = 0;
+				if (seg[o + 18] || seg[o + 19] || seg[o + 20] || seg[o + 21]) {
+					for (let j = 0; j < 2; j++) {
+						const width = seg[o + 6] + (seg[o + 7] - seg[o + 6]) * t;
+						const u = clamp(across / (width * 0.5), -1.5, 1.5);
+						const a = crestOffset(u, seg[o + 18], seg[o + 19]);
+						const b = crestOffset(u, seg[o + 20], seg[o + 21]);
+						t = clamp((along - a) / Math.max(0.1, len + b - a), 0, 1);
+						shift = a + (b - a) * t;
+					}
+				}
+				const dist = Math.hypot(across, along - t * len - shift);
 				const w = seg[o + 6] + (seg[o + 7] - seg[o + 6]) * t;
 				const bk = seg[o + 12] + (seg[o + 13] - seg[o + 12]) * t;
 				const d = seg[o + 8] + (seg[o + 9] - seg[o + 8]) * t;
-				const reach = w * 0.5 + bankWidth(bk, d, w) + 2;
-				if (dist < reach && dist < nearestD) { nearestD = dist; nearest = o; nd = dist; nt = t; ns = list[q]; }
+				const bend = seg[o + 16] + (seg[o + 17] - seg[o + 16]) * t;
+				const side = Math.sign(across);
+				const reach = w * 0.5 + bankWidth(bk, d, w) * bankSpread(side, bend);
+				if (dist < reach && dist < nearestD) {
+					nearestD = dist; nearest = o; nd = dist; nt = t; ns = list[q];
+				}
 			}
 			if (nearest >= 0) {
 				const o = nearest, t = nt, dist = nd;
@@ -213,7 +238,8 @@ export class Heightmap {
 				const bk = seg[o + 12] + (seg[o + 13] - seg[o + 12]) * t;
 				const kind = seg[o + 14];
 				foam = seg[o + 10] + (seg[o + 11] - seg[o + 10]) * t;
-				const hw = w * 0.5, bankW = bankWidth(bk, d, w);
+				const bend = seg[o + 16] + (seg[o + 17] - seg[o + 16]) * t;
+				const hw = w * 0.5;
 				rDist = dist; rWidth = w; rSeg = ns;
 				// under the sea the channel shoals to a bar over the river's last reaches, so it ends in a
 				// shallow seabed rather than a wall (never in the land it cut through to get there)
@@ -224,24 +250,25 @@ export class Heightmap {
 					rAlong = seg[o + 15] + t * l;
 					rAcross = ((x - ax) * (-dz) + (z - az) * dx) / l;
 				}
+				const side = Math.sign(rAcross), bankW = bankWidth(bk, d, w) * bankSpread(side, bend);
 				if (kind === SEG_KIND.GAP) {
 					bank = 1;      // the fall face below takes over; no close-up relief here
 				} else if (dist < hw) {
 					const u = dist / hw;
 					// cobbled bed: small bumps, more of them toward the banks, never above the water
 					const cobble = (1 - Math.abs(this.detail.noise(x / 3.2 + 4.1, z / 3.2 - 2.7))) * (0.15 + 0.3 * u * u) * Math.min(d * 0.3, 1);
-					const bed = wl - d * bedProfile(u) + cobble;
+					const bed = wl - d * bedProfile(side * u, bend) + cobble;
 					const shoal = Math.max(bed, bar);
 					h = Math.min(h, bed + (shoal - bed) * (1 - carve));
 					bank = 1;
 					water = Math.max(water, wl);
 				} else {
-					const tt = (dist - hw) / bankW;
+					const tt = clamp((dist - hw) / bankW, 0, 1);
 					const s = tt * tt * (3 - 2 * tt);
-					const edge = wl - EDGE_DEPTH * d;
+					const edge = wl - bedProfile(side, bend) * d;
 					let hb = edge + (h - edge) * s;
 					// where the land beside the river lies below the water, a low natural levee keeps it in
-					if (h < wl + 0.25 && wl >= this.waterLevel) { const lip = wl + 0.35 * (1 - s); if (hb < lip) hb = lip; }
+					if (h < wl + 0.25 && wl >= this.waterLevel && water < wl - 0.05) { const lip = wl + 0.35 * (1 - s); if (hb < lip) hb = lip; }
 					h = hb + (Math.max(hb, bar) - hb) * (1 - carve);
 					bank = 1 - s;
 					if (dist < hw + bankW * 0.5) water = Math.max(water, wl);
@@ -264,7 +291,7 @@ export class Heightmap {
 				const mask = ms * mc;
 				if (mask <= 0.001) continue;
 				const up = channelLevel(ac, f.top, f.w, f.dTop, f.bankTop, f.top + f.bankTop);
-				const down = channelLevel(ac, f.bottom, f.w, f.dBot, f.bankBot, f.bottom + f.bankBot);
+				const down = channelLevel(ac, f.bottom, f.wBottom || f.w, f.dBot, f.bankBot, f.bottom + f.bankBot);
 				// the crest is straight across the channel and recedes downstream at the sides (a horseshoe)
 				const side = Math.max(0, ac - f.hw);
 				const sFace = side * 0.45 + (side > 0 ? this.detail.noise(c / 9 + f.seed, f.seed) * 1.6 : 0);
@@ -283,6 +310,24 @@ export class Heightmap {
 				if (sAlong > sFace + f.run * 0.5 && ac < f.hw + 1) water = Math.max(water, f.bottom);
 			}
 		}
+
+		// Keep a continuous basin rim where river carving approaches a lake from the side.
+		// Incoming channels cross the rim; outlet feeders are carved below.
+		if (shoreId >= 0) {
+			const river = rSeg >= 0 ? this.world.rivers[this.rivers.segRiver[rSeg]] : null;
+			const connected = river && this.lakes.receivingLake[this.rivers.segRiver[rSeg]] === shoreId && rDist < rWidth * 0.5;
+			if (!connected && !this.lakes.isSpillway(shoreId, x, z)) {
+				const level = this.world.lakes[shoreId].level;
+				const blend = smoothstep(-this.cell * 0.45, 0, shoreDistance) * (1 - smoothstep(0, this.cell * 0.45, shoreDistance));
+				h += Math.max(0, level + 0.35 - h) * blend;
+				bank = Math.max(bank, blend);
+			}
+		}
+
+		const filledBank = this.lakes.fillDisconnected(x, z, h);
+		if (filledBank > h) { h = filledBank; bank = 1; }
+		const outletBed = this.lakes.carveOutlet(x, z, h);
+		if (outletBed < h) { h = outletBed; bank = 1; }
 
 		// close-up relief: soft on meadows, rocky where it is steep and hard; none on shores or in channels
 		const rel = h - water;
@@ -454,7 +499,8 @@ export class Heightmap {
 }
 
 function cubic(p0, p1, p2, p3, t) {
-	return p1 + 0.5 * t * (p2 - p0 + t * (2 * p0 - 5 * p1 + 4 * p2 - p3 + t * (3 * (p1 - p2) + p3 - p0)));
+	const value = p1 + 0.5 * t * (p2 - p0 + t * (2 * p0 - 5 * p1 + 4 * p2 - p3 + t * (3 * (p1 - p2) + p3 - p0)));
+	return clamp(value, Math.min(p1, p2), Math.max(p1, p2));
 }
 
 export { NO_WATER, SQRT2 };

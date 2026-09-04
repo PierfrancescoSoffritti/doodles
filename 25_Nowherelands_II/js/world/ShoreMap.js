@@ -16,17 +16,6 @@ const TIERS = [
 ];
 const OUTSIDE = 1000;
 
-// the highest lake level among the grid cells within one cell of the point
-function lakeLevelNear(hm, x, z) {
-	const N = hm.N, ci = Math.round(hm.gx(x)), cj = Math.round(hm.gz(z));
-	let best = -Infinity;
-	for (let j = Math.max(cj - 1, 0); j <= Math.min(cj + 1, N - 1); j++) for (let i = Math.max(ci - 1, 0); i <= Math.min(ci + 1, N - 1); i++) {
-		const l = hm.lakeLevel[j * N + i];
-		if (l > best) best = l;
-	}
-	return best;
-}
-
 function smoothstep(a, b, x) { const t = Math.min(Math.max((x - a) / (b - a), 0), 1); return t * t * (3 - 2 * t); }
 
 class Tier {
@@ -68,12 +57,7 @@ class Tier {
 				const x = o.x + (i / (res - 1) - 0.5) * size;
 				const h = hm.sample(x, z);
 				const k = (j * res + i) * 4;
-				// a lake's sheet reaches a cell past its own grid cells over any ground below its level
-				// (InlandWater dilates the mask by one cell), so the water here is the highest lake
-				// within a cell if the ground lies under it
-				let water = hm._water;
-				const lake = lakeLevelNear(hm, x, z);
-				if (lake > water && h < lake - 0.02) water = lake;
+				const water = hm._water;
 				next[k] = h;
 				next[k + 1] = water;
 				next[k + 2] = h < water - 0.02 ? 1 : 0;   // under water of any kind
