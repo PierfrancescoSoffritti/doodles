@@ -65,3 +65,5 @@ js/events      rare event director
 ```
 
 A rebuild of the 2017 Nowherelands doodle, which lives on untouched in `13_Nowherelands`. three.js 0.185 is vendored in `../common/libs/three-0.185` and resolved through the import map in `index.html`.
+
+The river tour now includes **Fallen tree**, **Divided channel**, and **Sheltered lake** stops. River and lake habitats include rooted fallen trunks, logjams, drowned snags, exposed bank roots, wet stone bands, flood debris, nine plant communities, drifting leaves, fish, insects, and localized water/reed ambience. Lake inlet fans and occasional islands are generated with the terrain; gravel islands leave flowing channels on both sides. See [river implementation notes](docs/RIVERS.md) for performance budgets and simulation limits.

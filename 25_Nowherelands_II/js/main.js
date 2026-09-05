@@ -9,6 +9,9 @@ import { Terrain } from './world/Terrain.js';
 import { Water } from './world/Water.js';
 import { InlandWater } from './world/InlandWater.js';
 import { Waterfalls } from './world/Waterfalls.js';
+import { WatersideLife } from './world/WatersideLife.js';
+import { WatersideAmbience } from './audio/WatersideAmbience.js';
+import { WatersideFeatures } from './world/WatersideFeatures.js';
 import { RiverDrift } from './world/RiverDrift.js';
 import { createFogUniforms } from './world/FogGlsl.js';
 import { Sky } from './world/Sky.js';
@@ -72,6 +75,7 @@ worker.onmessage = (e) => {
 function start(world) {
 	const heightmap = new Heightmap(config.seed, world);
 	shared.heightmap = heightmap;
+	shared.waterside = new WatersideFeatures(heightmap, config.seed);
 	shared.renderer = renderer;
 	shared.world = world;
 	const ripples = new Ripples();
@@ -83,6 +87,7 @@ function start(world) {
 	const inland = new InlandWater(scene, heightmap, shared);
 	const waterfalls = new Waterfalls(scene, world, shared);
 	const drift = new RiverDrift(scene, heightmap, shared);
+	const watersideLife = new WatersideLife(scene, heightmap, shared);
 	const sky = new Sky(scene, shared);
 	const snow = new Snow(scene, shared);
 	const rain = new Rain(scene, shared);
@@ -128,6 +133,7 @@ function start(world) {
 		await engine.resume();
 		const conductor = new Conductor(engine);
 		shared.audio = engine;
+		shared.watersideAmbience = new WatersideAmbience(engine, heightmap, shared.waterside);
 		shared.conductor = conductor;
 		conductor.start();
 		hud.enter();
@@ -169,6 +175,7 @@ function start(world) {
 		inland.update(t, camera.position, shared);
 		waterfalls.update(t, camera.position);
 		drift.update(worldDt, camera.position);
+		watersideLife.update(camera.position);
 		snow.update(t, dt, camera.position, renderer);
 		rain.update(dt, camera.position, renderer);
 		fireflies.update(t, dt, player.position, renderer);
@@ -178,6 +185,7 @@ function start(world) {
 
 		if (shared.audio) {
 			shared.audio.update(dt);
+			shared.watersideAmbience.update(dt, shared);
 			shared.audio.updateListener(camera.position, player.forward, listenerUp);
 			shared.conductor.update(dt, shared);
 		}
@@ -216,7 +224,7 @@ function start(world) {
 			envTimer = 5;
 			water.setVisible(false);
 			const old = envTarget;
-			const hidden = [inland.mesh, inland.near, drift.points].filter(Boolean).map(mesh => [mesh, mesh.visible]);
+			const hidden = [inland.mesh, inland.near, drift.points, watersideLife.points].filter(Boolean).map(mesh => [mesh, mesh.visible]);
 			for (const [mesh] of hidden) mesh.visible = false;
 			envTarget = pmrem.fromScene(scene, 0.02, 1, config.world.far, { size: 128, position: camera.position });
 			for (const [mesh, visible] of hidden) mesh.visible = visible;

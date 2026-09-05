@@ -159,7 +159,8 @@ export class InlandWater {
 			if (a.kind === RIVER_KIND.LIP) continue;                    // the fall covers the gap
 			if (keep && !keep(i)) continue;
 			// as many quads as it takes to match the sea's facets, so a river's last reaches look like the sea
-			const subAcross = quad ? Math.min(Math.max(Math.round(a.hw * 2 / quad), 4), 32) : 4;
+			const barDetail = Math.max(r.data[i * RIVER_STRIDE + RV.BAR], r.data[(i + 1) * RIVER_STRIDE + RV.BAR]) > 0.2 ? 12 : 4;
+			const subAcross = quad ? Math.min(Math.max(Math.round(a.hw * 2 / quad), barDetail), 32) : barDetail;
 			const subAlong = quad ? Math.min(Math.max(Math.round(Math.hypot(c.x - a.x, c.z - a.z) / quad), 1), 8) : 1;
 			const wk = riverWakes(r, i, RIVER_STRIDE, RV.ALONG);
 			// a riffle ramp is exactly one quad: the step height belongs to the quad, never interpolated into its neighbours

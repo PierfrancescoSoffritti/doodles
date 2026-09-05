@@ -14,13 +14,15 @@ export function reachCharacter(slope, hardness, relief) {
 
 // Broad sediment shelves on the inside, a narrow scoured thalweg on the outside.
 // A positive value is submerged; negative inner shelves are exposed point bars.
-export function channelSection(u, bend = 0) {
+export function channelSection(u, bend = 0, bar = 0) {
 	const b = clamp(bend, -0.95, 0.95), peak = b * 0.48;
 	const v = (u - peak) / (u < peak ? 1 + peak : 1 - peak);
 	const inside = smooth(0.02, 0.92, -u * Math.sign(b));
 	const edge = 0.26 + 0.32 * b * u - 0.3 * Math.abs(b) * inside;
 	const bowl = Math.pow(Math.max(0, 1 - v * v), 0.62 + 2.6 * Math.abs(b) * inside);
-	return edge + (1 - edge) * bowl;
+	// Broad gravel reaches can divide around a tapered mid-channel sediment island.
+	const island = Math.exp(-Math.pow((u + b * 0.15) / 0.3, 4));
+	return edge + (1 - edge) * bowl - 1.24 * bar * island;
 }
 
 // Period is accumulated in channel widths, so larger rivers have longer sequences.
@@ -34,10 +36,15 @@ export function bedSequence(phase, confinement, bend) {
 
 // Reach-aware recruitment: reeds and submerged ribbons require sheltered shallow water;
 // bramble roots stay above ordinary flow. Alpine banks carry low scrub, not tall reeds.
-export function riverHabitat(heightAboveWater, speed, foam, elevation) {
+export function riverHabitat(heightAboveWater, speed, foam, elevation, forest = 0.5, exposure = 0.3) {
 	const shelter = (1 - smooth(0.55, 1.8, speed)) * (1 - smooth(0.12, 0.55, foam));
 	const lowland = 1 - smooth(300, 700, elevation);
 	return {
+		fern: forest * smooth(0.2, 1.5, heightAboveWater) * (1 - smooth(6, 12, heightAboveWater)) * (1 - smooth(550, 850, elevation)),
+		moss: (0.35 + forest * 0.65) * smooth(-0.1, 0.4, heightAboveWater) * (1 - smooth(2.5, 6, heightAboveWater)),
+		willow: lowland * smooth(1, 2.2, heightAboveWater) * (1 - smooth(7, 12, heightAboveWater)),
+		lily: (1 - smooth(0.02, 0.15, foam)) * lowland * (1 - smooth(0.08, 0.4, speed)) * (1 - exposure) * smooth(-4, -2, heightAboveWater) * (1 - smooth(-0.4, -0.1, heightAboveWater)),
+		rush: shelter * smooth(-0.4, 0.1, heightAboveWater) * (1 - smooth(1.5, 3.5, heightAboveWater)),
 		reed: shelter * lowland * smooth(-1.3, -0.2, heightAboveWater) * (1 - smooth(1.2, 4, heightAboveWater)),
 		aquatic: shelter * lowland * smooth(-3, -1.5, heightAboveWater) * (1 - smooth(-0.4, 0.15, heightAboveWater)),
 		bramble: smooth(0.7, 2.4, heightAboveWater) * (1 - smooth(8, 20, heightAboveWater)) * (1 - smooth(620, 950, elevation)),

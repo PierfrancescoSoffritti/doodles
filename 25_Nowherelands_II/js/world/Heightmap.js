@@ -14,7 +14,7 @@ const SQRT2 = Math.SQRT2;
 const HASH = 128;   // spatial hash cell, world units
 
 // Flat segment table over every river's samples, hashed by cell so a point finds its channel fast.
-const SEG = 22;     // ax az bx bz wlA wlB wA wB dA dB fA fB bankA bankB kind alongA bendA bendB skewA bowA skewB bowB
+const SEG = 24;     // ax az bx bz wlA wlB wA wB dA dB fA fB bankA bankB kind alongA bendA bendB skewA bowA skewB bowB barA barB
 export const SEG_KIND = { FLOW: 0, GAP: 1, STEP: 2 };   // GAP: a waterfall face (no channel), STEP: a riffle ramp
 
 class RiverIndex {
@@ -40,6 +40,7 @@ class RiverIndex {
 				const ka = d[a + RV.KIND], kb = d[b + RV.KIND];
 				this.seg[o + 14] = ka === RIVER_KIND.LIP ? SEG_KIND.GAP : (ka === RIVER_KIND.STEP_TOP && kb === RIVER_KIND.STEP_BOTTOM ? SEG_KIND.STEP : SEG_KIND.FLOW);
 				this.seg[o + 15] = d[a + RV.ALONG];
+				this.seg[o + 22] = d[a + RV.BAR]; this.seg[o + 23] = d[b + RV.BAR];
 				this.seg[o + 16] = d[a + RV.BEND]; this.seg[o + 17] = d[b + RV.BEND];
 				const ca = crestShape(r, i), cb = crestShape(r, i + 1);
 				this.seg[o + 18] = ca[0]; this.seg[o + 19] = ca[1]; this.seg[o + 20] = cb[0]; this.seg[o + 21] = cb[1];
@@ -257,9 +258,10 @@ export class Heightmap {
 					const u = dist / hw;
 					// cobbled bed: small bumps, more of them toward the banks, never above the water
 					const cobble = (1 - Math.abs(this.detail.noise(x / 3.2 + 4.1, z / 3.2 - 2.7))) * (0.15 + 0.3 * u * u) * Math.min(d * 0.3, 1);
-					const bed = wl - d * bedProfile(side * u, bend) + cobble;
+					const braid = seg[o + 22] + (seg[o + 23] - seg[o + 22]) * t;
+					const bed = wl - d * bedProfile(side * u, bend, braid) + cobble;
 					const shoal = Math.max(bed, bar);
-					h = Math.min(h, bed + (shoal - bed) * (1 - carve));
+					h = braid > 0 ? bed : Math.min(h, bed + (shoal - bed) * (1 - carve));
 					bank = 1;
 					water = Math.max(water, wl);
 				} else {

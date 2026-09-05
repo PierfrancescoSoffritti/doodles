@@ -31,7 +31,7 @@ test('seeded drainage packs finite geometry and conserved cross-section discharg
 		for (let i = 0; i < river.count; i++) {
 			const o = i * S, d = river.data;
 			assert.ok(d[o + RV.W] > 0 && d[o + RV.D] > 0 && d[o + RV.SPEED] > 0);
-			const q = sectionArea(d[o + RV.W], d[o + RV.D], d[o + RV.BEND]) * d[o + RV.SPEED];
+			const q = sectionArea(d[o + RV.W], d[o + RV.D], d[o + RV.BEND], d[o + RV.BAR]) * d[o + RV.SPEED];
 			assert.ok(Math.abs(q - d[o + RV.DISCHARGE]) / q < 1e-6);
 			if (Math.abs(d[o + RV.BEND]) > 0.1) bent++;
 			if (i) assert.ok(d[o + RV.ALONG] >= d[o - S + RV.ALONG]);

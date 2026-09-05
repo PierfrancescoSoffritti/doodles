@@ -26,17 +26,18 @@ test('riparian recruitment excludes plants from destructive current and deep wat
 	assert.ok(riverHabitat(4, 0.2, 0, 80).bramble > 0.8);
 });
 
-for (const seed of ['umbra', 'halcyon']) test(`${seed}: drainage stays downhill with powerful headwaters and varied sections`, () => {
-	const world = generateWorld(seed, null, { res: 512 });
+for (const [seed, res] of [['umbra', 1024], ['halcyon', 512]]) test(`${seed} (${res}): drainage stays downhill with powerful headwaters and varied sections`, () => {
+	const world = generateWorld(seed, null, { res });
 	let mountain = 0, minWidth = Infinity, maxWidth = 0, minDepth = Infinity, maxDepth = 0;
 	for (const river of world.rivers) {
 		const d = river.data;
 		assert.ok(d.every(Number.isFinite));
+		if (river.fromLake >= 0) assert.ok(Math.abs(d[RV.WL] - world.lakes[river.fromLake].level) < 0.002, 'an outlet starts at its lake level');
 		for (let i = 0; i < river.count; i++) {
 			const o = i * S, width = d[o + RV.W], depth = d[o + RV.D], speed = d[o + RV.SPEED];
 			if (i) assert.ok(d[o + RV.TRAVEL] >= d[o - S + RV.TRAVEL]);
 			if (i) assert.ok(d[o + RV.WL] <= d[o - S + RV.WL] + 0.002, `river ${river.id}, section ${i} runs uphill`);
-			assert.ok(Math.abs(sectionArea(width, depth, d[o + RV.BEND]) * speed / d[o + RV.DISCHARGE] - 1) < 1e-6);
+			assert.ok(Math.abs(sectionArea(width, depth, d[o + RV.BEND], d[o + RV.BAR]) * speed / d[o + RV.DISCHARGE] - 1) < 1e-6);
 			if (d[o + RV.WL] > 160 && speed > 2) mountain++;
 			minWidth = Math.min(minWidth, width); maxWidth = Math.max(maxWidth, width);
 			minDepth = Math.min(minDepth, depth); maxDepth = Math.max(maxDepth, depth);

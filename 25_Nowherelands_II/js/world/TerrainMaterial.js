@@ -39,7 +39,7 @@ vec3 terrainLight(vec3 albedo, vec3 n) {
 export function createRockMaterial(shared, terrainUniforms) {
 	const uniforms = {};
 	for (const k of ['uMoonDir', 'uMoonColor', 'uMoonIntensity', 'uSunDir', 'uSunColor', 'uSunIntensity', 'uSkyColor', 'uGroundColor', 'uCameraPos', 'uRain']) uniforms[k] = terrainUniforms[k];
-	Object.assign(uniforms, shared.fogUniforms);
+	Object.assign(uniforms, shared.fogUniforms, shared.shoreMap.uniforms);
 	return new THREE.ShaderMaterial({
 		uniforms,
 		vertexShader: /* glsl */`
@@ -55,6 +55,7 @@ export function createRockMaterial(shared, terrainUniforms) {
 			uniform vec3 uMoonDir, uMoonColor, uSkyColor, uGroundColor, uCameraPos, uSunDir, uSunColor;
 			varying vec3 vWorldPos;
 			${noiseGlsl}
+			${shared.shoreMap.glsl}
 			${fogGlsl}
 			${terrainLightGlsl}
 			void main() {
@@ -62,6 +63,13 @@ export function createRockMaterial(shared, terrainUniforms) {
 				vec3 n = dot(nc, nc) > 1e-12 ? normalize(nc) : vec3(0.0, 1.0, 0.0);
 				float grain = vnoise(vWorldPos.xz * 0.7 + vWorldPos.y * 0.3);
 				vec3 albedo = mix(vec3(0.11, 0.075, 0.18), vec3(0.24, 0.18, 0.29), grain * 0.6 + 0.2);
+				float water = waterLevelAt(vWorldPos.xz), H = vWorldPos.y - water;
+				float dampBand = (1.0 - smoothstep(0.2, 0.9, H)) * step(0.3, water);
+				albedo *= 1.0 - dampBand * 0.35;
+				float mineral = (1.0 - smoothstep(0.08, 0.28, abs(H - 1.15))) * step(0.3, water);
+				albedo += vec3(0.04, 0.035, 0.045) * mineral;
+				float moss = smoothstep(0.2, 0.65, H) * (1.0 - smoothstep(1.8, 3.5, H)) * smoothstep(0.5, 0.85, n.y) * smoothstep(0.35, 0.65, grain) * step(0.3, water);
+				albedo = mix(albedo, vec3(0.09, 0.15, 0.13), moss * 0.65);
 				vec3 color = terrainLight(albedo, n) * (1.0 - uRain * 0.3);
 				color = applyFog(color, vWorldPos, uCameraPos);
 				gl_FragColor = vec4(color, 1.0);
@@ -183,7 +191,8 @@ export function createTerrainMaterial(shared, heightmap) {
 
 				// Gravel and sand follow the exposed bed and low bars beside inland channels.
 				float riverBed = riverMouthAt(vWorldPos.xz) * smoothstep(0.3, 1.5, waterY - uWaterLevel);
-				float sediment = riverBed * (1.0 - smoothstep(0.4, 3.2, h)) * gentle;
+				float lakeShore = smoothstep(0.3, 1.5, waterY - uWaterLevel) * (1.0 - riverBed) * (1.0 - smoothstep(1.5, 5.0, abs(h)));
+				float sediment = max(riverBed * (1.0 - smoothstep(0.4, 3.2, h)), lakeShore) * gentle;
 				vec2 pebbleCell = floor(vWorldPos.xz * 1.1);
 				vec2 pebbleUv = fract(vWorldPos.xz * 1.1) - 0.5;
 				float pebble = smoothstep(0.52, 0.22, length(pebbleUv * vec2(1.0, 1.25)));
@@ -191,6 +200,14 @@ export function createTerrainMaterial(shared, heightmap) {
 				vec3 gravel = mix(vec3(0.16, 0.14, 0.2), vec3(0.32, 0.28, 0.33), smoothstep(0.3, 0.7, grain));
 				vec3 sand = vec3(0.25, 0.21, 0.25) * (0.9 + 0.2 * grain);
 				albedo = mix(albedo, mix(sand, gravel, hard * 0.6 + 0.25), sediment * 0.94);
+
+				// Old water marks and damp moss break up the bank above today's water level.
+				float shoreBand = max(riverBed, lakeShore);
+				float oldLevel = 1.4 + vnoise(vWorldPos.xz * 0.018) * 1.6;
+				float strand = (1.0 - smoothstep(0.15, 0.65, abs(h - oldLevel))) * shoreBand;
+				albedo *= 1.0 - strand * 0.18;
+				float moss = hab.r * shoreBand * smoothstep(0.25, 0.8, h) * (1.0 - smoothstep(2.0, 5.0, h)) * smoothstep(0.35, 0.7, vnoise(vWorldPos.xz * 0.3));
+				albedo = mix(albedo, vec3(0.095, 0.16, 0.14), moss * 0.55);
 
 				// snow: seasonal on gentle ground, permanent above the snow line
 				float snowLine = 780.0 + (vnoise(vWorldPos.xz * 0.003) - 0.5) * 220.0;

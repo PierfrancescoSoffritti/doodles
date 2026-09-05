@@ -28,12 +28,14 @@ export class RiverDrift {
 		this.pos = new Float32Array(COUNT * 3);
 		this.info0 = new Float32Array(COUNT * 4);
 		this.info1 = new Float32Array(COUNT * 4);
+		this.leaf = new Float32Array(COUNT);
 		this.fade = new Float32Array(COUNT);
 		this.size = new Float32Array(COUNT);
 		this.flow = [0, 0];
 		g.setAttribute('position', new THREE.BufferAttribute(this.pos, 3));
 		g.setAttribute('aInfo0', new THREE.BufferAttribute(this.info0, 4));
 		g.setAttribute('aInfo1', new THREE.BufferAttribute(this.info1, 4));
+		g.setAttribute('aLeaf', new THREE.BufferAttribute(this.leaf, 1));
 		g.setAttribute('aFade', new THREE.BufferAttribute(this.fade, 1));
 		g.setAttribute('aSeed', new THREE.Float32BufferAttribute(this.parts.map(p => p.seed), 1));
 		g.setAttribute('aSize', new THREE.BufferAttribute(this.size, 1));
@@ -51,10 +53,10 @@ export class RiverDrift {
 			transparent: true, depthWrite: false,
 			vertexShader: /* glsl */`
 				attribute vec4 aInfo0, aInfo1;
-				attribute float aFade, aSize, aSeed;
+				attribute float aFade, aSize, aSeed, aLeaf;
 				uniform float uTime, uPixelRatio;
 				uniform vec3 uCameraPos;
-				varying float vAlpha, vSeed;
+				varying float vAlpha, vSeed, vLeaf;
 				varying vec3 vWorldPos;
 				${riverWaveGlsl}
 				void main() {
@@ -66,12 +68,12 @@ export class RiverDrift {
 					vec4 mv = viewMatrix * vec4(p, 1.0);
 					gl_PointSize = aSize * uPixelRatio * 620.0 / max(-mv.z, 1.0);
 					gl_Position = projectionMatrix * mv;
-					vSeed = aSeed * 100.0;
+					vSeed = aSeed * 100.0; vLeaf = aLeaf;
 				}`,
 			fragmentShader: /* glsl */`
 				uniform float uMoonIntensity, uSunIntensity, uTime;
 				uniform vec3 uSunColor, uCameraPos;
-				varying float vAlpha, vSeed;
+				varying float vAlpha, vSeed, vLeaf;
 				varying vec3 vWorldPos;
 				${noiseGlsl}
 				${fogGlsl}
@@ -81,9 +83,13 @@ export class RiverDrift {
 					// a ragged flat clump, hard-edged
 					float rag = vnoise(c * 4.0 + vSeed) - 0.5;
 					float d = length(c * vec2(1.0, 1.35)) * 2.0 + rag * 0.5;
-					if (d > 0.85) discard;
+					if (vLeaf > 0.5) {
+						float angle = vSeed + uTime * 0.3; c = mat2(cos(angle), -sin(angle), sin(angle), cos(angle)) * c;
+						if (abs(c.x) * 1.5 + abs(c.y) * 2.5 > 0.68) discard;
+					} else if (d > 0.85) discard;
 					float light = 0.5 + 0.5 * uMoonIntensity + 0.25 * uSunIntensity;
 					vec3 col = mix(vec3(0.66, 0.7, 0.84), uSunColor, uSunIntensity * 0.3) * light;
+					if (vLeaf > 0.5) col = mix(vec3(0.25, 0.12, 0.075), vec3(0.4, 0.28, 0.12), fract(vSeed * 0.7)) * light;
 					col = applyFog(col, vWorldPos, uCameraPos);
 					gl_FragColor = vec4(col, vAlpha * 0.9);
 				}`,
@@ -119,6 +125,10 @@ export class RiverDrift {
 		p.river = ri; p.i = i; p.age = 0;
 		p.along = d[o + RV.ALONG] + Math.random() * Math.max(d[o + RIVER_STRIDE + RV.ALONG] - d[o + RV.ALONG], 0);
 		p.across = (Math.random() * 2 - 1) * 0.8;
+		const tx = d[o + RIVER_STRIDE] - d[o], tz = d[o + RIVER_STRIDE + 1] - d[o + 1], len = Math.hypot(tx, tz) || 1;
+		const bank = d[o + RV.W] * 0.6 + 24;
+		const canopy = Math.max(this.heightmap.forestDensity(d[o] - tz / len * bank, d[o + 1] + tx / len * bank), this.heightmap.forestDensity(d[o] + tz / len * bank, d[o + 1] - tx / len * bank));
+		p.leaf = p.seed < 0.24 && d[o + RV.WL] < 500 && canopy > 0.15;
 		// more clumps where the water is white
 		p.size = (0.16 + Math.random() * 0.3) * (0.7 + 0.6 * d[o + RV.FOAM]);
 	}
@@ -131,7 +141,7 @@ export class RiverDrift {
 		u.uMoonIntensity.value = s.moon.intensity;
 		u.uSunIntensity.value = s.sun.intensity;
 		u.uSunColor.value.copy(s.terrainUniforms.uSunColor.value);
-		if (this.centre.distanceTo(new THREE.Vector2(cameraPos.x, cameraPos.z)) > REGATHER) this.gather(cameraPos.x, cameraPos.z);
+		if (Math.hypot(this.centre.x - cameraPos.x, this.centre.y - cameraPos.z) > REGATHER) this.gather(cameraPos.x, cameraPos.z);
 
 		const rivers = this.world.rivers;
 		const r2 = (RADIUS + 30) * (RADIUS + 30);
@@ -170,7 +180,7 @@ export class RiverDrift {
 			const w = d[oa + RV.W] + (d[ob + RV.W] - d[oa + RV.W]) * t;
 			const depth = d[oa + RV.D] + (d[ob + RV.D] - d[oa + RV.D]) * t;
 			const bend = d[oa + RV.BEND] + (d[ob + RV.BEND] - d[oa + RV.BEND]) * t;
-			if (bedProfile(p.across, bend) * depth < 0.12) { p.river = -1; this.size[k] = 0; continue; }
+			if (bedProfile(p.across, bend, d[oa + RV.BAR] + (d[ob + RV.BAR] - d[oa + RV.BAR]) * t) * depth < 0.12) { p.river = -1; this.size[k] = 0; continue; }
 			let x = d[oa] + (d[ob] - d[oa]) * t, z = d[oa + 1] + (d[ob + 1] - d[oa + 1]) * t;
 			let tx = d[ob] - d[oa], tz = d[ob + 1] - d[oa + 1];
 			const l = Math.hypot(tx, tz) || 1; tx /= l; tz /= l;
@@ -184,7 +194,8 @@ export class RiverDrift {
 			this.info0[q] = d[oa + RV.FOAM]; this.info0[q + 1] = d[oa + RV.D]; this.info0[q + 2] = p.across; this.info0[q + 3] = w;
 			this.info1[q] = p.along; this.info1[q + 1] = d[oa + RV.SPEED] + (d[ob + RV.SPEED] - d[oa + RV.SPEED]) * t; this.info1[q + 2] = 0; this.info1[q + 3] = d[oa + RV.TRAVEL] + (d[ob + RV.TRAVEL] - d[oa + RV.TRAVEL]) * t;
 			this.fade[k] = d[oa + RV.FADE];
-			this.size[k] = p.size;
+			this.size[k] = p.size * (p.leaf ? 2.4 : 1);
+			this.leaf[k] = p.leaf ? 1 : 0;
 		}
 		const g = this.points.geometry;
 		g.attributes.position.needsUpdate = true;
@@ -192,5 +203,6 @@ export class RiverDrift {
 		g.attributes.aInfo1.needsUpdate = true;
 		g.attributes.aFade.needsUpdate = true;
 		g.attributes.aSize.needsUpdate = true;
+		g.attributes.aLeaf.needsUpdate = true;
 	}
 }

@@ -23,9 +23,9 @@ const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 const smoothstep = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 const lerp = (a, b, t) => a + (b - a) * t;
 
-export const RIVER_STRIDE = 14;
+export const RIVER_STRIDE = 15;
 // per-sample fields; FADE is how far the water has become the still water it joins or leaves (0..1)
-export const RV = { X: 0, Z: 1, WL: 2, W: 3, D: 4, FOAM: 5, BANK: 6, SPEED: 7, ALONG: 8, KIND: 9, FADE: 10, BEND: 11, DISCHARGE: 12, TRAVEL: 13 };
+export const RV = { X: 0, Z: 1, WL: 2, W: 3, D: 4, FOAM: 5, BANK: 6, SPEED: 7, ALONG: 8, KIND: 9, FADE: 10, BEND: 11, DISCHARGE: 12, TRAVEL: 13, BAR: 14 };
 // FLOW: ordinary sample. STEP_TOP/STEP_BOTTOM: the two ends of a short steep riffle ramp.
 // LIP: the ribbon ends here (a waterfall follows). POOL: the first sample after a fall's foot.
 export const RIVER_KIND = { FLOW: 0, STEP_TOP: 1, STEP_BOTTOM: 2, LIP: 3, POOL: 4 };
@@ -46,9 +46,9 @@ const RIFFLE_GRADE = 0.026;        // between this and CHUTE_GRADE the water poo
 export const EDGE_DEPTH = 0.26;
 export const bedProfile = channelSection;
 export const bankSpread = (side, bend) => 1 - 0.55 * side * bend;
-export function sectionArea(width, depth, bend = 0) {
+export function sectionArea(width, depth, bend = 0, bar = 0) {
 	let sum = 0;
-	for (let i = 0; i < 16; i++) sum += Math.max(0, bedProfile(-1 + (i + 0.5) / 8, bend));
+	for (let i = 0; i < 16; i++) sum += Math.max(0, bedProfile(-1 + (i + 0.5) / 8, bend, bar));
 	return width * depth * sum / 16;
 }
 // Catchment runoff sets discharge. Manning's relation supplies a reference depth for each reach.
@@ -351,6 +351,11 @@ function shapeRiver(river, rivers, ctx) {
 		}
 	}
 
+	// Junction clearance is a rendering offset and must never create an uphill sill.
+	// In particular a low lake outlet can sit only centimetres above its receiving river.
+	if (river.fromLake >= 0) wl[0] = lakes[river.fromLake].level;
+	for (let i = 1; i < n; i++) wl[i] = Math.min(wl[i], wl[i - 1]);
+
 	// ---- 4. reach types, falls, steps ----
 	const grade = new Float64Array(n);
 	for (let i = 0; i < n - 1; i++) grade[i] = (wl[i] - wl[i + 1]) / SP;
@@ -498,7 +503,15 @@ function shapeRiver(river, rivers, ctx) {
 	const m = out.length;
 	for (let q = 0; q < m; q++) out[q].along = q ? out[q - 1].along + Math.hypot(out[q].x - out[q - 1].x, out[q].z - out[q - 1].z) : 0;
 	// Discharge is conserved through the shaped cross-section, including pools and constrictions.
-	for (const s of out) s.speed = s.discharge / sectionArea(s.w, s.d, s.bend);
+	let barPhase = seed * 0.71;
+	for (let q = 0; q < out.length; q++) {
+		const s = out[q];
+		if (q) barPhase += (s.along - out[q - 1].along) / Math.max(20, s.w) * 0.9;
+		const margin = smoothstep(2 * s.w, 4 * s.w, Math.min(s.along, out[m - 1].along - s.along));
+		const setting = smoothstep(24, 40, s.w) * (1 - smoothstep(0.35, 0.7, characters[s.i].confinement));
+		s.bar = s.kind === KIND.FLOW && s.wl > 3 ? setting * margin * (1 - smoothstep(0.18, 0.5, Math.abs(s.bend))) * smoothstep(0.0, 0.65, Math.sin(barPhase)) : 0;
+		s.speed = s.discharge / sectionArea(s.w, s.d, s.bend, s.bar);
+	}
 	// Integrated travel time is the material coordinate of moving waves. Multiplying
 	// absolute time by a different speed at every vertex tears the surface over time.
 	out[0].travel = 0;
@@ -597,7 +610,7 @@ function shapeRiver(river, rivers, ctx) {
 			const fr = k < 2 ? rnd.range(-0.85, 0.85) : -Math.sign(s.bend || 1) * rnd.range(0.65, 1.15);
 			const along = rnd.range(-6, 6), across = fr * s.w * 0.5;
 			const radius = rnd.range(0.35, 0.85) * (1 + mountain * 2.6);
-			const y = s.wl - s.d * bedProfile(clamp(fr, -1, 1), s.bend) - radius * 0.15;
+			const y = s.wl - s.d * bedProfile(clamp(fr, -1, 1), s.bend, s.bar) - radius * 0.15;
 			addRock(s.x + tx * along - tz * across, s.z + tz * along + tx * across, y, radius, ROCK_KIND.BAR);
 			if (y + radius * 0.7 > s.wl && Math.abs(fr) < 0.95) wakes.push(s.along + along, across, radius);
 		}
@@ -633,7 +646,7 @@ function shapeRiver(river, rivers, ctx) {
 	for (let q = 0; q < m; q++) {
 		const s = out[q], o = q * RIVER_STRIDE;
 		data[o + RV.X] = s.x; data[o + RV.Z] = s.z; data[o + RV.WL] = s.wl; data[o + RV.W] = s.w; data[o + RV.D] = s.d;
-		data[o + RV.FOAM] = s.foam; data[o + RV.BANK] = s.bank; data[o + RV.SPEED] = s.speed; data[o + RV.ALONG] = s.along; data[o + RV.KIND] = s.kind; data[o + RV.FADE] = s.fade; data[o + RV.BEND] = s.bend; data[o + RV.DISCHARGE] = s.discharge; data[o + RV.TRAVEL] = s.travel;
+		data[o + RV.FOAM] = s.foam; data[o + RV.BANK] = s.bank; data[o + RV.SPEED] = s.speed; data[o + RV.ALONG] = s.along; data[o + RV.KIND] = s.kind; data[o + RV.FADE] = s.fade; data[o + RV.BEND] = s.bend; data[o + RV.DISCHARGE] = s.discharge; data[o + RV.TRAVEL] = s.travel; data[o + RV.BAR] = s.bar;
 	}
 	river.data = data;
 	river.count = m;

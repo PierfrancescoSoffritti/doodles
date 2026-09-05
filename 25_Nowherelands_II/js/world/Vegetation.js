@@ -5,6 +5,7 @@ import { config } from '../core/Config.js';
 import { hslGlsl, createRockMaterial } from './TerrainMaterial.js';
 import { ROCK_STRIDE } from './gen/Rivers.js';
 import { SEG_KIND } from './Heightmap.js';
+import { WatersideMeshes } from './WatersideMeshes.js';
 import { RiverEcology } from './RiverEcology.js';
 
 const UNBORN = 1e9;
@@ -404,6 +405,7 @@ export class Vegetation {
 		this.log.rotateZ(Math.PI / 2);
 		this.rockMaterial = createRockMaterial(shared, shared.terrainUniforms);
 		this.riverEcology = new RiverEcology(shared);
+		this.watersideMeshes = new WatersideMeshes(shared);
 
 		this.treeMaterial = instancedMaterial(new THREE.MeshStandardMaterial({ color: '#0a0716', roughness: 0.95, metalness: 0.05, flatShading: true, side: THREE.DoubleSide }), mk('tree', TREE_HEIGHT), 2.5);
 		// the giants: bark and leaf cards in one material; cards are cut out of the atlas, bark (uv v < 0)
@@ -1061,6 +1063,7 @@ export class Vegetation {
 		}
 
 		this.riverEcology.build(hm, chunk, cx, cz, size, config.seed);
+		this.watersideMeshes.build(hm, chunk, cx, cz, size, config.seed);
 		for (const mesh of chunk.meshes) this.scene.add(mesh);
 		this.chunks.set(key, chunk);
 		this.refreshFar(this.farKey(Math.floor(cx / 2), Math.floor(cz / 2)));

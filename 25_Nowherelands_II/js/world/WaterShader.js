@@ -29,6 +29,7 @@ export function createWaterUniforms(shared, waterLevel) {
 		uRain: { value: 0 },
 		uSkyTone: { value: new THREE.Color('#3a1460') },
 	};
+	for (const key of ['uHabitatMap', 'uRockOrigin', 'uRockSize']) uniforms[key] = shared.terrainUniforms[key];
 	Object.assign(uniforms, shared.ripples.uniforms, shared.shoreMap.uniforms, shared.fogUniforms, shared.sea);
 	return uniforms;
 }
@@ -120,7 +121,8 @@ export function waterVertexShader(shared) {
 export function waterFragmentShader(shared) {
 	return /* glsl */`
 	uniform float uNearRadius, uTime, uHue, uBass, uRain, uHasEnvironment, uHasScene;
-	uniform sampler2D uEnvironment, uSceneColor;
+	uniform sampler2D uEnvironment, uSceneColor, uHabitatMap;
+	uniform vec2 uRockOrigin; uniform float uRockSize;
 	uniform vec2 uResolution;
 	uniform vec3 uEnvironmentSize;
 	#define ENVMAP_TYPE_CUBE_UV
@@ -207,8 +209,13 @@ export function waterFragmentShader(shared) {
 		// remain visible in shallows; deep pools acquire a blue-green body under the violet sky.
 		float refractedCos = sqrt(1.0 - (1.0 - facing * facing) / (1.333 * 1.333));
 		float thickness = min(depth / max(refractedCos, 0.3), 36.0);
-		float sediment = river ? (1.0 - smoothstep(0.7, 3.0, speed)) * 0.22 : 0.08;
-		vec3 absorption = vec3(0.32, 0.095, 0.055) + sediment * vec3(0.2, 0.18, 0.24);
+		// Tree suitability is zero in water cells; read the banks for canopy-derived tannins.
+		vec2 canopyOffset = river ? vec2(-tangent.y, tangent.x) * (vInfo0.w * 0.6 + 24.0) : vec2(40.0, 25.0);
+		float forest = max(texture2D(uHabitatMap, (p + canopyOffset - uRockOrigin) / uRockSize + 0.5).r, texture2D(uHabitatMap, (p - canopyOffset - uRockOrigin) / uRockSize + 0.5).r);
+		float lowland = 1.0 - smoothstep(65.0, 400.0, vLevel);
+		float sediment = river ? lowland * (0.06 + smoothstep(20.0, 90.0, vInfo0.w) * 0.32 + uRain * 0.28) : 0.06 + uRain * 0.1;
+		float tannin = lowland * forest * (1.0 - fast) * 0.6;
+		vec3 absorption = vec3(0.32, 0.095, 0.055) + sediment * vec3(0.2, 0.18, 0.24) + tannin * vec3(0.03, 0.19, 0.3);
 		vec3 transmission = exp(-absorption * thickness);
 		vec2 screen = gl_FragCoord.xy / uResolution;
 		vec3 viewNormal = mat3(viewMatrix) * n;
@@ -220,6 +227,7 @@ export function waterFragmentShader(shared) {
 		vec3 bed = vec3(0.11, 0.09, 0.16);
 		if (uHasScene > 0.5) bed = texture2D(uSceneColor, sampleUv).rgb;
 		vec3 body = mix(vec3(0.022, 0.105, 0.13), vec3(0.05, 0.085, 0.12), sediment);
+		body = mix(body, vec3(0.075, 0.066, 0.055), clamp(sediment + tannin, 0.0, 0.75));
 		body *= 0.65 + 0.35 * uMoonIntensity;
 		body += uSkyTone * 0.06;
 		// Soft refracted light on the bed, attenuated before it reaches deep pools.

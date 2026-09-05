@@ -1,5 +1,6 @@
 import { Random, Simplex2D } from '../../core/Random.js';
 import { shapeRivers, RIVER_STRIDE, RV } from './Rivers.js';
+import { shapeLakeShores } from './LakeMorphology.js';
 import { computeHabitat } from './Habitat.js';
 
 // Offline world generation: a finite continent shaped by uplift and river erosion.
@@ -714,6 +715,7 @@ export function generateWorld(seed, progress = null, opts = {}) {
 	reconnectLakeBasins(h, lakes, lakeId, lakeLevel, hf, N);
 	fillLakePinholes(h, lakes, lakeId, lakeLevel, N);
 	for (const lake of lakes) { lake.cells = Int32Array.from(lake.cells); lake.area = lake.cells.length * cell * cell; }
+	const lakeFans = shapeLakeShores(h, lakes, lakeId, rivers, fine.hard, N, cell, size, noise.detail);
 	const habitat = computeHabitat({ h, area, lakeId, lakeLevel, hard: fine.hard, rivers, N, cell, size, waterLevel: 0 }, noise);
 	mark('habitat');
 
@@ -744,7 +746,8 @@ export function generateWorld(seed, progress = null, opts = {}) {
 		rock,
 		habitat,
 		area,
-		lakes: lakes.map((l) => ({ id: l.id, level: l.level, cells: l.cells, area: l.area, maxDepth: l.maxDepth })),
+		lakeFans: lakeFans.map(f => ({ ...f, x: f.x - spawn.x, z: f.z - spawn.z })),
+		lakes: lakes.map((l) => ({ id: l.id, level: l.level, cells: l.cells, area: l.area, maxDepth: l.maxDepth, island: l.island ? { x: l.island.x - spawn.x, z: l.island.z - spawn.z, radius: l.island.radius } : null })),
 		rivers: rivers.map((r) => ({ id: r.id, data: r.data, count: r.count, maxWidth: r.maxWidth, mouthType: r.mouthType, parentId: r.parentId, fromLake: r.fromLake, toLake: r.mouthType === 'lake' ? lakeId[r.junction] : -1, fromRiver: r.fromRiver ?? -1, falls: r.falls, rocks: r.rocks, wakes: r.wakes, stats: r.stats, probe: r.probe })),
 		deltas,
 		spawn,
