@@ -22,6 +22,7 @@ import { Sprouts } from './world/Sprouts.js';
 import { Landmarks } from './landmarks/Landmarks.js';
 import { Player } from './player/Player.js';
 import { HUD } from './ui/HUD.js';
+import { MovementProfile } from './ui/MovementProfile.js';
 import { RiverSurvey } from './ui/RiverSurvey.js';
 import { EventDirector } from './events/Events.js';
 import { PostProcessing } from './fx/PostProcessing.js';
@@ -123,6 +124,7 @@ function start(world) {
 	terrain.prewarm(player.position);
 	hud.ready();
 	const survey = new URLSearchParams(location.search).has('rivers') ? new RiverSurvey(shared, terrain) : null;
+	const profile = survey && new URLSearchParams(location.search).has('profile') ? new MovementProfile(shared, survey, { terrain, inland, shoreMap, pmrem, watersideLife, post }) : null;
 
 	// ---- enter ----
 	let started = false;
@@ -165,6 +167,7 @@ function start(world) {
 
 		shared.hue = (shared.hue + dt * 0.004) % 1;
 
+		profile?.begin(now, now - previousFrame);
 		player.update(dt, t);
 		shoreMap.update(player.position);
 		terrain.update(player.position, dt);
@@ -262,6 +265,7 @@ function start(world) {
 
 		post.render(t, shared);
 		if (survey) survey.update(now - previousFrame);
+		profile?.end();
 	}
 	window.__debug = { scene, renderer, camera, shared, post, terrain, player, landmarksList: landmarks.list, director, shoreMap, water, inland, waterfalls, drift, heightmap, world };
 	frame();

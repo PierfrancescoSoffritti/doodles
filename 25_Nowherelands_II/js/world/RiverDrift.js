@@ -40,6 +40,7 @@ export class RiverDrift {
 		g.setAttribute('aSeed', new THREE.Float32BufferAttribute(this.parts.map(p => p.seed), 1));
 		g.setAttribute('aSize', new THREE.BufferAttribute(this.size, 1));
 		this.uniforms = {
+			uNearRadius: shared.inlandNearRadius,
 			uTime: { value: 0 },
 			uCameraPos: { value: new THREE.Vector3() },
 			uPixelRatio: { value: shared.renderer.getPixelRatio() },

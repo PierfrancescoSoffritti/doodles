@@ -63,3 +63,33 @@ Water clarity varies with altitude, width, forest cover and rain: clearer headwa
 Large wood, sediment and historical water marks are static landscape features. They do not simulate tree falls, log transport, seasonal flooding or live sediment erosion. Fish and insects are lightweight ambient animation, rather than an ecosystem simulation.
 
 Follow-up validation (2026-09-05): the expanded habitat build held a 60 fps median at 1920 × 1080 in the inspected mountain, divided-channel and sheltered-lake views on the same M5 Pro. Recent p95 windows ranged from 16.8 ms to 18.7 ms, with the dense lake scene at the upper end. The browser reported no shader/WebGL errors, and normal exploration successfully started all three spatial ambience voices. The regression suite now includes a full-resolution 1024 `umbra` world as well as 512-resolution worlds. This caught and fixed a six-centimetre uphill sill caused by confluence rendering clearance after the original downhill-profile pass; source lake levels and downstream monotonicity are now reapplied after that clearance.
+
+## Movement stutter investigation (2026-09-05)
+
+The previous settled-view checks missed a main-thread spike every 40 metres: `InlandWater.rebuildNear` synchronously sampled terrain, clipped shores, rebuilt lake masks and allocated/uploaded a large detailed surface. On the `umbra` sheltered-lake route, a single rebuild took up to 295 ms.
+
+`WaterMeshData.js` now supplies the same surface attributes through a DOM/Three-independent builder. `WaterMeshWorker.js` reconstructs the seeded heightmap once, builds nearby detail in a worker, and transfers its typed-array buffers back without copying them. Only one request is in flight, so fast movement cannot accumulate a backlog. Lake masks are cached, lake sampling is bounded to the nearby rectangle, and adjacent lake triangles share vertices. Facet spacing, bed sampling, wakes and shoreline clipping are retained. The worker adds one persistent copy of the baked world and its sampling indexes; it does not clone the world on every rebuild.
+
+The old near mesh stays visible until replacement buffers arrive. Its coverage contracts if the player travels outside the built area; the static surface fills the rest immediately, including after a teleport or worker failure. Wave displacement and drifting foam share that coverage radius to avoid a height seam.
+
+### Reproduce the movement test
+
+Open `?seed=umbra&rivers=1&profile=1`, choose **Sheltered lake**, then **Test movement (24s)**. This waits four seconds, then covers 1,200 metres in 20 seconds using wall-clock movement. Start each comparison from the same tour stop in a freshly loaded world, keep only one game running, and check the actual canvas resolution. The panel records percentile frame intervals, slow-frame counts and CPU phase costs in its `data-profile` attribute. `waterBuild` measures request dispatch and `waterInstall` measures geometry attachment; GPU buffer uploads are included in rendering, not in those CPU timings. The hooks are opt-in and absent from normal gameplay.
+
+Paired runs in the same browser tab, Apple M5 Pro / 64 GB, 1920 × 1080 canvas, full-resolution `umbra` world:
+
+| Metric, 20-second moving route | Committed habitat build (`4695332`) | Worker streaming |
+| --- | ---: | ---: |
+| Median frame interval | 16.7 ms | 16.7 ms |
+| 95th percentile | 17.4 ms | 17.0 ms |
+| 99th percentile | 242.7 ms | 18.3 ms |
+| Worst frame | 307.7 ms | 25.9 ms |
+| Frames over 33.4 ms | 21 | 0 |
+| Frames over 50 ms | 20 | 0 |
+| Largest main-thread water rebuild / request | 295.1 ms | 0.1 ms |
+
+These are local measurements, not a guarantee for every device, seed, browser state or Retina resolution. Earlier runs in a long-lived browser tab had much higher costs across all subsystems; the table uses the subsequent same-tab baseline/optimized pair. Remaining occasional frame overruns in that pair came from terrain/vegetation builds, shoreline-map work and the five-second environment capture. They were below 26 ms; these systems are still synchronous.
+
+Validation adds checks for indexed lake coverage, finite transferred attributes, safe coverage during teleports, and exact geometry equivalence after reconstructing a cloned world with large-wood wakes. All 31 world regression tests pass, including full-resolution `umbra` drainage. Lake and mountain views were inspected without shader or worker errors.
+
+A second full-resolution `halcyon` run starting at **Mountain torrent** recorded 1,200 frames over the moving interval: 16.9 ms p95, 18.1 ms p99, 18.5 ms maximum, and zero frames over 33.4 ms. No worker, shader or WebGL warnings were reported.

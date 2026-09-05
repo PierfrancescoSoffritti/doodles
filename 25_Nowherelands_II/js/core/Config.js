@@ -29,5 +29,5 @@ export const config = {
 		keyChangeEvery: [40, 65],   // seconds
 	},
 
-	isTouch: matchMedia('(pointer: coarse)').matches && !matchMedia('(pointer: fine)').matches,
+	isTouch: typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches && !matchMedia('(pointer: fine)').matches,
 };

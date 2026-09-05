@@ -38,7 +38,8 @@ export function createWaterUniforms(shared, waterLevel) {
 // shader and the drifting foam so the clumps ride exactly on the surface.
 // info0: foam, depth, across (1 at the channel edge), width. info1: along, speed, step, integrated travel time.
 export const riverWaveGlsl = /* glsl */`
-	float riverNearFade(vec3 p, vec3 camera) { return 1.0 - smoothstep(210.0, 260.0, distance(p.xz, camera.xz)); }
+	uniform float uNearRadius;
+	float riverNearFade(vec3 p, vec3 camera) { return 1.0 - smoothstep(max(0.0, uNearRadius - 50.0), max(1.0, uNearRadius), distance(p.xz, camera.xz)); }
 	float riverWave(vec4 info0, vec4 info1, float fade, float t) {
 		float sp = info1.y;
 		float fast = smoothstep(0.6, 2.8, sp) * smoothstep(0.08, 0.65, info0.x);
