@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { sweepFlight, sweepWalk } from '../world/caves/CaveCollision.js';
 import { bus, Events } from '../core/EventBus.js';
 import { config } from '../core/Config.js';
 import { clamp, clamp01, damp } from '../core/Utils.js';
@@ -166,8 +167,17 @@ export class Player {
 		this.velocity.x = damp(this.velocity.x, target.x, 5, dt);
 		this.velocity.y = damp(this.velocity.y, target.y, 5, dt);
 		this.velocity.z = damp(this.velocity.z, target.z, 5, dt);
+		const previous=this.position.clone();
 		this.position.addScaledVector(this.velocity, dt);
-		const floor = this.heightmap.height(this.position.x, this.position.z) + 3;
+		const field=this.heightmap.caves;
+		if(field.hasRocks(previous.x,previous.z) || field.hasRocks(this.position.x,this.position.z) || field.candidates(previous.x,previous.z).length || field.candidates(this.position.x,this.position.z).length) {
+			const target=this.position.clone(),safe=sweepFlight(this.heightmap,previous,target);
+			this.position.set(safe.x,safe.y,safe.z);
+			if(this.position.distanceToSquared(target)>.001)this.velocity.set(0,0,0);
+		}
+		const caveColumn=field.column(this.position.x,this.position.z,this.position.y,3);
+		const surface=this.heightmap.height(this.position.x,this.position.z);
+		const floor = Math.min(caveColumn?caveColumn.floor:Infinity,surface)+3;
 		if (this.position.y < floor) this.position.y = floor;
 		this.groundY = this.position.y - config.world.eyeHeight;
 		this.speed = this.velocity.length();
@@ -213,14 +223,22 @@ export class Player {
 		const accel = len > 0 ? 6 : 8;
 		this.velocity.x = damp(this.velocity.x, target.x, accel, dt);
 		this.velocity.z = damp(this.velocity.z, target.z, accel, dt);
+		const previous=this.position.clone();
+		const field=this.heightmap.caves, wasCave=field.column(previous.x,previous.z,previous.y);
 		// slope resistance
-		const slope = this.heightmap.slope(this.position.x, this.position.z);
+		const slope = wasCave ? 0 : this.heightmap.slope(this.position.x, this.position.z);
 		const slopeK = 1 / (1 + slope * 0.9);
 		this.position.x += this.velocity.x * dt * slopeK;
 		this.position.z += this.velocity.z * dt * slopeK;
 
+		if(wasCave || field.hasRocks(previous.x,previous.z) || field.hasRocks(this.position.x,this.position.z) || field.hasOpening(previous.x,previous.z) || field.hasOpening(this.position.x,this.position.z)) {
+			const safe=sweepWalk(this.heightmap,previous,this.position,config.world.eyeHeight);
+			this.position.set(safe.x,safe.y,safe.z);
+		}
+
 		// keep out of solid landmarks
 		for (const c of this.shared.colliders) {
+			if(wasCave && c.position.y>this.position.y+3)continue;
 			const dx = this.position.x - c.position.x, dz = this.position.z - c.position.z;
 			const d = Math.hypot(dx, dz);
 			if (d < c.radius && d > 0.001) {
@@ -234,8 +252,14 @@ export class Player {
 		this.speed01 = clamp01(this.speed / SPRINT);
 
 		// ground: wade through shallows, float over anything deeper
-		const h = this.heightmap.sample(this.position.x, this.position.z);
-		const waterY = this.heightmap._water;
+		let cave=field.column(this.position.x,this.position.z,this.position.y);
+		if(wasCave && (!cave || cave.ceiling < cave.floor+config.world.eyeHeight+2) && this.heightmap.height(this.position.x,this.position.z)>this.position.y-config.world.eyeHeight+2) {
+			this.position.x=previous.x;this.position.z=previous.z;this.velocity.set(0,0,0);cave=wasCave;
+		}
+		const surface=this.heightmap.sample(this.position.x,this.position.z);
+		if(cave && surface<cave.floor)cave=null;
+		const h = cave ? cave.floor : surface;
+		const waterY = cave ? cave.water : this.heightmap._water;
 		const ground = Math.max(h, waterY - 1.5);
 		this.groundY = damp(this.groundY, ground, 12, dt);
 
@@ -243,6 +267,7 @@ export class Player {
 		this.bobPhase += dt * (4 + this.speed * 0.14) * (this.speed01 > 0.03 ? 1 : 0);
 		const bob = Math.sin(this.bobPhase) * 0.45 * this.speed01 + Math.sin(time * 0.6) * 0.06;
 		this.position.y = this.groundY + config.world.eyeHeight + bob;
+		if(cave)this.position.y=Math.min(this.position.y,cave.ceiling-2);
 
 		this.lookTimer -= dt;
 		this.looking = this.lookTimer > 0;

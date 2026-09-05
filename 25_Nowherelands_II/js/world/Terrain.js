@@ -8,7 +8,7 @@ import { Vegetation } from './Vegetation.js';
 // edges to hide the cracks between neighbours of different detail.
 const SEG = 48;
 const ROOT = 40960;                  // covers the 16 km world wherever the spawn ends up
-const MAX_DEPTH = 9;                 // 80 m leaves, only where a river runs; 160 m elsewhere
+const MAX_DEPTH = 9;                 // 80 m leaves beside rivers/cave mouths; 160 m elsewhere
 const RIVER_DEPTH = 8;               // the finest level away from rivers
 const LOD_FACTOR = config.isTouch ? 1.3 : 1.7;
 const BUILD_BUDGET_MS = 6;
@@ -56,12 +56,13 @@ export class Terrain {
 
 	key(depth, ix, iz) { return depth * 1e6 + ix * 1000 + iz; }
 
-	// Streams are a few metres wide: only nodes they run through get the finest level.
+	// Narrow water and cave mouths need fine surface geometry. Buried passages do
+	// not force extra terrain subdivisions hundreds of metres above the player.
 	hasRiver(key, cx, cz, size) {
 		let v = this.riverNodes.get(key);
 		if (v === undefined) {
 			const m = size * 0.5 + 12;
-			v = this.heightmap.rivers.segmentsIn(cx - m, cz - m, cx + m, cz + m).size > 0;
+			v = this.heightmap.rivers.segmentsIn(cx - m, cz - m, cx + m, cz + m).size > 0 || this.heightmap.caves.hasOpening(cx,cz);
 			this.riverNodes.set(key, v);
 		}
 		return v;
@@ -165,6 +166,12 @@ export class Terrain {
 
 		const geometry = new THREE.BufferGeometry();
 		geometry.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+		const apron=new Float32Array(pos.length/3);
+		for(let i=0;i<apron.length;i++)apron[i]=hm.entranceTerrain.sample(pos[i*3],pos[i*3+2],'mask');
+		geometry.setAttribute('aApron',new THREE.BufferAttribute(apron,1));
+		const caveMask=new Float32Array(pos.length/3);
+		for(let i=0;i<caveMask.length;i++) caveMask[i]=Math.max(-32,Math.min(32,hm.caves.surfaceDensity(pos[i*3],pos[i*3+1],pos[i*3+2])));
+		geometry.setAttribute('aCave',new THREE.BufferAttribute(caveMask,1));
 		geometry.setIndex(this.index);
 		geometry.computeBoundingSphere();
 		const mesh = new THREE.Mesh(geometry, this.material);

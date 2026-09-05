@@ -22,6 +22,8 @@ import { Sprouts } from './world/Sprouts.js';
 import { Landmarks } from './landmarks/Landmarks.js';
 import { Player } from './player/Player.js';
 import { HUD } from './ui/HUD.js';
+import { Caves } from './world/caves/Caves.js';
+import { CaveSurvey } from './ui/CaveSurvey.js';
 import { MovementProfile } from './ui/MovementProfile.js';
 import { RiverSurvey } from './ui/RiverSurvey.js';
 import { EventDirector } from './events/Events.js';
@@ -70,10 +72,10 @@ worker.onmessage = (e) => {
 	worker.terminate();
 	hud.setLoading('growing the forests', 1);
 	// let the label paint before the synchronous build work
-	requestAnimationFrame(() => requestAnimationFrame(() => start(e.data.world)));
+	requestAnimationFrame(() => requestAnimationFrame(() => start(e.data.world,e.data.caveMeshes)));
 };
 
-function start(world) {
+function start(world,caveMeshes) {
 	const heightmap = new Heightmap(config.seed, world);
 	shared.heightmap = heightmap;
 	shared.waterside = new WatersideFeatures(heightmap, config.seed);
@@ -88,6 +90,7 @@ function start(world) {
 	const inland = new InlandWater(scene, heightmap, shared);
 	const waterfalls = new Waterfalls(scene, world, shared);
 	const drift = new RiverDrift(scene, heightmap, shared);
+	const caves=new Caves(scene,heightmap,shared,caveMeshes);
 	const watersideLife = new WatersideLife(scene, heightmap, shared);
 	const sky = new Sky(scene, shared);
 	const snow = new Snow(scene, shared);
@@ -123,7 +126,8 @@ function start(world) {
 	shoreMap.prime(player.position);
 	terrain.prewarm(player.position);
 	hud.ready();
-	const survey = new URLSearchParams(location.search).has('rivers') ? new RiverSurvey(shared, terrain) : null;
+	const caveSurvey=new URLSearchParams(location.search).has('caves') ? new CaveSurvey(shared) : null;
+	const survey = !caveSurvey && new URLSearchParams(location.search).has('rivers') ? new RiverSurvey(shared, terrain) : null;
 	const profile = survey && new URLSearchParams(location.search).has('profile') ? new MovementProfile(shared, survey, { terrain, inland, shoreMap, pmrem, watersideLife, post }) : null;
 
 	// ---- enter ----
@@ -168,9 +172,13 @@ function start(world) {
 		shared.hue = (shared.hue + dt * 0.004) % 1;
 
 		profile?.begin(now, now - previousFrame);
+		caveSurvey?.guide(now);
 		player.update(dt, t);
-		shoreMap.update(player.position);
-		terrain.update(player.position, dt);
+		caves.update(t,player.position);
+		// Resume before daylight is reached so the outside view has time to stream.
+		const surfaceNearby=!shared.caveColumn || heightmap.height(player.position.x,player.position.z)-player.position.y<96;
+		shared.surfaceStreaming=surfaceNearby;
+		if(surfaceNearby){shoreMap.update(player.position);terrain.update(player.position,dt);}
 		ripples.update(t);
 		sky.update(t, dt, camera.position, renderer);
 		scene.fog.color.copy(shared.fogColor);
@@ -223,11 +231,11 @@ function start(world) {
 
 		// environment map for mirrors and stones, refreshed occasionally from the player's position
 		envTimer -= dt;
-		if (envTimer <= 0) {
+		if (envTimer <= 0 && shared.caveAmount < .05) {
 			envTimer = 5;
 			water.setVisible(false);
 			const old = envTarget;
-			const hidden = [inland.mesh, inland.near, drift.points, watersideLife.points].filter(Boolean).map(mesh => [mesh, mesh.visible]);
+			const hidden = [inland.mesh, inland.near, drift.points, watersideLife.points, ...caves.waterMeshes].filter(Boolean).map(mesh => [mesh, mesh.visible]);
 			for (const [mesh] of hidden) mesh.visible = false;
 			envTarget = pmrem.fromScene(scene, 0.02, 1, config.world.far, { size: 128, position: camera.position });
 			for (const [mesh, visible] of hidden) mesh.visible = visible;
@@ -244,7 +252,7 @@ function start(world) {
 		// glare: how squarely we are looking at the red dwarf, and whether hills hide it
 		{
 			const sun = shared.sun;
-			const facing = player.forward.dot(sun.dir);
+			const facing = shared.caveAmount > .1 ? -1 : player.forward.dot(sun.dir);
 			let glare = 0;
 			if (sun.intensity > 0.01 && facing > 0.7) {
 				const ndc = sun.dir.clone().multiplyScalar(4000).add(camera.position).project(camera);
@@ -263,7 +271,10 @@ function start(world) {
 			shared.sunGlare = damp(shared.sunGlare || 0, glare, 5, dt);
 		}
 
+		fireflies.points.visible=shared.caveAmount<=.4;
+		if(shared.caveAmount>.4){snow.points.visible=false;rain.points.visible=false;}
 		post.render(t, shared);
+		caveSurvey?.update(now-previousFrame);
 		if (survey) survey.update(now - previousFrame);
 		profile?.end();
 	}

@@ -1,3 +1,5 @@
+import { EntranceTerrain } from './caves/EntranceTerrain.js';
+import { CaveField } from './caves/CaveField.js';
 import { crestShape, crestOffset } from './RiverGeometry.js';
 import { LakeSurface } from './LakeSurface.js';
 import { Random, Simplex2D } from '../core/Random.js';
@@ -113,6 +115,7 @@ function channelLevel(dist, wl, w, depth, bank, floor) {
 export class Heightmap {
 	constructor(seed, world) {
 		this.world = world;
+		this.entranceTerrain=new EntranceTerrain(world.caveTerrain||[]);
 		this.N = world.res;
 		this.cell = world.cell;
 		this.size = world.size;
@@ -130,6 +133,7 @@ export class Heightmap {
 		this.lakes = new LakeSurface(world, false);
 		this.lakes.resolveConnectivity((x, z) => this.height(x, z));
 		this.maxPyramid = this.buildMaxPyramid();
+		this.caves = new CaveField(world.caves || [],(world.caveHabitat||[]).flatMap(h=>h.rocks));
 		// scratch results of the last sample()
 		this._water = NO_WATER;
 		this._bank = 0;
@@ -354,7 +358,7 @@ export class Heightmap {
 		this._riverSeg = rSeg;
 		this._slope = slope;
 		this._hardness = hardness;
-		return h;
+		return h+this.entranceTerrain.sample(x,z);
 	}
 
 	height(x, z) { return this.sample(x, z); }

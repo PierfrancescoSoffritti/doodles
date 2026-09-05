@@ -30,6 +30,11 @@ export class WatersideAmbience {
 				if (score > scores[1]) { scores[1] = score; choices[1] = { x: shore.x, y: shore.level, z: shore.z, energy: 0.18 + shore.fetch * 0.2 }; }
 				if (score > scores[2] && shore.fetch < 0.6) { scores[2] = score; choices[2] = { x: shore.x, y: shore.level + 3, z: shore.z, energy: 0.3 }; }
 			}
+			if(shared.caveAmount>.4) {
+				choices.fill(null);
+				const q=shared.caveColumn;
+				if(q && q.water>-1e5) {choices[0]={x:p.x,y:q.water,z:p.z,energy:.48};choices[1]={x:p.x+4,y:q.water,z:p.z+4,energy:.32};}
+			}
 			this.voices.forEach((voice, j) => {
 				voice.amount = choices[j] ? choices[j].energy * [0.14, 0.055, 0.028][j] : 0;
 				if (choices[j]) { const target = choices[j], now = this.engine.now; for (const axis of ['x', 'y', 'z']) voice.panner['position' + axis.toUpperCase()].setTargetAtTime(target[axis], now, 0.35); }

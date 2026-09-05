@@ -119,10 +119,15 @@ export function createTerrainMaterial(shared, heightmap) {
 	const material = new THREE.ShaderMaterial({
 		uniforms,
 		vertexShader: /* glsl */`
+			attribute float aCave;
+			attribute float aApron;
 			varying vec3 vWorldPos;
+			varying float vCave;
+			varying float vApron;
 			void main() {
 				vec4 worldPosition = modelMatrix * vec4(position, 1.0);
 				vWorldPos = worldPosition.xyz;
+			vCave=aCave;vApron=aApron;
 				gl_Position = projectionMatrix * viewMatrix * worldPosition;
 			}`,
 		fragmentShader: /* glsl */`
@@ -132,6 +137,8 @@ export function createTerrainMaterial(shared, heightmap) {
 			uniform sampler2D uRockMap, uHabitatMap;
 			uniform vec2 uRockOrigin;
 			varying vec3 vWorldPos;
+			varying float vCave;
+			varying float vApron;
 			${hslGlsl}
 			${noiseGlsl}
 			${Ripples.glsl()}
@@ -147,6 +154,9 @@ export function createTerrainMaterial(shared, heightmap) {
 			}
 
 			void main() {
+				// A small overlap covers interpolation differences between the terrain LOD
+				// and the fixed-grid cavity shell, especially on an uneven entrance floor.
+				if(vCave>1.25) discard;
 				vec3 nc = cross(dFdx(vWorldPos), dFdy(vWorldPos));
 				vec3 n = dot(nc, nc) > 1e-12 ? normalize(nc) : vec3(0.0, 1.0, 0.0);
 				float hSea = vWorldPos.y - uWaterLevel;
@@ -215,6 +225,14 @@ export function createTerrainMaterial(shared, heightmap) {
 				float snowMask = max(smoothstep(0.55, 0.9, n.y) * smoothstep(1.0, 16.0, h) * uSnow, caps);
 				albedo = mix(albedo, vec3(0.4, 0.4, 0.56), snowMask * 0.55);
 
+				// Eroded limestone at the opening interrupts the soil cover and blends the
+				// cavity shell into an irregular band of exposed mountain rock.
+				float caveRim = smoothstep(-8.0, -0.2, vCave - vnoise(vWorldPos.xz * .24) * 2.5);
+				vec3 exposedRock=mix(vec3(.19,.16,.22),vec3(.39,.34,.38),vnoise(vWorldPos.xz*.085 + hSea*.031));
+				exposedRock*=.86+.14*band;
+				float soilPocket=smoothstep(.55,.8,n.y)*smoothstep(.48,.72,vnoise(vWorldPos.xz*.16));
+				exposedRock=mix(exposedRock,vec3(.10,.145,.12),soilPocket*.48);
+				albedo = mix(albedo, exposedRock, max(caveRim*.96,smoothstep(.08,.75,vApron)*.97));
 				vec3 color = terrainLight(albedo, n);
 				// cliff faces catch a little moonlight glint so they read even when turned away
 				color += uMoonColor * pow(max(dot(reflect(-uMoonDir, n), normalize(uCameraPos - vWorldPos)), 0.0), 6.0) * steep * 0.05 * uMoonIntensity;
@@ -224,7 +242,7 @@ export function createTerrainMaterial(shared, heightmap) {
 				color += uMoonColor * pow(max(dot(reflect(-uMoonDir, n), normalize(uCameraPos - vWorldPos)), 0.0), 24.0) * uRain * 0.25 * uMoonIntensity;
 
 				// glowing grid + contours
-				float lineFade = exp(-dist / 380.0) * smoothstep(2.0, 12.0, dist);
+				float lineFade = (1.0-vApron*.95)*exp(-dist / 380.0) * smoothstep(2.0, 12.0, dist);
 				float grid = gridLine(vWorldPos.xz, 16.0) * lineFade * smoothstep(0.35, 0.65, n.y);   // the grid is drawn on the ground, not up the cliffs
 				float cq = hSea / 10.0;
 				float contour = (1.0 - min(abs(fract(cq - 0.5) - 0.5) / fwidth(cq), 1.0)) * lineFade * step(1.0, h);

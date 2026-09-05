@@ -101,7 +101,7 @@ export class InlandWater {
 		// On a teleport or unusually fast travel, the static water fills any area not yet
 		// covered by the previous detailed mesh. A worker delay must never leave a hole.
 		this.uniforms.uNearRadius.value = this.near ? nearCoverageRadius(this.nearCentre.x, this.nearCentre.y, cameraPos.x, cameraPos.z) : 0;
-		if (Math.hypot(this.nearCentre.x - cameraPos.x, this.nearCentre.y - cameraPos.z) > NEAR_REBUILD) this.rebuildNear(cameraPos.x, cameraPos.z);
+		if (shared.surfaceStreaming !== false && Math.hypot(this.nearCentre.x - cameraPos.x, this.nearCentre.y - cameraPos.z) > NEAR_REBUILD) this.rebuildNear(cameraPos.x, cameraPos.z);
 	}
 }
 

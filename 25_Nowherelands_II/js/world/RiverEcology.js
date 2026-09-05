@@ -5,7 +5,7 @@ import { surfaceHalfWidth, RIVER_STRIDE, RV } from './gen/Rivers.js';
 
 // Small solid silhouettes alongside the world's wire grass. Nine instanced communities
 // with shared geometry, bounded recruitment and no per-plant frame updates.
-function plantGeometry(type) {
+export function plantGeometry(type) {
 	const rnd = new Random('riparian:' + type), p = [], colors = [];
 	const leafColor = type === 'moss' ? [0.12, 0.24, 0.18] : type === 'fern' ? [0.2, 0.35, 0.29] : type === 'bramble' ? [0.21, 0.29, 0.25] : type === 'aquatic' ? [0.12, 0.32, 0.25] : [0.3, 0.38, 0.3];
 	const tri = (a, b, c, tint = 1) => { p.push(...a, ...b, ...c); for (let j = 0; j < 3; j++) colors.push(...leafColor.map(v => v * tint)); };

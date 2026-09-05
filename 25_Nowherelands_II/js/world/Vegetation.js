@@ -684,6 +684,7 @@ export class Vegetation {
 	treeLights(items, rnd, chunk) {
 		const pos = [], info = [], lamps = [];
 		for (const it of items) {
+			if(this.heightmap.caves.surfaceDensity(it.x,it.y,it.z)>-2)continue;
 			const geo = (it.conifer ? this.sequoias : this.broadleaves)[it.variant % (it.conifer ? this.sequoias.length : this.broadleaves.length)];
 			const cos = Math.cos(it.yaw), sin = Math.sin(it.yaw);
 			const world = (h) => [it.x + (h.x * cos + h.z * sin) * it.sc, it.y + h.y * it.sc * it.sy, it.z + (-h.x * sin + h.z * cos) * it.sc];
@@ -786,6 +787,7 @@ export class Vegetation {
 	}
 
 	makeInstanced(geometry, material, kind, items, rnd, chunk, place) {
+		items=items.filter(it=>!this.heightmap.caves.hasOpening(it.x,it.z) || this.heightmap.caves.surfaceDensity(it.x,it.y ?? this.heightmap.height(it.x,it.z),it.z)<-2);
 		if (!items.length) return;
 		const geom = geometry.clone();
 		const mesh = new THREE.InstancedMesh(geom, material, items.length);
@@ -944,6 +946,7 @@ export class Vegetation {
 		// merged lines: tufts, reeds by the water, crystal edges
 		const verts = [], bases = [], infos = [], ranges = [], pos = [], kinds = [];
 		const pushLines = (arr, x, y, z, rot, sx, sy, sz, dx, dz, h, phase, kind, dur) => {
+			if(hm.caves.surfaceDensity(x,y,z)>-2)return;
 			for (let k = 0; k < arr.length; k += 3) {
 				const lx = arr[k] * sx, ly = arr[k + 1] * sy, lz = arr[k + 2] * sz;
 				const rx = lx * Math.cos(rot) - lz * Math.sin(rot), rz = lx * Math.sin(rot) + lz * Math.cos(rot);
