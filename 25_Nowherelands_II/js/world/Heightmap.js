@@ -283,7 +283,8 @@ export class Heightmap {
 			for (let q = 0; q < flist.length; q++) {
 				const f = falls[flist[q]];
 				const rx = x - f.x, rz = z - f.z;
-				const sAlong = rx * f.dx + rz * f.dz, c = rx * -f.dz + rz * f.dx;
+				const c = rx * -f.dz + rz * f.dx;
+				const sAlong = rx * f.dx + rz * f.dz - crestOffset(c / (f.w * 0.5), f.skew || 0, f.bow || 0);
 				const ac = Math.abs(c);
 				if (sAlong < f.sMin || sAlong > f.sMax || ac > f.cMax) continue;
 				const ms = smoothstep(f.sMin, f.sMin + 5, sAlong) * (1 - smoothstep(f.sMax - 6, f.sMax, sAlong));
@@ -292,7 +293,7 @@ export class Heightmap {
 				if (mask <= 0.001) continue;
 				const up = channelLevel(ac, f.top, f.w, f.dTop, f.bankTop, f.top + f.bankTop);
 				const down = channelLevel(ac, f.bottom, f.wBottom || f.w, f.dBot, f.bankBot, f.bottom + f.bankBot);
-				// the crest is straight across the channel and recedes downstream at the sides (a horseshoe)
+				// Shared curved crest, with additional recession outside the flowing channel.
 				const side = Math.max(0, ac - f.hw);
 				const sFace = side * 0.45 + (side > 0 ? this.detail.noise(c / 9 + f.seed, f.seed) * 1.6 : 0);
 				let G;

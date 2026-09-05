@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { WaterOptics } from './WaterOptics.js';
 import { crestShape, crestOffset } from './RiverGeometry.js';
 import { clipShore } from './LakeSurface.js';
 import { riverWakes } from './RiverFlow.js';
@@ -7,7 +8,7 @@ import { RIVER_STRIDE, RV, RIVER_KIND, surfaceHalfWidth } from './gen/Rivers.js'
 
 // Lakes and rivers: flat lake sheets at each lake's own level, and river ribbons that follow the
 // water surface sample by sample: sloping runs, short steep riffle ramps, and gaps where a
-// waterfall (its own mesh) takes over. Both share the local environment reflection.
+// waterfall (its own mesh) takes over. Both share scene refraction, depth absorption and the local environment reflection.
 //
 // River vertices carry their position in river space (metres along the channel, signed metres
 // across it) so the shader can texture the flow without smearing, and the three nearest rocks
@@ -35,6 +36,7 @@ export class InlandWater {
 		const uniforms = createWaterUniforms(shared, heightmap.waterLevel);
 		uniforms.uNearRadius = { value: NEAR_RADIUS };
 		this.uniforms = uniforms;
+		this.optics = new WaterOptics(shared, uniforms);
 		this.material = new THREE.ShaderMaterial({
 			uniforms,
 			vertexShader: waterVertexShader(shared),
@@ -58,6 +60,7 @@ export class InlandWater {
 		for (let ri = 0; ri < world.rivers.length; ri++) this.buildRiver(b, ri, null, 0);
 		this.mesh = new THREE.Mesh(b.geometry(), this.material);
 		this.mesh.frustumCulled = false;
+		this.mesh.onBeforeRender = (...args) => this.optics.capture(...args);
 		this.mesh.renderOrder = 1;          // over the sea, so a river mouth shows the river until it fades
 		scene.add(this.mesh);
 		shared.mirrorHide.add(this.mesh);   // reads the sea's mirror, so it cannot be drawn into it
@@ -135,12 +138,12 @@ export class InlandWater {
 			const bend = d[o + RV.BEND];
 			const left = surfaceHalfWidth(w, dep, bank, -1, bend), right = surfaceHalfWidth(w, dep, bank, 1, bend);
 			const hw = Math.max(left, right);
-			let stepH = 0, stepBase = 0;
+			let stepH = 0;
 			const [skew, bow] = crestShape(r, i);
-			if (kind === RIVER_KIND.STEP_TOP && i < count - 1) { stepH = d[o + RV.WL] - d[o + S + RV.WL]; stepBase = d[o + S + RV.WL] - 0.08; }
-			else if (kind === RIVER_KIND.STEP_BOTTOM && i > 0) { stepH = d[o - S + RV.WL] - d[o + RV.WL]; stepBase = d[o + RV.WL] - 0.08; }
+			if (kind === RIVER_KIND.STEP_TOP && i < count - 1) { stepH = d[o + RV.WL] - d[o + S + RV.WL]; }
+			else if (kind === RIVER_KIND.STEP_BOTTOM && i > 0) { stepH = d[o - S + RV.WL] - d[o + RV.WL]; }
 
-			out.push({ x, z, y: wl, tx, tz, nx: -tz, nz: tx, hw, left, right, bend, skew, bow, foam, dep, w, along, speed, stepH, stepBase, kind, fd });
+			out.push({ x, z, y: wl, travel: d[o + RV.TRAVEL], tx, tz, nx: -tz, nz: tx, hw, left, right, bend, skew, bow, foam, dep, w, along, speed, stepH, kind, fd });
 		}
 		return out;
 	}
@@ -160,7 +163,7 @@ export class InlandWater {
 			const subAlong = quad ? Math.min(Math.max(Math.round(Math.hypot(c.x - a.x, c.z - a.z) / quad), 1), 8) : 1;
 			const wk = riverWakes(r, i, RIVER_STRIDE, RV.ALONG);
 			// a riffle ramp is exactly one quad: the step height belongs to the quad, never interpolated into its neighbours
-			const stepH = a.kind === RIVER_KIND.STEP_TOP && c.kind === RIVER_KIND.STEP_BOTTOM ? a.stepH : 0, stepBase = stepH > 0 ? a.stepBase : 0;
+			const stepH = a.kind === RIVER_KIND.STEP_TOP && c.kind === RIVER_KIND.STEP_BOTTOM ? a.stepH : 0;
 			// rows of vertices from section a to section c
 			const rows = [];
 			for (let j = 0; j <= subAlong; j++) {
@@ -176,7 +179,7 @@ export class InlandWater {
 					const bed = this.heightmap.height(x, z);
 					const coverage = lakeId >= 0 ? this.heightmap.lakes.coverage(lakeId, x, z) : -1;
 					const join = coverage > 0 && s.y <= this.world.lakes[lakeId].level + 0.02 ? Math.min(1, coverage / 3) : 0;
-					row.push(b.river(x, s.y, z, [s.foam, s.dep, across / (s.w * 0.5), s.w], [s.along, s.speed, stepH, stepBase], wk, s.fd, [s.bend, bed, s.tx, s.tz], join, wave));
+					row.push(b.river(x, s.y, z, [s.foam, s.dep, across / (s.w * 0.5), s.w], [s.along, s.speed, stepH, s.travel], wk, s.fd, [s.bend, bed, s.tx, s.tz], join, wave));
 				}
 				rows.push(row);
 			}
@@ -211,14 +214,16 @@ export class InlandWater {
 		this.near = new THREE.Mesh(b.geometry(), this.nearMaterial);
 		this.shared.mirrorHide.add(this.near);
 		this.near.frustumCulled = false;
+		this.near.onBeforeRender = (...args) => this.optics.capture(...args);
 		this.near.renderOrder = 1;
 		this.scene.add(this.near);
 		this.nearCentre.set(px, pz);
 	}
 
 	update(time, cameraPos, shared) {
+		this.optics.beginFrame();
 		updateWaterUniforms(this.uniforms, time, cameraPos, shared);
-		if (this.nearCentre.distanceTo(new THREE.Vector2(cameraPos.x, cameraPos.z)) > NEAR_REBUILD) this.rebuildNear(cameraPos.x, cameraPos.z);
+		if (Math.hypot(this.nearCentre.x - cameraPos.x, this.nearCentre.y - cameraPos.z) > NEAR_REBUILD) this.rebuildNear(cameraPos.x, cameraPos.z);
 	}
 }
 
@@ -230,14 +235,14 @@ function lerpSection(a, c, t) {
 	let nx = L(a.nx, c.nx), nz = L(a.nz, c.nz);
 	const nl = Math.hypot(nx, nz) || 1;
 	nx /= nl; nz /= nl;
-	return { x: L(a.x, c.x), z: L(a.z, c.z), y: L(a.y, c.y), tx: L(a.tx, c.tx), tz: L(a.tz, c.tz), nx, nz, hw: L(a.hw, c.hw), left: L(a.left, c.left), right: L(a.right, c.right), bend: L(a.bend, c.bend), skew: L(a.skew, c.skew), bow: L(a.bow, c.bow), foam: L(a.foam, c.foam), dep: L(a.dep, c.dep), w: L(a.w, c.w), along: L(a.along, c.along), speed: L(a.speed, c.speed), stepH: Math.max(a.stepH, c.stepH), stepBase: a.stepH > 0 ? a.stepBase : c.stepBase, fd: L(a.fd, c.fd) };
+	return { x: L(a.x, c.x), z: L(a.z, c.z), y: L(a.y, c.y), tx: L(a.tx, c.tx), tz: L(a.tz, c.tz), nx, nz, hw: L(a.hw, c.hw), left: L(a.left, c.left), right: L(a.right, c.right), bend: L(a.bend, c.bend), skew: L(a.skew, c.skew), bow: L(a.bow, c.bow), foam: L(a.foam, c.foam), dep: L(a.dep, c.dep), w: L(a.w, c.w), along: L(a.along, c.along), travel: L(a.travel, c.travel), speed: L(a.speed, c.speed), stepH: Math.max(a.stepH, c.stepH), fd: L(a.fd, c.fd) };
 }
 
 // accumulates vertices and indices for one water geometry
 class Builder {
 	constructor() { this.pos = []; this.info0 = []; this.info1 = []; this.fade = []; this.channel = []; this.join = []; this.wave = []; this.wake0 = []; this.wake1 = []; this.wake2 = []; this.idx = []; }
 	// info0: foam, depth (-1 for still water), across (signed, 1 at the channel edge), width
-	// info1: along, speed, step height, step base level
+	// info1: along, speed, step height, integrated travel time
 	river(x, y, z, i0, i1, wk, fd, channel = [0, 0, 0, 0], join = 0, wave = 1) {
 		this.pos.push(x, y, z);
 		this.info0.push(i0[0], i0[1], i0[2], i0[3]);

@@ -5,6 +5,7 @@ import { config } from '../core/Config.js';
 import { hslGlsl, createRockMaterial } from './TerrainMaterial.js';
 import { ROCK_STRIDE } from './gen/Rivers.js';
 import { SEG_KIND } from './Heightmap.js';
+import { RiverEcology } from './RiverEcology.js';
 
 const UNBORN = 1e9;
 const ss = (a, b, x) => { const t = Math.min(Math.max((x - a) / (b - a), 0), 1); return t * t * (3 - 2 * t); };
@@ -402,6 +403,7 @@ export class Vegetation {
 		this.log = new THREE.CylinderGeometry(0.8, 1, 1, 6, 1);   // a fallen trunk lying along +x
 		this.log.rotateZ(Math.PI / 2);
 		this.rockMaterial = createRockMaterial(shared, shared.terrainUniforms);
+		this.riverEcology = new RiverEcology(shared);
 
 		this.treeMaterial = instancedMaterial(new THREE.MeshStandardMaterial({ color: '#0a0716', roughness: 0.95, metalness: 0.05, flatShading: true, side: THREE.DoubleSide }), mk('tree', TREE_HEIGHT), 2.5);
 		// the giants: bark and leaf cards in one material; cards are cut out of the atlas, bark (uv v < 0)
@@ -1007,6 +1009,7 @@ export class Vegetation {
 					p.set(rock.x, y, rock.z);
 					q.setFromEuler(new THREE.Euler(r.range(-0.4, 0.4), r.range(0, 6.3), r.range(-0.4, 0.4)));
 					s.set(rock.r * r.range(0.8, 1.25), rock.r * r.range(0.7, 1.1), rock.r * r.range(0.8, 1.25));
+					if (rock.kind === 4) s.y *= 0.5;
 					if (rock.r >= 3.5) { const c = { position: new THREE.Vector3(rock.x, y, rock.z), radius: rock.r * 0.9 }; chunk.colliders.push(c); this.shared.colliders.push(c); }
 				});
 			});
@@ -1024,7 +1027,7 @@ export class Vegetation {
 		// (delta backswamps, wet floodplains) a little above it
 		const reedP = (x, z) => {
 			look(x, z);
-			if (pr.slope > 0.6) return false;
+			if (pr.slope > 0.6 || hm._riverSeg >= 0) return false;
 			if (pr.H > -0.5 && pr.H < 3.5) return true;
 			return pr.wet > 0.8 && pr.H < 5 && pr.slope < 0.3 && rnd.next() < 0.6;
 		};
@@ -1057,6 +1060,7 @@ export class Vegetation {
 			chunk.groups.push({ kind: null, kinds: kinds.map((k) => KINDS[k]), attr: geometry.getAttribute('aBorn'), pos, ranges, count: ranges.length, pending: ranges.length });
 		}
 
+		this.riverEcology.build(hm, chunk, cx, cz, size, config.seed);
 		for (const mesh of chunk.meshes) this.scene.add(mesh);
 		this.chunks.set(key, chunk);
 		this.refreshFar(this.farKey(Math.floor(cx / 2), Math.floor(cz / 2)));

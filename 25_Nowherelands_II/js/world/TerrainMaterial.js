@@ -183,11 +183,14 @@ export function createTerrainMaterial(shared, heightmap) {
 
 				// Gravel and sand follow the exposed bed and low bars beside inland channels.
 				float riverBed = riverMouthAt(vWorldPos.xz) * smoothstep(0.3, 1.5, waterY - uWaterLevel);
-				float sediment = riverBed * (1.0 - smoothstep(0.25, 1.4, h)) * gentle;
-				float grain = vnoise(vWorldPos.xz * 1.8);
+				float sediment = riverBed * (1.0 - smoothstep(0.4, 3.2, h)) * gentle;
+				vec2 pebbleCell = floor(vWorldPos.xz * 1.1);
+				vec2 pebbleUv = fract(vWorldPos.xz * 1.1) - 0.5;
+				float pebble = smoothstep(0.52, 0.22, length(pebbleUv * vec2(1.0, 1.25)));
+				float grain = vnoise(vWorldPos.xz * 1.8) * 0.45 + hash21(pebbleCell) * 0.35 + pebble * 0.2;
 				vec3 gravel = mix(vec3(0.16, 0.14, 0.2), vec3(0.32, 0.28, 0.33), smoothstep(0.3, 0.7, grain));
 				vec3 sand = vec3(0.25, 0.21, 0.25) * (0.9 + 0.2 * grain);
-				albedo = mix(albedo, mix(sand, gravel, hard * 0.6 + 0.25), sediment * 0.8);
+				albedo = mix(albedo, mix(sand, gravel, hard * 0.6 + 0.25), sediment * 0.94);
 
 				// snow: seasonal on gentle ground, permanent above the snow line
 				float snowLine = 780.0 + (vnoise(vWorldPos.xz * 0.003) - 0.5) * 220.0;
@@ -211,7 +214,7 @@ export function createTerrainMaterial(shared, heightmap) {
 				vec3 lineColor = hsl2rgb(vec3(uHue, 0.55, 0.55));
 				vec3 contourColor = hsl2rgb(vec3(fract(uHue + 0.45), 0.9, 0.62));
 				float pulse = (0.045 + 0.07 * uBass + 0.16 * uLevel) * (1.0 + 0.5 * uNight) * (1.0 - 0.15 * uSunIntensity) + 0.35 * uHum * (0.5 + 0.5 * sin(uTime * 2.0 - dist * 0.02));
-				color += lineColor * grid * pulse * (1.0 - 0.6 * clamp(-h / 1.5, 0.0, 1.0));   // dimmer through the water
+				color += lineColor * grid * pulse * (1.0 - riverBed * 0.95) * (1.0 - 0.6 * clamp(-h / 1.5, 0.0, 1.0));   // dimmer through the water
 				color += contourColor * contour * (0.03 + 0.1 * uLevel);
 
 				// ripples from notes and footsteps
@@ -219,7 +222,7 @@ export function createTerrainMaterial(shared, heightmap) {
 
 				// the bed under the water darkens and blues with depth (seen through the near river surface)
 				float under = clamp(-h / 2.5, 0.0, 1.0);
-				color = mix(color, color * vec3(0.45, 0.55, 0.85) * 0.55, under * 0.85);
+				color = mix(color, color * vec3(0.45, 0.55, 0.85) * 0.55, under * 0.85 * (1.0 - riverBed));
 				// wet ground just above any water line
 				float wetHeight = 0.35 + vnoise(vWorldPos.xz * 0.35) * 0.45;
 				float wet = (1.0 - smoothstep(0.0, mix(2.5, wetHeight, riverBed), h)) * step(0.0, h);

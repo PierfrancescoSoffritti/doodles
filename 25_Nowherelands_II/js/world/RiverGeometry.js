@@ -3,6 +3,12 @@ import { RIVER_STRIDE as S, RV, RIVER_KIND } from './gen/Rivers.js';
 // The same curved crest displaces water rows and the bed beneath a riffle.
 export function crestShape(river, index) {
 	const d = river.data, kind = d[index * S + RV.KIND];
+	if (kind === RIVER_KIND.LIP || kind === RIVER_KIND.POOL) {
+		const f = river.falls?.find(f => f.i === index || f.j === index);
+		if (!f) return [0, 0];
+		const scale = d[index * S + RV.W] / f.w;
+		return [(f.skew || 0) * scale, (f.bow || 0) * scale * scale];
+	}
 	if (kind !== RIVER_KIND.STEP_TOP && kind !== RIVER_KIND.STEP_BOTTOM) return [0, 0];
 	const top = kind === RIVER_KIND.STEP_BOTTOM ? index - 1 : index;
 	const along = d[top * S + RV.ALONG], width = d[top * S + RV.W];

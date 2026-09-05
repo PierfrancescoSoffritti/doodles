@@ -155,3 +155,11 @@ body.touch .controls:not(.touch-only) { display: none; }
 	border-radius: 50%;
 	background: rgba(255, 255, 255, 0.35);
 }
+
+/* Optional river inspection tour. */
+.river-survey { position: fixed; z-index: 20; top: 22px; left: 22px; max-width: calc(100vw - 44px); padding: 16px 18px; border: 1px solid #8babc144; border-radius: 12px; background: #0c1020d9; color: #d2e2e9; font: 11px/1.7 system-ui, sans-serif; backdrop-filter: blur(12px); }
+.river-survey > div { letter-spacing: .22em; margin-bottom: 9px; color: #85b7be; }
+.river-survey button { border: 1px solid #87b1ba44; background: #93c2ca0a; border-radius: 5px; padding: 6px 9px; margin: 0 5px 6px 0; color: #d2e2e9; cursor: pointer; font: inherit; }
+.river-survey button:hover, .river-survey button:focus-visible { background: #93c2ca33; }
+.river-survey button:disabled { opacity: .35; cursor: default; }
+.river-survey output { display: block; white-space: pre-line; color: #a0b5bf; }

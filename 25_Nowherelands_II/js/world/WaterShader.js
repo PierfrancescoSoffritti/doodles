@@ -11,6 +11,9 @@ import { seaWaveGlsl, seaShadeGlsl } from './SeaShader.js';
 export function createWaterUniforms(shared, waterLevel) {
 	const uniforms = {
 		uTime: { value: 0 },
+		uSceneColor: { value: null },
+		uResolution: { value: new THREE.Vector2(1, 1) },
+		uHasScene: { value: 0 },
 		uEnvironment: { value: null },
 		uEnvironmentSize: { value: new THREE.Vector3(1, 1, 0) },
 		uHasEnvironment: { value: 0 },
@@ -32,7 +35,7 @@ export function createWaterUniforms(shared, waterLevel) {
 
 // Lift of the waved near surface at a point of a river, in metres. Shared by the water vertex
 // shader and the drifting foam so the clumps ride exactly on the surface.
-// info0: foam, depth, across (1 at the channel edge), width. info1: along, speed, step, base.
+// info0: foam, depth, across (1 at the channel edge), width. info1: along, speed, step, integrated travel time.
 export const riverWaveGlsl = /* glsl */`
 	float riverNearFade(vec3 p, vec3 camera) { return 1.0 - smoothstep(210.0, 260.0, distance(p.xz, camera.xz)); }
 	float riverWave(vec4 info0, vec4 info1, float fade, float t) {
@@ -41,13 +44,13 @@ export const riverWaveGlsl = /* glsl */`
 		float u = info0.z, w = info0.w;
 		float across = u * w * 0.5;
 		float edge = 1.0 - smoothstep(0.55, 1.0, abs(u));
-		float amp = min(0.012 + 0.22 * fast, info0.y * 0.18) * edge * (1.0 - 0.85 * fade);
+		float amp = min(0.025 + 0.34 * fast, info0.y * 0.2) * edge * (1.0 - 0.85 * fade);
 		// longer waves on a wide river, short steep ones in a fast narrow one
 		float lambda = mix(6.5, 3.6, fast) * clamp(w * 0.06, 1.0, 2.2);
 		float k = 6.2832 / lambda;
 		float along = info1.x;
 		// travelling swell, moving with the flow
-		float ph = along * k - t * k * sp + across * 0.35;
+		float ph = (info1.w - t) * 3.4 + across * 0.35;
 		float y = sin(ph) * 0.6 + sin(ph * 1.63 + across * 1.1 + t * 0.7) * 0.4;
 		// a slower cross swell so the facets are diamonds, not corrugations
 		y += 0.5 * sin(across * k * 0.9 + along * k * 0.3 - t * 1.1);
@@ -93,7 +96,7 @@ export function waterVertexShader(shared) {
 		vLevel = worldPosition.y;
 		// a river's last reaches ride the sea's swell as they run out into it
 		if (aInfo0.y > 0.0) {
-			float ride = 1.0 - smoothstep(2.0, 4.0, worldPosition.y - uWaterLevel);
+			float ride = (1.0 - smoothstep(2.0, 4.0, worldPosition.y - uWaterLevel)) * smoothstep(0.0, 0.8, aFade);
 			// the whole displacement, sideways too: that is what sharpens the sea's crests into facets
 			if (ride > 0.001) { vec3 nrm; float jac; worldPosition.xyz += gerstner(worldPosition.xz, uTime, shoreDistAt(worldPosition.xz), ride, nrm, jac); }
 		}
@@ -101,7 +104,7 @@ export function waterVertexShader(shared) {
 		// the near surface heaves: a swell on calm water, short steep standing waves in the rapids,
 		// nothing on the riffle ramps or at the banks, quieter where the water goes still
 		if (aInfo0.y > 0.0 && aInfo1.z <= 0.0) worldPosition.y += riverWave(aInfo0, aInfo1, aFade, uTime) * riverNearFade(worldPosition.xyz, uCameraPos) * aWave;
-		else if (aInfo0.y < 0.0) worldPosition.y += lakeWave(worldPosition.xz, uTime, worldPosition.y - terrainHeightAt(worldPosition.xz)) * aWave;
+		else if (aInfo0.y < 0.0) worldPosition.y += lakeWave(worldPosition.xz, uTime, worldPosition.y - terrainHeightAt(worldPosition.xz)) * aWave * riverNearFade(worldPosition.xyz, uCameraPos);
 		#endif
 		vWorldPos = worldPosition.xyz;
 		vUv4 = uReflMatrix * vec4(worldPosition.xyz, 1.0);
@@ -116,8 +119,9 @@ export function waterVertexShader(shared) {
 
 export function waterFragmentShader(shared) {
 	return /* glsl */`
-	uniform float uNearRadius, uTime, uHue, uBass, uRain, uHasEnvironment;
-	uniform sampler2D uEnvironment;
+	uniform float uNearRadius, uTime, uHue, uBass, uRain, uHasEnvironment, uHasScene;
+	uniform sampler2D uEnvironment, uSceneColor;
+	uniform vec2 uResolution;
 	uniform vec3 uEnvironmentSize;
 	#define ENVMAP_TYPE_CUBE_UV
 	#define CUBEUV_TEXEL_WIDTH uEnvironmentSize.x
@@ -126,10 +130,8 @@ export function waterFragmentShader(shared) {
 	#include <cube_uv_reflection_fragment>
 	varying vec3 vWorldPos;
 	varying float vLevel;
-	varying vec4 vUv4;
-	varying vec4 vInfo0, vInfo1;
+	varying vec4 vUv4, vInfo0, vInfo1, vChannel;
 	varying float vFade, vJoin;
-	varying vec4 vChannel;
 	flat varying vec3 vWake0, vWake1, vWake2;
 	${hslGlsl}
 	${noiseGlsl}
@@ -139,252 +141,148 @@ export function waterFragmentShader(shared) {
 	${seaShadeGlsl}
 	${fogGlsl}
 	${riverFlowGlsl}
-	vec2 flowUv0, flowUv1;
-	float flowBlend;
-	float flowNoise(vec2 scale, vec2 offset) {
-		return mix(vnoise(flowUv0 * scale + offset), vnoise(flowUv1 * scale + offset), flowBlend);
+	vec2 uv0, uv1;
+	float blend;
+	float advectNoise(vec2 scale, vec2 offset) {
+		return mix(vnoise(uv0 * scale + offset), vnoise(uv1 * scale + offset), blend);
 	}
-	vec2 backtrace(vec2 p, float age, float width, float speed, float bend) {
-		vec2 v = riverCurrent(p, width, speed, bend, vWake0, vWake1, vWake2);
-		return p - age * riverCurrent(p - v * age * 0.5, width, speed, bend, vWake0, vWake1, vWake2);
-	}
-	float foamFlecks(vec2 uv, float foam, float fast) {
-		vec2 fc = uv / vec2(4.0, 2.2), ci = floor(fc), cf = fract(fc) - 0.5;
-		vec2 off = vec2(hash21(ci + 7.1), hash21(ci + 3.7)) - 0.5;
-		float keep = step(0.98 - 0.3 * foam - 0.03 * fast, hash21(ci * 1.7));
-		return step(length((cf - off * 0.6) * vec2(1.0, 1.8)), 0.14) * keep;
-	}
-	// foam around a rock in the channel: rock = (along, across, radius)
-	float rockWake(float along, float across, vec3 rock) {
-		if (rock.z <= 0.0) return 0.0;
-		float dl = along - rock.x, dc = abs(across - rock.y), rad = rock.z;
-		float bow = step(-rad * 1.2, dl) * step(dl, -rad * 0.2) * step(dc, rad * 0.95);
-		float len = rad * 5.0;
-		float halfW = rad * 0.45 + dl * 0.13;
-		float inV = step(0.0, dl) * step(dl, len) * step(dc, halfW);
-		float fade = 1.0 - dl / len;
-		float tex = flowNoise(vec2(0.45, 1.1), vec2(rock.x, 0.0));
-		return max(bow, inV * step(0.58 - 0.35 * fade, tex));
+	float wakeFoam(vec2 p, vec3 rock) {
+		if (rock.z < 0.01) return 0.0;
+		vec2 q = (p - rock.xy) / rock.z;
+		float radius = length(q);
+		float bow = (1.0 - smoothstep(0.12, 0.48, abs(radius - 1.05))) * (1.0 - smoothstep(-0.2, 0.7, q.x));
+		float trail = smoothstep(0.0, 0.5, q.x) * (1.0 - smoothstep(3.0, 12.0, q.x));
+		float arms = 1.0 - smoothstep(0.12, 0.55, abs(abs(q.y) - (0.5 + q.x * 0.16)));
+		float churn = advectNoise(vec2(0.7, 1.2), rock.xy * 0.2);
+		return max(bow * 0.7, trail * arms * smoothstep(0.32, 0.7, churn));
 	}
 	void main() {
 		vec2 p = vWorldPos.xz;
+		float cameraDistance = distance(p, uCameraPos.xz);
 		#ifdef NEAR_CULL
-		// inside the near radius the waved mesh draws the water instead
-		if (distance(vWorldPos.xz, uCameraPos.xz) < uNearRadius) discard;
+		if (cameraDistance < uNearRadius) discard;
+		#else
+		if (cameraDistance >= uNearRadius) discard;
 		#endif
-		// rivers are textured in their own space: metres along the channel (scrolling with the
-		// current) by metres across it. Scrolling world coordinates by a per-vertex flow direction
-		// shears the pattern into streaks as time passes; this does not.
-		float vFoam = vInfo0.x, vDepth = vInfo0.y, vAcross = vInfo0.z, vWidth = vInfo0.w;
-		float vAlong = vInfo1.x, vSpeed = vInfo1.y, vFall = vInfo1.z, vBase = vInfo1.w;
-		bool river = vDepth > 0.0;
-		// a river that has run out under the sea is the sea's from there on
+		bool river = vInfo0.y > 0.0;
 		if (river && vLevel < uWaterLevel + 0.35) discard;
-		float speed = vSpeed;
-		float across = vAcross * vWidth * 0.5;
-		// Two bounded advection phases prevent stretching from accumulating over time.
-		vec2 channel = vec2(vAlong, across);
-		float flowScale = max(vWidth * 0.2, 0.5);
-		if (vWake0.z > 0.0) flowScale = min(flowScale, vWake0.z);
-		if (vWake1.z > 0.0) flowScale = min(flowScale, vWake1.z);
-		if (vWake2.z > 0.0) flowScale = min(flowScale, vWake2.z);
-		float period = min(1.2, 0.35 * flowScale / max(speed, 0.1));
+		float depth = max(0.0, vWorldPos.y - (river ? vChannel.y : terrainHeightAt(p)));
+		if (depth < 0.008) discard;
+		float foamEnergy = vInfo0.x;
+		float speed = vInfo1.y;
+		float across = vInfo0.z * vInfo0.w * 0.5;
+		float live = river ? 1.0 - vFade : 0.0;
+		float fast = smoothstep(0.7, 3.8, speed) * smoothstep(0.05, 0.65, foamEnergy);
+		vec2 channel = vec2(vInfo1.x, across);
+		vec2 current = river ? riverCurrent(channel, vInfo0.w, speed, vChannel.x, vWake0, vWake1, vWake2) : vec2(0.4, 0.17);
+		// Seconds-long overlapping phases reveal travel; tiny phase periods look stationary.
+		float period = 3.8;
 		float phase = fract(uTime / period);
-		flowUv0 = river ? backtrace(channel, phase * period, vWidth, speed, vChannel.x) : p;
-		flowUv1 = river ? backtrace(channel, fract(phase + 0.5) * period, vWidth, speed, vChannel.x) : p;
-		flowBlend = abs(phase * 2.0 - 1.0);
-		vec2 fuv = flowUv0;
-		vec2 pd = fuv;
-		float w1 = sin(pd.x * 0.09 + uTime * 0.6) + sin(pd.y * 0.07 - uTime * 0.45);
-		float w2 = sin((pd.x + pd.y) * 0.05 + uTime * 0.35);
-		vec3 n;
+		vec2 anchor = river ? channel : p;
+		float age0 = phase * period, age1 = fract(phase + 0.5) * period;
+		vec2 meanFlow = river ? vec2(speed, 0.0) : current;
+		vec2 shear = current - meanFlow;
+		float distortionLimit = river ? clamp(vInfo0.w * 0.075, 0.6, 3.0) : 1.0;
+		// Limit local deformation around small rocks independently of downstream travel.
+		// Otherwise a fast torrent stretches one foam texel into an aliased spiral.
+		uv0 = anchor - meanFlow * age0 - shear * age0 / (1.0 + length(shear) * age0 / distortionLimit);
+		uv1 = anchor - meanFlow * age1 - shear * age1 / (1.0 + length(shear) * age1 / distortionLimit);
+		blend = abs(phase * 2.0 - 1.0);
+		float grain = advectNoise(vec2(0.32, 0.95), vec2(0.0));
+		float fine = advectNoise(vec2(0.8, 1.9), vec2(19.0));
+		float crossRipple = advectNoise(vec2(0.65, 0.35), vec2(7.0));
+		vec3 geometric = normalize(cross(dFdx(vWorldPos), dFdy(vWorldPos)));
+		if (geometric.y < 0.0) geometric = -geometric;
+		vec2 tangent = river ? normalize(vChannel.zw) : vec2(0.83, 0.55);
+		float roughness = mix(0.055, 0.24, fast);
+		vec2 disturbance = tangent * ((grain - 0.5) + (fine - 0.5) * 0.4) + vec2(-tangent.y, tangent.x) * (crossRipple - 0.5);
+		vec3 n = normalize(geometric + vec3(disturbance.x, 0.0, disturbance.y) * roughness);
+		vec3 V = normalize(uCameraPos - vWorldPos), R = reflect(-V, n);
+		float facing = clamp(dot(n, V), 0.0, 1.0);
+		float fresnel = 0.0204 + 0.9796 * pow(1.0 - facing, 5.0);
+		vec3 reflection = mix(uSkyTone * 0.55, uSkyTone * 1.3, smoothstep(-0.15, 0.7, R.y));
+		if (uHasEnvironment > 0.5) reflection = mix(reflection, min(textureCubeUV(uEnvironment, R, 0.28 + fast * 0.55).rgb, vec3(0.38)), 0.55);
+
+		// Beer-Lambert absorption along the refracted ray: real bed and submerged plants
+		// remain visible in shallows; deep pools acquire a blue-green body under the violet sky.
+		float refractedCos = sqrt(1.0 - (1.0 - facing * facing) / (1.333 * 1.333));
+		float thickness = min(depth / max(refractedCos, 0.3), 36.0);
+		float sediment = river ? (1.0 - smoothstep(0.7, 3.0, speed)) * 0.22 : 0.08;
+		vec3 absorption = vec3(0.32, 0.095, 0.055) + sediment * vec3(0.2, 0.18, 0.24);
+		vec3 transmission = exp(-absorption * thickness);
+		vec2 screen = gl_FragCoord.xy / uResolution;
+		vec3 viewNormal = mat3(viewMatrix) * n;
+		float refraction = smoothstep(0.0, 0.65, depth) * min(thickness, 7.0) * 0.0018;
+		// Bound distortion near shore and obstructing boulders, where screen-space refraction
+		// cannot see behind foreground geometry. No off-screen or negative UV sampling.
+		float obstruction = max(wakeFoam(channel, vWake0), max(wakeFoam(channel, vWake1), wakeFoam(channel, vWake2)));
+		vec2 sampleUv = clamp(screen + viewNormal.xy * refraction * (1.0 - obstruction), vec2(0.002), vec2(0.998));
+		vec3 bed = vec3(0.11, 0.09, 0.16);
+		if (uHasScene > 0.5) bed = texture2D(uSceneColor, sampleUv).rgb;
+		vec3 body = mix(vec3(0.022, 0.105, 0.13), vec3(0.05, 0.085, 0.12), sediment);
+		body *= 0.65 + 0.35 * uMoonIntensity;
+		body += uSkyTone * 0.06;
+		// Soft refracted light on the bed, attenuated before it reaches deep pools.
+		float caustic = pow(max(0.0, 1.0 - abs(grain - crossRipple) * 9.0), 4.0);
+		bed += vec3(0.04, 0.07, 0.07) * caustic * exp(-depth * 0.45) * uMoonIntensity;
+		// Entrained microbubbles scatter light in torrents even where the bed is shallow.
+		transmission *= exp(-fast * thickness * 0.16);
+		vec3 col = mix(bed * transmission + body * (1.0 - transmission), reflection, fresnel * (1.0 - fast * 0.35));
+
+		float foam = 0.0;
+		vec3 foamColor = vec3(0.56, 0.67, 0.72) * (0.65 + 0.35 * uMoonIntensity);
 		if (river) {
-			// running water is rougher: small tumbling ripples travelling with the current
-			float r1 = flowNoise(vec2(0.7), vec2(0.0)) - 0.5, r2 = flowNoise(vec2(0.7), vec2(13.0)) - 0.5;
-			float r3 = flowNoise(vec2(2.1), vec2(5.0)) - 0.5;
-			float rough = 0.15 + 0.25 * vSpeed + 0.65 * vFoam;          // fast water is rougher
-			vec2 tangent = normalize(vChannel.zw);
-			vec2 normalXZ = (tangent * (r1 * 0.05 + r3 * 0.02) + vec2(-tangent.y, tangent.x) * r2 * 0.05) * rough;
-			n = normalize(vec3(normalXZ.x, 1.0, normalXZ.y));
-		} else n = normalize(vec3(w1 * 0.004, 1.0, w2 * 0.004));
-		vec3 V = normalize(uCameraPos - vWorldPos);
-		vec3 R = reflect(-V, n);
-		float fresnel = pow(clamp(1.0 - dot(V, n), 0.0, 1.0), 2.5);
-
-		float depth = vWorldPos.y - terrainHeightAt(p);          // how deep the water is here
-		float channelDepth = 0.0;
-		if (river) {
-			// Near vertices sample the same carved bed as the terrain, including bars and bank toes.
-			channelDepth = max(0.0, vWorldPos.y - vChannel.y);
-			if (channelDepth <= 0.005) discard;
-			depth = channelDepth;
-		}
-		float shallow = 1.0 - smoothstep(0.0, 6.0, depth);
-
-		vec3 ripple = rippleGlow(p, uTime);
-		vec3 refl = mix(uSkyTone * 0.45, uSkyTone * 1.15, smoothstep(-0.1, 0.65, R.y));
-		if (uHasEnvironment > 0.5) {
-			vec3 environment = textureCubeUV(uEnvironment, R, 0.12 + 0.3 * clamp(vFoam, 0.0, 1.0)).rgb;
-			refl = mix(refl, environment, 0.75);
-		}
-
-		// flat stylized water: a deep violet-blue with only a hint of the reflection
-		vec3 base = vec3(0.03, 0.03, 0.11);
-		// running water carries a little more body than a still lake, so it reads as water from above
-		vec3 stillCol = mix(vec3(0.02, 0.02, 0.08), refl * 0.45, 0.14 + 0.24 * fresnel);
-		vec3 col = river ? mix(mix(vec3(0.07, 0.085, 0.24), refl * 0.6, 0.15 + 0.35 * fresnel), stillCol, vFade) : stillCol;
-		col = mix(col, vec3(0.06, 0.16, 0.24), shallow * (vDepth < 0.0 ? 0.12 : 0.2));
-		col = mix(col, vec3(0.12, 0.04, 0.11), uSunIntensity * 0.2);
-		// a long red glitter path under the low sun; rivers are narrow and broken up, so theirs is a thin one
-		float sunSpec = pow(max(dot(R, uSunDir), 0.0), 220.0) * 0.5 + pow(max(dot(R, uSunDir), 0.0), 40.0) * 0.04;
-		col += vec3(1.0, 0.25, 0.1) * sunSpec * uSunIntensity;
-
-		if (!river) {
-			// a lake's shore: wind lap. Short crests arrive every few seconds, break into a torn line
-			// at the waterline and leave a few flecks behind them, the sea's breakers writ small
-			float d = shoreDistAt(p);
-			float ph = lakePhase(d, p, uTime);
-			float age = shoreAge(ph);
-			float nearShore = (1.0 - smoothstep(1.0, 5.0, d)) * step(-0.3, d);
-			float crestL = step(0.9, sin(ph)) * nearShore * step(0.62, vnoise(p * 0.45 + 3.0));
-			float trailN = vnoise(p * 0.6 + vec2(0.0, uTime * 0.2)) * 0.6 + vnoise(p * 0.2 + 4.0) * 0.4;
-			float trailL = step(1.0 - exp(-age * 3.5) * nearShore * 0.3, trailN);
-			float seam = (1.0 - smoothstep(0.0, 0.3, abs(d))) * step(0.55, vnoise(p * 0.7 + uTime * 0.15));
-			float foamL = clamp(seam + crestL + trailL, 0.0, 1.0) * (1.0 - smoothstep(600.0, 1500.0, distance(vWorldPos, uCameraPos)));
-			vec3 lapCol = vec3(0.5, 0.53, 0.66) * (0.55 + 0.45 * uMoonIntensity) + vec3(0.4, 0.14, 0.1) * uSunIntensity;
-			col = mix(col, lapCol, foamL * 0.7);
+			float streak = advectNoise(vec2(0.16, 0.72), vec2(3.0, 1.0));
+			float bubbles = advectNoise(vec2(0.35, 1.3), vec2(11.0));
+			float turbulence = streak * 0.62 + bubbles * 0.38;
+			float threshold = 0.86 - foamEnergy * 0.25;
+			float aa = max(fwidth(turbulence), 0.018);
+			foam = smoothstep(threshold - aa, threshold + aa, turbulence) * smoothstep(0.03, 0.22, foamEnergy);
+			foam = max(foam, obstruction);
+			// A few streaks persist between rapids; banks and eddies gather torn rafts.
+			float margin = smoothstep(0.5, 0.95, abs(vInfo0.z));
+			float raft = smoothstep(0.76, 0.86, streak) * smoothstep(0.6, 0.8, bubbles) * margin;
+			foam = max(foam, raft * 0.6);
+			float slope = 1.0 - geometric.y;
+			foam = max(foam, smoothstep(0.05, 0.28, slope) * fast * smoothstep(0.35, 0.65, grain));
+			if (vInfo1.z > 0.02) foam = max(foam, smoothstep(0.25, 0.65, bubbles) * 0.85);
+			foam *= smoothstep(0.0, 0.18, depth) * live;
+			col += vec3(0.055, 0.075, 0.085) * smoothstep(0.72, 0.86, streak) * live * (1.0 - fresnel);
 		} else {
-			// rivers: a thin broken line where the water actually meets the bank
-			float shoreDepth = channelDepth;
-			float edgeR = (1.0 - smoothstep(0.0, 0.25, shoreDepth)) * step(-0.3, shoreDepth) * step(0.35, flowNoise(vec2(0.5, 0.0), vec2(0.0, 7.0)));
-			col = mix(col, vec3(0.42, 0.45, 0.58), edgeR * 0.6);
+			float shore = shoreDistAt(p);
+			float ph = lakePhase(shore, p, uTime);
+			foam = smoothstep(0.88, 0.98, sin(ph)) * (1.0 - smoothstep(0.3, 3.0, depth)) * smoothstep(0.45, 0.7, fine) * 0.6;
 		}
-
-		float whiteOut = 0.0;      // how much foam covers this point, for the near surface's opacity
-		vec3 foamCol = vec3(0.55, 0.58, 0.7);
-		float live = river ? 1.0 - vFade : 0.0;   // running-water features die away into still water
-		float fast = river ? smoothstep(0.6, 2.8, vSpeed) * smoothstep(0.08, 0.65, vFoam) : 0.0;
-		vec3 gn = normalize(cross(dFdx(vWorldPos), dFdy(vWorldPos)));
-		if (river) {
-			// running water in three flat tones: the deep channel, a pale band in the shallows, foam
-			float grazing = 1.0 - 0.75 * fresnel;   // seen along the surface the river is a dark mirror of a dark sky
-			float wob = flowNoise(vec2(0.09, 0.3), vec2(0.0)) - 0.5;
-			float shallowBand = 1.0 - step(0.85, channelDepth + wob * 0.7);
-			col = mix(col, vec3(0.11, 0.23, 0.33), shallowBand * 0.55 * grazing * live);
-			// flow lines: thin bright streaks drifting with the current
-			// fast water draws more and longer streaks
-			float ln = flowNoise(vec2(0.06 - 0.03 * fast, 0.8), vec2(0.0, 3.0));
-			float lines = step(0.77 - 0.06 * fast, ln) * smoothstep(0.0, 0.02, channelDepth);
-			col += vec3(0.22, 0.25, 0.38) * lines * 0.18 * grazing * live;
-			// white water below every drop and in the chutes: hard-edged blobs torn by the current
-			// finer on a narrow stream, streaked along the flow
-			float fs = 1.0 / clamp(vWidth * 0.12, 0.55, 1.0);
-			float fn = flowNoise(vec2(0.1, 1.4) * fs, vec2(0.0)) * 0.55 + flowNoise(vec2(0.035, 0.55) * fs, vec2(9.0, 0.0)) * 0.45;
-			float inChannel = step(abs(vAcross), 1.0);
-			float foamEdge = max(fwidth(fn), 0.015);
-			float white = smoothstep(0.8 - 0.3 * vFoam - foamEdge, 0.8 - 0.3 * vFoam + foamEdge, fn) * step(0.05, vFoam) * inChannel;
-			// wakes: a bow of foam ahead of every rock that breaks the surface, a V behind it
-			white = max(white, rockWake(vAlong, across, vWake0));
-			white = max(white, rockWake(vAlong, across, vWake1));
-			white = max(white, rockWake(vAlong, across, vWake2));
-			// flecks of foam drifting downstream, sparse on calm water, dense below the rapids
-			{
-				float fleck = mix(foamFlecks(flowUv0, vFoam, fast), foamFlecks(flowUv1, vFoam, fast), flowBlend);
-				white = max(white, fleck * inChannel);
-			}
-			col = mix(col, foamCol, white * 0.8 * (1.0 - 0.35 * fresnel) * live);
-			whiteOut = white * live;
-			// the riffle ramps: steep quads where the surface drops a step, all white water
-			float steepness = 1.0 - smoothstep(0.7, 0.92, abs(gn.y));
-			if (vFall > 0.02 && steepness > 0.01) {
-				float frac = clamp((vWorldPos.y - vBase) / max(vFall, 0.3), 0.0, 1.0);
-				float strands = vnoise(vec2(across * 1.4 + 9.0, vWorldPos.y * 0.8 + uTime * 6.0)) * 0.55 + vnoise(vec2(across * 3.0, vWorldPos.y * 1.5 + uTime * 9.0)) * 0.45;
-				float sheet = step(0.36, strands + frac * 0.1);
-				vec3 fallCol = mix(vec3(0.28, 0.32, 0.46), foamCol, sheet);
-				col = mix(col, fallCol, steepness);
-			}
-		}
-
-		// a river running out into the sea takes on the sea's own look over its last metres of fall,
-		// so the two meet in one colour where the ribbon dissolves; only over its last reach (the
-		// end fade), so a delta's channels, low as they lie, stay rivers until their mouths
-		float atSea = smoothstep(0.0, 0.5, vFade);
-		float seaMix = river ? (1.0 - smoothstep(1.5, 3.5, vLevel - uWaterLevel)) * atSea : 0.0;
-		if (seaMix > 0.001) {
-			vec3 sn = gn.y < 0.0 ? -gn : gn;
-			float fr;
-			vec3 seaCol = seaShade(vWorldPos, sn, V, vWorldPos.y - terrainHeightAt(p), distance(vWorldPos, uCameraPos), vUv4, fr);
-			col = mix(col, seaCol, seaMix);
-		}
-		#ifdef WAVES
-		// the facets of the waved surface: those turned away from the eye show the sky, those
-		// turned toward it show the deep, in flat bands; a flat facet keeps the far mesh's colour
-		// so the two meet without a seam. Facets that mirror the moon glint. A lake's ripples are
-		// small, so its bands are cut finer.
-		{
-			vec3 Vv = normalize(uCameraPos - vWorldPos);
-			float tilt = dot(gn, Vv) - clamp(Vv.y, 0.0, 1.0);
-			// a lake's facets fade out before the far mesh takes over, so no line marks the hand-over
-			float reach = 1.0 - smoothstep(river ? 210.0 : 170.0, river ? 260.0 : 250.0, distance(vWorldPos.xz, uCameraPos.xz));
-			float band = clamp(floor(tilt * (river ? 14.0 : 18.0) + 0.5), -2.0, 2.0) * reach * (1.0 - seaMix);
-			if (!river) col *= 1.0 + clamp(tilt, -0.15, 0.15) * 1.2 * reach;   // every ripple facet shades a little
-			vec3 skyGlimpse = mix(vec3(0.3, 0.34, 0.52), uSkyTone * 1.8, 0.3);
-			col = mix(col, skyGlimpse, clamp(-band, 0.0, 2.0) * (river ? 0.36 : 0.16));
-			col *= 1.0 + clamp(band, 0.0, 2.0) * (river ? 0.16 : 0.09);
-			// on flat water (a lake, a river gone slow) every facet near the moon's mirror point would
-			// glint at once, one pale blot; only a few do, and they change from moment to moment. Fast
-			// water's facets are steep enough to glint one by one.
-			float g = pow(max(dot(reflect(-Vv, gn), uMoonDir), 0.0), mix(40.0, 12.0, fast));
-			float twinkle = step(0.72 * (1.0 - fast), hash21(floor(p / 2.6) + floor(uTime * 2.5) * 0.37));
-			// only a tilted facet glitters; flat water keeps the soft highlight and never a hard blot
-			float glint = step(0.28, g) * uMoonIntensity * (1.0 - 0.5 * vFade) * twinkle * reach * smoothstep(0.015, 0.05, 1.0 - gn.y);
-			col = mix(col, uMoonColor * 0.85, glint * 0.55);
-			// white breaks only on the genuinely steep faces of fast water
-			float crest = (1.0 - smoothstep(0.6, 0.72, gn.y)) * fast * live * (1.0 - step(0.02, vFall));
-			col = mix(col, foamCol, crest * 0.6);
-		}
-		#endif
-
-		float spec = pow(max(dot(R, uMoonDir), 0.0), 500.0) * 0.8 + pow(max(dot(R, uMoonDir), 0.0), 60.0) * 0.04;
-		col += uMoonColor * spec * uMoonIntensity;
-		col += ripple * 1.2;
-
-		// raindrop rings: each cell spawns an expanding ring on its own phase
+		col = mix(col, foamColor, foam * 0.78);
+		float moonSpec = pow(max(dot(R, uMoonDir), 0.0), mix(380.0, 65.0, fast));
+		float sunSpec = pow(max(dot(R, uSunDir), 0.0), 180.0);
+		col += uMoonColor * moonSpec * uMoonIntensity * 0.45 * (1.0 - foam * 0.8);
+		col += vec3(1.0, 0.25, 0.1) * sunSpec * uSunIntensity * 0.6;
+		col += rippleGlow(p, uTime) * 0.8;
 		if (uRain > 0.02) {
-			float rainNear = 1.0 - smoothstep(40.0, 170.0, distance(vWorldPos, uCameraPos));
-			float density = pow(uRain, 1.6) * 0.7;
-			vec2 cell = floor(p / 8.0), cf = fract(p / 8.0) - 0.5;
-			float ph = hash21(cell * 1.3);
-			float life = fract(uTime * 1.0 + ph);
-			vec2 c = vec2(hash21(cell + 1.7), hash21(cell + 3.1)) - 0.5;
-			float r = life * 0.42;
-			float ring = step(abs(length(cf - c) - r), 0.025) * (1.0 - life) * step(hash21(cell + 9.1), density);
-			col += vec3(0.5, 0.55, 0.7) * ring * 0.8 * rainNear;
+			vec2 cell = floor(p / 5.0), local = fract(p / 5.0) - 0.5;
+			float age = fract(uTime * 1.4 + hash21(cell));
+			float ring = 1.0 - smoothstep(0.01, 0.035, abs(length(local) - age * 0.45));
+			col += vec3(0.07, 0.09, 0.12) * ring * (1.0 - age) * uRain * (1.0 - smoothstep(80.0, 220.0, cameraDistance));
 		}
-
-		// open water carries the sky at the horizon rather than the dark silhouette tone of the land
-		col = max(col, 0.0);
-		{
-			float dist = distance(vWorldPos, uCameraPos);
-			float hf = heightFog(vWorldPos, uCameraPos);
-			float x = dist * uFogDistance;
-			float df = 1.0 - exp(-x * x * 1.4);
-			col = mix(col, uFogColor, hf);
-			col = mix(col, mix(uFogColor, uFogFar, 0.4), df);
+		float seaMix = river ? (1.0 - smoothstep(1.5, 3.5, vLevel - uWaterLevel)) * smoothstep(0.0, 0.5, vFade) : 0.0;
+		if (seaMix > 0.001) {
+			float fr;
+			col = mix(col, seaShade(vWorldPos, n, V, depth, distance(vWorldPos, uCameraPos), vUv4, fr), seaMix);
 		}
-		float alpha = 1.0;
-		// The same absorption on both meshes keeps the near/far boundary invisible.
-		if (river) alpha = min(mix(0.12, 0.98, 1.0 - exp(-channelDepth * 0.65)) + 0.6 * whiteOut + vFade * 0.5, 1.0);
-		#ifdef WAVES
-		else alpha = mix(0.5, 1.0, smoothstep(0.2, 3.0, depth));
-		#endif
-		// Feather the submerged bank toe; dry ribbon margins must not cover the terrain.
-		if (river) alpha *= smoothstep(0.0, 0.16, channelDepth) * (1.0 - vJoin);
-		// a river dissolves into the sea, which lies just under it riding the same swell, over the last
-		// metre of its fall to sea level
-		if (river) alpha *= mix(smoothstep(0.35, 0.6, vLevel - uWaterLevel), smoothstep(0.35, 1.5, vLevel - uWaterLevel), atSea);
+		float hf = heightFog(vWorldPos, uCameraPos);
+		float df = 1.0 - exp(-pow(distance(vWorldPos, uCameraPos) * uFogDistance, 2.0) * 1.4);
+		// Captured bed already includes fog. Only add fog to the light contributed by water.
+		float waterBody = 1.0 - dot(transmission, vec3(0.3333)) * (1.0 - fresnel) * (1.0 - foam);
+		col = mix(col, uFogColor, hf * waterBody);
+		col = mix(col, mix(uFogColor, uFogFar, 0.4), df * waterBody);
+		float alpha = smoothstep(0.0, 0.12, depth);
+		if (river) {
+			alpha *= 1.0 - vJoin;
+			alpha *= mix(smoothstep(0.35, 0.6, vLevel - uWaterLevel), smoothstep(0.35, 1.5, vLevel - uWaterLevel), smoothstep(0.0, 0.5, vFade));
+		}
 		if (alpha < 0.005) discard;
-		gl_FragColor = vec4(col, alpha);
+		gl_FragColor = vec4(max(col, 0.0), alpha);
 	}`;
 }
 

@@ -182,7 +182,7 @@ export class RiverDrift {
 			this.pos[k * 3] = x; this.pos[k * 3 + 1] = y; this.pos[k * 3 + 2] = z;
 			const q = k * 4;
 			this.info0[q] = d[oa + RV.FOAM]; this.info0[q + 1] = d[oa + RV.D]; this.info0[q + 2] = p.across; this.info0[q + 3] = w;
-			this.info1[q] = p.along; this.info1[q + 1] = d[oa + RV.SPEED] + (d[ob + RV.SPEED] - d[oa + RV.SPEED]) * t; this.info1[q + 2] = 0; this.info1[q + 3] = 0;
+			this.info1[q] = p.along; this.info1[q + 1] = d[oa + RV.SPEED] + (d[ob + RV.SPEED] - d[oa + RV.SPEED]) * t; this.info1[q + 2] = 0; this.info1[q + 3] = d[oa + RV.TRAVEL] + (d[ob + RV.TRAVEL] - d[oa + RV.TRAVEL]) * t;
 			this.fade[k] = d[oa + RV.FADE];
 			this.size[k] = p.size;
 		}

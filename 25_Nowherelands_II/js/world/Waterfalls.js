@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { Random } from '../core/Random.js';
+import { crestOffset } from './RiverGeometry.js';
 import { noiseGlsl } from './TerrainMaterial.js';
 import { fogGlsl } from './FogGlsl.js';
 import { RIVER_STRIDE, RV, RIVER_KIND, fallFaceRun, surfaceHalfWidth } from './gen/Rivers.js';
@@ -6,8 +8,8 @@ import { RIVER_STRIDE, RV, RIVER_KIND, fallFaceRun, surfaceHalfWidth } from './g
 // Waterfalls as solid things. The sheet leaves the lip with a rounded brow, hugs the rock face
 // the heightmap shapes under it (the same face function on both sides), bulges out a little in
 // the middle and closes back onto the rock at its sides, so there is nothing to see behind or
-// under it. It is opaque, shaded in three flat tones that stretch and whiten on the way down,
-// with ragged edges. Below it a plunge disc of foam rings, thrown spray and a slow mist; every
+// under it. It accelerates and aerates on the way down, with a deforming surface,
+// ragged edges, radial impact boils, thrown spray and a slow mist; every
 // riffle step in the rivers gets a few splashes of its own.
 
 const g = 9.8;
@@ -35,7 +37,7 @@ export class Waterfalls {
 
 	// ---------- the sheets ----------
 	buildSheets(scene, falls) {
-		const pos = [], uv = [], info = [], idx = [];
+		const pos = [], uv = [], info = [], idx = [], flow = [];
 		for (const f of falls) {
 			const fx = f.dx, fz = f.dz, rx = -fz, rz = fx;
 			const w = f.w, drop = f.drop, run = fallFaceRun(drop);
@@ -58,12 +60,13 @@ export class Waterfalls {
 				for (let i = 0; i <= nC; i++) {
 					const u = (i / nC) * 2 - 1;
 					// the sheet closes onto the rock at its sides
-					const s = row.gap !== undefined ? row.s - row.gap * Math.pow(Math.abs(u), 5) : row.s;
+					const s = (row.gap !== undefined ? row.s - row.gap * Math.pow(Math.abs(u), 5) : row.s) + crestOffset(u * row.wf, f.skew || 0, f.bow || 0);
 					const x = f.x + fx * s + rx * u * (w / 2) * row.wf;
 					const z = f.z + fz * s + rz * u * (w / 2) * row.wf;
 					pos.push(x, row.y, z);
 					uv.push(u, row.v);
 					info.push(drop, w, f.seed, 0);
+					flow.push(fx, fz);
 				}
 			}
 			const rowsN = rows.length;
@@ -76,6 +79,7 @@ export class Waterfalls {
 		geometry.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
 		geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
 		geometry.setAttribute('aInfo', new THREE.Float32BufferAttribute(info, 4));
+		geometry.setAttribute('aFlow', new THREE.Float32BufferAttribute(flow, 2));
 		geometry.setIndex(idx);
 		geometry.computeBoundingSphere();
 		this.sheet = new THREE.Mesh(geometry, new THREE.ShaderMaterial({
@@ -83,10 +87,17 @@ export class Waterfalls {
 			side: THREE.DoubleSide,
 			vertexShader: /* glsl */`
 				attribute vec4 aInfo;
+				attribute vec2 aFlow;
+				uniform float uTime;
 				varying vec2 vUv; varying vec4 vInfo; varying vec3 vWorldPos;
 				void main() {
 					vUv = uv; vInfo = aInfo;
-					vec4 wp = modelMatrix * vec4(position, 1.0);
+					vec3 p = position;
+					float v = clamp(uv.y, 0.0, 1.0);
+					float wave = sin(uv.x * aInfo.y * 1.4 + aInfo.z + uTime * 1.8) * 0.16
+						+ sin(uv.x * aInfo.y * 0.6 - sqrt(v + 0.01) * 14.0 + uTime * 5.0) * 0.14;
+					p.xz += aFlow * wave * sin(v * 3.14159) * (1.0 - pow(abs(uv.x), 4.0));
+					vec4 wp = modelMatrix * vec4(p, 1.0);
 					vWorldPos = wp.xyz;
 					gl_Position = projectionMatrix * viewMatrix * wp;
 				}`,
@@ -97,35 +108,24 @@ export class Waterfalls {
 				${noiseGlsl}
 				${fogGlsl}
 				void main() {
-					float drop = vInfo.x, w = vInfo.y, seed = vInfo.z * 37.0;
-					float u = vUv.x, v = max(vUv.y, 0.0);
-					float light = 0.45 + 0.55 * uMoonIntensity + 0.25 * uSunIntensity;
-					vec3 tint = mix(vec3(0.68, 0.72, 0.88), uSunColor, uSunIntensity * 0.35);
-					// the water speeds up on the way down, so the pattern stretches and pans faster
-					float vv = pow(v, 0.7) * (1.5 + drop * 0.12);
-					float t = uTime * (1.6 + drop * 0.05);
-					// streaks: fine across, long along the drop
-					float n1 = vnoise(vec2(u * w * 0.7 + seed, vv * 0.9 - t * 0.28));
-					float n2 = vnoise(vec2(u * w * 1.6 + seed * 2.1, vv * 2.2 - t * 0.5 + 3.0));
-					float n3 = vnoise(vec2(u * w * 0.25 + 9.0, vv * 0.5 - t * 0.12));
-					float n = n1 * 0.5 + n2 * 0.35 + n3 * 0.15;
-					float aer = 0.15 + 0.85 * v;                        // aeration grows downward
-					// three flat tones
-					vec3 dark = mix(vec3(0.09, 0.11, 0.24), uSkyColor * 1.3, 0.3);
-					vec3 mid = vec3(0.3, 0.34, 0.5);
-					vec3 white = tint * (0.85 + 0.15 * v);
-					float m1 = step(0.5 - 0.14 * aer, n), m2 = step(0.68 - 0.2 * aer, n);
-					vec3 col = mix(dark, mid, m1);
-					col = mix(col, white, m2);
-					// the brow of the lip glints
-					col = mix(col, white, (1.0 - smoothstep(0.0, 0.05, v)) * 0.55);
-					// ragged sides and a torn hem where the sheet meets the pool
+					float drop = vInfo.x, w = vInfo.y, seed = vInfo.z;
+					float u = vUv.x, v = clamp(vUv.y, 0.0, 1.0);
+					// Ballistic travel time gives continuous acceleration from the brow to impact.
+					float travel = (sqrt(4.0 + 19.6 * drop * v) - 2.0) / 9.8;
+					float ribbon = u * w * 0.5;
+					vec2 uv = vec2(ribbon, (travel - uTime) * 6.0);
+					float broad = vnoise(uv * vec2(0.8, 0.55) + seed);
+					float fine = vnoise(uv * vec2(2.8, 1.8) + seed * 0.7);
+					float strands = broad * 0.58 + fine * 0.42;
+					float aeration = smoothstep(0.0, 0.85, v) * 0.55 + 0.18;
+					float foam = smoothstep(0.68 - aeration * 0.25, 0.82 - aeration * 0.25, strands);
+					vec3 n = normalize(cross(dFdx(vWorldPos), dFdy(vWorldPos)));
+					float light = 0.6 + abs(dot(n, uMoonDir)) * uMoonIntensity * 0.4;
+					vec3 body = mix(vec3(0.035, 0.12, 0.17), vec3(0.2, 0.34, 0.39), strands * 0.6 + aeration * 0.4);
+					vec3 white = mix(vec3(0.62, 0.73, 0.76), uSunColor * 0.6 + vec3(0.3), uSunIntensity * 0.18);
+					vec3 col = mix(body, white, foam * 0.75 + aeration * 0.15) * light;
 					float edge = 1.0 - abs(u);
-					float rag = vnoise(vec2(u * 7.0 + seed, v * 6.0 - uTime * 1.3));
-					float side = step(0.55 - edge * 4.0, rag);
-					float hem = step(v * 1.15 - 0.15 + (rag - 0.5) * 0.25, 1.0);
-					if (v > 0.08 && v < 0.92 && side * hem < 0.5) discard;
-					col *= light;
+					if (v > 0.08 && v < 0.94 && edge < 0.025 && fine < 0.32) discard;
 					col = applyFog(col, vWorldPos, uCameraPos);
 					gl_FragColor = vec4(col, 1.0);
 				}`,
@@ -151,7 +151,7 @@ export class Waterfalls {
 				const ox = Math.cos(a) * rad, oz = Math.sin(a) * rad;
 				const along = ox * 1.4 + rad * 0.3, side = oz;
 				pos.push(cx + fx * along + rx * side, f.bottom + 0.04, cz + fz * along + rz * side);
-				uv.push(k / segs, 1); info.push(f.drop, f.w, f.seed, 0);
+				uv.push(Math.cos(a), Math.sin(a)); info.push(f.drop, f.w, f.seed, 0);
 			}
 			for (let k = 0; k < segs; k++) idx.push(base, base + 1 + k, base + 2 + k);
 		}
@@ -181,15 +181,14 @@ export class Waterfalls {
 				${fogGlsl}
 				void main() {
 					float seed = vInfo.z * 37.0;
-					float r = vUv.y, ang = vUv.x * 6.2832;
+					float r = length(vUv), ang = atan(vUv.y, vUv.x);
 					float light = 0.45 + 0.55 * uMoonIntensity + 0.25 * uSunIntensity;
 					vec3 tint = mix(vec3(0.6, 0.64, 0.78), uSunColor, uSunIntensity * 0.3);
-					// hard-edged rings of foam spreading from the impact, broken up as they go
-					float wobble = vnoise(vec2(cos(ang) * 4.0 + seed, sin(ang) * 4.0)) * 0.35;
-					float ring = step(0.6, fract(r * 2.6 - uTime * 0.9 + wobble));
-					float gaps = step(0.3, vnoise(vec2(ang * 2.5 + seed, r * 6.0 - uTime * 1.2)));
-					float core = 1.0 - step(0.35, r + wobble * 0.5);
-					float foam = max(core, ring * gaps) * (1.0 - smoothstep(0.55, 1.0, r));
+					// Broken aerated boils radiate from the impact and stretch downstream.
+					vec2 flow = vUv * (1.0 + 0.12 * sin(uTime * 1.2));
+					float bubbles = vnoise(flow * 9.0 + vec2(seed, -uTime * 1.4));
+					float boil = sin(r * 22.0 - uTime * 3.0 + bubbles * 4.0) * 0.5 + 0.5;
+					float foam = smoothstep(0.48, 0.8, bubbles * 0.65 + boil * 0.35) * (1.0 - smoothstep(0.2, 1.0, r));
 					vec3 col = tint * light;
 					col = applyFog(col, vWorldPos, uCameraPos);
 					gl_FragColor = vec4(col, foam * 0.85);
@@ -203,6 +202,7 @@ export class Waterfalls {
 	// ---------- spray, mist, splashes ----------
 	buildSpray(scene, falls, world) {
 		const base = [], vel = [], info = [];
+		const rnd = new Random('river-spray:' + world.spawn.x + ':' + world.spawn.z);
 		for (const f of falls) {
 			const fx = f.dx, fz = f.dz, rx = -fz, rz = fx;
 			const run = fallFaceRun(f.drop);
@@ -210,19 +210,19 @@ export class Waterfalls {
 			const nSpray = Math.min(260, Math.round(40 + f.w * 3 + f.drop * 3));
 			const nMist = Math.min(80, Math.round(14 + f.w * 0.8 + f.drop * 0.7));
 			for (let k = 0; k < nSpray; k++) {
-				const u = Math.random() * 2 - 1;
+				const u = rnd.next() * 2 - 1;
 				base.push(ix + rx * u * f.w * 0.46, f.bottom, iz + rz * u * f.w * 0.46);
-				const up = 3.5 + Math.random() * (4 + Math.min(f.drop, 40) * 0.15);
-				const out = 0.8 + Math.random() * 3, side = (Math.random() - 0.5) * 3;
+				const up = 3.5 + rnd.next() * (4 + Math.min(f.drop, 40) * 0.15);
+				const out = 0.8 + rnd.next() * 3, side = (rnd.next() - 0.5) * 3;
 				vel.push(fx * out + rx * side, up, fz * out + rz * side);
 				// phase, life, size, kind
-				info.push(Math.random(), 0.5 + Math.random() * 0.55, 0.22 + Math.random() * 0.5, 0);
+				info.push(rnd.next(), 0.5 + rnd.next() * 0.55, 0.22 + rnd.next() * 0.5, 0);
 			}
 			for (let k = 0; k < nMist; k++) {
-				const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random());
+				const a = rnd.next() * Math.PI * 2, r = Math.sqrt(rnd.next());
 				base.push(ix + rx * Math.cos(a) * r * (f.w * 0.55 + 3) + fx * Math.sin(a) * r * 3, f.bottom + 0.5, iz + rz * Math.cos(a) * r * (f.w * 0.55 + 3) + fz * Math.sin(a) * r * 3);
-				vel.push(fx * (0.4 + Math.random() * 0.8) + rx * (Math.random() - 0.5) * 0.8, 0.5 + Math.random() * 0.8, fz * (0.4 + Math.random() * 0.8) + rz * (Math.random() - 0.5) * 0.8);
-				info.push(Math.random(), 2.5 + Math.random() * 2.5, 2.2 + Math.random() * 3.8 + f.drop * 0.07, 1);
+				vel.push(fx * (0.4 + rnd.next() * 0.8) + rx * (rnd.next() - 0.5) * 0.8, 0.5 + rnd.next() * 0.8, fz * (0.4 + rnd.next() * 0.8) + rz * (rnd.next() - 0.5) * 0.8);
+				info.push(rnd.next(), 2.5 + rnd.next() * 2.5, 2.2 + rnd.next() * 3.8 + f.drop * 0.07, 1);
 			}
 		}
 		// splashes at the riffle steps
@@ -240,10 +240,10 @@ export class Waterfalls {
 				const rx = -tz, rz = tx;
 				const n = Math.min(24, Math.round(3 + w * 0.3 + step * 3));
 				for (let k = 0; k < n; k++) {
-					const u = Math.random() * 2 - 1;
+					const u = rnd.next() * 2 - 1;
 					base.push(x + rx * u * w * 0.42, d[o2 + RV.WL], z + rz * u * w * 0.42);
-					vel.push(tx * (0.5 + Math.random() * 1.5) + rx * (Math.random() - 0.5), 1.0 + Math.random() * (1.0 + step * 0.8), tz * (0.5 + Math.random() * 1.5) + rz * (Math.random() - 0.5));
-					info.push(Math.random(), 0.4 + Math.random() * 0.4, 0.08 + Math.random() * 0.14, 0);
+					vel.push(tx * (0.5 + rnd.next() * 1.5) + rx * (rnd.next() - 0.5), 1.0 + rnd.next() * (1.0 + step * 0.8), tz * (0.5 + rnd.next() * 1.5) + rz * (rnd.next() - 0.5));
+					info.push(rnd.next(), 0.4 + rnd.next() * 0.4, 0.08 + rnd.next() * 0.14, 0);
 				}
 			}
 		}

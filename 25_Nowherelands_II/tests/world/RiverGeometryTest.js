@@ -13,3 +13,15 @@ test('wide riffle crests stay between neighbouring sections without folding', ()
 	assert.deepEqual(crestShape(river, 2), shape);
 	for (let u = -2; u <= 2; u += 0.05) assert.ok(Math.abs(crestOffset(u, ...shape)) <= 1.3);
 });
+
+test('waterfall lip and wider pool use the same world-space curved crest', () => {
+	const data = new Float32Array(2 * S);
+	data[RV.KIND] = 3; data[S + RV.KIND] = 4;
+	data[RV.W] = 20; data[S + RV.W] = 26;
+	const river = { data, count: 2, falls: [{ i: 0, j: 1, w: 20, skew: 0.7, bow: 0.4 }] };
+	for (const across of [-9, -5, 0, 5, 9]) {
+		const lip = crestOffset(across / 10, ...crestShape(river, 0));
+		const pool = crestOffset(across / 13, ...crestShape(river, 1));
+		assert.ok(Math.abs(lip - pool) < 1e-12);
+	}
+});

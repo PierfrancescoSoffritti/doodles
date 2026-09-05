@@ -17,14 +17,15 @@
 //     (wakes) and the vegetation (boulders)
 
 import { planDeltas } from './Deltas.js';
+import { channelSection, reachCharacter, bedSequence } from './ChannelMorphology.js';
 
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 const smoothstep = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 const lerp = (a, b, t) => a + (b - a) * t;
 
-export const RIVER_STRIDE = 13;
+export const RIVER_STRIDE = 14;
 // per-sample fields; FADE is how far the water has become the still water it joins or leaves (0..1)
-export const RV = { X: 0, Z: 1, WL: 2, W: 3, D: 4, FOAM: 5, BANK: 6, SPEED: 7, ALONG: 8, KIND: 9, FADE: 10, BEND: 11, DISCHARGE: 12 };
+export const RV = { X: 0, Z: 1, WL: 2, W: 3, D: 4, FOAM: 5, BANK: 6, SPEED: 7, ALONG: 8, KIND: 9, FADE: 10, BEND: 11, DISCHARGE: 12, TRAVEL: 13 };
 // FLOW: ordinary sample. STEP_TOP/STEP_BOTTOM: the two ends of a short steep riffle ramp.
 // LIP: the ribbon ends here (a waterfall follows). POOL: the first sample after a fall's foot.
 export const RIVER_KIND = { FLOW: 0, STEP_TOP: 1, STEP_BOTTOM: 2, LIP: 3, POOL: 4 };
@@ -36,22 +37,14 @@ export const SAMPLE_SPACING = 8;
 export const FALL_MIN = 3;         // a drop this tall is a waterfall with its own mesh
 export const FALL_MAX = 48;        // taller cliffs become two falls
 const FALL_GRADE = 0.42;           // land steeper than this along the channel is a cliff
-const CHUTE_GRADE = 0.1;           // water steeper than this slides as white water
-const RIFFLE_GRADE = 0.025;        // between this and CHUTE_GRADE the water pools and steps
+const CHUTE_GRADE = 0.24;           // water steeper than this slides as white water
+const RIFFLE_GRADE = 0.026;        // between this and CHUTE_GRADE the water pools and steps
 
 // ---------- cross-section shared with the runtime heightmap ----------
 // depth of the bed below the water surface as a fraction of the channel depth, u = signed across / half width;
 // EDGE_DEPTH keeps straight banks submerged; inner-bend sediment can rise above the water.
-export const EDGE_DEPTH = 0.4;
-// Positive bend puts the outer bank on the positive channel normal (-tangent.z, tangent.x).
-export function bedProfile(u, bend = 0) {
-	const peak = bend * 0.45;
-	const v = (u - peak) / (u < peak ? 1 + peak : 1 - peak);
-	const inner = smoothstep(0.1, 0.85, -u * Math.sign(bend));
-	const edge = EDGE_DEPTH + 0.28 * bend * u - 0.3 * Math.abs(bend) * inner;
-	const bowl = Math.pow(Math.sqrt(Math.max(0, 1 - v * v)), 1 + 2.5 * Math.abs(bend) * inner);
-	return edge + (1 - edge) * bowl;
-}
+export const EDGE_DEPTH = 0.26;
+export const bedProfile = channelSection;
 export const bankSpread = (side, bend) => 1 - 0.55 * side * bend;
 export function sectionArea(width, depth, bend = 0) {
 	let sum = 0;
@@ -60,13 +53,13 @@ export function sectionArea(width, depth, bend = 0) {
 }
 // Catchment runoff sets discharge. Manning's relation supplies a reference depth for each reach.
 export const dischargeFromArea = (area) => Math.max(0.5, area * 0.000025);
-export function hydraulicDepth(discharge, width, slope, bend = 0) {
+export function hydraulicDepth(discharge, width, slope, bend = 0, roughness = 0.045) {
 	let lo = 0.05, hi = 64;
 	const factor = sectionArea(width, 1, bend);
 	for (let i = 0; i < 24; i++) {
 		const d = (lo + hi) * 0.5, area = factor * d;
 		const radius = area / (width + 2 * d);
-		const flow = area * Math.pow(radius, 2 / 3) * Math.sqrt(Math.max(slope, 0.00015)) / 0.045;
+		const flow = area * Math.pow(radius, 2 / 3) * Math.sqrt(Math.max(slope, 0.00015)) / roughness;
 		if (flow < discharge) lo = d; else hi = d;
 	}
 	return (lo + hi) * 0.5;
@@ -174,7 +167,8 @@ function shapeRiver(river, rivers, ctx) {
 	let Araw = cells.map((k) => area[k] * cell * cell);
 	// The junction belongs to the parent; its combined catchment is not tributary discharge.
 	if (parent && Araw.length > 1) Araw[Araw.length - 1] = Araw[Araw.length - 2];
-	const catchments = Araw.slice();
+	const catchments = cells.map((k) => (ctx.runoffArea || area)[k] * cell * cell);
+	if (parent && catchments.length > 1) catchments[catchments.length - 1] = catchments[catchments.length - 2];
 	const chainT = [];
 	for (let i = 0; i < cells.length; i++) chainT.push(i ? Math.min(chainT[i - 1], h[cells[i]]) : h[cells[i]]);
 	const deltaFlag = cells.map(() => 0), underFlag = cells.map(() => 0);
@@ -233,11 +227,18 @@ function shapeRiver(river, rivers, ctx) {
 	}
 	let pushS = smoothArr(smoothArr(Array.from(push), 10), 10);
 	const bendSide = new Int8Array(n), bendStrength = new Float32Array(n);
+	const characters = P.map(([x, z], i) => reachCharacter(gradeWide[i], hardAt(x, z), relief[i]));
+	let migrationPhase = seed;
+	const migration = W0.map((w, i) => {
+		migrationPhase += rs.spacing * Math.PI * 2 / Math.max(100, w * 13);
+		return Math.sin(migrationPhase + 0.32 * Math.sin(migrationPhase * 0.43));
+	});
 	for (let i = 0; i < n; i++) {
 		// a river on a hillside cannot wander sideways without perching itself above the valley
 		const amp = Math.min(W0[i] * 1.5, 36) * (1 - smoothstep(0.025, 0.07, gradeWide[i]));
 		const endFade = Math.min(1, i / 14, (n - 1 - i) / 14);
-		let off = clamp(pushS[i] * amp * 1.6, -amp, amp) * endFade;
+		// Alluvial migration is coherent over several channel widths; bedrock bends stay confined.
+		let off = clamp(pushS[i] * amp + migration[i] * W0[i] * 1.25 * characters[i].mobility, -amp * 1.8, amp * 1.8) * endFade;
 		const [tx, tz] = tangentAt(P, i);
 		const nx = -tz, nz = tx;
 		// never into a lake or off the map
@@ -386,10 +387,10 @@ function shapeRiver(river, rivers, ctx) {
 			pooled[i] = wl[i];
 			continue;
 		}
-		// wide rivers do not step: their rapids are sloped white water
-		if (W0[i] > 24) { poolLevel = wl[i]; pooled[i] = wl[i]; continue; }
+		// Confined mountain rivers can step even at substantial width; broad lowland trunks run continuously.
+		if (W0[i] > 24 && relief[i] < 0.45) { poolLevel = wl[i]; pooled[i] = wl[i]; continue; }
 		const hard = hardAt(P[i][0], P[i][1]);
-		const target = clamp(g * Math.max(3.5 * W0[i], 20), 0.35, 1.6) * jitter * (0.7 + hard * 0.6);
+		const target = clamp(g * Math.max(3.5 * W0[i], 20), 0.45, 2.6) * jitter * (0.7 + hard * 0.6);
 		// Pools retain a slight current grade between irregular bedrock sills.
 		poolLevel += Math.max(0, wl[i] - wl[i + 1]) * 0.16;
 		if (wl[i] - poolLevel >= target) {
@@ -404,6 +405,11 @@ function shapeRiver(river, rivers, ctx) {
 
 	// ---- 5. width, depth, speed ----
 	const nM = noise.meander;
+	let bedPhase = seed;
+	const sequence = W0.map((w, i) => {
+		bedPhase += rs.spacing * Math.PI * 2 / Math.max(36, w * 6.5);
+		return bedSequence(bedPhase, characters[i].confinement, bends[i]);
+	});
 	const W = new Float64Array(n), reachType = new Uint8Array(n);   // 0 flow, 1 riffle, 2 chute, 3 fall
 	for (let i = 0; i < n; i++) {
 		const g = grade[Math.min(i, n - 2)];
@@ -426,7 +432,7 @@ function shapeRiver(river, rivers, ctx) {
 			if (river.mouthType === 'sea') w *= 1 + 0.2 * smoothstep(15, 0, n - 1 - i);
 		} else {
 			w *= 1 + 0.32 * nM.noise(rs.spacing * i / (W0[i] * 22) + seed, seed * 0.7);
-			if (type <= 1) w *= 0.86 + 0.3 * Math.sin(poolU[i] * Math.PI);
+			w *= sequence[i].width;
 			if (river.mouthType === 'sea') w *= 1 + 0.45 * smoothstep(40, 0, n - 1 - i);
 		}
 		W[i] = w;
@@ -436,8 +442,8 @@ function shapeRiver(river, rivers, ctx) {
 	const energyGrade = smoothArr(Array.from(grade), 6);
 	const Ds = smoothArr(Ws.map((w, i) => {
 		const g = energyGrade[Math.min(i, energyGrade.length - 1)];
-		const reference = hydraulicDepth(discharge[i], w, g, bends[i]);
-		const pool = 1 + 0.3 * Math.sin(poolU[i] * Math.PI);
+		const reference = hydraulicDepth(discharge[i], w, g, bends[i], characters[i].roughness);
+		const pool = onDelta[i] ? 1 : sequence[i].depth;
 		return reference * pool;
 	}), 3);
 
@@ -486,13 +492,17 @@ function shapeRiver(river, rivers, ctx) {
 			continue;
 		}
 		const g = grade[Math.min(i, n - 2)];
-		emit(i, P[i][0], P[i][1], pooled[i], KIND.FLOW, { foam: reachType[i] === 2 ? 1 : (W0[i] > 24 ? 0.4 * smoothstep(0.03, 0.09, g) : 0) });
+		emit(i, P[i][0], P[i][1], pooled[i], KIND.FLOW, { foam: reachType[i] === 2 ? 0.9 : sequence[i].riffle * smoothstep(0.002, 0.045, g) * 0.7 });
 	}
 	// arc length along the emitted samples
 	const m = out.length;
 	for (let q = 0; q < m; q++) out[q].along = q ? out[q - 1].along + Math.hypot(out[q].x - out[q - 1].x, out[q].z - out[q - 1].z) : 0;
 	// Discharge is conserved through the shaped cross-section, including pools and constrictions.
 	for (const s of out) s.speed = s.discharge / sectionArea(s.w, s.d, s.bend);
+	// Integrated travel time is the material coordinate of moving waves. Multiplying
+	// absolute time by a different speed at every vertex tears the surface over time.
+	out[0].travel = 0;
+	for (let q = 1; q < m; q++) out[q].travel = out[q - 1].travel + (out[q].along - out[q - 1].along) / Math.max(0.1, (out[q].speed + out[q - 1].speed) * 0.5);
 	// running water becomes still water over its last reach into a lake or the sea (and its first
 	// reach out of a lake), so the join is a soft change of tone rather than a seam
 	{
@@ -575,6 +585,23 @@ function shapeRiver(river, rivers, ctx) {
 			}
 		}
 	}
+	// Bedload sorts itself: boulder clusters in confined reaches, gravel on inner shelves.
+	for (let q = 2; q < m - 2; q += 3) {
+		const s = out[q];
+		if (s.kind !== KIND.FLOW) continue;
+		const next = out[q + 1], len = Math.hypot(next.x - s.x, next.z - s.z) || 1;
+		const tx = (next.x - s.x) / len, tz = (next.z - s.z) / len;
+		const mountain = characters[s.i].confinement;
+		const count = 2 + Math.floor(mountain * 4 + Math.abs(s.bend) * 4);
+		for (let k = 0; k < count; k++) {
+			const fr = k < 2 ? rnd.range(-0.85, 0.85) : -Math.sign(s.bend || 1) * rnd.range(0.65, 1.15);
+			const along = rnd.range(-6, 6), across = fr * s.w * 0.5;
+			const radius = rnd.range(0.35, 0.85) * (1 + mountain * 2.6);
+			const y = s.wl - s.d * bedProfile(clamp(fr, -1, 1), s.bend) - radius * 0.15;
+			addRock(s.x + tx * along - tz * across, s.z + tz * along + tx * across, y, radius, ROCK_KIND.BAR);
+			if (y + radius * 0.7 > s.wl && Math.abs(fr) < 0.95) wakes.push(s.along + along, across, radius);
+		}
+	}
 	// the outcrops that turned the river: on the outer bank of each bend
 	for (let i = 8; i < n - 8; i++) {
 		if (bendStrength[i] < 0.35 || onDelta[i]) continue;
@@ -606,14 +633,20 @@ function shapeRiver(river, rivers, ctx) {
 	for (let q = 0; q < m; q++) {
 		const s = out[q], o = q * RIVER_STRIDE;
 		data[o + RV.X] = s.x; data[o + RV.Z] = s.z; data[o + RV.WL] = s.wl; data[o + RV.W] = s.w; data[o + RV.D] = s.d;
-		data[o + RV.FOAM] = s.foam; data[o + RV.BANK] = s.bank; data[o + RV.SPEED] = s.speed; data[o + RV.ALONG] = s.along; data[o + RV.KIND] = s.kind; data[o + RV.FADE] = s.fade; data[o + RV.BEND] = s.bend; data[o + RV.DISCHARGE] = s.discharge;
+		data[o + RV.FOAM] = s.foam; data[o + RV.BANK] = s.bank; data[o + RV.SPEED] = s.speed; data[o + RV.ALONG] = s.along; data[o + RV.KIND] = s.kind; data[o + RV.FADE] = s.fade; data[o + RV.BEND] = s.bend; data[o + RV.DISCHARGE] = s.discharge; data[o + RV.TRAVEL] = s.travel;
 	}
 	river.data = data;
 	river.count = m;
 	river.maxWidth = Math.max(...Ws);
 	river.rocks = Float32Array.from(rocks);
 	river.wakes = Float32Array.from(wakes);
-	river.falls = fallRecs.map((f) => ({ i: out.indexOf(f.lipRec), j: out.indexOf(f.footRec), wBottom: f.footRec.w, x: f.x, z: f.z, dx: f.dx, dz: f.dz, top: f.top, bottom: f.bottom, drop: f.drop, w: f.w, run: f.run, seed: f.seed, bankTop: f.bankTop, bankBot: f.bankBot, dTop: f.dTop, dBot: f.dBot }));
+	river.falls = fallRecs.map((f) => {
+		const i = out.indexOf(f.lipRec), j = out.indexOf(f.footRec);
+		const before = i ? out[i].along - out[i - 1].along : SP;
+		const after = j + 1 < m ? out[j + 1].along - out[j].along : SP;
+		const skew = Math.sin(f.seed * 1.7) * f.w * 0.12, bow = (0.4 + 0.6 * Math.sin(f.seed * 0.71)) * f.w * 0.14;
+		const scale = Math.min(1, Math.max(0, Math.min(before, after)) * 0.45 / (Math.abs(skew) * 1.5 + Math.abs(bow) * 2.25 || 1));
+		return { i, j, skew: skew * scale, bow: bow * scale, wBottom: f.footRec.w, x: f.x, z: f.z, dx: f.dx, dz: f.dz, top: f.top, bottom: f.bottom, drop: f.drop, w: f.w, run: f.run, seed: f.seed, bankTop: f.bankTop, bankBot: f.bankBot, dTop: f.dTop, dBot: f.dBot }; });
 	river.nearest = (x, z) => {
 		let best = 0, bd = Infinity;
 		for (let q = 0; q < m; q++) { const d = (data[q * RIVER_STRIDE] - x) ** 2 + (data[q * RIVER_STRIDE + 1] - z) ** 2; if (d < bd) { bd = d; best = q; } }
@@ -678,7 +711,11 @@ function stampValley(out, falls, ctx, seed) {
 					if (dist > radius) continue;
 					// the crease where the wall meets the floor wanders instead of running straight
 					dist += nD.noise(px / 45 + seed, pz / 45) * 3;
-					const target = floor + Math.max(0, dist - fw) * sl;
+					const side = Math.sign(ox * -tz + oz * tx);
+					const bend = lerp(a.bend, b.bend, t);
+					const floodWidth = fw * (1 - 0.38 * side * bend);
+					const terrace = smoothstep(floodWidth * 0.65, floodWidth * 1.5, dist) * (1 - r) * (0.8 + w * 0.025);
+					const target = floor + terrace + Math.max(0, dist - floodWidth) * sl;
 					lowerTo(j * N + i, target);
 				}
 			}

@@ -541,7 +541,7 @@ function deepenLakes(h, lakes, lakeId, N) {
 function traceRivers(h, hf, recv, area, lakeId, N, cell, threshold, work) {
 	const M = N * N;
 	const isRiver = new Uint8Array(M);
-	for (let k = 0; k < M; k++) if (area[k] >= threshold && h[k] > -1.5 && lakeId[k] < 0) isRiver[k] = 1;
+	for (let k = 0; k < M; k++) if (area[k] >= threshold * (1 - 0.55 * smoothstep(120, 650, h[k])) && h[k] > -1.5 && lakeId[k] < 0) isRiver[k] = 1;
 	const { ndon, offs, donors } = work;
 	const mark = new Int32Array(M).fill(-1);
 	const rivers = [];
@@ -694,6 +694,11 @@ export function generateWorld(seed, progress = null, opts = {}) {
 	computeReceivers(hf, recv, N);
 	buildStack(recv, stack, N, ev.work);
 	accumulateArea(recv, stack, area, M);
+	// Orographic precipitation and snowmelt feed powerful mountain streams. Accumulate
+	// effective runoff separately, retaining geometric catchment for habitat and routing.
+	const runoffArea = new Float32Array(M);
+	for (let k = 0; k < M; k++) runoffArea[k] = 0.85 + 1.35 * smoothstep(100, 850, h[k]);
+	for (let s = M - 1; s >= 0; s--) { const k = stack[s]; if (recv[k] !== k) runoffArea[recv[k]] += runoffArea[k]; }
 	const threshold = P.riverAreaKm2 * 1e6 / (cell * cell);
 	const rivers = traceRivers(h, hf, recv, area, lakeId, N, cell, threshold, ev.work);
 	// Channels around an island do not drain their surrounding lake.
@@ -702,7 +707,7 @@ export function generateWorld(seed, progress = null, opts = {}) {
 	const cellRiver = new Int32Array(M).fill(-1);
 	for (const r of rivers) for (const c of r.cells) cellRiver[c] = r.id;
 	for (const r of rivers) r.parentId = r.mouthType === 'river' ? cellRiver[r.junction] : -1;
-	const deltas = shapeRivers(rivers, { h, N, cell, size, lakes, lakeId, hard: fine.hard, area, debug: !!opts.debug, riverLimit: opts.riverLimit, noSoften: !!opts.noSoften }, rnd, noise);
+	const deltas = shapeRivers(rivers, { h, N, cell, size, lakes, lakeId, hard: fine.hard, area: runoffArea, debug: !!opts.debug, riverLimit: opts.riverLimit, noSoften: !!opts.noSoften }, rnd, noise);
 	mark('rivers');
 
 	if (progress) progress('growing the forests', 0);

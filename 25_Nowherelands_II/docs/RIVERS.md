@@ -1,0 +1,51 @@
+# Rivers: geomorphology, ecology and water rendering
+
+The replacement keeps Nowherelands' faceted nocturnal palette, but gives the water a carved bed and a continuous optical body. The landscape evolution model remains the foundation: drainage is traced over eroded terrain, and channel shaping, rendering, rocks and plants all consume the same generated river records.
+
+## Research and design decisions
+
+- [Leopold & Wolman, USGS: River channel patterns](https://pubs.usgs.gov/publication/pp282B) describes the relationship between slope, discharge and channel pattern, and alternating pools and riffles. `ChannelMorphology.js` distinguishes alluvial, gravel, step-pool and torrent settings. Bed sequences span several channel widths. Low-confinement channels migrate laterally; hard, confined channels have much less mobility.
+- [USGS: Hydrologic cycle and interactions](https://pubs.usgs.gov/circ/circ1139/htdocs/natural_processes_of_ground.htm) describes mountain streams exchanging water through coarse beds, pools, riffles and boulders. Mountain catchments receive more effective runoff, smaller high-elevation catchments can form streams, and roughness rises with confinement and exposed bedrock.
+- [US Forest Service: Riparian communities associated with Pacific Northwest headwater streams](https://research.fs.usda.gov/treesearch/24499) describes the variety of habitats produced by stream, hillslope and riparian processes. Recruitment uses water depth, local current, aeration and altitude. Bramble stays above normal flow, reeds occupy sheltered margins, sedges follow wet banks, and submerged ribbons occur in shallow, slow water.
+- [GPU Gems: Effective water simulation from physical models](https://developer.nvidia.com/gpugems/gpugems/part-i-natural-effects/chapter-1-effective-water-simulation-physical-models) uses depth to control transmission and wave amplitude and discusses river-aligned texture coordinates. The new inland shader combines refracted scene colour, exponential coloured absorption, Fresnel reflection, local surface normals, depth attenuation, foam wakes and moving caustic light.
+
+The numeric coefficients are artistic approximations for this world's enlarged scale, not a calibrated hydrological simulation.
+
+## Generation
+
+1. Retain stream-power erosion and priority-flood drainage. Accumulate altitude-dependent runoff independently of geometric catchment, then use effective catchment consistently for river widths, discharge and delta splitting.
+2. Resample drainage chains, preserve connections and constrain water elevation to a downstream-monotone profile.
+3. Condition lateral migration on confinement, hardness and gradient. Broaden inner shelves, scour outer bends and give the surrounding floodplain asymmetric terraces.
+4. Alternate width and depth over width-scaled pool–riffle sequences. Solve Manning reference depth using reach roughness, then obtain speed from discharge divided by the shaped section's area.
+5. Integrate downstream travel time. This is the phase coordinate for moving waves: absolute time multiplied by locally different vertex velocities is deliberately avoided.
+6. Place coarse bedload in mountain channels and clusters of smaller stones on sediment shelves. Surface-breaking stones also produce wakes. Existing driftwood, plunge pools and lake connections remain integrated.
+
+The packed river record now has 14 floats; use `RIVER_STRIDE` and `RV`, never a literal stride. `RV.TRAVEL` is accumulated travel time in seconds. River-space normals define a level cross-section even where the longitudinal profile descends.
+
+## Rendering
+
+`WaterOptics.js` copies the already-rendered linear HDR framebuffer once before inland surfaces render. It does **not** render the world a second time. Near and distant surfaces share that snapshot, absorption and reflection model. Geometry contains the sampled bed height; water depth controls colour transmission, shoreline coverage and near-wave amplitude. Near and distant meshes have mutually exclusive coverage and their displacement fades at the transition.
+
+The moving surface retains facets, with restrained short waves in calm reaches and stronger travelling and standing waves in rapids. Rough-water reflections are blurred to avoid a chrome-like surface. Two overlapping flow phases advect surface detail; rocks deflect current and form reversing wakes. Drifting foam uses the same wave travel coordinate. Waterfalls accelerate by ballistic travel time, have a shared curved rock crest and deforming sheet, finer aeration, radial impact boils and seeded spray.
+
+Screen-space refraction cannot recover objects hidden behind foreground objects or outside the viewport. Distortion is bounded near banks and rocks, and an environment capture supplies reflection. Water is optically volumetric over a carved bed; there is no live three-dimensional fluid solver, changing discharge, sediment transport or flood simulation.
+
+`RiverEcology.js` creates solid polygonal leaves and blades alongside the original wire grass. Plants are instanced in the existing vegetation chunks, with at most four additional draws per river-occupied chunk and no per-plant frame updates. Terrain gravel is procedural; riverbeds avoid double absorption and most of the wire grid so submerged stones read clearly.
+
+## Inspect and verify
+
+Serve the repository root and open `25_Nowherelands_II/?seed=river-check&rivers=1`. The optional tour finds mountain torrents, gravel reaches, calm lowland bends, a lake outlet and a deep pool in the generated seed. It offers a water-level view and an **Explore here** button. Without `rivers`, the normal introduction and controls are unchanged.
+
+The tour reports median frame rate and 95th-percentile frame time in rolling 120-frame windows, excluding the first three seconds after a jump. It also records render resolution and nearby plant counts on its panel for inspection. This is a repeatable visual check, not a cross-device performance guarantee. Terrain and vegetation streaming and periodic environment captures can still cause individual slower frames.
+
+Run all regression checks from the repository root:
+
+```sh
+node --test 25_Nowherelands_II/tests/world/*Test.js 25_Nowherelands_II/tests/world/gen/*Test.js
+```
+
+Checks cover downhill profiles, conserved section discharge, bend scour and shelves, lake connectivity, riffle geometry, currents around rocks, reach variation, powerful headwaters and habitat exclusions. The complete 1024-resolution `river-check` world was also checked for finite samples, downhill profiles and conserved section discharge.
+
+### Recorded local checks
+
+On the development machine (Apple M5 Pro, 64 GB), the 1920 × 1080 browser render held a 60 fps median in the inspected gravel reach, deep pool and second-seed mountain torrent. Recent 95th-percentile windows were approximately 16.8–17.3 ms. These are settled-view measurements; they do not establish a locked 60 fps on every MacBook, at Retina resolution, or during terrain streaming. No shader compilation or WebGL warnings were reported in the inspected views.
