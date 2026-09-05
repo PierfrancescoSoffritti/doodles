@@ -27,7 +27,11 @@ test('generated wood is supported, finite and uniquely assigned across chunk bou
 	const world = generateWorld('umbra', null, { res: 512 });
 	const hm = new Heightmap('umbra', world), features = new WatersideFeatures(hm, 'umbra');
 	const logs = features.items.filter(f => f.type === 'fallen');
-	assert.ok(logs.length > 5, 'wood should occur throughout the network');
+	assert.ok(logs.length >= 70, 'wooded reaches should recruit more than occasional single trunks');
+	const lengths = logs.map(f => Math.hypot(f.b[0] - f.a[0], f.b[2] - f.a[2]));
+	assert.ok(lengths.some(l => l < 25) && lengths.some(l => l > 100), 'include smaller trees and mature forest giants');
+	assert.ok(logs.some(f => f.radius < 1) && logs.some(f => f.radius > 4), 'trunk diameters must vary with tree size');
+	assert.ok(logs.filter(a => logs.some(b => a !== b && a.river === b.river && Math.abs(a.sample - b.sample) <= 2)).length > logs.length * 0.25, 'windthrow should include groups');
 	assert.ok(features.items.some(f => f.type === 'roots'));
 	for (const f of features.items) {
 		assert.ok([...f.a, ...f.b, f.radius].every(Number.isFinite));
@@ -35,6 +39,15 @@ test('generated wood is supported, finite and uniquely assigned across chunk bou
 	}
 	for (const f of logs) {
 		assert.ok(Math.abs(f.a[1] - hm.height(f.a[0], f.a[2])) < f.radius + 0.1, 'root end must rest on the bank');
+		assert.ok(hm.forestDensity(f.a[0], f.a[2]) >= 0.18, 'fallen trees must originate at woodland edges');
+		const length = Math.hypot(f.b[0] - f.a[0], f.b[2] - f.a[2]);
+		let wet = false;
+		for (let q = 1, probes = Math.max(6, Math.ceil(length / 6)); q < probes; q++) {
+			const t = q / probes, p = f.a.map((v, k) => v + (f.b[k] - v) * t), radius = f.radius * (1 + (f.taper - 1) * t);
+			assert.ok(hm.height(p[0], p[2]) <= p[1] + radius * 0.3 + 1e-6, 'long trunks must clear intervening terrain');
+			wet ||= hm.depthAt(p[0], p[2]) > 0.15;
+		}
+		assert.ok(wet, 'fallen river trees must reach the channel');
 	}
 	const seen = new Set();
 	for (const key of features.cells.keys()) {
@@ -50,4 +63,22 @@ test('generated wood is supported, finite and uniquely assigned across chunk bou
 		if (hm.depthAt(r.data[o], r.data[o + 1]) < 0) exposed++;
 	}
 	assert.ok(exposed > 5, 'bar islands must actually rise through the rendered water');
+	const repeated = new WatersideFeatures(new Heightmap('umbra', generateWorld('umbra', null, { res: 512 })), 'umbra');
+	assert.deepEqual(repeated.items, features.items, 'the wood plan must reproduce for the same seed');
+	// A forest field alone is insufficient: nearby standing-tree habitat must be
+	// dry and gentle enough to support a stand. None of these may recruit wood.
+	for (const setting of ['bare', 'isolated', 'submerged', 'cliff']) {
+		const empty = { items: [] }, wakes = [];
+		const mock = {
+			_water: 10, _slope: 0, waterLevel: 0,
+			sample() { this._water = setting === 'submerged' ? 20 : 10; this._slope = setting === 'cliff' ? 1 : 0; return 15; },
+			habitat: () => ({ forest: setting === 'bare' ? 0 : 0.8, alt: 1, coast: 0 }),
+			forestDensity: () => setting === 'isolated' ? 0 : 0.8,
+		};
+		const river = world.rivers.find(r => r.count > 20 && r.data[8 * S + RV.KIND] === 0 && r.data[8 * S + RV.WL] > 2 && r.data[8 * S + RV.WL] < 700);
+		const copy = { ...river, data: river.data.slice() }; copy.data[8 * S + RV.WL] = 10;
+		WatersideFeatures.prototype.fallen.call(empty, mock, copy, 8, 1, { next: () => 0 }, f => empty.items.push(f), wakes);
+		assert.equal(empty.items.length, 0, `${setting} banks must not recruit fallen trees`);
+		assert.equal(wakes.length, 0);
+	}
 });

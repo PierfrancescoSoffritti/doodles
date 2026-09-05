@@ -16,47 +16,15 @@ export class WatersideFeatures {
 		for (const r of hm.world.rivers) {
 			const wakes = Array.from(r.wakes), d = r.data;
 			for (let i = 8; i < r.count - 8; i += 11) {
-				const o = i * S, x = d[o], z = d[o + 1], wl = d[o + RV.WL], w = d[o + RV.W];
-				const length = Math.hypot(d[o + S] - x, d[o + S + 1] - z) || 1, tx = (d[o + S] - x) / length, tz = (d[o + S + 1] - z) / length;
-				if (d[o + RV.BAR] > 0.82) wakes.push(d[o + RV.ALONG], 0, w * 0.11);
-				if (wl < 2 || wl > 700 || d[o + RV.KIND] !== 0 || rnd.next() > 0.3) continue;
-				const side = Math.sign(d[o + RV.BEND]) || (rnd.next() < 0.5 ? -1 : 1);
-				const edge = surfaceHalfWidth(w, d[o + RV.D], d[o + RV.BANK], side, d[o + RV.BEND]);
-				let ax, az, ay, H;
-				for (let q = 0; q < 6; q++) {
-					ax = x - tz * side * (edge + 1 + q * 2); az = z + tx * side * (edge + 1 + q * 2);
-					ay = hm.sample(ax, az); H = ay - Math.max(wl, hm._water);
-					if (H > 0.6) break;
-				}
-				const forest = hm.forestDensity(ax, az);
-				if (H < 0.5 || H > 10 || (forest < 0.12 && rnd.next() > 0.25)) continue;
-				const root = { type: 'roots', a: [ax, ay + 0.2, az], b: [ax + tz * side * 4, Math.max(wl + 0.2, ay - 4.5), az - tx * side * 4], radius: rnd.range(0.5, 1.1), seed: rnd.next() * 1000, river: r.id, sample: i };
-				add(root);
-				const crossing = w < 55 && rnd.next() < 0.55;
-				const across = crossing ? -side * (edge + 2) : -side * rnd.range(0.05, 0.6) * w;
-				const along = rnd.range(0.12, 0.55) * w;
-				const bx = x - tz * across + tx * along, bz = z + tx * across + tz * along;
-				const by = hm.sample(bx, bz), radius = rnd.range(0.65, 1.55);
-				if (by > ay + 8 || Math.hypot(bx - ax, bz - az) > 100) continue;
-				const endY = Math.max(by + radius * 0.45, wl - radius * 0.25);
-				const log = { type: 'fallen', a: [ax, ay + radius * 0.6, az], b: [bx, endY, bz], radius, seed: rnd.next() * 1000, river: r.id, sample: i };
-				// Reject trunks intersecting high terrain between their supported endpoints.
-				let blocked = false;
-				for (let q = 1; q < 6; q++) { const t = q / 6; if (hm.height(ax + (bx - ax) * t, az + (bz - az) * t) > log.a[1] + (endY - log.a[1]) * t + radius * 0.3) blocked = true; }
-				if (blocked) continue;
-				add(log);
-				// Only immersed sections obstruct flow; a bridge above the water has no fake wake.
-				for (let q = 1; q <= 5; q++) {
-					const t = q / 6, px = ax + (bx - ax) * t, pz = az + (bz - az) * t, py = log.a[1] + (endY - log.a[1]) * t;
-					if (py - radius > wl || hm.depthAt(px, pz) < 0.15) continue;
-					wakes.push(d[o + RV.ALONG] + (px - x) * tx + (pz - z) * tz, (px - x) * -tz + (pz - z) * tx, radius * 1.6);
-				}
-				// Smaller transported branches collect upstream of the grounded end.
-				if (endY < wl + radius && rnd.next() < 0.75) for (let q = 0; q < 3; q++) {
-					const off = rnd.range(-3, 3), cx = bx - tx * (2 + q) - tz * off, cz = bz - tz * (2 + q) + tx * off;
-					if (hm.depthAt(cx, cz) < 0.2) continue;
-					const len = rnd.range(4, 10), dx = -tz + tx * rnd.range(-0.4, 0.4), dz = tx + tz * rnd.range(-0.4, 0.4);
-					add({ type: 'jam', a: [cx - dx * len / 2, wl + 0.1, cz - dz * len / 2], b: [cx + dx * len / 2, wl + 0.2, cz + dz * len / 2], radius: rnd.range(0.18, 0.4), seed: rnd.next() * 1000, river: r.id, sample: i });
+				const o = i * S;
+				if (d[o + RV.BAR] > 0.82) wakes.push(d[o + RV.ALONG], 0, d[o + RV.W] * 0.11);
+			}
+			// Windthrow recruits groups along wooded reaches, with open gaps between them.
+			for (let i = 8; i < r.count - 8; i += 5) {
+				for (const side of [-1, 1]) {
+					if (rnd.next() > 0.85) continue;
+					const count = rnd.int(1, 3);
+					for (let j = 0; j < count; j++) this.fallen(hm, r, i + j, side, rnd, add, wakes);
 				}
 			}
 			r.wakes = Float32Array.from(wakes);
@@ -77,6 +45,78 @@ export class WatersideFeatures {
 			}
 		}
 	}
+	fallen(hm, r, i, side, rnd, add, wakes) {
+		const d = r.data, o = i * S, x = d[o], z = d[o + 1], wl = d[o + RV.WL], w = d[o + RV.W];
+		if (wl < 2 || wl > 700 || d[o + RV.KIND] !== 0) return;
+		const step = Math.hypot(d[o + S] - x, d[o + S + 1] - z) || 1;
+		const tx = (d[o + S] - x) / step, tz = (d[o + S + 1] - z) / step;
+		const nx = -tz * side, nz = tx * side;
+		const edge = surfaceHalfWidth(w, d[o + RV.D], d[o + RV.BANK], side, d[o + RV.BEND]);
+		let ax, az, ay, H;
+		for (let q = 0; q < 10; q++) {
+			ax = x + nx * (edge + 2 + q * 3); az = z + nz * (edge + 2 + q * 3);
+			ay = hm.sample(ax, az); H = ay - Math.max(wl, hm._water);
+			if (H > 1.2) break;
+		}
+		if (H < 1 || H > 16) return;
+		// The bank must adjoin a real stand, not an isolated speck of habitat or a
+		// forest field over submerged ground. Use the same suitability as live trees.
+		const habitat = { ...hm.habitat(ax, az) };
+		if (habitat.forest < 0.18 || habitat.alt < 0.25) return;
+		let woodland = 0, forest = 0;
+		for (const along of [-24, 0, 24]) {
+			const px = ax + nx * 28 + tx * along, pz = az + nz * 28 + tz * along;
+			const y = hm.sample(px, pz), f = hm.forestDensity(px, pz);
+			if (y - hm._water > 3 && hm._slope < 0.7 && f >= 0.24) { woodland++; forest += f; }
+		}
+		if (woodland < 2) return;
+		forest /= woodland;
+		if (rnd.next() > 0.45 + 0.55 * forest) return;
+		// Tree size is independent of river width: smaller trees stop in the channel;
+		// mature inland trees can span it and leave their crown on the opposite bank.
+		const inland = Math.min(1, Math.max(0, (ay - hm.waterLevel - 25) / 195)) * (1 - 0.6 * habitat.coast);
+		const age = rnd.next();
+		const length = (age < 0.28 ? rnd.range(20, 42) : age < 0.78 ? rnd.range(48, 100) : rnd.range(115, 210)) * (0.65 + 0.35 * inland);
+		const radius = Math.max(0.7, length * rnd.range(0.025, 0.043));
+		const sweep = rnd.range(-0.25, 0.85), norm = Math.hypot(1, sweep);
+		const bx = ax + (-nx + tx * sweep) / norm * length, bz = az + (-nz + tz * sweep) / norm * length;
+		const by = hm.height(bx, bz), taper = rnd.range(0.24, 0.48);
+		if (by > ay + Math.min(35, length * 0.3)) return;
+		const endY = Math.max(by + radius * taper * 0.6, wl - radius * taper * 0.25);
+		const log = { type: 'fallen', a: [ax, ay + radius * 0.6, az], b: [bx, endY, bz], radius, taper, seed: rnd.next() * 1000, river: r.id, sample: i };
+		// Longer trunks need more terrain probes, including the far bank, and must
+		// actually reach water. Keep only the immersed parts as current obstacles.
+		const probes = Math.max(6, Math.ceil(length / 6)), obstacles = [];
+		let overWater = false;
+		for (let q = 1; q < probes; q++) {
+			const t = q / probes, px = ax + (bx - ax) * t, pz = az + (bz - az) * t, py = log.a[1] + (endY - log.a[1]) * t;
+			const localRadius = radius * (1 + (taper - 1) * t);
+			const ground = hm.sample(px, pz), water = hm._water;
+			if (ground > py + localRadius * 0.3) return;
+			if (water - ground < 0.15) continue;
+			overWater = true;
+			if (py - localRadius <= water) obstacles.push(d[o + RV.ALONG] + (px - x) * tx + (pz - z) * tz, (px - x) * -tz + (pz - z) * tx, localRadius * 1.6);
+		}
+		if (!overWater) return;
+		add(log); wakes.push(...obstacles);
+		add({ type: 'roots', a: [ax, ay + 0.2, az], b: [ax - nx * 4, Math.max(wl + 0.2, ay - 4.5), az - nz * 4], radius: Math.min(2, radius * 0.6), seed: rnd.next() * 1000, river: r.id, sample: i });
+		// Accumulate mixed broken wood where a submerged trunk catches it, rather
+		// than always attaching three identical twigs to its far endpoint.
+		if (!obstacles.length || rnd.next() > 0.85) return;
+		const k = rnd.int(0, obstacles.length / 3 - 1) * 3;
+		const along = obstacles[k] - d[o + RV.ALONG], across = obstacles[k + 1];
+		const cx = x + tx * along - tz * across, cz = z + tz * along + tx * across;
+		for (let q = 0, count = rnd.int(3, 7); q < count; q++) {
+			const off = rnd.range(-radius * 2, radius * 2), jx = cx - tx * (2 + q * 1.5) - tz * off, jz = cz - tz * (2 + q * 1.5) + tx * off;
+			const len = rnd.range(6, Math.min(30, length * 0.6)), yaw = rnd.range(-0.8, 0.8), dx = -tz * Math.cos(yaw) + tx * Math.sin(yaw), dz = tx * Math.cos(yaw) + tz * Math.sin(yaw);
+			const a = [jx - dx * len / 2, 0, jz - dz * len / 2], b = [jx + dx * len / 2, 0, jz + dz * len / 2];
+			if ([a, [jx, 0, jz], b].some(p => hm.depthAt(p[0], p[2]) < 0.2)) continue;
+			const level = hm.waterAt(jx, jz), smallRadius = rnd.range(0.25, Math.min(1.2, radius * 0.5));
+			a[1] = level + smallRadius * 0.2; b[1] = level + smallRadius * 0.3;
+			add({ type: 'jam', a, b, radius: smallRadius, seed: rnd.next() * 1000, river: r.id, sample: i });
+		}
+	}
+
 	fetch(hm, id, x, z) {
 		let open = 0;
 		for (let i = 1; i <= 5; i++) { const d = i * 45; if (hm.lakes.levelAt(x - d * 0.83, z - d * 0.55) < hm.world.lakes[id].level - 0.1) break; open++; }

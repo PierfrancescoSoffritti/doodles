@@ -44,17 +44,30 @@ export class WatersideMeshes {
 				}
 				continue;
 			}
-			wood(a, b, f.radius, f.type === 'snag' ? 0.28 : 0.62, level);
+			wood(a, b, f.radius, f.taper ?? (f.type === 'snag' ? 0.28 : 0.62), level);
 			if (f.type === 'jam') continue;
 			// Broken limbs retain the tree's growth direction, now rotated with the trunk.
-			for (let j = 0; j < 5; j++) {
-				const t = r.range(0.3, 0.9), origin = a.map((v, k) => v + (b[k] - v) * t), l = r.range(2, 6) * f.radius;
-				const end = [origin[0] + r.range(-1, 1) * l, origin[1] + l * r.range(0.2, 0.8), origin[2] + r.range(-1, 1) * l];
-				wood(origin, end, f.radius * 0.22, 0.15, level);
+			const axis = new THREE.Vector3(...b).sub(new THREE.Vector3(...a)), length = axis.length(); axis.normalize();
+			const lateral = new THREE.Vector3(0, 1, 0); if (Math.abs(axis.y) > 0.9) lateral.set(1, 0, 0);
+			lateral.cross(axis).normalize(); const up = new THREE.Vector3().crossVectors(axis, lateral);
+			for (let j = 0, count = r.int(4, f.radius > 3 ? 11 : 7); j < count; j++) {
+				const t = r.range(0.25, 0.94), origin = a.map((v, k) => v + (b[k] - v) * t), l = Math.min(length * 0.23, r.range(2, 6) * f.radius);
+				const theta = r.range(0, Math.PI), forward = r.range(0.25, 0.65);
+				const direction = lateral.clone().multiplyScalar(Math.cos(theta)).addScaledVector(up, Math.sin(theta)).addScaledVector(axis, forward).normalize();
+				const end = origin.map((v, k) => v + direction.getComponent(k) * l);
+				const branchRadius = f.radius * (1 - t * 0.6) * 0.3;
+				wood(origin, end, branchRadius, 0.15, level);
+				if (f.type === 'fallen' && l > 5 && r.next() < 0.65) {
+					const fork = origin.map((v, k) => v + (end[k] - v) * 0.65);
+					const tip = fork.map((v, k) => v + (direction.getComponent(k) + lateral.getComponent(k) * r.range(-0.8, 0.8)) * l * 0.45);
+					wood(fork, tip, branchRadius * 0.4, 0.12, level);
+				}
 			}
 			if (f.type === 'fallen') for (let j = 0; j < 9; j++) {
 				const theta = j * 2.4, r0 = f.radius * r.range(2, 4);
-				wood(a, [a[0] + Math.cos(theta) * r0, a[1] + Math.sin(theta) * r0, a[2] + r.range(-1, 1) * r0], f.radius * 0.19, 0.18, level);
+				const back = r.range(0.1, 0.5);
+				const end = a.map((v, k) => v + (lateral.getComponent(k) * Math.cos(theta) + up.getComponent(k) * Math.sin(theta) - axis.getComponent(k) * back) * r0);
+				wood(a, end, f.radius * 0.19, 0.18, level);
 			}
 		}
 		for (const shore of shores) {

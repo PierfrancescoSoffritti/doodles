@@ -991,7 +991,9 @@ export class Vegetation {
 					const len = Math.hypot(a.dx, a.dz) || 1, tx = a.dx / len, tz = a.dz / len;
 					const side = rnd.next() < 0.5 ? -1 : 1;
 					const off = a.w * 0.5 + rnd.range(2, 6);
-					logs.push({ x: a.x + -tz * off * side, z: a.z + tx * off * side, len: rnd.range(6, 14), r: rnd.range(0.3, 0.6), yaw: Math.atan2(tx, tz) + rnd.range(-0.6, 0.6) });
+					const x = a.x - tz * off * side, z = a.z + tx * off * side;
+					if (hm.forestDensity(x, z) < 0.24 || hm.forestDensity(x - tz * side * 28, z + tx * side * 28) < 0.24) continue;
+					logs.push({ x, z, len: rnd.range(8, 26), r: rnd.range(0.4, 1.1), yaw: Math.atan2(tx, tz) + rnd.range(-0.6, 0.6) });
 				}
 			}
 			for (const f of fallen) logs.push(f);
