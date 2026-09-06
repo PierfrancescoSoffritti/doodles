@@ -27,10 +27,11 @@ export class Caves {
 			const second=cave.entrances?.[1]||cave.entrance;
 			const uniforms={uSecondEntrance:{value:new THREE.Vector3(second.x,second.y,second.z)},uCamera:{value:new THREE.Vector3()},uEntrance:{value:new THREE.Vector3(cave.entrance.x,cave.entrance.y,cave.entrance.z)},uLamp:{value:0}};
 			for(const k of ['uMoonDir','uMoonColor','uMoonIntensity','uSunDir','uSunColor','uSunIntensity','uSkyColor','uGroundColor'])uniforms[k]=shared.terrainUniforms[k];
+			uniforms.uLightning=shared.weather.uniforms.uLightning;
 			const rock=new THREE.ShaderMaterial({uniforms,side:THREE.DoubleSide,vertexShader:vertex,fragmentShader:/* glsl */`
 			varying vec3 vWorldPos;${noiseGlsl}${lighting}
 			uniform vec3 uMoonDir,uMoonColor,uSunDir,uSunColor,uSkyColor,uGroundColor;
-			uniform float uMoonIntensity,uSunIntensity;
+			uniform float uMoonIntensity,uSunIntensity,uLightning;
 			${terrainLightGlsl}
 			void main(){
 			 vec3 p=vWorldPos,n=normalize(cross(dFdx(p),dFdy(p)));

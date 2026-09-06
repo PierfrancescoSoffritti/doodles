@@ -1,10 +1,8 @@
 import { bus, Events } from '../core/EventBus.js';
-import { damp, smoothstep } from '../core/Utils.js';
+import { damp } from '../core/Utils.js';
 
-// Rare happenings: snowfall, aurora, meteor showers, an eclipse, and the hum.
+// Celestial/musical events. Weather evolves independently in WeatherModel.
 const CATALOG = [
-	{ name: 'snow', weight: 4, duration: [170, 260], toast: 'snow' },
-	{ name: 'rain', weight: 4, duration: [150, 240], toast: 'rain' },
 	{ name: 'aurora', weight: 2, duration: [50, 80], toast: 'lights in the north' },
 	{ name: 'meteors', weight: 2, duration: [18, 30], toast: 'falling stars' },
 	{ name: 'eclipse', weight: 1, duration: [30, 40], toast: 'the moon goes dark' },
@@ -20,7 +18,7 @@ export class EventDirector {
 		this.first = true;
 		this.elapsed = 0;
 		this.clock = 0;
-		this.targets = { snow: 0, rain: 0, aurora: 0, eclipse: 0, hum: 0, meteors: 0 };
+		this.targets = { aurora: 0, eclipse: 0, hum: 0, meteors: 0 };
 		this.last = null;
 	}
 
@@ -58,17 +56,6 @@ export class EventDirector {
 		if (this.active) {
 			this.remaining -= dt;
 			this.elapsed += dt;
-			if (this.active.name === 'rain') {
-				const fadeIn = smoothstep(0, 25, this.elapsed), fadeOut = smoothstep(0, 35, this.remaining);
-				const wander = 0.5 + 0.5 * Math.sin(this.clock * 0.06) * Math.sin(this.clock * 0.021 + 0.7);
-				this.targets.rain = fadeIn * fadeOut * (0.45 + 0.55 * wander);
-			}
-			if (this.active.name === 'snow') {
-				// snow drifts in over half a minute, wanders in strength, and thins out before it stops
-				const fadeIn = smoothstep(0, 35, this.elapsed), fadeOut = smoothstep(0, 45, this.remaining);
-				const wander = 0.55 + 0.45 * Math.sin(this.clock * 0.045) * Math.sin(this.clock * 0.017 + 1.3);
-				this.targets.snow = fadeIn * fadeOut * (0.35 + 0.65 * wander);
-			}
 			if (this.remaining <= 0) this.end();
 		} else {
 			this.timer -= dt;
@@ -76,7 +63,7 @@ export class EventDirector {
 		}
 		const s = this.shared.state;
 		for (const k of Object.keys(this.targets)) {
-			const rate = k === 'eclipse' ? 0.25 : (k === 'meteors' ? 3 : (k === 'snow' || k === 'rain' ? 0.5 : 0.4));
+			const rate = k === 'eclipse' ? 0.25 : (k === 'meteors' ? 3 : 0.4);
 			s[k] = damp(s[k] || 0, this.targets[k], rate, dt);
 		}
 	}

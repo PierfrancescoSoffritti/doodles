@@ -229,10 +229,11 @@ export class Sky {
 		this.sunUniforms.uIntensity.value = 0.8 + 0.2 * this.sunIntensitySmooth;
 		this.sunLight.position.copy(this.sunDir).multiplyScalar(1000).add(cameraPos);
 		this.sunLight.target.position.copy(cameraPos);
-		this.sunLight.intensity = 0.5 * this.sunIntensitySmooth;
+		const cloudShade = 1 - (shared.state.cloudCover || 0) * 0.55;
+		this.sunLight.intensity = 0.5 * this.sunIntensitySmooth * cloudShade;
 		shared.sun.dir.copy(this.sunDir);
 		shared.sun.height = sunHeight;
-		shared.sun.intensity = this.sunIntensitySmooth;
+		shared.sun.intensity = this.sunIntensitySmooth * cloudShade;
 		const light = Math.max(this.moonIntensitySmooth, this.sunIntensitySmooth * 0.35);
 
 		this.moon.position.copy(this.moonDir).multiplyScalar(5200);
@@ -240,14 +241,14 @@ export class Sky {
 		this.moon.lookAt(cameraPos);
 		this.moonLight.position.copy(this.moonDir).multiplyScalar(1000).add(cameraPos);
 		this.moonLight.target.position.copy(cameraPos);
-		this.moonLight.intensity = 1.3 * this.moonIntensitySmooth;
+		this.moonLight.intensity = 1.3 * this.moonIntensitySmooth * cloudShade;
 		this.hemi.intensity = 0.25 + 0.75 * this.moonIntensitySmooth + 0.3 * this.sunIntensitySmooth;
 		this.hemi.color.set('#3b2070').lerp(new THREE.Color('#4a1a3a'), this.sunIntensitySmooth * 0.3);
 		this.hemi.groundColor.set('#06040f').lerp(new THREE.Color('#14060c'), this.sunIntensitySmooth * 0.5);
 
 		shared.moon.dir.copy(this.moonDir);
 		shared.moon.height = height;
-		shared.moon.intensity = this.moonIntensitySmooth;
+		shared.moon.intensity = this.moonIntensitySmooth * cloudShade;
 
 		const u = this.domeUniforms;
 		u.uMoonDir.value.copy(this.moonDir);
@@ -256,7 +257,7 @@ export class Sky {
 		u.uEclipse.value = eclipse;
 		u.uSunDir.value.copy(this.sunDir);
 		u.uSunIntensity.value = this.sunIntensitySmooth;
-		const dim = (0.16 + 0.84 * light) * (1 - eclipse * 0.35);
+		const dim = (0.16 + 0.84 * light) * (1 - eclipse * 0.35) * (1 - (shared.state.storm || 0) * 0.3);
 		// dusk and dawn: the horizon band warms while the moon is low
 		const dusk = smoothstep(0.35, 0.0, Math.abs(height - 0.05)) * (1 - eclipse);
 		shared.skyDim = dim;

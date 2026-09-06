@@ -15,6 +15,9 @@ import { WatersideFeatures } from './world/WatersideFeatures.js';
 import { RiverDrift } from './world/RiverDrift.js';
 import { createFogUniforms } from './world/FogGlsl.js';
 import { Sky } from './world/Sky.js';
+import { RainCurtains } from './world/weather/RainCurtains.js';
+import { Weather } from './world/weather/Weather.js';
+import { Precipitation } from './world/weather/Precipitation.js';
 import { Snow } from './world/Snow.js';
 import { Rain } from './world/Rain.js';
 import { Fireflies } from './world/Fireflies.js';
@@ -23,6 +26,7 @@ import { Landmarks } from './landmarks/Landmarks.js';
 import { Player } from './player/Player.js';
 import { HUD } from './ui/HUD.js';
 import { Caves } from './world/caves/Caves.js';
+import { WeatherSurvey } from './ui/WeatherSurvey.js';
 import { CaveSurvey } from './ui/CaveSurvey.js';
 import { MovementProfile } from './ui/MovementProfile.js';
 import { RiverSurvey } from './ui/RiverSurvey.js';
@@ -85,6 +89,7 @@ function start(world,caveMeshes) {
 	shared.ripples = ripples;
 	const shoreMap = new ShoreMap(heightmap);
 	shared.shoreMap = shoreMap;
+	const atmosphere = new Weather(scene, heightmap, shared);
 	const terrain = new Terrain(scene, heightmap, shared);
 	const water = new Water(scene, shared, heightmap.waterLevel);
 	const inland = new InlandWater(scene, heightmap, shared);
@@ -93,8 +98,10 @@ function start(world,caveMeshes) {
 	const caves=new Caves(scene,heightmap,shared,caveMeshes);
 	const watersideLife = new WatersideLife(scene, heightmap, shared);
 	const sky = new Sky(scene, shared);
+	const rainCurtains = new RainCurtains(scene, shared);
 	const snow = new Snow(scene, shared);
 	const rain = new Rain(scene, shared);
+	const hail = new Precipitation(scene, shared, 'hail');
 	const fireflies = new Fireflies(scene, heightmap, shared);
 	const sprouts = new Sprouts(scene, heightmap, shared);
 	const player = new Player(camera, canvas, heightmap, shared);
@@ -126,8 +133,9 @@ function start(world,caveMeshes) {
 	shoreMap.prime(player.position);
 	terrain.prewarm(player.position);
 	hud.ready();
-	const caveSurvey=new URLSearchParams(location.search).has('caves') ? new CaveSurvey(shared) : null;
-	const survey = !caveSurvey && new URLSearchParams(location.search).has('rivers') ? new RiverSurvey(shared, terrain) : null;
+	const weatherSurvey=new URLSearchParams(location.search).has('weather') ? new WeatherSurvey(shared, sky) : null;
+	const caveSurvey=!weatherSurvey && new URLSearchParams(location.search).has('caves') ? new CaveSurvey(shared) : null;
+	const survey = !weatherSurvey && !caveSurvey && new URLSearchParams(location.search).has('rivers') ? new RiverSurvey(shared, terrain) : null;
 	const profile = survey && new URLSearchParams(location.search).has('profile') ? new MovementProfile(shared, survey, { terrain, inland, shoreMap, pmrem, watersideLife, post }) : null;
 
 	// ---- enter ----
@@ -175,12 +183,15 @@ function start(world,caveMeshes) {
 		caveSurvey?.guide(now);
 		player.update(dt, t);
 		caves.update(t,player.position);
+		atmosphere.update(worldDt, dt, camera.position);
+		director.update(dt);
 		// Resume before daylight is reached so the outside view has time to stream.
-		const surfaceNearby=!shared.caveColumn || heightmap.height(player.position.x,player.position.z)-player.position.y<96;
+		const surfaceNearby=atmosphere.nearEntrance || !shared.caveColumn || heightmap.height(player.position.x,player.position.z)-player.position.y<96;
 		shared.surfaceStreaming=surfaceNearby;
 		if(surfaceNearby){shoreMap.update(player.position);terrain.update(player.position,dt);}
 		ripples.update(t);
 		sky.update(t, dt, camera.position, renderer);
+		rainCurtains.update(camera.position, sky.clouds.uniforms.uCloudBase.value);
 		scene.fog.color.copy(shared.fogColor);
 		water.update(t, camera.position, shared);
 		inland.update(t, camera.position, shared);
@@ -189,10 +200,10 @@ function start(world,caveMeshes) {
 		watersideLife.update(camera.position);
 		snow.update(t, dt, camera.position, renderer);
 		rain.update(dt, camera.position, renderer);
+		hail.advance(worldDt, dt, camera.position);
 		fireflies.update(t, dt, player.position, renderer);
 		sprouts.update(t);
 		landmarks.update(dt, shared);
-		director.update(dt);
 
 		if (shared.audio) {
 			shared.audio.update(dt);
@@ -202,7 +213,7 @@ function start(world,caveMeshes) {
 		}
 
 		// fog: valley haze thickens with weather; far ranges fade to a tone darker than the sky
-		const weather = 1 + 0.9 * (shared.state.rainVisible || 0) + 0.5 * (shared.state.snowVisible || 0);
+		const weather = 1 + 0.9 * (shared.state.rainVisible || 0) + 0.5 * (shared.state.snowVisible || 0) + 0.9 * (shared.state.storm || 0) * atmosphere.exposure;
 		const fu = shared.fogUniforms;
 		fu.uFogDensity.value = 2.4e-4 * weather;
 		fu.uFogDistance.value = (1 / 15000) * (1 + 0.6 * (weather - 1));
@@ -217,7 +228,7 @@ function start(world,caveMeshes) {
 		u.uMoonIntensity.value = shared.moon.intensity;
 		u.uHue.value = shared.hue;
 		u.uCameraPos.value.copy(camera.position);
-		u.uSnow.value = damp(u.uSnow.value, shared.state.snowVisible * 0.85, shared.state.snowVisible > u.uSnow.value ? 0.05 : 0.03, dt);
+		u.uSnow.value = atmosphere.local.snowpack;
 		u.uHum.value = shared.state.hum;
 		u.uNight.value = shared.night || 0;
 		u.uRain.value = shared.state.rainVisible || 0;
@@ -266,18 +277,18 @@ function start(world,caveMeshes) {
 					if (heightmap.height(px, pz) > py) blocked = true;
 				}
 				const onScreen = Math.max(0, 1 - Math.max(Math.abs(ndc.x), Math.abs(ndc.y)) * 0.8);
-				glare = blocked ? 0 : sun.intensity * Math.pow(Math.max(0, (facing - 0.7) / 0.3), 1.5) * onScreen;
+				glare = blocked ? 0 : (1 - atmosphere.local.coverage * 0.85) * sun.intensity * Math.pow(Math.max(0, (facing - 0.7) / 0.3), 1.5) * onScreen;
 			}
 			shared.sunGlare = damp(shared.sunGlare || 0, glare, 5, dt);
 		}
 
 		fireflies.points.visible=shared.caveAmount<=.4;
-		if(shared.caveAmount>.4){snow.points.visible=false;rain.points.visible=false;}
 		post.render(t, shared);
 		caveSurvey?.update(now-previousFrame);
+		weatherSurvey?.update(now-previousFrame);
 		if (survey) survey.update(now - previousFrame);
 		profile?.end();
 	}
-	window.__debug = { scene, renderer, camera, shared, post, terrain, player, landmarksList: landmarks.list, director, shoreMap, water, inland, waterfalls, drift, heightmap, world };
+	window.__debug = { atmosphere, sky, snow, rain, hail, scene, renderer, camera, shared, post, terrain, player, landmarksList: landmarks.list, director, shoreMap, water, inland, waterfalls, drift, heightmap, world };
 	frame();
 }

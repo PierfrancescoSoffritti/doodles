@@ -1,3 +1,4 @@
+import { weatherGlsl } from './weather/WeatherGlsl.js';
 import * as THREE from 'three';
 import { riverFlowGlsl } from './RiverFlow.js';
 import { Ripples } from './Ripples.js';
@@ -30,7 +31,7 @@ export function createWaterUniforms(shared, waterLevel) {
 		uSkyTone: { value: new THREE.Color('#3a1460') },
 	};
 	for (const key of ['uHabitatMap', 'uRockOrigin', 'uRockSize']) uniforms[key] = shared.terrainUniforms[key];
-	Object.assign(uniforms, shared.ripples.uniforms, shared.shoreMap.uniforms, shared.fogUniforms, shared.sea);
+	Object.assign(uniforms, shared.ripples.uniforms, shared.shoreMap.uniforms, shared.weather.uniforms, shared.fogUniforms, shared.sea);
 	return uniforms;
 }
 
@@ -142,6 +143,7 @@ export function waterFragmentShader(shared) {
 	${shared.shoreMap.glsl}
 	${shoreWaveGlsl}
 	${seaShadeGlsl}
+	${weatherGlsl}
 	${fogGlsl}
 	${riverFlowGlsl}
 	vec2 uv0, uv1;
@@ -197,7 +199,7 @@ export function waterFragmentShader(shared) {
 		vec3 geometric = normalize(cross(dFdx(vWorldPos), dFdy(vWorldPos)));
 		if (geometric.y < 0.0) geometric = -geometric;
 		vec2 tangent = river ? normalize(vChannel.zw) : vec2(0.83, 0.55);
-		float roughness = mix(0.055, 0.24, fast);
+		float roughness = mix(0.055, 0.24, fast) + weatherAt(p).b * 0.12;
 		vec2 disturbance = tangent * ((grain - 0.5) + (fine - 0.5) * 0.4) + vec2(-tangent.y, tangent.x) * (crossRipple - 0.5);
 		vec3 n = normalize(geometric + vec3(disturbance.x, 0.0, disturbance.y) * roughness);
 		vec3 V = normalize(uCameraPos - vWorldPos), R = reflect(-V, n);
@@ -214,7 +216,8 @@ export function waterFragmentShader(shared) {
 		vec2 canopyOffset = river ? vec2(-tangent.y, tangent.x) * (vInfo0.w * 0.6 + 24.0) : vec2(40.0, 25.0);
 		float forest = max(texture2D(uHabitatMap, (p + canopyOffset - uRockOrigin) / uRockSize + 0.5).r, texture2D(uHabitatMap, (p - canopyOffset - uRockOrigin) / uRockSize + 0.5).r);
 		float lowland = 1.0 - smoothstep(65.0, 400.0, vLevel);
-		float sediment = river ? lowland * (0.06 + smoothstep(20.0, 90.0, vInfo0.w) * 0.32 + uRain * 0.28) : 0.06 + uRain * 0.1;
+		float wetRain = weatherRain(vWorldPos);
+		float sediment = river ? lowland * (0.06 + smoothstep(20.0, 90.0, vInfo0.w) * 0.32 + wetRain * 0.28) : 0.06 + wetRain * 0.1;
 		float tannin = lowland * forest * (1.0 - fast) * 0.6;
 		vec3 absorption = vec3(0.32, 0.095, 0.055) + sediment * vec3(0.2, 0.18, 0.24) + tannin * vec3(0.03, 0.19, 0.3);
 		vec3 transmission = exp(-absorption * thickness);
@@ -268,17 +271,19 @@ export function waterFragmentShader(shared) {
 		col += uMoonColor * moonSpec * uMoonIntensity * 0.45 * (1.0 - foam * 0.8);
 		col += vec3(1.0, 0.25, 0.1) * sunSpec * uSunIntensity * 0.6;
 		col += rippleGlow(p, uTime) * 0.8;
-		if (uRain > 0.02) {
+		float localRain = weatherRain(vWorldPos);
+		if (localRain > 0.02) {
 			vec2 cell = floor(p / 5.0), local = fract(p / 5.0) - 0.5;
 			float age = fract(uTime * 1.4 + hash21(cell));
 			float ring = 1.0 - smoothstep(0.01, 0.035, abs(length(local) - age * 0.45));
-			col += vec3(0.07, 0.09, 0.12) * ring * (1.0 - age) * uRain * (1.0 - smoothstep(80.0, 220.0, cameraDistance));
+			col += vec3(0.07, 0.09, 0.12) * ring * (1.0 - age) * localRain * (1.0 - smoothstep(80.0, 220.0, cameraDistance));
 		}
 		float seaMix = river ? (1.0 - smoothstep(1.5, 3.5, vLevel - uWaterLevel)) * smoothstep(0.0, 0.5, vFade) : 0.0;
 		if (seaMix > 0.001) {
 			float fr;
 			col = mix(col, seaShade(vWorldPos, n, V, depth, distance(vWorldPos, uCameraPos), vUv4, fr), seaMix);
 		}
+		col += vec3(0.1,0.14,0.22)*uLightning;
 		float hf = heightFog(vWorldPos, uCameraPos);
 		float df = 1.0 - exp(-pow(distance(vWorldPos, uCameraPos) * uFogDistance, 2.0) * 1.4);
 		// Captured bed already includes fog. Only add fog to the light contributed by water.

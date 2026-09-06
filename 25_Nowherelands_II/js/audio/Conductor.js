@@ -108,6 +108,9 @@ export class Conductor {
 		this.engine.reverbGain.gain.setTargetAtTime(0.75 + p.rain * 0.5 + p.snow * 0.3 + (this.layers.shimmer.unlocked ? 0 : 0), this.engine.now, 1);
 		p.snow = world.state.snowVisible || 0;
 		p.rain = world.state.rainVisible || 0;
+		p.wind = world.state.wind || 0;
+		p.storm = (world.state.storm || 0) * world.weather.exposure;
+		p.hail = world.state.hailVisible || 0;
 		p.hum = world.state.hum;
 		p.wandererProximity = world.wandererProximity || 0;
 

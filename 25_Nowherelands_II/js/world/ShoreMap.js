@@ -178,6 +178,12 @@ export class ShoreMap {
 		for (const t of this.tiers) t.update(playerPos);
 	}
 
+	// Do not render precipitation against stale or uninitialized roof heights after a teleport.
+	covers(x, z, radius = 125) {
+		const tier = this.tiers[0];
+		return Number.isFinite(tier.origin.x) && Math.max(Math.abs(x-tier.origin.x), Math.abs(z-tier.origin.y)) + radius < tier.spec.size * 0.44;
+	}
+
 	// Signed distance to the nearest shore at a point, from the finest map that covers it (CPU side).
 	shoreDist(x, z) {
 		for (const t of this.tiers) {

@@ -1,3 +1,5 @@
+import { vegetationWind } from './weather/WeatherModel.js';
+import { weatherGlsl } from './weather/WeatherGlsl.js';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { Random, Simplex2D } from '../core/Random.js';
@@ -336,6 +338,7 @@ function edgePositions(geometry, angle = 1) { return new THREE.EdgesGeometry(geo
 
 // ---------- shaders ----------
 const growthGlsl = /* glsl */`
+	uniform vec2 uWindDirection;
 	uniform float uTime, uWind, uHeightRef, uPulse, uDur, uBack, uNearFade;
 	attribute float aBorn;
 	float easeOutCubic(float t) { return 1.0 - pow(1.0 - t, 3.0); }
@@ -345,9 +348,12 @@ const growthGlsl = /* glsl */`
 		float hw = clamp(p.y / uHeightRef, 0.0, 1.0);
 		hw *= hw;
 		float ph = ipos.x * 0.05 + ipos.z * 0.07;
-		float sway = sin(uTime * 0.8 + ph) * 0.6 + sin(uTime * 2.3 + ph * 1.7) * 0.25;
-		p.x += sway * hw * uWind * swayStrength;
-		p.z += cos(uTime * 0.6 + ph * 1.3) * 0.4 * hw * uWind * swayStrength;
+		// Convert world wind into each tree's rotated local frame before instanceMatrix is applied.
+		vec3 windWorld = vec3(uWindDirection.x, 0.0, uWindDirection.y);
+		vec2 direction = vec2(dot(windWorld, normalize(instanceMatrix[0].xyz)), dot(windWorld, normalize(instanceMatrix[2].xyz)));
+		float sway = sin(uTime * 0.8 + ph) * 0.3 + sin(uTime * 2.3 + ph * 1.7) * 0.16;
+		float bend = min(swayStrength * uWind, uHeightRef * 0.17);
+		p.xz += (direction * (0.8 + sway) + vec2(-direction.y, direction.x) * cos(uTime * 1.6 + ph * 1.3) * 0.18) * hw * bend;
 		float t = growT();
 		float ey = mix(easeOutCubic(t), easeOutBack(t), uBack);
 		float exz = easeOutCubic(t);
@@ -397,7 +403,7 @@ export class Vegetation {
 		this.crystalEdges = edgePositions(hexPrism(1, 1));
 		this.tuftEdges = edgePositions(new THREE.CylinderGeometry(0.2, 0.45, 1, 2).translate(0, 0.5, 0));
 
-		const U = (dur, back, heightRef, nearFade = 1) => ({ uTime: { value: 0 }, uWind: { value: 1 }, uPulse: { value: 0 }, uHeightRef: { value: heightRef }, uDur: { value: dur }, uBack: { value: back }, uNearFade: { value: nearFade } });
+		const U = (dur, back, heightRef, nearFade = 1) => ({ uWindDirection: { value: new THREE.Vector2(1, 0) }, uTime: { value: 0 }, uWind: { value: 1 }, uPulse: { value: 0 }, uHeightRef: { value: heightRef }, uDur: { value: dur }, uBack: { value: back }, uNearFade: { value: nearFade } });
 		this.uniformSets = [];
 		const mk = (kind, heightRef, nearFade) => { const u = U(KINDS[kind].dur, KINDS[kind].back, heightRef, nearFade); this.uniformSets.push(u); return u; };
 		this.boulders = [0, 1, 2, 3].map(() => buildBoulder(rnd));
@@ -412,6 +418,7 @@ export class Vegetation {
 		// skips the lookup; facets catch the moon; snow settles on the upward faces
 		const leafU = mk('giant', 300);
 		leafU.uSnow = shared.terrainUniforms.uSnow;
+		Object.assign(leafU, shared.weather.uniforms);
 		// Lambert, pure diffuse, no specular sheen on bark seen at grazing angles. Leaves let the moon
 		// through (a back-lit term), the whole tree gets an ambient lift so a canopy is never black
 		// from below, and the canopy shimmers in the key's hue with every note and the bass.
@@ -419,9 +426,9 @@ export class Vegetation {
 		Object.assign(leafU, { uMoonDir: tu.uMoonDir, uMoonColor: tu.uMoonColor, uMoonIntensity: tu.uMoonIntensity, uHue: { value: 0.8 }, uBass: { value: 0 } });
 		this.leafUniforms = leafU;
 		this.leafMaterial = instancedMaterial(new THREE.MeshLambertMaterial({ color: '#ffffff', map: this.leafAtlas, alphaTest: 0.5, vertexColors: true, side: THREE.DoubleSide }), leafU, 6.0, 'vWp = ipos + transformed;', (fs) => fs
-			.replace('#include <common>', '#include <common>\nuniform float uSnow, uHue, uPulse, uBass, uMoonIntensity, uTime;\nuniform vec3 uMoonDir, uMoonColor;\nvarying vec3 vWp;\n' + hslGlsl)
+			.replace('#include <common>', '#include <common>\nuniform float uSnow, uHue, uPulse, uBass, uMoonIntensity, uTime;\nuniform vec3 uMoonDir, uMoonColor;\nvarying vec3 vWp;\n' + hslGlsl + weatherGlsl)
 			.replace('#include <map_fragment>', 'if (vMapUv.y >= 0.0) diffuseColor *= texture2D(map, vMapUv);')
-			.replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\nvec3 wn = inverseTransformDirection(normal, viewMatrix);\ndiffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.4, 0.4, 0.56), uSnow * smoothstep(0.3, 0.9, wn.y) * 0.75);')
+			.replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\nvec3 wn = inverseTransformDirection(normal, viewMatrix);\ndiffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.4, 0.4, 0.56), settledSnow(vWp) * smoothstep(0.3, 0.9, wn.y) * 0.75);')
 			.replace('#include <lights_fragment_end>', /* glsl */`
 				#include <lights_fragment_end>
 				float leaf = vMapUv.y >= 0.0 ? 1.0 : 0.0;
@@ -491,7 +498,7 @@ export class Vegetation {
 		});
 		this.lamp = buildLamp();
 		this.lampUniforms = THREE.UniformsUtils.merge([THREE.UniformsLib.fog]);
-		Object.assign(this.lampUniforms, { uTime: { value: 0 }, uWind: { value: 1 }, uPulse: { value: 0 }, uNotes: { value: this.notes } });
+		Object.assign(this.lampUniforms, { uWindDirection: { value: new THREE.Vector2(1, 0) }, uTime: { value: 0 }, uWind: { value: 1 }, uPulse: { value: 0 }, uNotes: { value: this.notes } });
 		this.lampMaterial = new THREE.ShaderMaterial({
 			uniforms: this.lampUniforms,
 			fog: true,
@@ -499,6 +506,7 @@ export class Vegetation {
 				#include <fog_pars_vertex>
 				attribute vec3 color;
 				attribute vec2 aInfo;   // phase, tint
+				uniform vec2 uWindDirection;
 				uniform float uTime, uWind, uPulse;
 				varying vec3 vCol; varying float vGlow;
 				${flareGlsl}
@@ -506,8 +514,7 @@ export class Vegetation {
 					vec3 p = position;
 					// the lamp swings on its cord from the hang point
 					float a = (sin(uTime * 1.1 + aInfo.x) * 0.5 + sin(uTime * 2.3 + aInfo.x * 1.7) * 0.2) * 0.14 * uWind;
-					p.x += a * -p.y;
-					p.z += cos(uTime * 0.9 + aInfo.x * 1.3) * 0.05 * uWind * -p.y;
+					p.xz += (uWindDirection * (a + 0.05 * uWind) + vec2(-uWindDirection.y,uWindDirection.x) * cos(uTime*0.9+aInfo.x*1.3)*0.03*uWind) * -p.y;
 					vec4 wp = modelMatrix * instanceMatrix * vec4(p, 1.0);
 					float flick = 0.88 + 0.12 * sin(uTime * 7.0 + aInfo.x) * sin(uTime * 4.3 + aInfo.x * 2.1);
 					vGlow = color.r > 0.5 ? (0.9 + 0.6 * uPulse + noteFlare(wp.xz, uTime) * 1.2) * flick : 0.0;
@@ -542,7 +549,7 @@ export class Vegetation {
 
 		// merged line plants (tufts, reeds, crystal edges) share one shader
 		this.lineUniforms = THREE.UniformsUtils.merge([THREE.UniformsLib.fog]);
-		Object.assign(this.lineUniforms, { uTime: { value: 0 }, uWind: { value: 1 }, uHue: { value: 0.8 }, uPulse: { value: 0 } });
+		Object.assign(this.lineUniforms, { uWindDirection: { value: new THREE.Vector2(1, 0) }, uTime: { value: 0 }, uWind: { value: 1 }, uHue: { value: 0.8 }, uPulse: { value: 0 } });
 		this.lineMaterial = new THREE.ShaderMaterial({
 			uniforms: this.lineUniforms,
 			fog: true,
@@ -551,6 +558,7 @@ export class Vegetation {
 				attribute vec3 aBase;
 				attribute vec4 aInfo;    // height weight, phase, kind (0 tuft, 1 reed, 2 crystal), duration
 				attribute float aBorn;
+				uniform vec2 uWindDirection;
 				uniform float uTime, uWind, uPulse;
 				varying float vT; varying float vKind;
 				float easeOutCubic(float t) { return 1.0 - pow(1.0 - t, 3.0); }
@@ -570,8 +578,7 @@ export class Vegetation {
 					p.xz = aBase.xz + (p.xz - aBase.xz) * (0.6 + 0.4 * easeOutCubic(t));
 					float swayAmt = aInfo.z > 1.5 ? 0.0 : (aInfo.z > 0.5 ? 0.9 : 0.45);
 					float sway = sin(uTime * 1.3 + aInfo.y) * 0.35 + sin(uTime * 2.7 + aInfo.y * 1.9) * 0.15;
-					p.x += sway * hw * hw * uWind * swayAmt;
-					p.z += cos(uTime * 0.9 + aInfo.y) * 0.2 * hw * hw * uWind * swayAmt;
+					p.xz += (uWindDirection*(sway+0.25)+vec2(-uWindDirection.y,uWindDirection.x)*cos(uTime*0.9+aInfo.y)*0.2)*hw*hw*uWind*swayAmt;
 					if (aInfo.z > 1.5) p.y += (p.y - aBase.y) * uPulse * 0.25;
 					float near = smoothstep(1.5, 5.0, distance(aBase.xz, cameraPosition.xz));
 					p = mix(aBase, p, near);
@@ -1112,10 +1119,11 @@ export class Vegetation {
 		this.centerZ = cz;
 		const a = this.shared.audio ? this.shared.audio.analysis : null;
 		const pulse = a ? a.attack : 0;
-		const wind = 0.7 + this.shared.state.snow * 1.2 + this.shared.state.hum * 0.5;
-		for (const u of this.uniformSets) { u.uTime.value = this.time; u.uWind.value = wind; u.uPulse.value = pulse; }
+		const wind = vegetationWind(this.shared.weather.local.windSpeed || 0);
+		for (const u of this.uniformSets) { u.uTime.value = this.time; u.uWind.value = wind; u.uPulse.value = pulse; u.uWindDirection.value.copy(this.shared.weather.wind).normalize(); }
 		this.lineUniforms.uTime.value = this.time;
 		this.lineUniforms.uWind.value = wind;
+		this.lineUniforms.uWindDirection.value.copy(this.shared.weather.wind).normalize();
 		this.lineUniforms.uPulse.value = pulse;
 		this.lineUniforms.uHue.value = this.shared.hue;
 		this.hueUniform.value = this.shared.hue;
@@ -1126,6 +1134,7 @@ export class Vegetation {
 		lu.uTime.value = this.time; lu.uPulse.value = pulse; lu.uBass.value = bass;
 		lu.uNight.value = this.shared.night === undefined ? 1 : this.shared.night;
 		if (this.shared.renderer) lu.uPixelRatio.value = this.shared.renderer.getPixelRatio();
+		this.lampUniforms.uWindDirection.value.copy(this.shared.weather.wind).normalize();
 		this.lampUniforms.uTime.value = this.time; this.lampUniforms.uWind.value = wind; this.lampUniforms.uPulse.value = pulse;
 
 		const player = this.shared.player ? this.shared.player.position : null;

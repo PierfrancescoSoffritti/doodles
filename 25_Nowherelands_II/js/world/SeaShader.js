@@ -1,3 +1,4 @@
+import { weatherGlsl } from './weather/WeatherGlsl.js';
 import * as THREE from 'three';
 import { Ripples } from './Ripples.js';
 import { hslGlsl, noiseGlsl } from './TerrainMaterial.js';
@@ -44,7 +45,7 @@ export function buildWaves(windAngle) {
 }
 
 export function createSeaUniforms(shared, waterLevel, windAngle) {
-	const { waves, waves2 } = buildWaves(windAngle);
+	const { waves, waves2 } = buildWaves(shared.weather.model.angle);
 	const uniforms = {
 		uTime: { value: 0 },
 		uMoonDir: { value: new THREE.Vector3(0, 1, 0) },
@@ -64,7 +65,7 @@ export function createSeaUniforms(shared, waterLevel, windAngle) {
 		tDiffuse: { value: null },
 		textureMatrix: { value: new THREE.Matrix4() },   // Reflector fills these two
 	};
-	Object.assign(uniforms, shared.ripples.uniforms, shared.shoreMap.uniforms, shared.fogUniforms);
+	Object.assign(uniforms, shared.ripples.uniforms, shared.shoreMap.uniforms, shared.weather.uniforms, shared.fogUniforms);
 	return uniforms;
 }
 
@@ -192,6 +193,7 @@ export function seaFragmentShader(shared) {
 	${noiseGlsl}
 	${Ripples.glsl()}
 	${shared.shoreMap.glsl}
+	${weatherGlsl}
 	${fogGlsl}
 	${shoreWaveGlsl}
 	${seaWaveGlsl}
@@ -220,6 +222,7 @@ export function seaFragmentShader(shared) {
 
 		float fres;
 		vec3 col = seaShade(vWorldPos, n, V, depth, dist, vUv4, fres);
+		col += vec3(0.12,0.16,0.25)*uLightning;
 
 		// ---- foam ----
 		// foam takes the light of the hour: moon-white at night, ember-tinted under the red dwarf
@@ -249,9 +252,10 @@ export function seaFragmentShader(shared) {
 		col += rippleGlow(p, t) * 1.2;
 
 		// raindrop rings: each cell spawns an expanding ring on its own phase
-		if (uRain > 0.02) {
+		float localRain = weatherRain(vWorldPos);
+		if (localRain > 0.02) {
 			float rainNear = 1.0 - smoothstep(40.0, 170.0, dist);
-			float density = pow(uRain, 1.6) * 0.7;
+			float density = pow(localRain, 1.6) * 0.7;
 			vec2 cell = floor(p / 8.0), cf = fract(p / 8.0) - 0.5;
 			float phr = hash21(cell * 1.3);
 			float life = fract(t + phr);
@@ -286,6 +290,6 @@ export function updateSeaUniforms(u, time, cameraPos, shared) {
 	u.uSunDir.value.copy(shared.sun.dir);
 	u.uSunIntensity.value = shared.sun.intensity;
 	u.uRain.value = shared.state.rainVisible || 0;
-	u.uSwell.value = 1 + 0.5 * (shared.state.rainVisible || 0);
+	u.uSwell.value = shared.weather.swell;
 	u.uSkyTone.value.copy(shared.fogColor).multiplyScalar(0.9);
 }

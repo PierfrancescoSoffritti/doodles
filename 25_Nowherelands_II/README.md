@@ -67,3 +67,7 @@ js/events      rare event director
 A rebuild of the 2017 Nowherelands doodle, which lives on untouched in `13_Nowherelands`. three.js 0.185 is vendored in `../common/libs/three-0.185` and resolved through the import map in `index.html`.
 
 The river tour now includes **Fallen tree**, **Divided channel**, and **Sheltered lake** stops. River and lake habitats include rooted fallen trunks, logjams, drowned snags, exposed bank roots, wet stone bands, flood debris, nine plant communities, drifting leaves, fish, insects, and localized water/reed ambience. Lake inlet fans and occasional islands are generated with the terrain; gravel islands leave flowing channels on both sides. See [river implementation notes](docs/RIVERS.md) for performance budgets and simulation limits.
+
+Weather now grows from advected moisture, temperature and terrain lift. Evolving translucent clouds accompany localized rain, mountain-only snow, thunderstorms with gusts/lightning/delayed thunder, and rare brief hail. Ground wetness and snowpack persist as weather passes. See [weather implementation notes](docs/WEATHER.md) for the model, performance budgets and the optional `?weather=1` inspection controls.
+
+Weather survey refinements: `?weather=1` now includes clear/scattered skies and sliders for cloud cover, wind/gusts, rain, mountain snow, hail, storm development, lightning rate/brightness and thunder volume. Weather presentation interpolates between simulation steps, and storm winds bend vegetation more strongly.

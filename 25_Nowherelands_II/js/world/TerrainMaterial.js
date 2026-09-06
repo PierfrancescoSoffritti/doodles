@@ -1,3 +1,4 @@
+import { weatherGlsl } from './weather/WeatherGlsl.js';
 import * as THREE from 'three';
 import { Ripples } from './Ripples.js';
 import { fogGlsl } from './FogGlsl.js';
@@ -32,14 +33,14 @@ vec3 terrainLight(vec3 albedo, vec3 n) {
 	vec3 hemi = mix(uGroundColor, uSkyColor, n.y * 0.4 + 0.6);
 	float sunDiff = max(dot(n, uSunDir) * 0.8 + 0.2, 0.0);
 	vec3 ambient = uSkyColor * 0.22 + vec3(0.06, 0.04, 0.1) + uSunColor * 0.09 * uSunIntensity;   // the red dwarf leaves an ember glow on everything
-	return albedo * (ambient + hemi * 1.0 + uMoonColor * diff * uMoonIntensity * 0.95 + uSunColor * pow(sunDiff, 1.3) * uSunIntensity * 1.1);
+	return albedo * (vec3(0.65, 0.75, 1.0) * uLightning * 1.5 + ambient + hemi * 1.0 + uMoonColor * diff * uMoonIntensity * 0.95 + uSunColor * pow(sunDiff, 1.3) * uSunIntensity * 1.1);
 }`;
 
 // Boulders: instanced, flat-shaded with the terrain's own lighting and fog so they belong to the ground.
 export function createRockMaterial(shared, terrainUniforms) {
 	const uniforms = {};
 	for (const k of ['uMoonDir', 'uMoonColor', 'uMoonIntensity', 'uSunDir', 'uSunColor', 'uSunIntensity', 'uSkyColor', 'uGroundColor', 'uCameraPos', 'uRain']) uniforms[k] = terrainUniforms[k];
-	Object.assign(uniforms, shared.fogUniforms, shared.shoreMap.uniforms);
+	Object.assign(uniforms, shared.fogUniforms, shared.shoreMap.uniforms, shared.weather.uniforms);
 	return new THREE.ShaderMaterial({
 		uniforms,
 		vertexShader: /* glsl */`
@@ -57,6 +58,7 @@ export function createRockMaterial(shared, terrainUniforms) {
 			${noiseGlsl}
 			${shared.shoreMap.glsl}
 			${fogGlsl}
+			${weatherGlsl}
 			${terrainLightGlsl}
 			void main() {
 				vec3 nc = cross(dFdx(vWorldPos), dFdy(vWorldPos));
@@ -70,7 +72,7 @@ export function createRockMaterial(shared, terrainUniforms) {
 				albedo += vec3(0.04, 0.035, 0.045) * mineral;
 				float moss = smoothstep(0.2, 0.65, H) * (1.0 - smoothstep(1.8, 3.5, H)) * smoothstep(0.5, 0.85, n.y) * smoothstep(0.35, 0.65, grain) * step(0.3, water);
 				albedo = mix(albedo, vec3(0.09, 0.15, 0.13), moss * 0.65);
-				vec3 color = terrainLight(albedo, n) * (1.0 - uRain * 0.3);
+				vec3 color = terrainLight(albedo, n) * (1.0 - surfaceWeatherAt(vWorldPos.xz).r * 0.3);
 				color = applyFog(color, vWorldPos, uCameraPos);
 				gl_FragColor = vec4(color, 1.0);
 			}`,
@@ -114,7 +116,7 @@ export function createTerrainMaterial(shared, heightmap) {
 		uRockOrigin: { value: new THREE.Vector2(-heightmap.ox, -heightmap.oz) },
 		uRockSize: { value: world.size },
 	};
-	Object.assign(uniforms, shared.ripples.uniforms, shared.shoreMap.uniforms, shared.fogUniforms);
+	Object.assign(uniforms, shared.ripples.uniforms, shared.shoreMap.uniforms, shared.fogUniforms, shared.weather.uniforms);
 
 	const material = new THREE.ShaderMaterial({
 		uniforms,
@@ -145,6 +147,7 @@ export function createTerrainMaterial(shared, heightmap) {
 			${shared.shoreMap.glsl}
 			${shoreWaveGlsl}
 			${fogGlsl}
+			${weatherGlsl}
 			${terrainLightGlsl}
 
 			float gridLine(vec2 p, float cell) {
@@ -222,7 +225,7 @@ export function createTerrainMaterial(shared, heightmap) {
 				// snow: seasonal on gentle ground, permanent above the snow line
 				float snowLine = 780.0 + (vnoise(vWorldPos.xz * 0.003) - 0.5) * 220.0;
 				float caps = smoothstep(snowLine - 60.0, snowLine + 90.0, hSea) * smoothstep(0.4, 0.8, n.y);
-				float snowMask = max(smoothstep(0.55, 0.9, n.y) * smoothstep(1.0, 16.0, h) * uSnow, caps);
+				float snowMask = max(smoothstep(0.55, 0.9, n.y) * settledSnow(vWorldPos), caps * smoothstep(700.0, 770.0, hSea));
 				albedo = mix(albedo, vec3(0.4, 0.4, 0.56), snowMask * 0.55);
 
 				// Eroded limestone at the opening interrupts the soil cover and blends the
@@ -238,8 +241,9 @@ export function createTerrainMaterial(shared, heightmap) {
 				color += uMoonColor * pow(max(dot(reflect(-uMoonDir, n), normalize(uCameraPos - vWorldPos)), 0.0), 6.0) * steep * 0.05 * uMoonIntensity;
 
 				// rain darkens and glosses the ground
-				color *= 1.0 - uRain * 0.3;
-				color += uMoonColor * pow(max(dot(reflect(-uMoonDir, n), normalize(uCameraPos - vWorldPos)), 0.0), 24.0) * uRain * 0.25 * uMoonIntensity;
+				float wetness = surfaceWeatherAt(vWorldPos.xz).r;
+				color *= 1.0 - wetness * 0.3;
+				color += uMoonColor * pow(max(dot(reflect(-uMoonDir, n), normalize(uCameraPos - vWorldPos)), 0.0), 24.0) * wetness * 0.25 * uMoonIntensity;
 
 				// glowing grid + contours
 				float lineFade = (1.0-vApron*.95)*exp(-dist / 380.0) * smoothstep(2.0, 12.0, dist);

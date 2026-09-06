@@ -13,14 +13,14 @@ export class RainLayer extends Layer {
 
 	update(dt, p) {
 		this.amount = damp(this.amount, p.rain, 0.8, dt);
-		this.level = this.amount * 0.16;
+		this.level = this.amount * (0.16 + (p.storm || 0) * 0.22) + (p.hail || 0) * 0.12;
 		const t = this.engine.now;
 		this.hiss.filter.frequency.setTargetAtTime(900 + 700 * Math.sin(t * 0.13) + p.look * 600, t, 0.5);
 		if (this.amount > 0.05) {
 			this.dropTimer -= dt;
 			if (this.dropTimer <= 0) {
 				this.dropTimer = 0.03 + Math.random() * 0.16 / this.amount;
-				this.engine.playNoiseBurst({ velocity: 0.02 + Math.random() * 0.05 * this.amount, cutoff: 3000 + Math.random() * 5000, duration: 0.012 + Math.random() * 0.02, dest: this.out });
+				this.engine.playNoiseBurst({ velocity: 0.02 + Math.random() * 0.05 * this.amount + (p.hail || 0) * 0.13, cutoff: p.hail > 0.1 ? 1200 + Math.random() * 1600 : 3000 + Math.random() * 5000, duration: 0.012 + Math.random() * 0.02, dest: this.out });
 			}
 		}
 		super.update(dt, p);
