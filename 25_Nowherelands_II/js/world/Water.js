@@ -25,7 +25,11 @@ export class Water {
 		const shader = { name: 'NowhereSea', uniforms: farUniforms, vertexShader, fragmentShader };
 		this.far = new Reflector(ringGeometry(RIM / 2, FAR / (RIM / 2), 2, true), { textureWidth: 768, textureHeight: 768, clipBias: 0.02, shader, multisample: 0 });
 		// Reflector clones its uniforms; share the live ones and take its texture and matrix
-		for (const k of Object.keys(uniforms)) if (k !== 'uDisplace' && k !== 'tDiffuse') this.far.material.uniforms[k] = uniforms[k];
+		for (const k of Object.keys(uniforms)) if (k !== 'uDisplace' && k !== 'tDiffuse' && k !== 'textureMatrix') this.far.material.uniforms[k] = uniforms[k];
+		// Reflector updates its private matrix object in place. Replacing that
+		// uniform with our initial identity matrix disconnects the projection,
+		// making most of the sea sample one clamped corner of the mirror image.
+		uniforms.textureMatrix = this.far.material.uniforms.textureMatrix;
 		uniforms.tDiffuse = this.far.material.uniforms.tDiffuse;
 		// the rivers ride the waves and take the sea's look at their mouths
 		shared.sea = { uWaves: uniforms.uWaves, uWaves2: uniforms.uWaves2, uSwell: uniforms.uSwell, tDiffuse: uniforms.tDiffuse, uReflMatrix: uniforms.uReflMatrix };

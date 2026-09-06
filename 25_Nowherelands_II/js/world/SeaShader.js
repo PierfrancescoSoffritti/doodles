@@ -147,9 +147,17 @@ export const seaShadeGlsl = /* glsl */`
 		vec3 R = reflect(-V, n);
 		float ms = max(dot(R, uMoonDir), 0.0);
 		float glintFade = 1.0 - smoothstep(2500.0, 6000.0, dist);
-		col += uMoonColor * (step(0.35, pow(ms, 160.0)) * 0.45 * glintFade + pow(ms, 24.0) * 0.06) * uMoonIntensity;
+		// A binary cutoff lights an entire facet in one frame. Keep the bright
+		// core, but ramp its angular edge and filter subpixel glints at the horizon.
+		float moonLobe = pow(ms, 160.0);
+		float moonAA = clamp(fwidth(moonLobe), 0.22, 0.34);
+		float moonGlint = smoothstep(0.35 - moonAA, 0.35 + moonAA, moonLobe);
+		col += uMoonColor * (moonGlint * 0.45 * glintFade + pow(ms, 24.0) * 0.06) * uMoonIntensity;
 		float ss = max(dot(R, uSunDir), 0.0);
-		col += vec3(1.0, 0.25, 0.1) * (step(0.3, pow(ss, 200.0)) * 0.9 + pow(ss, 12.0) * 0.15) * uSunIntensity;
+		float sunLobe = pow(ss, 200.0);
+		float sunAA = clamp(fwidth(sunLobe), 0.2, 0.29);
+		float sunGlint = smoothstep(0.3 - sunAA, 0.3 + sunAA, sunLobe);
+		col += vec3(1.0, 0.25, 0.1) * (sunGlint * 0.9 * glintFade + pow(ss, 12.0) * 0.15) * uSunIntensity;
 
 		return col;
 	}`;
@@ -269,7 +277,12 @@ export function seaFragmentShader(shared) {
 		float capN = vnoise(p * 0.3 + t * 0.15) * 0.6 + vnoise(p * 0.09 - t * 0.05) * 0.4;
 		// more where a river's current meets the swell, at the edge of its reach
 		float plume = coast.a * (1.0 - coast.a) * 4.0;
-		float cap = step(vJac, 0.5 + 0.2 * capN + 0.1 * plume + 0.07 * clamp(uSurfEnergy - 1.5, 0.0, 2.0)) * nearF * deepEnv(d);
+		float capThreshold = 0.5 + 0.2 * capN + 0.1 * plume + 0.07 * clamp(uSurfEnergy - 1.5, 0.0, 2.0);
+		float compression = capThreshold - vJac;
+		// Foam grows through a compression band instead of appearing all-white
+		// at a threshold. Derivatives retain coverage when a crest is subpixel.
+		float capAA = clamp(fwidth(compression), 0.075, 0.2);
+		float cap = smoothstep(-capAA, capAA, compression) * nearF * deepEnv(d);
 		// breakers: a solid lip on the face of the wave where it breaks, then a torn trail behind it
 		float ph = shorePhase(d, p, t);
 		float age = shoreAge(ph);
