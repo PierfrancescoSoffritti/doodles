@@ -50,6 +50,16 @@ The subsequent rendering pass checked calm vertical rain while looking ahead, do
 
 Cave-view correction: the Storm + Cave mouth check showed outdoor rain while listener exposure and local precipitation stayed zero; the deeper Cave view remained dry. Neighboring-column and elevation-independent particle-activity regressions bring the full suite to 55 passing tests.
 
+## Cliff surf checks
+
+In the weather survey, **Cliff overlook** frames a steep coast from 1,100 m altitude and about 2 km offshore. Compare **Clear** and **Storm**, allowing roughly a minute of simulation time for the existing sea-state smoothing to settle. Check approaching crests, intermittent foam rising on the rock, and the spreading wash between impacts. Also inspect the coast from the Mountain view and at ground level; a summit's own slope can obscure its cliff foot.
+
+Cliff surf shares a periodic impact clock between the sea and terrain materials. Its height and spread follow the existing smoothed sea state. Flat shading, reflection rendering and mesh density are retained. A static 512-square RGBA float overview (4 MiB) extends coastal coverage beyond the moving 3 km shoreline map; it is built once from the generated world. The narrow surf band uses one additional landward height sample to distinguish a cliff above a shallow shelf from a beach. No render passes or particle systems are added.
+
+Incoming rollers extend 360 m offshore, with approximately 58 m between crests and an 8.4-second period. Their height, distant lighting and foam use the same shoreward phase. Offshore chop fades back through that band to make the direction legible. Narrow white lips precede broader breaking foam inside the last 145 m; the foam thins behind each crest before the shared beach/cliff impact. At close range the actual triangle normals retain the faceted look; at distance the roller slope supplements the analytic water normal. These dimensions are artistic pacing choices. Compare frames two seconds apart to check that crests advance toward land rather than merely pulsing at the waterline.
+
+This is a stylized impact approximation, not a fluid solver: there is no airborne spray volume, wave reflection/refraction around headlands, or propagation of individual offshore crests into the shore cycle. The coarse overview also omits narrow river channels outside the detailed maps. Regression tests cover shoreline distances, elevated lake exclusion, uniform maps and bounded overview memory.
+
 ## References
 
 - [NWS cloud development](https://www.weather.gov/source/zhu/ZHU_Training_Page/clouds/cloud_development/clouds.htm): saturation, lifting and precipitation formation.

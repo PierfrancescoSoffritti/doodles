@@ -21,7 +21,7 @@ export class Weather {
 			uWeatherMap: { value: texture(m.weatherData) }, uWeatherSurface: { value: texture(m.surfaceData) },
 			uWeatherOrigin: { value: new THREE.Vector2(m.originX, m.originZ) }, uWeatherSize: { value: m.size }, uWeatherRes: { value: m.res },
 			uWeatherWind: { value: new THREE.Vector2(m.wind.x, m.wind.z) }, uWeatherOffset: { value: new THREE.Vector2() },
-			uWeatherTime: { value: 0 }, uLightning: { value: 0 },
+			uWeatherTime: { value: 0 }, uLightning: { value: 0 }, uSurfEnergy: { value: 1 },
 		};
 		shared.weather = this;
 		this.entrances = (heightmap.world.caves || []).flatMap(cave => cave.entrances || [cave.entrance]);
@@ -88,6 +88,7 @@ export class Weather {
 		s.state.storm = l.storm; s.state.cloudCover = l.coverage;
 		s.state.wind = l.windSpeed / 13 * this.exposure;
 		this.swell += (1 + l.windSpeed / 13 * 0.18 + l.storm * 0.4 - this.swell) * (1 - Math.exp(-worldDt / 25));
+		this.uniforms.uSurfEnergy.value = this.swell;
 		this.wind.set(l.windX, l.windZ); this.travel.addScaledVector(this.wind, worldDt);
 		u.uWeatherTime.value = m.renderTime;
 		u.uWeatherWind.value.set(this.motion.windx, this.motion.windz);

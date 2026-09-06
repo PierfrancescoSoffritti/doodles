@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { shoreDistance, riverReach, buildCoastOverview } from './ShoreMapData.js';
 
 // Textures of the terrain around the player that the water and terrain shaders read:
 //   R = ground height, G = the local water surface (sea, lake or river),
@@ -7,16 +8,15 @@ import * as THREE from 'three';
 //       sea's swell dies away of itself in a river mouth as the shores close in,
 //   A = how much a river owns the point: 1 in the channel, 0 some forty metres out. The sea's
 //       breakers and the swash on the sand keep off a river's banks.
-// Two tiers: a fine one a few hundred metres across for the breakers and the swash at the
-// player's feet, and a coarse one out to the horizon for the far coasts. Both are refilled a few
+// Two moving tiers: a fine one a few hundred metres across for the breakers and the swash at the
+// player's feet, and a coarse one three kilometres across. Both are refilled a few
 // rows per frame as the player moves; a tier keeps showing its old map until the new one is done.
+// A static overview of the generated island keeps distant coasts visible from mountain peaks.
 const TIERS = [
 	{ res: 256, size: 640, rows: 12 },    // 2.5 m per texel
 	{ res: 384, size: 3072, rows: 6 },    // 8 m per texel
 ];
 const OUTSIDE = 1000;
-
-function smoothstep(a, b, x) { const t = Math.min(Math.max((x - a) / (b - a), 0), 1); return t * t * (3 - 2 * t); }
 
 class Tier {
 	constructor(spec, heightmap) {
@@ -78,68 +78,20 @@ class Tier {
 	}
 }
 
-// Signed Euclidean distance to the shoreline, in place of the water mask in channel B.
-// Felzenszwalb & Huttenlocher's 1D squared-distance transform, run over rows then columns,
-// once for the sea and once for the land.
-function shoreDistance(data, res, texel) {
-	const INF = 1e12;
-	const sea = new Float64Array(res * res), land = new Float64Array(res * res);
-	for (let k = 0; k < res * res; k++) { const s = data[k * 4 + 2] > 0.5; sea[k] = s ? INF : 0; land[k] = s ? 0 : INF; }
-	edt2d(sea, res); edt2d(land, res);
-	for (let k = 0; k < res * res; k++) {
-		const s = data[k * 4 + 2] > 0.5;
-		// distance from a sea texel to the nearest land texel, minus half a texel so the line sits between them
-		const d = (Math.sqrt(s ? sea[k] : land[k]) - 0.5) * texel;
-		data[k * 4 + 2] = s ? d : -d;
-	}
-}
-
-// The river-mouth factor: 1 in a channel, falling to 0 forty metres from its edge.
-function riverReach(data, res, texel) {
-	const INF = 1e12;
-	const f = new Float64Array(res * res);
-	for (let k = 0; k < res * res; k++) f[k] = data[k * 4 + 3] > 0.5 ? 0 : INF;
-	edt2d(f, res);
-	for (let k = 0; k < res * res; k++) data[k * 4 + 3] = 1 - smoothstep(0, 40 / texel, Math.sqrt(f[k]));
-}
-
-function edt2d(f, res) {
-	const line = new Float64Array(res), out = new Float64Array(res);
-	const v = new Int32Array(res), z = new Float64Array(res + 1);
-	for (let j = 0; j < res; j++) {
-		for (let i = 0; i < res; i++) line[i] = f[j * res + i];
-		edt1d(line, out, res, v, z);
-		for (let i = 0; i < res; i++) f[j * res + i] = out[i];
-	}
-	for (let i = 0; i < res; i++) {
-		for (let j = 0; j < res; j++) line[j] = f[j * res + i];
-		edt1d(line, out, res, v, z);
-		for (let j = 0; j < res; j++) f[j * res + i] = out[j];
-	}
-}
-
-function edt1d(f, d, n, v, z) {
-	let k = 0;
-	v[0] = 0; z[0] = -Infinity; z[1] = Infinity;
-	for (let q = 1; q < n; q++) {
-		let s = ((f[q] + q * q) - (f[v[k]] + v[k] * v[k])) / (2 * q - 2 * v[k]);
-		while (s <= z[k]) { k--; s = ((f[q] + q * q) - (f[v[k]] + v[k] * v[k])) / (2 * q - 2 * v[k]); }
-		k++; v[k] = q; z[k] = s; z[k + 1] = Infinity;
-	}
-	k = 0;
-	for (let q = 0; q < n; q++) {
-		while (z[k + 1] < q) k++;
-		const dq = q - v[k];
-		d[q] = dq * dq + f[v[k]];
-	}
-}
-
 export class ShoreMap {
 	constructor(heightmap) {
 		this.heightmap = heightmap;
 		this.tiers = TIERS.map((spec) => new Tier(spec, heightmap));
 		const [near, far] = this.tiers;
+		const overview = buildCoastOverview(heightmap.world, heightmap.waterLevel);
+		this.coastTexture = new THREE.DataTexture(overview.data, overview.res, overview.res, THREE.RGBAFormat, THREE.FloatType);
+		this.coastTexture.minFilter = this.coastTexture.magFilter = THREE.LinearFilter;
+		this.coastTexture.needsUpdate = true;
 		this.uniforms = {
+			uCoastMap: { value: this.coastTexture },
+			uCoastOrigin: { value: new THREE.Vector2(-heightmap.ox, -heightmap.oz) },
+			uCoastSize: { value: heightmap.world.size },
+			uCoastRes: { value: overview.res },
 			uShoreNear: { value: near.texture },
 			uShoreNearOrigin: { value: near.uOrigin },
 			uShoreNearSize: { value: near.spec.size },
@@ -148,14 +100,22 @@ export class ShoreMap {
 			uShoreFarSize: { value: far.spec.size },
 		};
 		this.glsl = /* glsl */`
-			uniform sampler2D uShoreNear, uShoreFar;
+			uniform sampler2D uShoreNear, uShoreFar, uCoastMap;
+			uniform vec2 uCoastOrigin;
+			uniform float uCoastSize, uCoastRes;
 			uniform vec2 uShoreNearOrigin, uShoreFarOrigin;
 			uniform float uShoreNearSize, uShoreFarSize;
 			// ground height, water level, signed distance to the sea shore, river-mouth factor
 			vec4 shoreSample(vec2 p) {
 				vec2 uv = (p - uShoreFarOrigin) / uShoreFarSize + 0.5;
 				vec4 far = vec4(-1000.0, -1000.0, ${OUTSIDE.toFixed(1)}, 0.0);
-				if (all(greaterThan(uv, vec2(0.003))) && all(lessThan(uv, vec2(0.997)))) far = texture2D(uShoreFar, uv);
+				float farEdge = max(abs(uv.x - 0.5), abs(uv.y - 0.5));
+				if (farEdge > 0.44) {
+					vec2 cuv = (p - uCoastOrigin) / uCoastSize + 0.5;
+					if (all(greaterThanEqual(cuv, vec2(0.0))) && all(lessThanEqual(cuv, vec2(1.0))))
+						far = texture2D(uCoastMap, cuv * (1.0 - 1.0 / uCoastRes) + 0.5 / uCoastRes);
+				}
+				if (farEdge < 0.497) far = mix(texture2D(uShoreFar, uv), far, smoothstep(0.44, 0.497, farEdge));
 				vec2 nuv = (p - uShoreNearOrigin) / uShoreNearSize + 0.5;
 				float edge = max(abs(nuv.x - 0.5), abs(nuv.y - 0.5));
 				if (edge > 0.49) return far;

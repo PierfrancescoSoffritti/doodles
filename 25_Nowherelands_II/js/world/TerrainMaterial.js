@@ -298,6 +298,20 @@ export function createTerrainMaterial(shared, heightmap) {
 					color *= 1.0 - damp * 0.18;
 					color = mix(color, foamCol, beach * max(edge, body * 0.6));
 				}
+				// Cliff impacts climb the existing rock faces, retaining their facets.
+				// Height and slope distinguish this from beach swash and mountain lakes.
+				float cliff = (1.0 - smoothstep(0.5, 0.82, n.y)) * offRiver * onSea;
+				float cliffAA = max(0.25, min(fwidth(hSea), 1.5));
+				if (cliff > 0.001 && hSea > -0.5 && hSea < 17.0 && abs(sd) < 65.0) {
+					float pulse = cliffPulse(cliffAge(vWorldPos.xz, uTime));
+					float reach = cliffReach(vWorldPos.xz, uTime);
+					float top = reach * pulse;
+					float sheet = (1.0 - smoothstep(top - cliffAA, top + cliffAA, hSea)) * smoothstep(-0.5, 0.3, hSea);
+					float broken = vnoise(floor(vWorldPos.xz * 0.5) * 0.3 + vec2(0.0, floor(hSea * 0.7) * 0.4));
+					float wetRock = (1.0 - smoothstep(reach * 0.6, reach, hSea)) * cliff;
+					color *= 1.0 - wetRock * 0.18;
+					color = mix(color, foamCol, cliff * sheet * pulse * smoothstep(0.15, 0.6, broken) * 0.9);
+				}
 				color = applyFog(color, vWorldPos, uCameraPos);
 				gl_FragColor = vec4(color, 1.0);
 			}`,

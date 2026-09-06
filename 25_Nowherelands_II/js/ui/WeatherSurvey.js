@@ -11,6 +11,7 @@ export class WeatherSurvey {
 			['Natural', () => this.setWeather(null)], ['Clear', () => this.setWeather('clear')], ['Scattered', () => this.setWeather('scattered')], ['Snow', () => this.setWeather('snow')], ['Rain', () => this.setWeather('rain')],
 			['Storm', () => this.setWeather('storm')], ['Hail', () => this.setWeather('hail')],
 			['Coast', () => this.place('coast')], ['Mountain', () => this.place('mountain')], ['Cave', () => this.place('cave')], ['Cave mouth', () => this.place('mouth')],
+			['Cliff overlook', () => this.place('cliffs')],
 			['Look up', () => { shared.player.pitch = .7; }], ['Look ahead', () => { shared.player.pitch = .05; }],
 			['Look down', () => { shared.player.pitch = -1.15; }], ['Turn around', () => { shared.player.yaw += Math.PI; }],
 			['Face sun/moon', () => { const d = shared.sun.height > 0 ? shared.sun.dir : shared.moon.dir; shared.player.yaw = Math.atan2(-d.x, -d.z); shared.player.pitch = Math.asin(d.y); }],
@@ -54,6 +55,22 @@ export class WeatherSurvey {
 			for(let i=0;i<w.height.length;i++)if(w.height[i]>best){best=w.height[i];idx=i;}
 			x=(idx%w.res)*w.cell-w.size/2-w.spawn.x;z=Math.floor(idx/w.res)*w.cell-w.size/2-w.spawn.z;y=s.heightmap.height(x,z)+25;
 		}
+		let cliffTarget = null;
+		if (kind === 'cliffs') {
+			let best = -Infinity;
+			for (let j = 3; j < w.res - 3; j += 2) for (let i = 3; i < w.res - 3; i += 2) {
+				const k = j * w.res + i;
+				if (w.height[k] < 0 || w.height[k] > 18) continue;
+				const dx = (w.height[k + 2] - w.height[k - 2]) / (4 * w.cell);
+				const dz = (w.height[k + 2 * w.res] - w.height[k - 2 * w.res]) / (4 * w.cell);
+				const slope = Math.hypot(dx, dz);
+				if (slope <= best || slope < 0.45) continue;
+				best = slope;
+				cliffTarget = { x: i * w.cell - w.size / 2 - w.spawn.x, z: j * w.cell - w.size / 2 - w.spawn.z };
+				x = cliffTarget.x - dx / slope * 2000; z = cliffTarget.z - dz / slope * 2000;
+				y = Math.max(1100, s.heightmap.height(x, z) + 60);
+			}
+		}
 		if(kind==='cave' && w.caves?.length) {
 			const a=w.caves[0].paths[0].points[8];x=a.x;z=a.z;
 			const support=s.heightmap.caves.column(x,z,a.floor+11);y=(support?.floor??a.floor)+11;
@@ -67,6 +84,7 @@ export class WeatherSurvey {
 			x = a.x; z = a.z; const support = s.heightmap.caves.column(x,z,a.floor+11); y = (support?.floor ?? a.floor)+11;
 		}
 		p.position.set(x,y,z);p.velocity.set(0,0,0);p.groundY=y-11;p.fly=true;p.pitch=.12;p.yaw=kind==='coast'?w.spawn.yaw:0;
+		if (cliffTarget) { p.yaw = Math.atan2(x - cliffTarget.x, z - cliffTarget.z); p.pitch = Math.atan2(2 - y, 2000); }
 		if(mouth){p.yaw=Math.atan2(x-mouth.x,z-mouth.z);p.pitch=Math.atan2(mouth.floor+11-y,Math.hypot(x-mouth.x,z-mouth.z));}
 	}
 	update(ms) {
