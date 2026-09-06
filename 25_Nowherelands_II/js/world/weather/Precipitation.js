@@ -54,14 +54,14 @@ export class Precipitation {
 					vAlpha=smoothstep(aSeed.w-0.035,aSeed.w+0.035,amount)*min(1.0,amount*3.0)*edge*smoothstep(2.5,8.0,dist)*(1.0-smoothstep(75.0,140.0,dist))*step(floorY+0.05,p.y);
 					vec3 cameraRight=vec3(viewMatrix[0][0],viewMatrix[1][0],viewMatrix[2][0]);
 					vec3 cameraUp=vec3(viewMatrix[0][1],viewMatrix[1][1],viewMatrix[2][1]);
-					float width=${snow ? '0.22+aSeed.w*0.22' : hail ? '0.18+aSeed.w*0.15' : '0.07+aSeed.w*0.045'};
+					float width=${snow ? '0.22+aSeed.w*0.22' : hail ? '0.18+aSeed.w*0.15' : '(0.07+aSeed.w*0.045)*(1.0+w.b*0.35)'};
 					${snow || hail ? 'p+=(cameraRight*position.x+cameraUp*position.y)*width;' : `
 					// Perspective-project an actual falling segment, rather than normalizing its screen direction.
 					// This naturally shortens a drop seen end-on and stays correct in reflection cameras too.
 					vec3 velocity=vec3(uLocalWind.x,-95.0*(0.8+aSeed.w*0.4),uLocalWind.y);
 					vec3 across=cross(velocity,normalize(p-cameraPosition));
 					across=length(across)>0.001 ? normalize(across) : cameraRight;
-					float shutter=0.022+w.b*0.014+aSeed.z*0.009;
+					float shutter=0.022+w.b*0.028+aSeed.z*0.009;
 					p+=across*position.x*width-velocity*position.y*shutter;`}
 
 					vWorldPosition=p; vUv=uv; gl_Position=projectionMatrix*viewMatrix*vec4(p,1.0);
@@ -76,11 +76,14 @@ export class Precipitation {
 					if(vWorldPosition.y<=max(terrainHeightAt(vWorldPosition.xz),waterLevelAt(vWorldPosition.xz))+0.05)discard;
 					vec2 p=vUv*2.0-1.0;
 					float shape=${snow || hail ? '1.0-smoothstep(0.35,1.0,length(p))' : '(1.0-smoothstep(0.15,1.0,abs(p.x)))*(1.0-smoothstep(0.55,1.0,abs(p.y)))'};
-					float a=shape*vAlpha*${snow ? '0.85' : hail ? '0.95' : '0.55'};
+					float a=shape*vAlpha*${snow ? '0.85' : hail ? '0.95' : '0.72'};
 					if(a<0.005)discard;
 					gl_FragColor=vec4(vec3(${snow ? '0.75,0.78,0.88' : hail ? '0.65,0.75,0.9' : '0.46,0.51,0.66'})+uLightning*0.7,a);
 				}`,
 		}));
+		// Water writes depth but blends late. Draw precipitation after sea AND inland water;
+		// retain depth testing so waves, terrain and cave walls still occlude the drops.
+		this.points.renderOrder = 4;
 		this.points.frustumCulled = false; this.points.visible = false; scene.add(this.points);
 	}
 

@@ -32,6 +32,7 @@ const cloudGlsl = /* glsl */`
 		float n=cloudNoise(uv);
 		float threshold=mix(0.78,0.30,pow(w.r,0.8));
 		float cloud=smoothstep(threshold-0.06,threshold+0.08,n)*smoothstep(0.0,0.08,w.r);
+		cloud=max(cloud,w.b*w.r*(0.86+0.14*n));
 		float n2=cloudNoise(uv+uLightDir.xz*0.06);
 		float lit=smoothstep(-0.05,0.12,n2-n);
 		float textureTone=smoothstep(0.30,0.72,n);
@@ -41,9 +42,9 @@ const cloudGlsl = /* glsl */`
 		// Warm red edges toward the dwarf, violet/silver edges toward the moon.
 		col+=vec3(0.20,0.018,0.032)*sunFacing*(0.35+lit);
 		col+=vec3(0.085,0.07,0.16)*moonFacing*(0.25+lit);
-		col*=1.0-w.b*0.35;
+		col=mix(col,vec3(0.025,0.034,0.052)*(0.65+lit*0.75+textureTone*0.25),w.b*0.95);
 		col+=vec3(0.4,0.5,0.8)*uLightning*(0.25+w.b);
-		float horizon=smoothstep(0.02,0.2,d.y);
+		float horizon=smoothstep(0.02,mix(0.2,0.055,w.b),d.y);
 		float opacity=mix(0.82,0.94,w.b);
 		return vec4(col,cloud*horizon*opacity);
 	}`;

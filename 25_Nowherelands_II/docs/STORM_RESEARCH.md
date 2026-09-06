@@ -51,3 +51,15 @@ The existing coastal rollers still use the approximation documented in [OCEAN_RE
 - Measure frame times while moving as well as stationary; inspect GPU work/overdraw, draw calls, texture memory and worker cost. Existing desktop observations were vsync-limited, so they are not evidence of unlimited headroom. Keep expensive spray and mist restricted to nearby active breaking regions.
 
 The first deliverable should be one convincing, reproducible storm scene that demonstrates the sequence and its cost. Expanding the natural weather lifecycle comes after that scene passes visual and performance review.
+
+## Implemented storm pass — 6 September 2026
+
+Precipitation now draws after both ocean and inland water, with depth testing retained. Rain curtains, coastal spray, and nearby precipitation draw in that order. A frozen-camera rendering check at the cliff coast, with rain marked in red and reflections excluded from the mask, found zero rain pixels over the sampled sea region at the old draw order and 11,327 with the corrected order.
+
+Storm development now builds substantially more swell over the existing 25-second response, raises coastal rollers and cliff run-up, and increases whitecaps. The original six-component Gerstner mesh, faceted shading, and planar reflection remain. Existing seabed depth limits the near-shore displacement and interrupts breaking foam over deeper channels.
+
+A single instanced spray draw uses sea-level contour crossings refined against the collision terrain. Steep sea coasts emit ballistic fans on the same clock as cliff wash; beaches, inland lakes, and river corridors are excluded. At most 320 coastal anchors × 16 particles are submitted on desktop (160 × 10 on touch). Selection updates after 128 metres of camera movement; particles animate in the vertex shader, without an additional simulation texture or render target.
+
+Storm skies suppress celestial glow and aurora, close the cloud deck, and add rain extinction above valley-fog height. Distant precipitation overlaps more broadly and uses less luminous snow shafts. Cave exposure and the existing mountain snowline still apply. Returning to Clear removes storm sky attenuation and rain extinction while swell decays.
+
+Verification: browser views at the coast, cliff overlook, mountain, cave, and cave mouth; a full breaker cycle at the cliff foot; Clear recovery; no shader or browser errors. Automated contour tests cover coastline refinement, seaward orientation, and lake/river/beach exclusion. The prototype remains a stylized ocean: coastal phase still follows shoreline distance, spray uses ballistic billboards, and there is no full wave refraction/diffraction or fluid solver.

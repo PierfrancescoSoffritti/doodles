@@ -5,6 +5,7 @@ import * as THREE from 'three';
 export function createFogUniforms() {
 	return {
 		uFogDensity: { value: 2.4e-4 },
+		uRainExtinction: { value: 0 },
 		uFogFalloff: { value: 1 / 320 },
 		uFogDistance: { value: 1 / 15000 },
 		uFogColor: { value: new THREE.Color('#2a1046') },
@@ -13,7 +14,7 @@ export function createFogUniforms() {
 }
 
 export const fogGlsl = /* glsl */`
-	uniform float uFogDensity, uFogFalloff, uFogDistance;
+	uniform float uFogDensity, uFogFalloff, uFogDistance, uRainExtinction;
 	uniform vec3 uFogColor, uFogFar;
 	float heightFog(vec3 p, vec3 cam) {
 		vec3 d = p - cam;
@@ -22,7 +23,8 @@ export const fogGlsl = /* glsl */`
 		float dy = d.y;
 		float integ = abs(dy) < 1.0 ? 1.0 : (1.0 - exp(-dy * b)) / (dy * b);
 		float f = uFogDensity * exp(-max(cam.y, -20.0) * b) * integ * dist;
-		return 1.0 - exp(-f);
+		// Rain fills the air column, including mountain viewpoints above valley fog.
+		return 1.0 - exp(-f - dist * uRainExtinction);
 	}
 	vec3 applyFog(vec3 col, vec3 p, vec3 cam) {
 		float dist = distance(p, cam);

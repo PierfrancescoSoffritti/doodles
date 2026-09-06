@@ -87,7 +87,7 @@ export class Weather {
 		for (const key of ['rain', 'snow', 'hail']) s.state[key] = l[key] * this.exposure;
 		s.state.storm = l.storm; s.state.cloudCover = l.coverage;
 		s.state.wind = l.windSpeed / 13 * this.exposure;
-		this.swell += (1 + l.windSpeed / 13 * 0.18 + l.storm * 0.4 - this.swell) * (1 - Math.exp(-worldDt / 25));
+		this.swell += (1 + l.windSpeed / 13 * 0.18 + l.storm * 1.8 - this.swell) * (1 - Math.exp(-worldDt / 25));
 		this.uniforms.uSurfEnergy.value = this.swell;
 		this.wind.set(l.windX, l.windZ); this.travel.addScaledVector(this.wind, worldDt);
 		u.uWeatherTime.value = m.renderTime;

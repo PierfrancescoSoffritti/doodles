@@ -99,10 +99,12 @@ export function waterVertexShader(shared) {
 		vLevel = worldPosition.y;
 		// a river's last reaches ride the sea's swell as they run out into it
 		if (aInfo0.y > 0.0) {
-			float ride = (1.0 - smoothstep(2.0, 4.0, worldPosition.y - uWaterLevel)) * smoothstep(0.0, 0.8, aFade);
+			vec4 shore = shoreSample(worldPosition.xz);
+			float ride = (1.0 - smoothstep(0.35, 1.5, worldPosition.y - uWaterLevel))
+				* smoothstep(0.0, 0.8, aFade) * oceanExposure(shore, uWaterLevel);
 			// the whole displacement, sideways too: that is what sharpens the sea's crests into facets
 			if (ride > 0.001) {
-				vec3 nrm; float jac; vec4 shore = shoreSample(worldPosition.xz);
+				vec3 nrm; float jac;
 				worldPosition.xyz += gerstner(worldPosition.xz, uTime, shore.b, max(0.0, uWaterLevel - shore.r), ride, nrm, jac);
 			}
 		}

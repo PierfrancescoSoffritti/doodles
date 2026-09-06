@@ -38,3 +38,25 @@ test('overview memory stays bounded for large worlds and retains their endpoints
 	assert.equal(overview.data.byteLength, 4 * 1024 * 1024);
 	assert.equal(overview.data.at(-4), 100);
 });
+
+test('coast overview retains river ownership and level across spawn offsets', async () => {
+	const { RIVER_STRIDE: S, RV } = await import('../../js/world/gen/Rivers.js');
+	const res = 33, size = 512, height = new Float32Array(res * res).fill(-4);
+	const lakeLevel = new Float32Array(res * res).fill(-10000), spawn = { x: 61, z: -37 };
+	const packed = new Float32Array(S * 2);
+	for (let i = 0; i < 2; i++) {
+		const o = i * S;
+		packed[o + RV.X] = -spawn.x; packed[o + RV.Z] = (i ? 128 : -128) - spawn.z;
+		packed[o + RV.WL] = i ? 0 : 4; packed[o + RV.W] = 24; packed[o + RV.D] = 3; packed[o + RV.BANK] = 1;
+	}
+	const { data } = buildCoastOverview({ res, size, height, lakeLevel, spawn, rivers: [{ count: 2, data: packed }] });
+	const at = (x, z, c) => data[(z * res + x) * 4 + c];
+	assert.equal(at(16, 8, 3), 1); // raised upstream channel
+	assert.equal(at(16, 8, 1), 4);
+	assert.equal(at(16, 24, 3), 1); // sea-level mouth still suppresses ocean swell
+	assert.equal(at(16, 24, 1), 0);
+	assert.ok(at(18, 16, 3) > 0 && at(18, 16, 3) < 1); // smooth mouth buffer
+	assert.equal(at(28, 16, 3), 0); // open sea unaffected
+	assert.equal(at(28, 16, 1), 0);
+	assert.ok(data.every(Number.isFinite));
+});

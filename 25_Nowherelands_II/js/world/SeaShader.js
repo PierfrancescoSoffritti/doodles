@@ -73,8 +73,12 @@ export const seaWaveGlsl = /* glsl */`
 	uniform vec4 uWaves[${NWAVES}];
 	uniform vec2 uWaves2[${NWAVES}];
 	uniform float uSwell;
-	// the ocean swell gives way to the breakers over the last metres before a shore; it keeps its
-	// height up a river mouth, where a still surface would mirror the sky as one pale slab
+	// Share the same mouth attenuation with the inland mesh. The channel owns its
+	// flow; sea swell fades through the existing forty-metre mouth buffer.
+	float oceanExposure(vec4 shore, float seaLevel) {
+		return (1.0 - smoothstep(0.0, 1.0, shore.a))
+			* (1.0 - smoothstep(0.35, 1.5, shore.g - seaLevel));
+	}
 	float deepEnv(float d) { return smoothstep(1.0, 18.0, d); }
 	// Gerstner sum at grid point p: displacement, and the analytic normal and Jacobian of the surface
 	vec3 gerstner(vec2 p, float t, float d, float depth, float scale, out vec3 nrm, out float jac) {
@@ -167,13 +171,16 @@ export function seaVertexShader(shared) {
 		d = sh.b;
 		river = sh.a;                                  // no breakers on a river's banks; the swell runs in and dies of the narrowing
 		// Hand the coastal band to the incoming rollers so crossing offshore chop
-		// does not obscure their direction. River mouths keep their existing swell.
-		float offshore = mix(0.25 + 0.75 * smoothstep(70.0, 340.0, d), 1.0, river);
+		// does not obscure their direction. Do not carry ocean displacement inland.
+		float offshore = (0.25 + 0.75 * smoothstep(70.0, 340.0, d)) * oceanExposure(sh, 0.0);
 		vec3 disp = gerstner(p, uTime, d, max(0.0, -sh.r), offshore, nrm, jac);
-		disp.y += shoreLift(d, p, uTime) * (1.0 - river);
+		// Shallow shelves limit crest height; steep coasts retain the incoming energy.
+		float roller = shoreLift(d, p, uTime);
+		float bedLimit = smoothstep(0.0, 6.0, max(0.0, -sh.r));
+		disp.y += roller * bedLimit * (1.0 - river);
 		if (d > -4.0 && d < 45.0) {
 			float cliff = smoothstep(0.3, 1.0, max(0.0, -sh.r) / max(abs(d), 8.0));
-			float surge = cliffPulse(cliffAge(p, uTime)) * clamp(uSurfEnergy, 1.0, 2.5);
+			float surge = cliffPulse(cliffAge(p, uTime)) * clamp(uSurfEnergy, 1.0, 4.0);
 			disp.y += cliff * surge * (1.0 - smoothstep(4.0, 35.0, d)) * smoothstep(-4.0, 2.0, d) * (1.0 - river);
 		}
 		return disp;
@@ -231,6 +238,9 @@ export function seaFragmentShader(shared) {
 		vec4 shoreA = shoreSample(p + vec2(3.0, 1.0)), shoreB = shoreSample(p + vec2(-1.0, 3.0));
 		vec4 shoreC = shoreSample(p + vec2(-3.0, -1.0)), shoreD = shoreSample(p + vec2(1.0, -3.0));
 		vec4 coast = 0.25 * (shoreA + shoreB + shoreC + shoreD);
+		// Inland water owns raised channels/lakes. Keeping the ocean underneath
+		// also contaminates the river's refraction snapshot, even when it is hidden.
+		if (coast.g > uWaterLevel + 1.5) discard;
 		float ground = coast.r;
 		float depth = vWorldPos.y - ground;                       // how deep the water is under this point
 		depth = mix(depth, 1000.0, smoothstep(900.0, 1400.0, dist)); // the map ends out there; the far sea is simply deep
@@ -241,7 +251,7 @@ export function seaFragmentShader(shared) {
 		float ac = shoreA.b - shoreC.b, bd = shoreB.b - shoreD.b;
 		vec2 coastGradient = vec2(3.0 * ac - bd, ac + 3.0 * bd) / 20.0;
 		if (d > -3.0 && d < 360.0) {
-			float slope = shoreSlope(d, p, t) * (1.0 - coast.a);
+			float slope = shoreSlope(d, p, t) * smoothstep(0.0, 6.0, max(0.0, -ground)) * (1.0 - coast.a);
 			vec2 rollingSlope = an.xz - coastGradient * slope;
 			vec3 rollingNormal = normalize(vec3(rollingSlope.x, an.y, rollingSlope.y));
 			n = normalize(mix(gn, rollingNormal, smoothstep(700.0, 1600.0, dist)));
@@ -254,16 +264,20 @@ export function seaFragmentShader(shared) {
 		// ---- foam ----
 		// foam takes the light of the hour: moon-white at night, ember-tinted under the red dwarf
 		vec3 foamCol = vec3(0.5, 0.53, 0.66) * (0.55 + 0.45 * uMoonIntensity) + vec3(0.4, 0.14, 0.1) * uSunIntensity;
-		float nearF = 1.0 - smoothstep(900.0, 2200.0, dist);
+		float nearF = 1.0 - smoothstep(1400.0, 3500.0, dist);
 		// whitecaps where the swell folds over
 		float capN = vnoise(p * 0.3 + t * 0.15) * 0.6 + vnoise(p * 0.09 - t * 0.05) * 0.4;
 		// more where a river's current meets the swell, at the edge of its reach
 		float plume = coast.a * (1.0 - coast.a) * 4.0;
-		float cap = step(vJac, 0.5 + 0.2 * capN + 0.1 * plume) * nearF * deepEnv(d);
+		float cap = step(vJac, 0.5 + 0.2 * capN + 0.1 * plume + 0.07 * clamp(uSurfEnergy - 1.5, 0.0, 2.0)) * nearF * deepEnv(d);
 		// breakers: a solid lip on the face of the wave where it breaks, then a torn trail behind it
 		float ph = shorePhase(d, p, t);
 		float age = shoreAge(ph);
-		float brk = shoreBreak(d);
+		// Depth changes where a crest breaks: deep channels interrupt foam bands,
+		// while shelves spend more of the incoming energy on turbulent white water.
+		float breakingDepth = 3.0 + 2.8 * uSurfEnergy;
+		float shallowBreak = 1.0 - smoothstep(breakingDepth * 0.5, breakingDepth * 2.0, max(0.0, -ground));
+		float brk = shoreBreak(d) * (0.2 + 0.8 * shallowBreak);
 		// Broad travelling white lips reveal the approach several crests offshore.
 		// Wider, longer-lived foam follows a crest inside the breaking zone.
 		float phaseFootprint = fwidth(ph);
@@ -275,7 +289,7 @@ export function seaFragmentShader(shared) {
 		float foamGrain = vnoise(floor(p * 0.5) * 0.31 + vec2(t * 0.06, 0.0));
 		float torn = mix(step(0.34, foamGrain), 0.78, smoothstep(450.0, 1400.0, dist));
 		float lip = smoothstep(0.86 - phaseAA, 0.94 + phaseAA, sin(ph));
-		lip = mix(0.12, lip, resolved) * shoreEnv(d) * (0.3 + 0.7 * brk) * (0.7 + 0.3 * set);
+		lip = mix(0.12, lip, resolved) * shoreEnv(d) * (0.08 + 0.92 * brk) * (0.7 + 0.3 * set);
 		lip *= smoothstep(0.22, 0.5, lipN) * torn;
 		float trailN = vnoise(p * 0.06 + vec2(0.0, t * 0.08));
 		float decay = (1.0 - smoothstep(0.05, 0.42, age)) * smoothstep(0.0, 0.025, age);
@@ -286,7 +300,7 @@ export function seaFragmentShader(shared) {
 		// visible from peaks: small lip details alone disappear below one pixel.
 		float cliffFoam = 0.0;
 		float coastAA = max(1.0, min(fwidth(d), 12.0));
-		if (d > -8.0 && d < 85.0) {
+		if (d > -8.0 && d < 150.0) {
 			// A cliff may stand above a shallow rock shelf: inspect the landward
 			// side as well as water depth. The four existing samples give its direction.
 			vec2 outward = coastGradient;
@@ -295,7 +309,7 @@ export function seaFragmentShader(shared) {
 			float cliff = smoothstep(0.3, 1.0, max(landRise, max(0.0, uWaterLevel - ground) / max(abs(d), 8.0)));
 			float impactAge = cliffAge(p, t);
 			float pulse = cliffPulse(impactAge);
-			float spread = (12.0 + 22.0 * impactAge) * clamp(uSurfEnergy, 1.0, 2.5);
+			float spread = (12.0 + 22.0 * impactAge) * clamp(uSurfEnergy, 1.0, 4.0);
 			float wash = 1.0 - smoothstep(spread - coastAA, spread + coastAA, d);
 			float patches = vnoise(p * 0.065 + vec2(t * 0.07, 0.0));
 			cliffFoam = cliff * wash * (0.2 + 0.8 * pulse) * smoothstep(0.2, 0.65, patches);
@@ -322,7 +336,7 @@ export function seaFragmentShader(shared) {
 			vec2 c = vec2(hash21(cell + 1.7), hash21(cell + 3.1)) - 0.5;
 			float r = life * 0.42;
 			float ring = step(abs(length(cf - c) - r), 0.025) * (1.0 - life) * step(hash21(cell + 9.1), density);
-			col += vec3(0.5, 0.55, 0.7) * ring * 0.8 * rainNear;
+			col += vec3(0.5, 0.55, 0.7) * ring * 0.8 * rainNear / max(1.0, uSurfEnergy);
 		}
 
 		// open water carries the sky at the horizon rather than the dark silhouette tone of the land

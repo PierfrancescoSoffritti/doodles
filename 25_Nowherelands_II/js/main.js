@@ -7,6 +7,7 @@ import { Ripples } from './world/Ripples.js';
 import { ShoreMap } from './world/ShoreMap.js';
 import { Terrain } from './world/Terrain.js';
 import { Water } from './world/Water.js';
+import { CoastalSpray } from './world/CoastalSpray.js';
 import { InlandWater } from './world/InlandWater.js';
 import { Waterfalls } from './world/Waterfalls.js';
 import { WatersideLife } from './world/WatersideLife.js';
@@ -92,6 +93,7 @@ function start(world,caveMeshes) {
 	const atmosphere = new Weather(scene, heightmap, shared);
 	const terrain = new Terrain(scene, heightmap, shared);
 	const water = new Water(scene, shared, heightmap.waterLevel);
+	const coastalSpray = new CoastalSpray(scene, shared);
 	const inland = new InlandWater(scene, heightmap, shared);
 	const waterfalls = new Waterfalls(scene, world, shared);
 	const drift = new RiverDrift(scene, heightmap, shared);
@@ -194,6 +196,7 @@ function start(world,caveMeshes) {
 		rainCurtains.update(camera.position, sky.clouds.uniforms.uCloudBase.value);
 		scene.fog.color.copy(shared.fogColor);
 		water.update(t, camera.position, shared);
+		coastalSpray.update(t, camera.position);
 		inland.update(t, camera.position, shared);
 		waterfalls.update(t, camera.position);
 		drift.update(worldDt, camera.position);
@@ -217,6 +220,8 @@ function start(world,caveMeshes) {
 		const fu = shared.fogUniforms;
 		fu.uFogDensity.value = 2.4e-4 * weather;
 		fu.uFogDistance.value = (1 / 15000) * (1 + 0.6 * (weather - 1));
+		fu.uRainExtinction.value = atmosphere.exposure * (0.00008 * (shared.state.rainVisible || 0)
+			+ 0.0005 * (shared.state.storm || 0) * Math.max(shared.state.rainVisible || 0, shared.state.snowVisible || 0));
 		fu.uFogColor.value.copy(shared.fogColor);
 		fu.uFogFar.value.copy(shared.fogColor).multiplyScalar(0.62);
 		scene.fog.density = FOG_NEAR * weather;
@@ -289,6 +294,6 @@ function start(world,caveMeshes) {
 		if (survey) survey.update(now - previousFrame);
 		profile?.end();
 	}
-	window.__debug = { atmosphere, sky, snow, rain, hail, scene, renderer, camera, shared, post, terrain, player, landmarksList: landmarks.list, director, shoreMap, water, inland, waterfalls, drift, heightmap, world };
+	window.__debug = { atmosphere, sky, snow, rain, hail, scene, renderer, camera, shared, post, terrain, player, landmarksList: landmarks.list, director, shoreMap, water, inland, waterfalls, drift, heightmap, world, coastalSpray };
 	frame();
 }

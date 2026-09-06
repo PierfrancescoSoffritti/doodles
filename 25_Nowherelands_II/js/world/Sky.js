@@ -151,19 +151,19 @@ export class Sky {
 		const starGeom = new THREE.BufferGeometry();
 		starGeom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
 		starGeom.setAttribute('aStar', new THREE.BufferAttribute(attr, 3));
-		this.starUniforms = { uTime: { value: 0 }, uHigh: { value: 0 }, uNight: { value: 0 }, uDay: { value: 0 }, uPixelRatio: { value: 1 } };
+		this.starUniforms = { uVisibility: { value: 1 }, uTime: { value: 0 }, uHigh: { value: 0 }, uNight: { value: 0 }, uDay: { value: 0 }, uPixelRatio: { value: 1 } };
 		this.stars = new THREE.Points(starGeom, new THREE.ShaderMaterial({
 			uniforms: this.starUniforms,
 			transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
 			vertexShader: /* glsl */`
 				attribute vec3 aStar;
-				uniform float uTime, uHigh, uNight, uDay, uPixelRatio;
+				uniform float uTime, uHigh, uNight, uDay, uPixelRatio, uVisibility;
 				varying float vAlpha;
 				varying vec3 vTint;
 				void main() {
 					float tw = 0.55 + 0.45 * sin(uTime * (1.2 + aStar.z * 2.0) + aStar.y);
 					tw += uHigh * 0.8 * step(0.7, aStar.z);
-					vAlpha = tw * min(aStar.x, 1.3) * (0.7 + 0.9 * uNight) * (1.0 - uDay * 0.3);   // the red dwarf barely dims the stars
+					vAlpha = uVisibility * tw * min(aStar.x, 1.3) * (0.7 + 0.9 * uNight) * (1.0 - uDay * 0.3);   // the red dwarf barely dims the stars
 					vTint = mix(vec3(0.75, 0.85, 1.0), mix(vec3(1.0, 0.75, 0.9), vec3(1.0), aStar.z), step(0.5, aStar.z));
 					vec4 mv = modelViewMatrix * vec4(position, 1.0);
 					gl_PointSize = (4.0 + aStar.x * 10.0) * uPixelRatio;
@@ -229,7 +229,9 @@ export class Sky {
 		this.sunUniforms.uIntensity.value = 0.8 + 0.2 * this.sunIntensitySmooth;
 		this.sunLight.position.copy(this.sunDir).multiplyScalar(1000).add(cameraPos);
 		this.sunLight.target.position.copy(cameraPos);
-		const cloudShade = 1 - (shared.state.cloudCover || 0) * 0.55;
+		const storm = shared.state.storm || 0;
+		this.sunUniforms.uIntensity.value *= 1 - storm * 0.94;
+		const cloudShade = (1 - (shared.state.cloudCover || 0) * 0.55) * (1 - storm * 0.5);
 		this.sunLight.intensity = 0.5 * this.sunIntensitySmooth * cloudShade;
 		shared.sun.dir.copy(this.sunDir);
 		shared.sun.height = sunHeight;
@@ -237,7 +239,7 @@ export class Sky {
 		const light = Math.max(this.moonIntensitySmooth, this.sunIntensitySmooth * 0.35);
 
 		this.moon.position.copy(this.moonDir).multiplyScalar(5200);
-		this.moonUniforms.uColor.value.copy(this.moonColor).lerp(new THREE.Color('#5a0f1a'), eclipse).multiplyScalar(1.15 - eclipse * 0.8);
+		this.moonUniforms.uColor.value.copy(this.moonColor).lerp(new THREE.Color('#5a0f1a'), eclipse).multiplyScalar((1.15 - eclipse * 0.8) * (1 - storm * 0.9));
 		this.moon.lookAt(cameraPos);
 		this.moonLight.position.copy(this.moonDir).multiplyScalar(1000).add(cameraPos);
 		this.moonLight.target.position.copy(cameraPos);
@@ -252,11 +254,11 @@ export class Sky {
 
 		const u = this.domeUniforms;
 		u.uMoonDir.value.copy(this.moonDir);
-		u.uMoonIntensity.value = this.moonIntensitySmooth;
+		u.uMoonIntensity.value = this.moonIntensitySmooth * (1 - storm * 0.96);
 		u.uTime.value = worldTime;
 		u.uEclipse.value = eclipse;
 		u.uSunDir.value.copy(this.sunDir);
-		u.uSunIntensity.value = this.sunIntensitySmooth;
+		u.uSunIntensity.value = this.sunIntensitySmooth * (1 - storm * 0.96);
 		const dim = (0.16 + 0.84 * light) * (1 - eclipse * 0.35) * (1 - (shared.state.storm || 0) * 0.3);
 		// dusk and dawn: the horizon band warms while the moon is low
 		const dusk = smoothstep(0.35, 0.0, Math.abs(height - 0.05)) * (1 - eclipse);
@@ -265,7 +267,13 @@ export class Sky {
 		u.uHorizon.value.copy(this.horizon).multiplyScalar(dim);
 		u.uBand.value.copy(this.band).lerp(new THREE.Color('#ff9a4a'), dusk * 0.7).multiplyScalar(0.35 + 0.65 * dim + dusk * 0.6);
 		u.uHorizon.value.lerp(new THREE.Color('#5a2a3a'), dusk * 0.5);
-		shared.fogColor.copy(this.horizon).multiplyScalar(dim * 0.8).lerp(new THREE.Color('#3a0e26'), this.sunIntensitySmooth * 0.3);
+		// A storm closes the luminous horizon as well as the overhead sky.
+		const stormTone = new THREE.Color('#343847');
+		u.uZenith.value.lerp(new THREE.Color('#171b2b'), storm * 0.88);
+		u.uHorizon.value.lerp(stormTone, storm * 0.94);
+		u.uBand.value.multiplyScalar(1 - storm * 0.94);
+		shared.fogColor.copy(this.horizon).multiplyScalar(dim * 0.8).lerp(new THREE.Color('#3a0e26'), this.sunIntensitySmooth * 0.3).lerp(stormTone, storm * 0.94);
+		this.starUniforms.uVisibility.value = 1 - storm * 0.995;
 
 		this.stars.rotation.y = worldTime * 0.004;
 		this.starUniforms.uTime.value = worldTime;

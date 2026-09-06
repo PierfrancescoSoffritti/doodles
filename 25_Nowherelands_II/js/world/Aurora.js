@@ -54,7 +54,7 @@ export class Aurora {
 		const target = 0.22 + this.shared.state.aurora * 0.7;
 		this.intensity = damp(this.intensity, target, 0.5, dt);
 		this.uniforms.uTime.value = time;
-		this.uniforms.uIntensity.value = this.intensity;
+		this.uniforms.uIntensity.value = this.intensity * (1 - (this.shared.state.storm || 0) * 0.98);
 		this.uniforms.uAudio.value = this.shared.audio ? this.shared.audio.analysis.high : 0;
 	}
 }

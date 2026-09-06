@@ -302,7 +302,7 @@ export function createTerrainMaterial(shared, heightmap) {
 				// Height and slope distinguish this from beach swash and mountain lakes.
 				float cliff = (1.0 - smoothstep(0.5, 0.82, n.y)) * offRiver * onSea;
 				float cliffAA = max(0.25, min(fwidth(hSea), 1.5));
-				if (cliff > 0.001 && hSea > -0.5 && hSea < 17.0 && abs(sd) < 65.0) {
+				if (cliff > 0.001 && hSea > -0.5 && hSea < 30.0 && abs(sd) < 65.0) {
 					float pulse = cliffPulse(cliffAge(vWorldPos.xz, uTime));
 					float reach = cliffReach(vWorldPos.xz, uTime);
 					float top = reach * pulse;

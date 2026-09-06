@@ -1,3 +1,5 @@
+import { RIVER_STRIDE, RV, surfaceHalfWidth } from './gen/Rivers.js';
+
 function smoothstep(a, b, x) { const t = Math.min(Math.max((x - a) / (b - a), 0), 1); return t * t * (3 - 2 * t); }
 
 // Signed Euclidean distance to the shoreline, in place of the water mask in channel B.
@@ -71,5 +73,32 @@ export function buildCoastOverview(world, seaLevel = 0) {
 		data[k + 3] = level > seaLevel + 0.3 ? 1 : 0;
 	}
 	shoreDistance(data, res, world.size / (res - 1));
+	// The moving maps already include carved channels. Preserve that ownership in
+	// the overview too, or sea waves return when a river is viewed from a peak.
+	const texel = world.size / (res - 1), half = world.size / 2;
+	for (const river of world.rivers || []) for (let i = 0; i < river.count - 1; i++) {
+		const d = river.data, a = i * RIVER_STRIDE, b = a + RIVER_STRIDE;
+		const ax = d[a + RV.X] + world.spawn.x, az = d[a + RV.Z] + world.spawn.z;
+		const bx = d[b + RV.X] + world.spawn.x, bz = d[b + RV.Z] + world.spawn.z;
+		const dx = bx - ax, dz = bz - az, length2 = dx * dx + dz * dz;
+		if (length2 < 1e-6) continue;
+		const width = o => Math.max(...[-1, 1].map(side => surfaceHalfWidth(d[o + RV.W], d[o + RV.D], d[o + RV.BANK], side, d[o + RV.BEND])));
+		const wa = width(a), wb = width(b), reach = Math.max(wa, wb) + 40 + texel;
+		const x0 = Math.max(0, Math.floor((Math.min(ax, bx) - reach + half) / texel));
+		const x1 = Math.min(res - 1, Math.ceil((Math.max(ax, bx) + reach + half) / texel));
+		const z0 = Math.max(0, Math.floor((Math.min(az, bz) - reach + half) / texel));
+		const z1 = Math.min(res - 1, Math.ceil((Math.max(az, bz) + reach + half) / texel));
+		for (let z = z0; z <= z1; z++) for (let x = x0; x <= x1; x++) {
+			const px = x * texel - half - ax, pz = z * texel - half - az;
+			const t = Math.max(0, Math.min(1, (px * dx + pz * dz) / length2));
+			const distance = Math.hypot(px - t * dx, pz - t * dz), w = wa + (wb - wa) * t;
+			const mask = 1 - smoothstep(w, w + 40 + texel, distance);
+			const k = (z * res + x) * 4, level = d[a + RV.WL] + (d[b + RV.WL] - d[a + RV.WL]) * t;
+			data[k + 3] = Math.max(data[k + 3], mask);
+			// Level only belongs to the channel footprint, not the wider surf buffer.
+			const cover = 1 - smoothstep(w, w + texel, distance);
+			data[k + 1] = Math.max(data[k + 1], seaLevel + Math.max(0, level - seaLevel) * cover);
+		}
+	}
 	return { data, res };
 }
