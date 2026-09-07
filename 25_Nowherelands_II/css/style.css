@@ -163,3 +163,20 @@ body.touch .controls:not(.touch-only) { display: none; }
 .river-survey button:hover, .river-survey button:focus-visible { background: #93c2ca33; }
 .river-survey button:disabled { opacity: .35; cursor: default; }
 .river-survey output { display: block; white-space: pre-line; color: #a0b5bf; }
+.fauna-guide { position: fixed; z-index: 21; top: 24px; left: 24px; width: 252px; max-height: calc(100dvh - 48px); overflow: auto; box-sizing: border-box; padding: 23px; background: #100e1ddd; border: 1px solid #b8a6d82d; border-radius: 16px; color: #e1d9ee; font: 12px/1.6 system-ui, sans-serif; backdrop-filter: blur(18px); transition: opacity .3s; }
+.fauna-guide.playing { opacity: 0; pointer-events: none; }
+.fauna-guide-kicker { color: #a798bd; letter-spacing: .16em; font-size: 9px; }
+.fauna-guide h2 { margin: 9px 0; font: 25px/1.3 Georgia, serif; font-weight: normal; }
+.fauna-guide p { color: #a79db8; margin: 9px 0 18px; }
+.fauna-guide-list { display: grid; gap: 5px; }
+.fauna-guide button { color: inherit; background: #ffffff05; border: 1px solid #b8a6d824; padding: 9px 11px; border-radius: 7px; font: inherit; cursor: pointer; text-align: left; }
+.fauna-guide button:hover, .fauna-guide button:focus-visible { border-color: #b8a6d889; background: #ffffff0c; }
+.fauna-guide button[aria-pressed="true"] { color: #c0f0ed; border-color: #a3e2d96b; background: #92d3d010; }
+.fauna-guide button:disabled { opacity: .4; cursor: default; }
+.fauna-guide .fauna-guide-detail { min-height: 38px; margin: 16px 0; font-size: 11px; }
+.fauna-guide-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.fauna-guide-actions button { font-size: 11px; padding: 9px 7px; text-align: center; }
+.fauna-guide .fauna-guide-explore { display: block; width: 100%; margin-top: 12px; color: #c0f0ed; }
+.fauna-guide .fauna-guide-quiet { margin-top: 8px; padding: 3px 0; background: none; border: 0; font-size: 10px; color: #a79db8; }
+.fauna-guide output, .fauna-guide small { display: block; font-size: 9px; color: #897e9b; margin-top: 12px; }
+@media (max-width: 600px) { .fauna-guide { top: 10px; left: 10px; width: 208px; max-height: calc(100dvh - 20px); padding: 16px; } .fauna-guide-list { grid-template-columns: 1fr 1fr; } .fauna-guide button { font-size: 10px; } }

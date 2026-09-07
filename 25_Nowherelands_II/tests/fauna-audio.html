@@ -1,0 +1,53 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Fauna audio checks</title>
+<style>body{background:#171322;color:#ded5e9;font:15px/1.6 monospace;padding:32px}pre{white-space:pre-wrap}</style>
+<h1>Fauna audio checks</h1><pre id="result">Rendering two lumen voices…</pre>
+<script type="module">
+import { FaunaAudio } from '../js/audio/FaunaAudio.js';
+import { Scale } from '../js/audio/Scale.js';
+import { AudioEngine } from '../js/audio/AudioEngine.js';
+import { checkAlarmMix } from './FaunaMixChecks.js';
+const result = document.querySelector('#result');
+try {
+	const reports = [];
+	for (const kind of ['lumen', 'lumen-escape', 'escape-near', 'escape-ducked', 'escape-startup', 'escape-muted']) {
+		const escape = kind === 'lumen-escape' || kind.startsWith('escape-');
+		const ctx = new OfflineAudioContext(2, 44100 * 7, 44100);
+		const noiseBuffer = ctx.createBuffer(1, 44100 * 2, 44100), data = noiseBuffer.getChannelData(0);
+		let random = 17; for (let i = 0; i < data.length; i++) { random = (Math.imul(random, 1664525) + 1013904223) >>> 0; data[i] = random / 2147483648 - 1; }
+		const master = ctx.createGain(); master.connect(ctx.destination);
+		if(kind==='escape-startup') {master.gain.value=0.0001;master.gain.setTargetAtTime(0.9,0,1.5);}
+		const layerBus = ctx.createGain(); layerBus.gain.value=kind==='escape-ducked'?0.1:1;layerBus.connect(master);
+		const reverb = ctx.createGain(); reverb.gain.value = 0;
+		let ducks=0;
+		const engine = { duck(...args) {ducks++; AudioEngine.prototype.duck.apply(this,args);}, ctx, noiseBuffer, layerBus, master, reverb, get now() { return ctx.currentTime; }, makePanner(p) { const n = ctx.createPanner(); n.panningModel = 'equalpower'; n.positionX.value = p.x; n.positionY.value = p.y; n.positionZ.value = p.z; return n; } };
+		const audio = new FaunaAudio(engine, { scale: new Scale(50, 'pentMinor') });
+		const creature = { kind: escape ? 'lumen' : kind, id: kind, degree: 0, voice: 0, pos: { x: 0, y: 0, z: kind.startsWith('escape-')?-25:-1 } };
+		if(kind==='escape-muted')audio.muted=true;
+		// Schedule during the first offline suspension, where the audio clock is active.
+		const scheduled = ctx.suspend(0.01).then(async () => {
+			// Offline contexts report suspended at scheduling time, unlike a running game.
+			const proxy = new Proxy(ctx, { get(target, key) { if (key === 'state') return 'running'; const v = Reflect.get(target, key, target); return typeof v === 'function' ? v.bind(target) : v; } });
+			engine.ctx = proxy;
+			const accepted=escape ? audio.escape(creature) : audio.call(creature);
+			if(accepted===(kind==='escape-muted'))throw new Error(kind + ': incorrect mute/voice acceptance');
+			if(ducks!==(escape && accepted?1:0))throw new Error(kind+': rejected or ordinary call changed ambient mix');
+			await ctx.resume();
+		});
+		const buffer = await ctx.startRendering(); await scheduled;
+		const samples = buffer.getChannelData(0); let sum = 0, peak = 0, crossings = 0, active = 0;
+		for (let i = 0; i < samples.length; i++) { const v = samples[i]; if (!Number.isFinite(v)) throw new Error(kind + ': non-finite output'); sum += v * v; peak = Math.max(peak, Math.abs(v)); if (Math.abs(v) > 0.001) active++; if (i && v > 0 && samples[i - 1] <= 0) crossings++; }
+		const rms = Math.sqrt(sum / samples.length);
+		if ((kind==='escape-muted'?rms!==0:rms < 0.00005) || peak >= 0.95) throw new Error(kind + ': silent or clipped output');
+		reports.push({ kind, rms: +rms.toFixed(6), peak: +peak.toFixed(4), activeSeconds: +(active / 44100).toFixed(2), crossings });
+		audio.dispose();
+	}
+	if (new Set(reports.slice(0,2).map(r => r.crossings)).size !== 2) throw new Error('Voice signatures are not distinct');
+	const near=reports.find(r=>r.kind==='escape-near'),ducked=reports.find(r=>r.kind==='escape-ducked'),startup=reports.find(r=>r.kind==='escape-startup');
+	if(near.rms<0.08 || near.activeSeconds<1.1 || Math.abs(near.rms-ducked.rms)>0.000001 || startup.rms<0.0015)throw new Error('Escape cue lost in proximity, ambient ducking or startup fade: '+JSON.stringify({near,ducked,startup}));
+	const mix = await checkAlarmMix();
+	result.textContent = 'PASS — two finite, non-silent, unclipped, distinct voices; strong escape signal at 25 units, unaffected by ambient ducking, startup fade checked, mute respected.\n\n' + JSON.stringify({voices:reports,mix}, null, 2);
+	result.dataset.status = 'pass';
+} catch (e) { result.textContent = 'FAIL: ' + e.stack; result.dataset.status = 'fail'; }
+</script>

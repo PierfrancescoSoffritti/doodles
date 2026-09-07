@@ -1,3 +1,4 @@
+import { lumenLightUniforms, lumenLightGlsl } from './fauna/LumenLight.js';
 import { weatherGlsl } from './weather/WeatherGlsl.js';
 import * as THREE from 'three';
 import { Ripples } from './Ripples.js';
@@ -40,7 +41,7 @@ vec3 terrainLight(vec3 albedo, vec3 n) {
 export function createRockMaterial(shared, terrainUniforms) {
 	const uniforms = {};
 	for (const k of ['uMoonDir', 'uMoonColor', 'uMoonIntensity', 'uSunDir', 'uSunColor', 'uSunIntensity', 'uSkyColor', 'uGroundColor', 'uCameraPos', 'uRain']) uniforms[k] = terrainUniforms[k];
-	Object.assign(uniforms, shared.fogUniforms, shared.shoreMap.uniforms, shared.weather.uniforms);
+	Object.assign(uniforms, lumenLightUniforms(shared), shared.fogUniforms, shared.shoreMap.uniforms, shared.weather.uniforms);
 	return new THREE.ShaderMaterial({
 		uniforms,
 		vertexShader: /* glsl */`
@@ -58,6 +59,7 @@ export function createRockMaterial(shared, terrainUniforms) {
 			${noiseGlsl}
 			${shared.shoreMap.glsl}
 			${fogGlsl}
+			${lumenLightGlsl}
 			${weatherGlsl}
 			${terrainLightGlsl}
 			void main() {
@@ -73,6 +75,7 @@ export function createRockMaterial(shared, terrainUniforms) {
 				float moss = smoothstep(0.2, 0.65, H) * (1.0 - smoothstep(1.8, 3.5, H)) * smoothstep(0.5, 0.85, n.y) * smoothstep(0.35, 0.65, grain) * step(0.3, water);
 				albedo = mix(albedo, vec3(0.09, 0.15, 0.13), moss * 0.65);
 				vec3 color = terrainLight(albedo, n) * (1.0 - surfaceWeatherAt(vWorldPos.xz).r * 0.3);
+				color += lumenIllumination(vWorldPos,n,normalize(uCameraPos-vWorldPos),0.0);
 				color = applyFog(color, vWorldPos, uCameraPos);
 				gl_FragColor = vec4(color, 1.0);
 			}`,
@@ -116,7 +119,7 @@ export function createTerrainMaterial(shared, heightmap) {
 		uRockOrigin: { value: new THREE.Vector2(-heightmap.ox, -heightmap.oz) },
 		uRockSize: { value: world.size },
 	};
-	Object.assign(uniforms, shared.ripples.uniforms, shared.shoreMap.uniforms, shared.fogUniforms, shared.weather.uniforms);
+	Object.assign(uniforms, lumenLightUniforms(shared), shared.ripples.uniforms, shared.shoreMap.uniforms, shared.fogUniforms, shared.weather.uniforms);
 
 	const material = new THREE.ShaderMaterial({
 		uniforms,
@@ -147,6 +150,7 @@ export function createTerrainMaterial(shared, heightmap) {
 			${shared.shoreMap.glsl}
 			${shoreWaveGlsl}
 			${fogGlsl}
+			${lumenLightGlsl}
 			${weatherGlsl}
 			${terrainLightGlsl}
 
@@ -312,6 +316,7 @@ export function createTerrainMaterial(shared, heightmap) {
 					color *= 1.0 - wetRock * 0.18;
 					color = mix(color, foamCol, cliff * sheet * pulse * smoothstep(0.15, 0.6, broken) * 0.9);
 				}
+				color += lumenIllumination(vWorldPos,n,normalize(uCameraPos-vWorldPos),0.0);
 				color = applyFog(color, vWorldPos, uCameraPos);
 				gl_FragColor = vec4(color, 1.0);
 			}`,

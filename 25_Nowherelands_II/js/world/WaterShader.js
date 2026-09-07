@@ -1,3 +1,4 @@
+import { lumenLightUniforms, lumenLightGlsl } from './fauna/LumenLight.js';
 import { weatherGlsl } from './weather/WeatherGlsl.js';
 import * as THREE from 'three';
 import { riverFlowGlsl } from './RiverFlow.js';
@@ -31,7 +32,7 @@ export function createWaterUniforms(shared, waterLevel) {
 		uSkyTone: { value: new THREE.Color('#3a1460') },
 	};
 	for (const key of ['uHabitatMap', 'uRockOrigin', 'uRockSize']) uniforms[key] = shared.terrainUniforms[key];
-	Object.assign(uniforms, shared.ripples.uniforms, shared.shoreMap.uniforms, shared.weather.uniforms, shared.fogUniforms, shared.sea);
+	Object.assign(uniforms, lumenLightUniforms(shared), shared.ripples.uniforms, shared.shoreMap.uniforms, shared.weather.uniforms, shared.fogUniforms, shared.sea);
 	return uniforms;
 }
 
@@ -150,6 +151,7 @@ export function waterFragmentShader(shared) {
 	${seaShadeGlsl}
 	${weatherGlsl}
 	${fogGlsl}
+	${lumenLightGlsl}
 	${riverFlowGlsl}
 	vec2 uv0, uv1;
 	float blend;
@@ -288,6 +290,7 @@ export function waterFragmentShader(shared) {
 			float fr;
 			col = mix(col, seaShade(vWorldPos, n, V, depth, distance(vWorldPos, uCameraPos), vUv4, fr), seaMix);
 		}
+		col += lumenIllumination(vWorldPos,n,V,1.0);
 		col += vec3(0.1,0.14,0.22)*uLightning;
 		float hf = heightFog(vWorldPos, uCameraPos);
 		float df = 1.0 - exp(-pow(distance(vWorldPos, uCameraPos) * uFogDistance, 2.0) * 1.4);

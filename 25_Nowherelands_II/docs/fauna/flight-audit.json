@@ -1,0 +1,266 @@
+{
+  "method": "Ten simulated minutes at 30 Hz. Sample each travelling/settling flock every second, excluding centre within 75 horizontal units and 30 vertical units of the destination shore. Speed is the median individual speed within each sampled flock. Heights are flock means of individual clearance above local terrain/water. Local activity is mean individual velocity difference from the flock mean velocity. Slow means flock median below 28 units/second.",
+  "before512": {
+    "flightSamples": 1999,
+    "slowPercent": 7.553776888444222,
+    "longestSlowSeconds": 7,
+    "speedP10": 28.286641988091993,
+    "speedMedian": 31.137398258379076,
+    "relativeMotionMedian": 7.090724259947219,
+    "heightP90": 573.9104053996952,
+    "heightMax": 859.018281005055,
+    "clearance": 2.200000000000003,
+    "examples": [
+      {
+        "time": 115,
+        "flock": 5,
+        "state": "travelling",
+        "speed": 22,
+        "aboveGround": 206
+      }
+    ],
+    "joins": 6,
+    "streams": [
+      {
+        "count": 132,
+        "state": "playing",
+        "visits": [
+          0,
+          3,
+          1
+        ],
+        "settlingSeconds": 7
+      },
+      {
+        "count": 58,
+        "state": "playing",
+        "visits": [
+          3,
+          1,
+          3
+        ],
+        "settlingSeconds": 8
+      },
+      {
+        "count": 208,
+        "state": "travelling",
+        "visits": [
+          2,
+          3,
+          2,
+          3
+        ],
+        "settlingSeconds": 14
+      },
+      {
+        "count": 68,
+        "state": "playing",
+        "visits": [
+          1,
+          2,
+          1
+        ],
+        "settlingSeconds": 7
+      },
+      {
+        "count": 88,
+        "state": "travelling",
+        "visits": [
+          0,
+          1,
+          0
+        ],
+        "settlingSeconds": 6
+      },
+      {
+        "count": 86,
+        "state": "travelling",
+        "visits": [
+          2,
+          3,
+          0
+        ],
+        "settlingSeconds": 8
+      }
+    ],
+    "seed": "umbra",
+    "res": 512
+  },
+  "after512": {
+    "seed": "umbra",
+    "res": 512,
+    "flightSamples": 1454,
+    "slowPercent": 0,
+    "longestSlowSeconds": 0,
+    "speedP10": 66.78504400270685,
+    "speedMedian": 79.87928857650579,
+    "relativeMotionMedian": 44.80077244956586,
+    "heightP90": 57.34461496551108,
+    "heightMax": 131.11819365026574,
+    "clearance": 2.1999999999999886,
+    "examples": [],
+    "joins": 4,
+    "streams": [
+      {
+        "count": 154,
+        "state": "travelling",
+        "visits": [
+          0,
+          3,
+          1,
+          2
+        ],
+        "settlingSeconds": 22
+      },
+      {
+        "count": 51,
+        "state": "resting",
+        "visits": [
+          3,
+          1,
+          0,
+          1
+        ],
+        "settlingSeconds": 17
+      },
+      {
+        "count": 208,
+        "state": "resting",
+        "visits": [
+          2,
+          3,
+          2,
+          3,
+          2,
+          3
+        ],
+        "settlingSeconds": 38
+      },
+      {
+        "count": 58,
+        "state": "travelling",
+        "visits": [
+          1,
+          2,
+          0,
+          1
+        ],
+        "settlingSeconds": 18
+      },
+      {
+        "count": 109,
+        "state": "resting",
+        "visits": [
+          0,
+          1,
+          3,
+          0
+        ],
+        "settlingSeconds": 20
+      },
+      {
+        "count": 60,
+        "state": "playing",
+        "visits": [
+          2,
+          3,
+          0,
+          3
+        ],
+        "settlingSeconds": 18
+      }
+    ]
+  },
+  "after1024": {
+    "seed": "umbra",
+    "res": 1024,
+    "flightSamples": 1101,
+    "slowPercent": 0,
+    "longestSlowSeconds": 0,
+    "speedP10": 69.78459572211945,
+    "speedMedian": 81.53755871797885,
+    "relativeMotionMedian": 46.73636213423391,
+    "heightP90": 62.54633659229307,
+    "heightMax": 171.96001064923001,
+    "clearance": 2.199999999999932,
+    "examples": [],
+    "joins": 1,
+    "streams": [
+      {
+        "count": 150,
+        "state": "settling",
+        "visits": [
+          0,
+          2,
+          1,
+          0,
+          4,
+          1
+        ],
+        "settlingSeconds": 36
+      },
+      {
+        "count": 36,
+        "state": "resting",
+        "visits": [
+          30,
+          23,
+          24,
+          13,
+          21,
+          23
+        ],
+        "settlingSeconds": 29
+      },
+      {
+        "count": 199,
+        "state": "travelling",
+        "visits": [
+          14,
+          17,
+          32
+        ],
+        "settlingSeconds": 14
+      },
+      {
+        "count": 58,
+        "state": "travelling",
+        "visits": [
+          35,
+          28,
+          25,
+          26,
+          31
+        ],
+        "settlingSeconds": 25
+      },
+      {
+        "count": 112,
+        "state": "travelling",
+        "visits": [
+          13,
+          8,
+          22,
+          12,
+          2
+        ],
+        "settlingSeconds": 25
+      },
+      {
+        "count": 85,
+        "state": "travelling",
+        "visits": [
+          33,
+          18,
+          17,
+          15
+        ],
+        "settlingSeconds": 20
+      }
+    ]
+  },
+  "launchComparison": {
+    "seconds": 6,
+    "maximumPositionDifference": 1.0395240224170266e-11
+  }
+}

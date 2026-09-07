@@ -1,0 +1,140 @@
+import { SPECIES } from '../world/fauna/FaunaModel.js';
+
+// Optional in-world field guide. Only visits real members of the current population.
+export class FaunaSurvey {
+	constructor(shared, fauna) {
+		this.shared = shared; this.fauna = fauna; this.kind = 'lumen'; this.tracking = false; this.frames = [];
+		this.panel = document.createElement('aside'); this.panel.className = 'fauna-guide';
+		this.panel.innerHTML = '<div class="fauna-guide-kicker">NOWHERELANDS · FIELD NOTES</div><h2>Living echoes</h2><p>Living light along the shores.<br>Choose a flock to meet it.</p>';
+		this.list = document.createElement('div'); this.list.className = 'fauna-guide-list'; this.buttons = {};
+		for (const [kind, def] of Object.entries(SPECIES)) {
+			const b = document.createElement('button'); b.type = 'button'; b.textContent = def.name;
+			b.onclick = () => this.visit(kind); this.list.append(b); this.buttons[kind] = b;
+		}
+		this.panel.append(this.list);
+		this.detail = document.createElement('p'); this.detail.className = 'fauna-guide-detail'; this.panel.append(this.detail);
+		const actions = document.createElement('div'); actions.className = 'fauna-guide-actions';
+		this.listen = document.createElement('button'); this.listen.textContent = 'Hear its voice';
+		this.listen.onclick = () => { this.startAudio(); const c = this.subject || fauna.nearest(this.kind); if (c) fauna.model.call(c); };
+		this.answer = document.createElement('button'); this.answer.textContent = 'Send a tone';
+		this.answer.onclick = () => {
+			this.startAudio(); const e = shared.audio;
+			if (e) e.playTone({ freq: shared.conductor.scale.freq(0, 2), position: shared.player.position, velocity: 0.42, attack: 0.05, duration: 0.3, release: 1, type: 'sine', layer: 'invitation', dest: e.playerBus });
+		};
+		actions.append(this.listen, this.answer); this.panel.append(actions);
+		const explore = document.createElement('button'); explore.className = 'fauna-guide-explore'; explore.textContent = 'Explore here ↗';
+		explore.onclick = () => {
+			this.startAudio(); this.tracking = false; this.watchFlight = null; shared.player.fly = false;
+			if (!shared.player.locked) {
+				// Embedded previews may reject mouse capture; leave the guide usable.
+				try { const request = shared.renderer.domElement.requestPointerLock?.(); request?.catch(() => {}); } catch {}
+			}
+		};
+		this.panel.append(explore);
+		this.approach = document.createElement('button'); this.approach.className = 'fauna-guide-explore'; this.approach.textContent = 'Approach the school';
+		this.approach.onclick = () => {
+			const c = this.subject || fauna.nearest('lumen'); if (!c || c.kind !== 'lumen') return;
+			this.startAudio(); this.tracking = false; fauna.model.observing = false;
+			const p = c.pos, player = shared.player;
+			const x = p.x + 7, z = p.z + 7, surface = fauna.sample(x, z);
+			player.groundY = Math.max(surface.ground, surface.water - 1.5);
+			player.position.set(x, player.groundY + 11, z); player.velocity.set(0, 0, 0); player.fly = false; this.watchFlight = c.navigation || c.group;
+			player.yaw = Math.atan2(p.x - x, p.z - z) + Math.PI; player.pitch = Math.atan2(p.y - player.position.y, Math.hypot(p.x - x, p.z - z));
+		}; this.panel.append(this.approach);
+		this.nextStream = document.createElement('button'); this.nextStream.className = 'fauna-guide-explore'; this.nextStream.textContent = 'Next flock ↗';
+		this.nextStream.onclick = () => this.nextFlock(); this.panel.append(this.nextStream);
+		this.audioToggle = document.createElement('button'); this.audioToggle.className = 'fauna-guide-quiet'; this.audioToggle.textContent = 'Quiet fauna';
+		this.audioToggle.onclick = () => { if (fauna.audio) { fauna.audio.muted = !fauna.audio.muted; this.audioToggle.textContent = fauna.audio.muted ? 'Hear fauna' : 'Quiet fauna'; } };
+		this.panel.append(this.audioToggle);
+		this.readout = document.createElement('output'); this.panel.append(this.readout);
+		const help = document.createElement('small'); help.textContent = 'Esc releases the mouse · F toggles flight'; this.panel.append(help);
+		const study = document.createElement('a'); study.href = './fauna-motion.html'; study.textContent = 'Close-up motion studies ↗'; study.style.cssText = 'display:block;margin-top:12px;font-size:11px;color:#afcdcf'; this.panel.append(study);
+		document.body.append(this.panel);
+		document.addEventListener('pointerlockchange', () => {
+			const locked = document.pointerLockElement === shared.renderer.domElement;
+			this.panel.classList.toggle('playing', locked);
+			if (locked) {
+				this.tracking = false; this.watchFlight = null; fauna.model.observing = false;
+			} else if (this.pendingVisit) {
+				this.pendingVisit = false; this.guide(1, true);
+			}
+		});
+	}
+	nextFlock() {
+		// Entering directly and exploring does not select a guide subject.
+		// Start from the nearest real flock in that case, then cycle normally.
+		const c = this.subject?.kind === 'lumen' && this.fauna.model.creatures.includes(this.subject) ? this.subject : this.fauna.nearest('lumen');
+		const streams = c?.group.flow?.branches.filter(b => b.members.length);
+		if (!streams?.length) { this.visit('lumen'); return; }
+		const index = streams.indexOf(c.navigation);
+		this.subject = streams[(index + 1) % streams.length].members[0];
+		this.visit('lumen');
+	}
+	startAudio() {
+		if (!this.shared.audio) this.shared.hud.enterBtn.click();
+		this.shared.audio?.resume();
+	}
+	visit(kind) {
+		const { shared, fauna } = this;
+		let c = kind === 'lumen' && this.subject?.kind === 'lumen' && fauna.model.creatures.includes(this.subject) ? this.subject : fauna.nearest(kind);
+		if (!c) {
+			const p = shared.player.position;
+			fauna.model.addGroup(`guide:${kind}:${Math.round(p.x / 100)}:${Math.round(p.z / 100)}`, kind, p.x, p.z, 650);
+			c = fauna.nearest(kind);
+		}
+		if (!c) { this.detail.textContent = 'No suitable habitat nearby. Explore another shore.'; return; }
+		this.kind = kind; this.subject = c; this.tracking = true;
+		this.watchFlight = null;
+		this.offset = { x: 48, y: 23, z: 58 };
+		for (const [key, b] of Object.entries(this.buttons)) b.setAttribute('aria-pressed', String(key === kind));
+		this.detail.textContent = SPECIES[kind].voice + ' · ' + 'a call travels through the group';
+		shared.player.keys.clear(); shared.player.velocity.set(0, 0, 0);
+		if (shared.player.locked) {
+			this.pendingVisit = true; document.exitPointerLock();
+		} else this.guide(1, true);
+	}
+	guide(dt, snap = false) {
+		this.fauna.model.observing = this.tracking && !this.shared.player.locked;
+		if (!this.tracking && this.watchFlight && !this.shared.player.locked) {
+			const p = this.watchFlight.center, player = this.shared.player;
+			const dx = p.x - player.position.x, dz = p.z - player.position.z;
+			player.yaw = Math.atan2(-dx, -dz); player.pitch = Math.atan2(p.y - player.position.y, Math.hypot(dx, dz));
+		}
+		if (!this.tracking || !this.subject || this.shared.player.locked) return;
+		const { shared, subject: c, offset: o } = this, p = c.kind === 'lumen' ? c.navigation.center : (c.renderPosition || c.pos);
+		const width=c.kind==='lumen' ? (c.navigation.state==='resting'?2.4:2.8) : 1;
+		const x = p.x + o.x*width, z = p.z + o.z*width, y = Math.max(p.y + o.y*width, shared.heightmap.height(x, z) + 4);
+		const k = snap ? 1 : 1 - Math.exp(-dt * 1.6), player = shared.player;
+		player.position.x += (x - player.position.x) * k; player.position.y += (y - player.position.y) * k; player.position.z += (z - player.position.z) * k;
+		player.velocity.set(0, 0, 0); player.fly = true;
+		const dx = p.x - player.position.x, dz = p.z - player.position.z;
+		player.yaw = Math.atan2(-dx, -dz); player.pitch = Math.atan2(p.y - player.position.y, Math.hypot(dx, dz));
+	}
+	update(ms) {
+		this.approach.hidden = this.nextStream.hidden = this.kind !== 'lumen';
+		this.approach.disabled = this.subject?.kind === 'lumen' && !['resting', 'settling'].includes(this.subject.navigation.state);
+		if (this.kind === 'lumen' && this.subject?.group.state) {
+			const population = this.subject.group, group = this.subject.navigation, descriptions = { resting: 'Playing along the shore', startled: 'Startled · scattering upward', playing: 'Playing in the sky · no destination yet', travelling: 'Heading toward the next shore', settling: 'Descending toward the shore' };
+			if(this.fauna.model.time>=(this.flightSampleAt||0)) {
+				this.flightSampleAt=this.fauna.model.time+1;
+				const v={x:0,y:0,z:0};for(const c of group.members)for(const axis of ['x','y','z'])v[axis]+=c.vel[axis]/group.members.length;
+				const speeds=group.members.map(c=>c.speed).sort((a,b)=>a-b),heights=group.members.map(c=>c.pos.y-Math.max(c.ground,c.water));
+				this.panel.dataset.flight=JSON.stringify({time:this.fauna.model.time,flock:group.index,state:group.state,medianSpeed:speeds[Math.floor(speeds.length/2)],localMotion:group.members.reduce((n,c)=>n+Math.hypot(c.vel.x-v.x,c.vel.y-v.y,c.vel.z-v.z),0)/group.members.length,meanClearance:heights.reduce((a,b)=>a+b,0)/heights.length,maxClearance:Math.max(...heights),landed:group.members.filter(c=>c.landed).length});
+			}
+			const flow=population.flow;
+			const encounter=group.weave;
+			const activity=encounter?(encounter.stage==='merged'?'Mixing into one flowing flock':'Joining a nearby flock'):descriptions[group.state];
+			const size=encounter?.stage==='merged'?encounter.branches.reduce((n,b)=>n+b.members.length,0):group.members.length;
+			this.detail.textContent = `${activity} · ${size} lights · flock ${group.index+1}/${flow.branches.length}${group.highland?' · highland wanderers':''}`;
+			this.panel.dataset.school = JSON.stringify({ time:this.fauna.model.time, observing:this.fauna.model.observing, playerDistance:Math.hypot(this.subject.pos.x-this.shared.player.position.x,this.subject.pos.y-this.shared.player.position.y,this.subject.pos.z-this.shared.player.position.z), state: group.state, lake: group.lake.id, destination: group.destination?.id, center: group.center, visits: group.visits, speed: this.subject.speed, members: population.members.length, flocks: [...this.fauna.model.groups.values()].filter(g=>g.kind==='lumen').length, escapeCues: this.fauna.audio?.history.filter(h=>h.event==='escape').length || 0, flow: {phase: flow.phase, cycles: flow.cycles, joins: flow.joins, branches: flow.branches.length}, streams: flow.branches.map(b=>({index:b.index, state:b.state, members:b.members.length, lake:b.lake.id, destination:b.destination?.id, height:b.center.y, highland:b.highland, encounter:b.weave?.stage, visits:b.visits})) });
+		}
+		this.listen.disabled = this.answer.disabled = !this.shared.audio;
+		this.frames.push(ms);
+		if (this.frames.length >= 120) {
+			const sorted = this.frames.sort((a, b) => a - b), n = this.fauna.model.creatures.length;
+			this.readout.textContent = `${n} creatures · ${(1000 / sorted[60]).toFixed(0)} fps`;
+			this.panel.dataset.stats = JSON.stringify({ count: n, p95: sorted[114], voices: this.fauna.audio?.voices.length || 0, population: this.fauna.meshes.root.userData.population });
+			this.frames = [];
+		}
+	}
+}
