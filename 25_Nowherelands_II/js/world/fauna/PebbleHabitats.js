@@ -29,11 +29,17 @@ export function pebbleCaveSampler(hm, surfaceSample, cave, anchorY) {
 		const a = grid(ix, iz), b = grid(ix + 1, iz), c = grid(ix, iz + 1), d = grid(ix + 1, iz + 1);
 		const points = [a, b, c, d];
 		if (points.some(p => !Number.isFinite(p.ground)) || Math.max(...points.map(p => p.ground)) - Math.min(...points.map(p => p.ground)) > 3) return { ground: NaN, water: 0, clearance: 0 };
-		const ground = (a.ground * (1 - u) + b.ground * u) * (1 - v) + (c.ground * (1 - u) + d.ground * u) * v;
+		let ground = (a.ground * (1 - u) + b.ground * u) * (1 - v) + (c.ground * (1 - u) + d.ground * u) * v;
 		const water = Math.max(...points.map(p => p.water)), caveFloor = points.some(p => p.cave);
-		const slope = Math.hypot((b.ground - a.ground) * (1 - v) + (d.ground - c.ground) * v, (c.ground - a.ground) * (1 - u) + (d.ground - b.ground) * u);
-		const s = { ...a, ground, water, slope, clearance: Math.min(...points.map(p => p.clearance ?? Infinity)) };
-		if (caveFloor) Object.assign(s, { cave: true, forest: 0, wet: ground - water < 1.5 ? 0.65 : 0.12, hardness: 0.95, foam: 0, roof: false, coast: 0 });
+		let slope = Math.hypot((b.ground - a.ground) * (1 - v) + (d.ground - c.ground) * v, (c.ground - a.ground) * (1 - u) + (d.ground - b.ground) * u);
+		let clearance=Math.min(...points.map(p=>p.clearance ?? Infinity));
+		if(caveFloor && hm.caveFloorSurface) {
+			const support=hm.caveFloorSurface.sample(cave.id,x,z,ground,ground+clearance);
+			if(!support)return {ground:NaN,water:0,clearance:0};
+			clearance-=Math.max(0,support.ground-ground);ground=support.ground;slope=support.slope;
+		}
+		const s = { ...a, ground, water, slope, clearance };
+		if (caveFloor) Object.assign(s, { cave: true, daylight: Math.exp(-Math.min(...entrances.map(e => Math.hypot(x - e.x, ground - e.y, z - e.z))) * 0.024), forest: 0, wet: ground - water < 1.5 ? 0.65 : 0.12, hardness: 0.95, foam: 0, roof: false, coast: 0 });
 		return s;
 	};
 }

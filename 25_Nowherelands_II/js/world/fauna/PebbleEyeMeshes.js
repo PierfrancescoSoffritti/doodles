@@ -1,3 +1,4 @@
+import { pebbleLighting, setPebbleLight } from './PebbleLighting.js';
 import * as THREE from 'three';
 import { terrainLightGlsl } from '../TerrainMaterial.js';
 import { fogGlsl } from '../FogGlsl.js';
@@ -34,6 +35,7 @@ export class PebbleEyeMeshes {
 			mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage); root.add(mesh); return mesh;
 		};
 		this.stalks = add('pebble-eye-stalks', new THREE.CylinderGeometry(0.96, 1.04, 1, 8), '#777077', capacity * 2 * SEGMENTS);
+		pebbleLighting(this.stalks, shared, 'uColor', 'n');
 		this.bulbs = add('pebble-eyes', new THREE.SphereGeometry(1, 12, 8), '#ffffff', capacity * 2);
 		this.pupils = add('pebble-pupils', new THREE.SphereGeometry(1, 12, 8), '#191720', capacity * 2);
 		this.pose = new THREE.Object3D(); this.up = new THREE.Vector3(0, 1, 0);
@@ -42,7 +44,7 @@ export class PebbleEyeMeshes {
 		this.motion = new Map(); this.stemUp = new THREE.Vector3(); this.goal = new THREE.Vector3();
 	}
 	begin() { this.count = 0; this.segments = 0; this.active = new Set(); }
-	update(c, matrix, alpha, size, time, viewer) {
+	update(c, matrix, alpha, size, time, viewer, floor) {
 		const lerp = (a, b) => a + (b - a) * alpha;
 		this.active.add(c);
 		let motion = this.motion.get(c);
@@ -67,7 +69,10 @@ export class PebbleEyeMeshes {
 			// A damped spring absorbs gait jolts rather than magnifying shell banking.
 			this.curve.v0.set(baseX, 0.52, baseZ).applyMatrix4(matrix);
 			this.goal.set(baseX + x, 0.52, baseZ + z).applyMatrix4(matrix);
-			this.goal.y = this.curve.v0.y + height * size;
+			// Keep the eyes above the stream while the shell and legs paddle below it.
+   const waterEye = floor?.cave && floor.water > floor.ground ? floor.water + .5 * size : -Infinity;
+   height = Math.max(height, (waterEye - this.curve.v0.y) / size);
+   this.goal.y = this.curve.v0.y + height * size;
 			let spring = motion[j], dt = spring ? time - spring.time : 0;
 			if (!spring || ![spring.head.x, spring.head.y, spring.head.z, spring.velocity.x, spring.velocity.y, spring.velocity.z].every(Number.isFinite) || dt < 0 || dt > 0.25) {
 				spring = motion[j] = { head: this.goal.clone(), velocity: new THREE.Vector3(), time };
@@ -84,6 +89,7 @@ export class PebbleEyeMeshes {
 				if (this.direction.length() > limit) spring.head.copy(this.goal).add(this.direction.setLength(limit));
 				spring.head.y = Math.max(this.curve.v0.y + 0.3 * size, Math.min(spring.head.y, this.curve.v0.y + height * size + 0.12 * size));
 			}
+			spring.head.y = Math.max(spring.head.y, waterEye);
 			spring.time = time;
 			this.curve.v3.copy(spring.head);
 			this.stemUp.set(0, 1, 0).transformDirection(matrix);
@@ -106,6 +112,7 @@ export class PebbleEyeMeshes {
 				this.pose.quaternion.setFromUnitVectors(this.up, this.direction.normalize());
 				const radius = (0.075 - k / SEGMENTS * 0.025) * size;
 				this.pose.scale.set(radius, length + size * 0.009, radius); this.pose.updateMatrix();
+				setPebbleLight(this.stalks, this.segments, floor);
 				this.stalks.setMatrixAt(this.segments++, this.pose.matrix); this.a.copy(this.b);
 			}
 			// Keep the existing eyeball size while the rocky body grows.
@@ -122,6 +129,7 @@ export class PebbleEyeMeshes {
 	}
 	finish() {
 		for (const c of this.motion.keys()) if (!this.active.has(c)) this.motion.delete(c);
+		this.stalks.geometry.attributes.aCaveLight.needsUpdate = true;
 		this.stalks.count = this.segments; this.bulbs.count = this.pupils.count = this.count;
 		for (const mesh of [this.stalks, this.bulbs, this.pupils]) mesh.instanceMatrix.needsUpdate = true;
 	}

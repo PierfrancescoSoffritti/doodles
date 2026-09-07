@@ -1,6 +1,7 @@
 import * as THREE from 'three';
-import { FaunaModel } from '../js/world/fauna/FaunaModel.js?v=pebble-perf-2';
-import { PebbleMeshes } from '../js/world/fauna/PebbleMeshes.js?v=pebble-perf-2';
+import { setPebbleLight } from '../js/world/fauna/PebbleLighting.js';
+import { FaunaModel } from '../js/world/fauna/FaunaModel.js?v=pebble-swim-chase-1';
+import { PebbleMeshes } from '../js/world/fauna/PebbleMeshes.js?v=pebble-swim-chase-1';
 import { createFogUniforms } from '../js/world/FogGlsl.js';
 
 // Check the rendered bone endpoint, not just the simulation's intended contact.
@@ -56,15 +57,46 @@ export function checkPebbleRendering() {
 	}
 	if (contacts < 15 || error > 0.08) throw new Error(`Rendered pebble feet lose contact: ${error.toFixed(3)} (${contacts} samples) ${JSON.stringify(worst)}`);
 	if (meshes.legs.count !== 0 || c.pebble.stand !== 0) throw new Error('Legs remain visible after settling');
-	if (maxStep > 56 * Math.sqrt(c.size) / 30 + 0.02) throw new Error('Pebble render interpolation jumps');
+	if (maxStep > 138 * Math.sqrt(c.size) / 30 + 0.02) throw new Error('Pebble render interpolation jumps');
+	// A rendered frame between safe ticks must clear the ridge between them.
+	c.prev={...c.pos,x:c.pos.x-1};c.pos.x+=1;
+	group.sample=()=>({cave:true,ground:c.ground+2,clearance:30,daylight:0});
+	meshes.update(model,.5);meshes.bodies.getMatrixAt(0,matrix);
+	if(!matrix.elements.every(Number.isFinite) || matrix.elements[13]<c.ground+2+.55*c.size-.001)throw new Error('Render interpolation cuts through cave floor');
+ // The shell stays submerged while both eyes remain above the stream surface.
+ group.sample=()=>({cave:true,ground:c.ground-5,water:c.ground+3,clearance:30,daylight:0});
+ for(const eye of c.pebble.eyes)eye.extension=eye.prevExtension=0;
+ meshes.update(model,.5);meshes.bodies.getMatrixAt(0,matrix);
+ if(!matrix.elements.every(Number.isFinite) || matrix.elements[13]>c.ground+3-.5*c.size || matrix.elements[13]<c.ground+3-.8*c.size-.001)throw new Error('Rendered shell must be submerged at a stable depth');
+ for(let i=0;i<2;i++) {
+  meshes.eyes.bulbs.getMatrixAt(i,matrix);
+  if(!matrix.elements.every(Number.isFinite) || matrix.elements[13]<c.ground+3+.45*c.size)throw new Error('Rendered eyes disappear under cave water');
+ }
+	// Rotated tilt probes can leave the valid floor despite a supported footprint.
+	group.sample=(x,z)=>({ground:Math.abs(x)>.6 && Math.abs(z)>.6?NaN:2,cave:true,water:-4,clearance:20,slope:0,hardness:1,wet:0,forest:0});
+	c.pos={x:0,y:3.5,z:0};c.prev={...c.pos};c.ground=2;c.size=1;c.yaw=c.prevYaw=Math.PI/4;
+	Object.assign(c.pebble,{state:'flee',stand:1,prevStand:1,origin:{...c.pos},refuge:{x:20,z:-20},heading:-Math.PI/4,steerAt:model.time+2});
+	model.step(1/30);meshes.update(model,.5);
+	for(const mesh of [meshes.bodies,meshes.legs,meshes.eyes.stalks,meshes.eyes.bulbs,meshes.eyes.pupils]) for(let i=0;i<mesh.count;i++) {
+		mesh.getMatrixAt(i,matrix);if(!matrix.elements.every(Number.isFinite))throw new Error(`${mesh.name} disappears at a cave floor edge`);
+	}
 	const geometries = new Set(), materials = new Set(); scene.traverse(o => { if (o.geometry) geometries.add(o.geometry); if (o.material) materials.add(o.material); });
 	geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose());
-	return { kind: 'pebble-rig', contacts, maxContactError: +error.toFixed(5), maxStep: +maxStep.toFixed(3), hiddenLegs: true, eyes: 2, eyeFrames: 241 };
+	return { kind: 'pebble-rig', caveInterpolation: true, caveWater: true, caveEdgePose: true, contacts, maxContactError: +error.toFixed(5), maxStep: +maxStep.toFixed(3), hiddenLegs: true, eyes: 2, eyeFrames: 241 };
 }
 
 // Sample the real materials before postprocessing, where bloom extracts highlights.
-export function checkPebbleAppearance(renderer) {
+export function checkPebbleAppearance(renderer, world = false) {
  const scene = new THREE.Scene(), shared = { moon: { dir: new THREE.Vector3(0, 1, 0), intensity: 1 }, fogUniforms: createFogUniforms() };
+ if(world) {
+  shared.terrainUniforms={};
+  for(const key of ['uMoonDir','uSunDir'])shared.terrainUniforms[key]={value:new THREE.Vector3(0,1,0)};
+  for(const key of ['uMoonColor','uSunColor','uSkyColor','uGroundColor'])shared.terrainUniforms[key]={value:new THREE.Color('#ffffff')};
+  for(const key of ['uMoonIntensity','uSunIntensity','uRain'])shared.terrainUniforms[key]={value:1};
+  shared.terrainUniforms.uCameraPos={value:new THREE.Vector3()};
+  shared.shoreMap={uniforms:{},glsl:'float waterLevelAt(vec2 p){return -4.0;}'};
+  shared.weather={uniforms:{uLightning:{value:1},uWeatherSize:{value:1},uWeatherRes:{value:1},uWeatherOrigin:{value:new THREE.Vector2()},uWeatherBlend:{value:0}}};
+ }
  const meshes = new PebbleMeshes(scene, shared);
  const sample = () => ({ground:2, water:-4, slope:.08, forest:.1, wet:.2, hardness:.8});
  const model = new FaunaModel('eye-appearance', {sample}), group = model.addGroup('eyes','hopper',0,0,1), c=group.members[0];
@@ -79,7 +111,9 @@ export function checkPebbleAppearance(renderer) {
  if(farHeight-nearHeight<3)throw new Error('Eye stalk does not shorten near the player');
  const camera=new THREE.PerspectiveCamera(35,1,.01,30), target=new THREE.WebGLRenderTarget(32,32), pixel=new Uint8Array(4);
  const previousTarget=renderer.getRenderTarget(), previousColor=renderer.getClearColor(new THREE.Color()), previousAlpha=renderer.getClearAlpha();
- const legProbe = new THREE.InstancedMesh(new THREE.SphereGeometry(1,12,8), meshes.legs.material, 1); meshes.bodies.getMatrixAt(0,matrix);legProbe.setMatrixAt(0,matrix);scene.add(legProbe);
+ const legProbe = new THREE.InstancedMesh(new THREE.SphereGeometry(1,12,8), meshes.legs.material, 1); meshes.bodies.getMatrixAt(0,matrix);legProbe.setMatrixAt(0,matrix);legProbe.geometry.setAttribute('aCaveLight',new THREE.InstancedBufferAttribute(new Float32Array(2),2));scene.add(legProbe);
+ const stalkProbe=legProbe.clone();stalkProbe.material=meshes.eyes.stalks.material;scene.add(stalkProbe);
+ legProbe.onBeforeRender=meshes.legs.onBeforeRender;stalkProbe.onBeforeRender=meshes.eyes.stalks.onBeforeRender;
  let maxWhite=0, bodyLevel=0, legLevel=0;
  try {
   renderer.setRenderTarget(target); renderer.setClearColor(0,1);
@@ -92,16 +126,32 @@ export function checkPebbleAppearance(renderer) {
     renderer.render(scene,camera);renderer.readRenderTargetPixels(target,16,16,1,1,pixel);
     if(part===meshes.eyes.bulbs && Math.max(...pixel.slice(0,3))-Math.min(...pixel.slice(0,3))>1)throw new Error('Colored scene tints the white eyeball');
     if(part===legProbe && (pixel[0]>34 || pixel[2]>pixel[1] || pixel[1]>pixel[0]))throw new Error('Charcoal leg palette is bleached or takes the sky hue');
-    if(part===meshes.bodies && ((color==='#ff0000' && pixel[0]<=pixel[2]) || (color==='#0000ff' && pixel[2]<=pixel[0])))throw new Error('Body does not follow the scene fog color');
+    if(!world && part===meshes.bodies && ((color==='#ff0000' && pixel[0]<=pixel[2]) || (color==='#0000ff' && pixel[2]<=pixel[0])))throw new Error('Body does not follow the scene fog color');
     if(color==='#ffffff' && part===meshes.bodies) bodyLevel=pixel[0]/255;
     if(color==='#ffffff' && part===legProbe) legLevel=pixel[0]/255;
     if(part===meshes.eyes.bulbs) {maxWhite=Math.max(maxWhite,pixel[0]/255);if(pixel[0]/255>=.78 || pixel[0]<90)throw new Error('Eye is dark or enters the bloom threshold');}
    }
+  }
+  // Bright outdoor fog/sky must not leak into a dark gallery. The cave lamp
+  // should reveal the same surfaces again, while eyeballs stay readable.
+  shared.fogUniforms.uFogDensity.value=.025;
+  shared.fogUniforms.uFogColor.value.set('#ffffff');
+  for(const part of [meshes.bodies,legProbe,stalkProbe,meshes.eyes.bulbs]) {
+   scene.children.forEach(o=>o.visible=o===part);
+   if(part!==meshes.eyes.bulbs){setPebbleLight(part,0,{cave:true,daylight:0});part.geometry.attributes.aCaveLight.needsUpdate=true;}
+   part.getMatrixAt(0,matrix);center.setFromMatrixPosition(matrix);
+   camera.position.copy(center).add(new THREE.Vector3(0,0,5));camera.lookAt(center);
+   shared.caveAmount=0;renderer.render(scene,camera);renderer.readRenderTargetPixels(target,16,16,1,1,pixel);
+   const dark=Math.max(...pixel.slice(0,3));
+   if(part===meshes.eyes.bulbs){if(dark<90)throw new Error('Eyeballs disappear in cave darkness');continue;}
+   if(dark>3)throw new Error(`${part.name || 'leg/stalk'} receives outdoor illumination in a dark cave: ${dark}`);
+   shared.caveAmount=1;renderer.render(scene,camera);renderer.readRenderTargetPixels(target,16,16,1,1,pixel);
+   if(Math.max(...pixel.slice(0,3))<=dark+3)throw new Error('Cave lamp fails to reveal pebble surfaces');
   }
   if(legLevel>=bodyLevel*.5)throw new Error('Legs are not darker than the rocky body');
  } finally {
   renderer.setRenderTarget(previousTarget);renderer.setClearColor(previousColor,previousAlpha);target.dispose();
   const geometries=new Set(),materials=new Set();scene.traverse(o=>{if(o.geometry)geometries.add(o.geometry);if(o.material)materials.add(o.material);});geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());
  }
- return {kind:'pebble-appearance',whiteEyes:true,bodySceneColor:true,maxWhite:+maxWhite.toFixed(3),bloomThreshold:.78,stalkShortening:+(farHeight-nearHeight).toFixed(2),bankDrift:+maxBankDrift.toFixed(3),bodyLevel:+bodyLevel.toFixed(3),legLevel:+legLevel.toFixed(3)};
+ return {kind:world?'pebble-world-appearance':'pebble-appearance',caveDarkness:true,caveLamp:true,whiteEyes:true,bodySceneColor:true,maxWhite:+maxWhite.toFixed(3),bloomThreshold:.78,stalkShortening:+(farHeight-nearHeight).toFixed(2),bankDrift:+maxBankDrift.toFixed(3),bodyLevel:+bodyLevel.toFixed(3),legLevel:+legLevel.toFixed(3)};
 }

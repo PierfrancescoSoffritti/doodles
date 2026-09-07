@@ -95,7 +95,7 @@ test('panic spreads with a delay to neighbors without repeatedly restarting thei
 	const { model, group, c } = setup('p1');
 	// A controlled patch, with a neighbor outside the player's own trigger radius.
 	group.stones = []; const neighbor = group.members[1]; group.members = [c, neighbor]; model.creatures = group.members;
-	c.pos = { x: 0, y: 2.55, z: 0 }; neighbor.pos = { x: -7, y: 2.55, z: 0 }; neighbor.temperament = 0.7;
+	c.pos = { x: 0, y: 2.55, z: 0 }; neighbor.pos = { x: -18, y: 2.55, z: 0 }; neighbor.temperament = 0.7;
 	for (const animal of group.members) animal.prev = { ...animal.pos };
 	approach(model, c); let first = Infinity, second = Infinity;
 	for (let i = 0; i < 120; i++) { model.step(1 / 30); if (c.pebble.escapes && first === Infinity) first = i; if (neighbor.pebble.escapes && second === Infinity) second = i; }
@@ -278,6 +278,116 @@ test('a confined colony does not repeat thousands of failed route probes on ever
   samples=0;model.step(1/30);peak=Math.max(peak,samples);
   for(const o of group.members)assert.ok(o.ground>sample(o.pos.x,o.pos.z).water+.4);
  }
- assert.ok(peak<7000,`A single update performed ${peak} terrain queries`);
+ assert.ok(peak<2200,`A single update performed ${peak} terrain queries`);
  assert.ok(group.members.every(o=>o.pebble.escapes>0));
+});
+
+
+test('a cautious stationary approach starts an escape before the player reaches ten units', () => {
+ const {model,group,c}=setup('p1'); model.creatures=group.members=[c]; c.temperament=0;
+ approach(model,c,11); tick(model,.4);
+ assert.equal(c.pebble.escapes,1); assert.ok(c.speed>10);
+});
+
+test('a sustained chase keeps extending the escape until the current player is safely distant', () => {
+ for(const seed of ['p1','p2','p3']) {
+  const {model,group,c}=setup(seed); model.creatures=group.members=[c]; group.stones=[];
+  approach(model,c,11); tick(model,.3);
+  const origin={...c.pos};
+  for(let frame=0;frame<300;frame++) {
+   // Follow from beyond the initial startle radius, including past old refuges.
+   const dx=model.listener.x-c.pos.x,dz=model.listener.z-c.pos.z,d=Math.hypot(dx,dz);
+   model.listener={x:c.pos.x+dx/d*24,y:c.ground+11,z:c.pos.z+dz/d*24};
+   model.step(1/30);
+   assert.ok(['rise','flee'].includes(c.pebble.state),`${seed}: stopped during pursuit: ${c.pebble.state}`);
+  }
+  assert.ok(Math.hypot(c.pos.x-origin.x,c.pos.z-origin.z)>150);
+  assert.equal(c.pebble.escapes,1,'continuation must not restart the unfolding animation');
+  tick(model,30);
+  assert.equal(c.pebble.stand,0,'settles after leaving the player behind');
+  assert.ok(Math.hypot(c.pos.x-model.listener.x,c.pos.z-model.listener.z)>=42);
+ }
+});
+
+
+test('a chase that catches a braking pebble resumes escape outside the initial startle radius', () => {
+ const {model,group,c}=setup('p2');model.creatures=group.members=[c];group.stones=[];
+ approach(model,c,11);
+ for(let i=0;i<300 && c.pebble.state!=='brake';i++)model.step(1/30);
+ assert.equal(c.pebble.state,'brake');
+ model.listener={x:c.pos.x+30,y:c.ground+11,z:c.pos.z};
+ model.previousListener={x:model.listener.x+0.6,z:model.listener.z};
+ model.step(1/30);
+ assert.ok(['rise','flee'].includes(c.pebble.state));
+});
+
+
+test('running pebbles accelerate as the player closes in and exceed player sprint speed',()=>{
+ const {model,group,c}=setup('p1');model.creatures=group.members=[c];group.stones=[];
+ approach(model,c,11);tick(model,.4);
+ c.yaw=0;c.pos={x:0,y:3.5,z:0};c.pebble.refuge={x:10000,z:0};c.pebble.state='flee';c.pebble.heading=0;
+ const follow=(gap)=>{for(let i=0;i<30;i++){model.listener={x:c.pos.x-gap,y:c.ground+11,z:0};model.step(1/30);}return c.speed;};
+ const distant=follow(36),near=follow(10);
+ assert.ok(near>distant+40,`${distant} -> ${near}`);
+ assert.ok(near>100,'close pursuit must outrun the player’s 80-unit sprint');
+ const away=follow(40);assert.ok(away<near-35,'calms back to cruising speed as the gap grows');
+});
+
+test('fast escape sweeps across thin walls instead of tunnelling between frame endpoints',()=>{
+ const {model,group,c}=setup('p1');model.creatures=group.members=[c];group.stones=[];
+ c.pos={x:0,y:3.5,z:0};c.prev={...c.pos};c.yaw=0;c.pebble.state='flee';c.pebble.stand=1;
+ c.pebble.refuge={x:100,z:0};c.pebble.origin={...c.pos};c.pebble.alarmSource={x:-8,z:0};c.speed=138;
+ model.environment.blocked=(x,z,r)=>Math.abs(x-3)<r+.2;
+ for(let i=0;i<60;i++) {model.listener={x:c.pos.x-8,y:13,z:c.pos.z};model.step(1/30);assert.ok(c.pos.x<3-c.size*1.35);}
+});
+
+test('a long outdoor chase survives streaming far beyond the original colony',()=>{
+ const {model,group,c}=setup('long-streamed-chase');group.stones=[];group.members=model.creatures=[c];
+ const home={...group.home};approach(model,c);
+ for(let i=0;i<1500;i++) {
+  const dx=model.listener.x-c.pos.x,dz=model.listener.z-c.pos.z,d=Math.hypot(dx,dz)||1;
+  model.listener={x:c.pos.x+dx/d*14,y:c.ground+11,z:c.pos.z+dz/d*14};
+  model.step(1/30);if(i%15===0)model.removeFar(model.listener);
+  assert.ok(model.creatures.includes(c),'nearby chased animal was unloaded');
+ }
+ assert.ok(Math.hypot(c.pos.x-home.x,c.pos.z-home.z)>1000,'exercise a chase beyond the home unload radius');
+ model.removeFar({x:c.pos.x+5000,z:c.pos.z+5000});
+ assert.equal(model.groups.has(group.id),false,'distant abandoned colonies still unload');
+});
+
+test('making room for cave colonies preserves nearby animals whose homes are distant',()=>{
+ const {model,group,c}=setup('stream-cap');
+ c.pos.x=3000;model.listener={x:3010,y:13,z:c.pos.z};
+ // Fill the population cap with other groups, leaving a truly distant candidate.
+ for(let i=0;model.creatures.length<24;i++)model.addGroup('extra-'+i,'hopper',i*200,500,1);
+ const distant=[...model.groups.values()].filter(g=>g!==group);
+ assert.equal(model.reservePebbleSpace(model.listener),true);
+ assert.ok(model.groups.has(group.id));assert.ok(model.creatures.includes(c));
+ assert.ok(distant.some(g=>!model.groups.has(g.id)),'evict a genuinely distant colony');
+ for(const o of model.creatures)o.pos={...model.listener};
+ const before=model.creatures.slice();
+ assert.equal(model.reservePebbleSpace(model.listener,24),false,'defer new spawns while existing animals remain visible');
+ assert.deepEqual(model.creatures,before);
+});
+
+test('an outdoor pebble makes occasional smooth evasive turns during a sustained chase',()=>{
+ const {model,group,c}=setup('evasive-chase');group.stones=[];group.members=model.creatures=[c];approach(model,c);
+ const headings=[];let prev=c.yaw,maxTurn=0,awaySteps=0,movingSteps=0;
+ for(let i=0;i<540;i++) {
+  // Follow its current heading instead of steering from a fixed world direction.
+  model.listener={x:c.pos.x-Math.cos(c.yaw)*14,y:c.ground+11,z:c.pos.z+Math.sin(c.yaw)*14};
+  model.step(1/30);
+  if(i>45) {
+   const delta=Math.atan2(Math.sin(c.yaw-prev),Math.cos(c.yaw-prev));maxTurn=Math.max(maxTurn,Math.abs(delta));
+   if(i%15===0)headings.push(c.yaw);
+   if(c.speed>10){movingSteps++;if(c.vel.x*(c.pos.x-model.listener.x)+c.vel.z*(c.pos.z-model.listener.z)>0)awaySteps++;}
+  }
+  prev=c.yaw;
+ }
+ let turns=0;
+ for(let i=1;i<headings.length;i++)if(Math.abs(Math.atan2(Math.sin(headings[i]-headings[i-1]),Math.cos(headings[i]-headings[i-1])))>.35)turns++;
+ assert.ok(turns>=3,'change heading several times during the chase');
+ assert.ok(turns<18,'leave pauses between evasive turns');
+ assert.ok(maxTurn<.3,'turn smoothly without snapping');
+ assert.ok(awaySteps>movingSteps*.95,'keep fleeing away from the pursuer');
 });

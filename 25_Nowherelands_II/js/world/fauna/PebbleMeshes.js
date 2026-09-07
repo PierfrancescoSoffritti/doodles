@@ -1,10 +1,11 @@
+import { pebbleLighting, setPebbleLight } from './PebbleLighting.js';
 import * as THREE from 'three';
 import { createRockMaterial, noiseGlsl } from '../TerrainMaterial.js';
 import { fogGlsl } from '../FogGlsl.js';
 import { faunaGeometry } from './FaunaGeometry.js';
 import { faunaDeformation } from './FaunaDeformation.js';
-import { solveLeg, SPECIES } from './FaunaModel.js?v=pebble-perf-2';
-import { PebbleEyeMeshes } from './PebbleEyeMeshes.js?v=pebble-perf-2';
+import { solveLeg, SPECIES, PEBBLE_DRAW_DISTANCE } from './FaunaModel.js?v=pebble-swim-chase-1';
+import { PebbleEyeMeshes } from './PebbleEyeMeshes.js?v=pebble-swim-chase-1';
 import { clamp, smooth } from './Locomotion.js';
 
 // Bodies share the scenery's rock lighting; legs retain their darker palette.
@@ -38,11 +39,12 @@ export class PebbleMeshes {
 		this.legs = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.065, 0.115, 1, 5), legMaterial, SPECIES.hopper.cap * 4);
 		const shadowMaterial = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, uniforms: shared.fogUniforms,
 			vertexShader: `attribute float aOpacity; varying vec2 vUv; varying float vAlpha; varying vec3 vWorld; void main(){vUv=uv;vAlpha=aOpacity;vec4 p=modelMatrix*instanceMatrix*vec4(position,1.0);vWorld=p.xyz;gl_Position=projectionMatrix*viewMatrix*p;}`,
-			fragmentShader: `varying vec2 vUv; varying float vAlpha; varying vec3 vWorld; ${fogGlsl} void main(){float r=length((vUv-.5)*2.0);float a=exp(-r*r*4.0)*(1.0-smoothstep(.65,1.0,r))*vAlpha; a*=1.0-heightFog(vWorld,cameraPosition);gl_FragColor=vec4(0.025,0.018,0.04,a);}` });
+			fragmentShader: `varying vec2 vUv; varying float vAlpha; varying vec3 vWorld; ${fogGlsl} void main(){float r=length((vUv-.5)*2.0);float a=exp(-r*r*4.0)*(1.0-smoothstep(.65,1.0,r))*vAlpha; a*=1.0-heightFog(vWorld,cameraPosition);gl_FragColor=vec4(0.0,0.0,0.0,a);}` });
 		const shadowGeometry = new THREE.PlaneGeometry(2, 2); shadowGeometry.rotateX(-Math.PI / 2);
 		shadowGeometry.setAttribute('aOpacity', new THREE.InstancedBufferAttribute(new Float32Array(SPECIES.hopper.cap * 7), 1));
 		this.shadows = new THREE.InstancedMesh(shadowGeometry, shadowMaterial, SPECIES.hopper.cap * 7);
 		this.shadows.count = 0; this.shadows.frustumCulled = false; this.shadows.renderOrder = 1; this.shadows.name = 'pebble-contact-shadows'; root.add(this.shadows);
+		for (const mesh of [this.bodies, this.stones, this.legs]) pebbleLighting(mesh, shared, 'albedo', 'n');
 		this.legs.name = 'pebble-legs'; this.legs.frustumCulled = false; this.legs.count = 0; this.legs.instanceMatrix.setUsage(THREE.DynamicDrawUsage); root.add(this.legs);
 	}
 	instances(root, geometry, material, count, name) {
@@ -72,13 +74,20 @@ export class PebbleMeshes {
 		for (const c of model.creatures) {
 			if (c.kind !== 'hopper') continue;
 			const b = c.pebble, born = clamp((model.time - (c.born || 0)) / 2, 0.001, 1);
-			const far = clamp((650 - Math.hypot(c.pos.x - model.listener.x, c.pos.z - model.listener.z)) / 130, 0, 1);
+			const far = clamp((PEBBLE_DRAW_DISTANCE - Math.hypot(c.pos.x - model.listener.x, c.pos.z - model.listener.z)) / 130, 0, 1);
 			if (!far) continue;
 			const size = c.size * born * far, p = { x: lerp(c.prev.x, c.pos.x), y: lerp(c.prev.y, c.pos.y), z: lerp(c.prev.z, c.pos.z) };
 			c.renderPosition = p;
 			const yaw = lerp(c.prevYaw ?? c.yaw, c.yaw), pitch = lerp(c.prevPitch ?? c.pitch, c.pitch), bank = lerp(c.prevBank ?? c.bank, c.bank);
+			const floor = c.group.sample?.(p.x, p.z);
+			// Interpolation between two safe ticks can cut through a triangle ridge.
+			if (floor?.cave && Number.isFinite(floor.ground)) {
+    if (floor.water > floor.ground) p.y = Math.min(p.y, Math.max(floor.ground + 1.5 * size, floor.water - .55 * size));
+    p.y = Math.max(p.y, floor.ground + 0.55 * size, (floor.water ?? -Infinity) - .8 * size);
+   }
+			setPebbleLight(this.bodies, bodies, floor);
 			this.place(this.bodies, bodies++, p, yaw, pitch, bank, size, c.phase);
-			this.eyes.update(c, this.pose.matrix, alpha, size, model.time - (1 - alpha) / 30, model.eyeTarget || model.listener);
+			this.eyes.update(c, this.pose.matrix, alpha, size, model.time - (1 - alpha) / 30, model.eyeTarget || model.listener, floor);
 			const stand = lerp(b.prevStand, b.stand);
 			this.shadow(shadows++, p, c.ground, b.restPitch, b.restBank, yaw, size, stand);
 			if (stand < 0.025 || !c.feet) continue;
@@ -91,6 +100,7 @@ export class PebbleMeshes {
 				const target = tucked.lerp(foot, deploy);
 				const bend = { x: -Math.cos(yaw) + Math.sin(yaw) * side * 0.28, y: 0.05, z: Math.sin(yaw) + Math.cos(yaw) * side * 0.28 };
 				const solved = solveLeg(hip, target, 0.94 * size, bend);
+				setPebbleLight(this.legs, legs, floor); setPebbleLight(this.legs, legs + 1, floor);
 				this.segment(hip, solved.knee, size * 1.35, legs++);
 				this.segment(solved.knee, solved.foot, size * 0.88, legs++);
 			}
@@ -99,7 +109,7 @@ export class PebbleMeshes {
 			if (group.kind !== 'hopper') continue;
 			const bornAt = group.members[0]?.born || 0, born = clamp((model.time - bornAt) / 2, 0.001, 1);
 			for (const c of group.stones) {
-				const far = clamp((650 - Math.hypot(c.pos.x - model.listener.x, c.pos.z - model.listener.z)) / 130, 0, 1);
+				const far = clamp((PEBBLE_DRAW_DISTANCE - Math.hypot(c.pos.x - model.listener.x, c.pos.z - model.listener.z)) / 130, 0, 1);
 				if (!far || stones >= this.stones.instanceMatrix.count) continue;
 				this.place(this.stones, stones++, c.pos, c.yaw, c.pitch, c.bank, c.size * born * far, c.phase);
 				this.shadow(shadows++, c.pos, c.pos.y - 0.55 * c.size, c.pitch, c.bank, c.yaw, c.size * born * far, 0);
@@ -108,7 +118,7 @@ export class PebbleMeshes {
 		this.eyes.finish();
 		this.shadows.count = shadows; this.shadows.instanceMatrix.needsUpdate = true; this.shadows.geometry.attributes.aOpacity.needsUpdate = true;
 		this.bodies.count = bodies; this.stones.count = stones; this.legs.count = legs;
-		for (const mesh of [this.bodies, this.stones, this.legs]) { mesh.instanceMatrix.needsUpdate = true; if (mesh.geometry.attributes.aLife) mesh.geometry.attributes.aLife.needsUpdate = true; }
+		for (const mesh of [this.bodies, this.stones, this.legs]) { mesh.instanceMatrix.needsUpdate = true; mesh.geometry.attributes.aCaveLight.needsUpdate = true; if (mesh.geometry.attributes.aLife) mesh.geometry.attributes.aLife.needsUpdate = true; }
 		return bodies;
 	}
 }

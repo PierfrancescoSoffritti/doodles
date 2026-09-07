@@ -43,3 +43,14 @@ test('habitat sites explicitly include cave mouths, galleries and elevated lake 
 	assert.ok(sites.some(s => s.habitat === 'cave interior' && s.sample));
 	assert.deepEqual(sites.filter(s => s.habitat === 'mountain lakeshore').map(s => [s.x, s.z]), [[275, 0]]);
 });
+
+
+test('cave floor exposure fades into galleries and accounts for both entrances', () => {
+ const {sample,cave,hm}=fixture();
+ assert.ok(sample(40,0).daylight>sample(120,0).daylight*5);
+ assert.ok(sample(180,0).daylight<.02);
+ cave.entrances=[cave.entrance,{x:200,y:16,z:0}];
+ const through=pebbleCaveSampler(hm,surface,cave,5);
+ assert.ok(through(180,0).daylight>.5);
+ assert.ok(through(180,0).daylight>through(100,0).daylight*5);
+});

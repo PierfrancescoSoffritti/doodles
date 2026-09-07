@@ -1,4 +1,4 @@
-import { initializePebbles, pebbleHabitat, updatePebble } from './PebbleHoppers.js?v=pebble-perf-2';
+import { initializePebbles, pebbleHabitat, updatePebble } from './PebbleHoppers.js?v=pebble-swim-chase-1';
 import { buildLumenGrid } from './LumenFlow.js';
 import { Random } from '../../core/Random.js';
 import { initializeSchool, updateSchool, swimLumen } from './LumenSchool.js';
@@ -7,6 +7,13 @@ export const SPECIES = {
 	lumen: { name: 'Lumen shoal', count: 640, cap: 640, speed: 6, height: 13, radius: 42, voice: 'liquid whistles', interval: 12 },
 	hopper: { name: 'Pebble hoppers', count: 4, cap: 24, speed: 0, height: 1.4, radius: 12, voice: 'quiet stone ticks', interval: 40 },
 };
+export const PEBBLE_DRAW_DISTANCE = 650;
+// Habitat stones stay at home, but a fleeing animal may travel far beyond it.
+function groupDistance(group, position) {
+ let nearest = Math.hypot(group.home.x - position.x, group.home.z - position.z);
+ for (const c of group.members) nearest = Math.min(nearest, Math.hypot(c.pos.x - position.x, c.pos.z - position.z));
+ return nearest;
+}
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
 
@@ -80,10 +87,27 @@ export class FaunaModel {
 	removeFar(position, radius = 780) {
 		for (const [id, group] of this.groups) {
 			if (group.kind === 'lumen' && this.environment.lakes?.length) continue;
-			if (Math.hypot(group.home.x - position.x, group.home.z - position.z) > radius) this.groups.delete(id);
+			if (groupDistance(group, position) > radius) this.groups.delete(id);
 		}
 		this.creatures = this.creatures.filter(c => this.groups.has(c.group.id));
 	}
+
+ // Streaming can defer a new colony when the population cap is occupied by
+ // visible animals. Never evict a chase to make room for an upcoming site.
+ reservePebbleSpace(position, count = 3) {
+  let available = SPECIES.hopper.cap - this.creatures.filter(c => c.kind === 'hopper').length;
+  if (available >= count) return true;
+  const candidates = [...this.groups.values()].filter(g => g.kind === 'hopper')
+   .map(group => ({ group, distance: groupDistance(group, position) }))
+   .filter(c => c.distance > PEBBLE_DRAW_DISTANCE).sort((a,b) => b.distance-a.distance);
+  if (available + candidates.reduce((n,c) => n+c.group.members.length,0) < count) return false;
+  for (const {group} of candidates) {
+   this.groups.delete(group.id); available += group.members.length;
+   if (available >= count) break;
+  }
+  this.creatures = this.creatures.filter(c => this.groups.has(c.group.id));
+  return true;
+ }
 
 	// A creature voice is never fed back into this external-stimulus path. Each group
 	// may answer only once per cooldown; the visual reaction spreads with distance.

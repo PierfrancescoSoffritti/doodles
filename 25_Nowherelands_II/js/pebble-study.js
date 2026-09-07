@@ -1,8 +1,8 @@
 import * as THREE from 'three';
-import { FaunaModel } from './world/fauna/FaunaModel.js?v=pebble-perf-2';
-import { PebbleMeshes } from './world/fauna/PebbleMeshes.js?v=pebble-perf-2';
+import { FaunaModel } from './world/fauna/FaunaModel.js?v=pebble-swim-chase-1';
+import { PebbleMeshes } from './world/fauna/PebbleMeshes.js?v=pebble-swim-chase-1';
 import { createFogUniforms } from './world/FogGlsl.js';
-import { checkPebbleRendering, checkPebbleAppearance } from '../tests/PebbleRenderChecks.js?v=18';
+import { checkPebbleRendering, checkPebbleAppearance } from '../tests/PebbleRenderChecks.js?v=pebble-swim-chase-1';
 import { checkFaunaShaders } from '../tests/FaunaShaderChecks.js';
 
 const $ = id => document.getElementById(id);
@@ -90,6 +90,6 @@ function frame(now) {
 }
 requestAnimationFrame(frame);
 try {
-	const reports = [...checkFaunaShaders(), checkPebbleRendering(), checkPebbleAppearance(renderer)]; $('check').textContent = 'Rigid shell · planted feet · eye rig verified';
+	const reports = [...checkFaunaShaders(), checkPebbleRendering(), checkPebbleAppearance(renderer), checkPebbleAppearance(renderer, true)]; $('check').textContent = 'Rigid shell · planted feet · eye rig verified';
 	document.body.dataset.shaderChecks = JSON.stringify(reports); document.body.dataset.status = 'pass';
 } catch (e) { $('check').textContent = e.message; document.body.dataset.status = 'fail'; console.error(e); }

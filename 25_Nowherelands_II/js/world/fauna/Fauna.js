@@ -2,10 +2,10 @@ import { LumenLight } from './LumenLight.js';
 import { FaunaProfile } from './FaunaProfile.js';
 import { Random } from '../../core/Random.js';
 import { bus, Events } from '../../core/EventBus.js';
-import { FaunaModel, SPECIES } from './FaunaModel.js?v=pebble-perf-2';
-import { FaunaMeshes } from './FaunaMeshes.js?v=pebble-perf-2';
+import { FaunaModel, SPECIES } from './FaunaModel.js?v=pebble-swim-chase-1';
+import { FaunaMeshes } from './FaunaMeshes.js?v=pebble-swim-chase-1';
 import { FaunaAudio } from '../../audio/FaunaAudio.js';
-import { pebbleHabitatSites } from './PebbleHabitats.js';
+import { pebbleHabitatSites } from './PebbleHabitats.js?v=pebble-swim-chase-1';
 import { PebbleColonyTour } from './PebbleColonyTour.js?v=2';
 import { lumenLakes } from './LumenSchool.js';
 
@@ -109,12 +109,7 @@ export class Fauna {
 	addPebbleSite(site, position) {
 		const id = `pebble-site:${site.id}`;
 		if (this.model.groups.has(id)) return this.model.groups.get(id);
-		const groups = [...this.model.groups.values()].filter(g => g.kind === 'hopper');
-		if (groups.reduce((n, g) => n + g.members.length, 0) > SPECIES.hopper.cap - 3) {
-			const farthest = groups.sort((a, b) => Math.hypot(b.home.x - position.x, b.home.z - position.z) - Math.hypot(a.home.x - position.x, a.home.z - position.z))[0];
-			if (!farthest || Math.hypot(farthest.home.x - position.x, farthest.home.z - position.z) < 220) return null;
-			this.model.groups.delete(farthest.id); this.model.creatures = this.model.creatures.filter(c => c.group !== farthest);
-		}
+		if (!this.model.reservePebbleSpace(position)) return null;
 		const group = this.model.addGroup(id, 'hopper', site.x, site.z, site.radius, { sample: site.sample, habitat: site.habitat });
 		if (group) for (const c of group.members) c.born = this.model.time;
 		return group;
