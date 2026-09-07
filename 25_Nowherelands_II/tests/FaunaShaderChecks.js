@@ -8,7 +8,7 @@ export function checkFaunaShaders() {
 	const canvas = document.createElement('canvas'), gl = canvas.getContext('webgl2');
 	if (!gl) throw new Error('WebGL 2 is required');
 	const reports = [];
-	for (const [kind, id] of Object.entries({ lumen: 0 })) {
+	for (const [kind, id] of Object.entries({ lumen: 0, hopper: 3 })) {
 		const program = gl.createProgram(), shaders = [];
 		for (const [type, source] of [
 			[gl.VERTEX_SHADER, `#version 300 es\n#define KIND ${id}\nprecision highp float;\nin vec3 position; uniform vec4 aLife, aMotion; uniform vec3 aVelocity, aElastic; out vec3 deformed;\n${faunaDeformation}\nvoid main(){deformed=deformFauna(position);gl_Position=vec4(deformed,1.0);}`],
@@ -31,7 +31,7 @@ export function checkFaunaShaders() {
 		gl.uniform3f(gl.getUniformLocation(program,'aVelocity'),28,0,0);gl.uniform3f(gl.getUniformLocation(program,'aElastic'),0.4,0.2,0.1);
 		const frames = [];
 		for (const phase of [0.4, 2.2]) {
-			gl.uniform4f(gl.getUniformLocation(program, 'aMotion'), phase, 0.85, 0, phase);
+			gl.uniform4f(gl.getUniformLocation(program, 'aMotion'), phase, 0.85, phase * 0.3, phase);
 			gl.enable(gl.RASTERIZER_DISCARD); gl.beginTransformFeedback(gl.POINTS); gl.drawArrays(gl.POINTS, 0, n); gl.endTransformFeedback(); gl.disable(gl.RASTERIZER_DISCARD);
 			const result = new Float32Array(positions.length); gl.getBufferSubData(gl.TRANSFORM_FEEDBACK_BUFFER, 0, result); frames.push(result);
 		}
@@ -43,7 +43,8 @@ export function checkFaunaShaders() {
 			const j = ((i / 3 + Math.floor(n * 0.37)) % n) * 3;
 			nonRigid = Math.max(nonRigid, Math.abs(distance(frames[0], i, j) - distance(frames[1], i, j)));
 		}
-		if (displacement < 0.1 || nonRigid < 0.05) throw new Error(kind + ': no meaningful non-rigid deformation');
+		if (kind === 'hopper' && (displacement > 0.00001 || nonRigid > 0.00001)) throw new Error('Stone body deforms during locomotion');
+		if (kind !== 'hopper' && (displacement < 0.1 || nonRigid < 0.05)) throw new Error(kind + ': no meaningful non-rigid deformation');
 		const report = { kind, vertices: n, displacement: +displacement.toFixed(3), nonRigid: +nonRigid.toFixed(3) };
 		if (kind === 'lumen') {
 			if(nonRigid<0.3)throw new Error('Lumen surface deformation is too subtle');

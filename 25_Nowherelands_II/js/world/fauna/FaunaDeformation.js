@@ -2,6 +2,7 @@
 export const faunaDeformation = /* glsl */`
 vec3 deformFauna(vec3 p) {
 	float stroke = aMotion.x, effort = aMotion.y;
+	#if KIND == 0
 		// No forward axis or tail. The sphere deforms in world axes using the
 		// instantaneous velocity and a bounded elastic response to acceleration.
 		float speed = length(aVelocity.xyz);
@@ -22,5 +23,14 @@ vec3 deformFauna(vec3 p) {
 		p += (elastic - n * dot(n, elastic)) * sin(dot(n, direction) * 2.8) * 0.13;
 		return p;
 
+	#elif KIND == 3
+		// Identity-only variation. The shell is stone: motion comes entirely
+		// from the rigid pose and jointed legs, never breathing or squash.
+		p.x *= 1.0 + sin(aLife.x * 2.1) * 0.13;
+		p.z *= 1.0 + cos(aLife.x * 1.7) * 0.12;
+		p.x += max(p.y + 0.55, 0.0) * sin(aLife.x * 3.7) * 0.09;
+		return p;
+	#endif
+	return p;
 }
 `;

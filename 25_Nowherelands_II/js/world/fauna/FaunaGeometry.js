@@ -27,5 +27,14 @@ export function faunaGeometry(kind) {
 		for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), length = Math.hypot(x, y, z); n.setXYZ(i, x / length, y / length, z / length); }
 		return g;
 	}
+	if (kind === 'hopper') {
+		const g = new THREE.IcosahedronGeometry(1, 1), p = g.attributes.position;
+		for (let i = 0; i < p.count; i++) {
+			const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+			const worn = 0.92 + 0.075 * Math.sin(x * 4.1 + z * 2.7) * Math.cos(y * 3.2 - z);
+			p.setXYZ(i, x * 1.48 * worn + y * 0.1, Math.max(-0.55, y * (0.76 + x * 0.07) * worn), z * 1.12 * worn);
+		}
+		g.computeVertexNormals(); return g;
+	}
 	throw new Error('Unsupported fauna geometry: ' + kind);
 }

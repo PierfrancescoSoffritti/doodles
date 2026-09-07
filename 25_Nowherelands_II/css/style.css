@@ -164,6 +164,7 @@ body.touch .controls:not(.touch-only) { display: none; }
 .river-survey button:disabled { opacity: .35; cursor: default; }
 .river-survey output { display: block; white-space: pre-line; color: #a0b5bf; }
 .fauna-guide { position: fixed; z-index: 21; top: 24px; left: 24px; width: 252px; max-height: calc(100dvh - 48px); overflow: auto; box-sizing: border-box; padding: 23px; background: #100e1ddd; border: 1px solid #b8a6d82d; border-radius: 16px; color: #e1d9ee; font: 12px/1.6 system-ui, sans-serif; backdrop-filter: blur(18px); transition: opacity .3s; }
+.fauna-guide [hidden] { display: none !important; }
 .fauna-guide.playing { opacity: 0; pointer-events: none; }
 .fauna-guide-kicker { color: #a798bd; letter-spacing: .16em; font-size: 9px; }
 .fauna-guide h2 { margin: 9px 0; font: 25px/1.3 Georgia, serif; font-weight: normal; }

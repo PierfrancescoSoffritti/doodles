@@ -1,6 +1,7 @@
+import { PebbleMeshes } from './PebbleMeshes.js?v=pebble-perf-2';
 import { lumenAppearance } from './LumenAppearance.js';
 import * as THREE from 'three';
-import { SPECIES } from './FaunaModel.js';
+import { SPECIES } from './FaunaModel.js?v=pebble-perf-2';
 import { fogGlsl } from '../FogGlsl.js';
 import { faunaGeometry } from './FaunaGeometry.js';
 import { faunaDeformation } from './FaunaDeformation.js';
@@ -68,6 +69,7 @@ export class FaunaMeshes {
 		this.shared = shared; this.root = new THREE.Group(); this.root.name = 'fauna'; scene.add(this.root);
 		this.meshes = {}; this.life = {}; this.motion = {}; this.state = {}; this.dummy = new THREE.Object3D();
 		for (const [kind, def] of Object.entries(SPECIES)) {
+			if (kind === 'hopper') continue;
 			const g = faunaGeometry(kind);
 			this.life[kind] = new THREE.InstancedBufferAttribute(new Float32Array(def.cap * 4), 4).setUsage(THREE.DynamicDrawUsage);
 			this.state[kind] = new THREE.InstancedBufferAttribute(new Float32Array(def.cap * 2), 2).setUsage(THREE.DynamicDrawUsage);
@@ -103,13 +105,17 @@ export class FaunaMeshes {
 		});
 		this.glow=new THREE.InstancedMesh(glowGeometry,glowMaterial,SPECIES.lumen.cap);this.glow.count=0;this.glow.frustumCulled=false;this.glow.renderOrder=4;this.root.add(this.glow);
 
+		this.pebbles = new PebbleMeshes(this.root, shared);
 	}
 
 	update(model, alpha, dt, sample) {
-		this.root.visible = (this.shared.caveAmount || 0) < 0.4;
+		this.root.visible = true;
+		const aboveGround = (this.shared.caveAmount || 0) < 0.4;
+		for (const mesh of [...Object.values(this.meshes), this.glow]) mesh.visible = aboveGround;
 		const counts = Object.fromEntries(Object.keys(SPECIES).map(k => [k, 0]));
 		for (const c of model.creatures) {
 			const kind = c.kind;
+			if (kind === 'hopper') continue;
 			if (kind === 'lumen' && Math.hypot(c.pos.x-model.listener.x,c.pos.z-model.listener.z)>4500) continue;
 			const i = counts[kind]++, mesh = this.meshes[kind];
 			const p = { x: c.prev.x + (c.pos.x - c.prev.x) * alpha, y: c.prev.y + (c.pos.y - c.prev.y) * alpha, z: c.prev.z + (c.pos.z - c.prev.z) * alpha };
@@ -143,6 +149,7 @@ export class FaunaMeshes {
 			const u = mesh.material.uniforms; u.uTime.value = model.time; u.uMoon.value = this.shared.moon.intensity; u.uSun.value = this.shared.sun.intensity;
 		}
 		this.glow.count=counts.lumen;this.radiance.needsUpdate=true;this.placement.needsUpdate=true;this.velocity.needsUpdate=true;this.elastic.needsUpdate=true;
+		counts.hopper = this.pebbles.update(model, alpha);
 		this.root.userData.population = counts;
 	}
 }

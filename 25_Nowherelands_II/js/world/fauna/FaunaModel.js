@@ -1,9 +1,11 @@
+import { initializePebbles, pebbleHabitat, updatePebble } from './PebbleHoppers.js?v=pebble-perf-2';
 import { buildLumenGrid } from './LumenFlow.js';
 import { Random } from '../../core/Random.js';
 import { initializeSchool, updateSchool, swimLumen } from './LumenSchool.js';
 
 export const SPECIES = {
 	lumen: { name: 'Lumen shoal', count: 640, cap: 640, speed: 6, height: 13, radius: 42, voice: 'liquid whistles', interval: 12 },
+	hopper: { name: 'Pebble hoppers', count: 4, cap: 24, speed: 0, height: 1.4, radius: 12, voice: 'quiet stone ticks', interval: 40 },
 };
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
@@ -13,6 +15,7 @@ export function habitatScore(kind, s) {
 	const depth = s.water - s.ground;
 	switch (kind) {
 		case 'lumen': return depth > 0.3 ? 2 + Math.min(depth, 12) * 0.04 - s.foam * 3 : s.slope < 0.25 ? 0.2 : -Infinity;
+		case 'hopper': return pebbleHabitat(s);
 	}
 	return -Infinity;
 }
@@ -27,8 +30,9 @@ export class FaunaModel {
 		this.serial = 0;
 	}
 
-	addGroup(id, kind, x, z, searchRadius = 110) {
+	addGroup(id, kind, x, z, searchRadius = 110, options = {}) {
 		if (!SPECIES[kind]) return null;
+		const sampleAt = options.sample || this.environment.sample;
 		if (kind === 'lumen') { const flock = [...this.groups.values()].find(g => g.kind === 'lumen'); if (flock) return flock; }
 		if (this.groups.has(id)) return this.groups.get(id);
 		const def = SPECIES[kind], available = def.cap - this.creatures.filter(c => c.kind === kind).length;
@@ -38,21 +42,23 @@ export class FaunaModel {
 		for (let i = 0; i < 70; i++) {
 			const angle = rnd.range(0, Math.PI * 2), r = Math.sqrt(rnd.next()) * searchRadius;
 			const px = x + Math.cos(angle) * r, pz = z + Math.sin(angle) * r;
-			const s = this.environment.sample(px, pz), value = habitatScore(kind, s) - r / searchRadius * 0.15;
+			const s = sampleAt(px, pz), value = habitatScore(kind, s) - r / searchRadius * 0.15;
 			if (value > score) { score = value; best = { x: px, z: pz, sample: s }; }
 		}
 		if (!best) return null;
-		const home = { x: best.x, y: Math.max(best.sample.ground, best.sample.water) + def.height, z: best.z };
-		const group = { id, kind, home, phase: rnd.range(0, 6.28), nextCall: this.time + rnd.range(3, def.interval), members: [], responseUntil: 0, rnd, target: { ...home }, targetUntil: 0 };
-		for (let i = 0; i < Math.min(def.count, available); i++) {
-			const angle = i * 2.39996323 + group.phase;
-			const r = Math.sqrt((i + 0.5) / def.count) * 19;
+		const groundKind = kind === 'hopper';
+		const home = { x: best.x, y: (groundKind ? best.sample.ground : Math.max(best.sample.ground, best.sample.water)) + def.height, z: best.z };
+		const group = { id, kind, home, phase: rnd.range(0, 6.28), nextCall: this.time + rnd.range(3, def.interval), members: [], responseUntil: 0, rnd, target: { ...home }, targetUntil: 0, sample: options.sample, habitat: options.habitat };
+		const count = kind === 'hopper' ? rnd.int(3, 6) : def.count;
+		for (let i = 0; i < Math.min(count, available); i++) {
+			const angle = kind === 'lumen' ? i * 2.39996323 + group.phase : rnd.range(0, Math.PI * 2);
+			const r = kind === 'lumen' ? Math.sqrt((i + 0.5) / def.count) * 19 : rnd.range(2, def.radius * 0.65);
 			let px = home.x + Math.cos(angle) * r, pz = home.z + Math.sin(angle) * r;
-			let sample = this.environment.sample(px, pz);
+			let sample = sampleAt(px, pz);
 			if (habitatScore(kind, sample) === -Infinity) { px = home.x; pz = home.z; sample = best.sample; }
-			const size = rnd.range(0.8, 1.2);
-			const py = Math.max(sample.ground, sample.water) + def.height + rnd.range(-3, 3);
 			// Keep the established seed draw order so existing worlds retain their shoals.
+			const size = rnd.range(0.8, 1.2) * (kind === 'hopper' ? 1.2 : 1);
+			const py = (groundKind ? sample.ground : Math.max(sample.ground, sample.water)) + def.height * (groundKind ? size : 1) + (kind === 'lumen' ? rnd.range(-3, 3) : 0);
 			const c = { id: `${id}:${i}`, kind, group, pos: { x: px, y: py, z: pz }, prev: { x: px, y: py, z: pz },
 				vel: { x: Math.cos(angle) * def.speed, y: 0, z: Math.sin(angle) * def.speed }, size,
 				phase: rnd.range(0, 6.28), temperament: rnd.next(), voice: rnd.range(-14, 14), degree: rnd.int(0, 4),
@@ -67,6 +73,7 @@ export class FaunaModel {
 			group.members.push(c); this.creatures.push(c);
 		}
 		if (kind === 'lumen') initializeSchool(group, this.environment, this.time);
+		if (kind === 'hopper') { initializePebbles(group, this); if (!group.members.length) return null; }
 		this.groups.set(id, group); return group;
 	}
 
@@ -88,6 +95,15 @@ export class FaunaModel {
 			for (const c of group.members) {
 				const d = distance(c.pos, source);
 				if (d > 190 || this.time < c.nextHear) continue;
+				if (c.kind === 'hopper') {
+					// Footfalls reinforce nearby danger; ambient music never schedules a
+					// conspicuous call or an endless series of frozen listening poses.
+					if (layer === 'footstep' && !this.observing && d < 13 && ['rest', 'notice'].includes(c.pebble.state) && this.time > c.pebble.retryAt) {
+						c.pebble.alarmAt = Math.min(c.pebble.alarmAt, this.time + 0.12 + c.temperament * 0.1);
+						c.pebble.alarmSource = { ...source };
+					}
+					continue;
+				}
 				const affinity = 0.8;
 				const energy = clamp(strength * (1 - d / 190) * affinity, 0, 1);
 				if (energy < 0.025) continue;
@@ -117,10 +133,16 @@ export class FaunaModel {
 	}
 
 	step(dt) {
+		if (dt <= 0) return;
 		this.time += dt;
+		const oldListener = this.previousListener || this.listener;
+		const dx = this.listener.x - oldListener.x, dz = this.listener.z - oldListener.z;
+		const teleported = Math.hypot(dx, dz) > 60;
+		this.listenerVelocity = { x: teleported ? 0 : dx / dt, z: teleported ? 0 : dz / dt };
+		this.previousListener = { ...this.listener };
 		for (const group of this.groups.values()) {
 			if (group.kind === 'lumen') updateSchool(group, this, dt);
-			if (this.time >= group.nextCall && (group.kind==='lumen'?group.members.some(c=>distance(c.pos,this.listener)<160):distance(group.center || group.home, this.listener)<230)) {
+			if (group.kind !== 'hopper' && this.time >= group.nextCall && (group.kind==='lumen'?group.members.some(c=>distance(c.pos,this.listener)<160):distance(group.center || group.home, this.listener)<230)) {
 				const audible=group.kind==='lumen'?group.members.filter(c=>distance(c.pos,this.listener)<160):group.members;
 			audible[group.rnd.int(0,audible.length-1)].callAt=this.time;
 				group.nextCall = this.time + SPECIES[group.kind].interval * group.rnd.range(0.8, 1.4);
@@ -139,10 +161,28 @@ export class FaunaModel {
 			if (t >= c.callAt) { c.callAt = Infinity; this.call(c); }
 			c.floorTimer -= dt;
 			if (c.floorTimer <= 0) {
-				const s = this.environment.sample(p.x, p.z); c.ground = s.ground; c.water = s.water;
+				const s = (c.group.sample || this.environment.sample)(p.x, p.z); c.ground = s.ground; c.water = s.water;
 				c.floorTimer = 0.18 + c.temperament * 0.1;
 			}
-			swimLumen(c, this, dt);
+			if (c.kind === 'hopper') updatePebble(c, this, dt);
+			else swimLumen(c, this, dt);
 		}
 	}
+
+}
+
+// Knee in a plane chosen by bendDirection. The target is clamped to reachable
+// distance, including a zero-distance guard, so uneven ground never creates NaNs.
+export function solveLeg(hip, target, length, bendDirection) {
+	let dx = target.x - hip.x, dy = target.y - hip.y, dz = target.z - hip.z;
+	const actual = Math.hypot(dx, dy, dz);
+	if (actual < 1e-5) { dx = 0; dy = -1; dz = 0; } else { dx /= actual; dy /= actual; dz /= actual; }
+	const d = Math.min(Math.max(actual, 0.001), length * 2 * 0.999);
+	const dot = bendDirection.x * dx + bendDirection.y * dy + bendDirection.z * dz;
+	let bx = bendDirection.x - dx * dot, by = bendDirection.y - dy * dot, bz = bendDirection.z - dz * dot;
+	let bl = Math.hypot(bx, by, bz);
+	if (bl < 1e-5) { bx = -dy; by = dx; bz = 0; bl = Math.hypot(bx, by); if (bl < 1e-5) { bx = 1; bl = 1; } }
+	const h = Math.sqrt(Math.max(0, length * length - d * d * 0.25));
+	return { knee: { x: hip.x + dx * d * 0.5 + bx / bl * h, y: hip.y + dy * d * 0.5 + by / bl * h, z: hip.z + dz * d * 0.5 + bz / bl * h },
+		foot: { x: hip.x + dx * d, y: hip.y + dy * d, z: hip.z + dz * d } };
 }

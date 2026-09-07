@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nowherelands · Pebble hoppers</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#17141e;color:#ebe4ee;font:14px/1.6 system-ui}canvas{display:block;width:100vw;height:100vh}header{position:absolute;top:28px;left:32px;width:310px;max-width:calc(100vw - 36px);padding:20px;max-height:calc(100dvh - 95px);overflow:auto;background:#17141ee8;border:1px solid #77667d40;border-radius:16px;backdrop-filter:blur(12px);z-index:2}small{font-size:10px;letter-spacing:.17em;color:#a79aab}h1{font-weight:400;font-size:27px;margin:8px 0}p{color:#bcb1c2}button,select,a{font:inherit;color:inherit}button,select{background:#211c2bd9;border:1px solid #77667d80;border-radius:8px;padding:8px 12px;cursor:pointer}button[aria-pressed=true]{border-color:#c1d1bb;background:#384037}nav,.row{display:flex;flex-wrap:wrap;gap:8px;margin:13px 0}label{display:flex;align-items:center;gap:7px}output{display:block;color:#d1d8ca;margin-top:17px}#detail{font-size:12px;color:#a89fae;max-width:270px}footer{position:absolute;bottom:20px;left:32px;font-size:12px}a{color:#b8cac0}#check{font-size:11px;color:#98aa94}.legend{font-size:12px}.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#d6c292;margin-right:6px}@media(max-width:650px){header{top:15px;left:18px;max-width:270px}h1{font-size:22px}header p{font-size:12px}footer{left:18px}.row{margin:8px 0}}
+</style>
+<script type="importmap">{"imports":{"three":"../common/libs/three-0.185/build/three.module.min.js","three/addons/":"../common/libs/three-0.185/examples/jsm/"}}</script>
+<header><small>NOWHERELANDS · MOTION STUDY</small><h1>Pebble hoppers</h1><p>A quiet patch of watchful stones. Look for eyes following you; approach to scatter the colony, then watch them cautiously gather again.</p>
+<nav><button id="approach">Approach</button><button id="retreat">Step away</button><button id="reset">Reset encounter</button></nav>
+<div class="row"><button id="pause">Pause</button><button id="slow" aria-pressed="false">Slow motion</button><button id="step">One frame</button></div>
+<div class="row"><label>View <select id="view"><option value="patch">Whole patch</option><option value="close">Close-up</option><option value="side">Side</option><option value="front">Front</option><option value="top">Top</option></select></label></div>
+<div class="row"><label>Approach <select id="pace"><option value="walk">Walk</option><option value="run">Run</option></select></label><label><input type="checkbox" id="slope" checked>Uneven ground</label></div>
+<div class="legend"><span class="dot"></span>Your position on the ground</div><output id="status"></output><p id="detail"></p><output id="check"></output></header>
+<canvas id="canvas"></canvas><footer><a href="./?seed=umbra&fauna=1">Meet them in the world ↗</a> · <a href="./fauna-motion.html">Other motion studies ↗</a></footer>
+<script type="module" src="./js/pebble-study.js?v=18"></script>
+</html>

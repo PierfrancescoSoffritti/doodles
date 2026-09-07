@@ -3,6 +3,7 @@ const ESCAPE_LEVEL = 1.85;
 
 const VOICES = {
 	lumen: { octave: 2, attack: 0.12, length: 1.35, gain: 0.1 },
+	hopper: { octave: 0, attack: 0.005, length: 0.48, gain: 0.095 },
 };
 
 // A deliberately bounded, reusable mixer. Every voice follows its animal while
@@ -68,6 +69,11 @@ export class FaunaAudio {
 				}
 				const o = tone('sine', freq * 0.8); o.frequency.exponentialRampToValueAtTime(freq * 1.025, t + 0.23); o.frequency.exponentialRampToValueAtTime(freq, end);
 				tone('sine', freq * 2.006, 0.16); break;
+			}
+			case 'hopper': {
+				const f = filter('lowpass', 1700);
+				const o = tone('triangle', freq * 1.8, 0.8, f); o.frequency.exponentialRampToValueAtTime(freq, t + 0.055);
+				tone('sine', freq * 2.7, 0.12, f); noise(0.12, 2100); break;
 			}
 		}
 		const voice = { creature, escape, origin: escape ? { ...creature.pos } : null, pan, send, sendLevel: send.gain.value, end, nodes, sources }; this.voices.push(voice);

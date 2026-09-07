@@ -2,7 +2,7 @@
 <meta charset="utf-8">
 <title>Fauna audio checks</title>
 <style>body{background:#171322;color:#ded5e9;font:15px/1.6 monospace;padding:32px}pre{white-space:pre-wrap}</style>
-<h1>Fauna audio checks</h1><pre id="result">Rendering two lumen voices…</pre>
+<h1>Fauna audio checks</h1><pre id="result">Rendering three voices…</pre>
 <script type="module">
 import { FaunaAudio } from '../js/audio/FaunaAudio.js';
 import { Scale } from '../js/audio/Scale.js';
@@ -11,7 +11,7 @@ import { checkAlarmMix } from './FaunaMixChecks.js';
 const result = document.querySelector('#result');
 try {
 	const reports = [];
-	for (const kind of ['lumen', 'lumen-escape', 'escape-near', 'escape-ducked', 'escape-startup', 'escape-muted']) {
+	for (const kind of ['lumen', 'hopper', 'lumen-escape', 'escape-near', 'escape-ducked', 'escape-startup', 'escape-muted']) {
 		const escape = kind === 'lumen-escape' || kind.startsWith('escape-');
 		const ctx = new OfflineAudioContext(2, 44100 * 7, 44100);
 		const noiseBuffer = ctx.createBuffer(1, 44100 * 2, 44100), data = noiseBuffer.getChannelData(0);
@@ -43,11 +43,11 @@ try {
 		reports.push({ kind, rms: +rms.toFixed(6), peak: +peak.toFixed(4), activeSeconds: +(active / 44100).toFixed(2), crossings });
 		audio.dispose();
 	}
-	if (new Set(reports.slice(0,2).map(r => r.crossings)).size !== 2) throw new Error('Voice signatures are not distinct');
+	if (new Set(reports.slice(0,3).map(r => r.crossings)).size !== 3) throw new Error('Voice signatures are not distinct');
 	const near=reports.find(r=>r.kind==='escape-near'),ducked=reports.find(r=>r.kind==='escape-ducked'),startup=reports.find(r=>r.kind==='escape-startup');
 	if(near.rms<0.08 || near.activeSeconds<1.1 || Math.abs(near.rms-ducked.rms)>0.000001 || startup.rms<0.0015)throw new Error('Escape cue lost in proximity, ambient ducking or startup fade: '+JSON.stringify({near,ducked,startup}));
 	const mix = await checkAlarmMix();
-	result.textContent = 'PASS — two finite, non-silent, unclipped, distinct voices; strong escape signal at 25 units, unaffected by ambient ducking, startup fade checked, mute respected.\n\n' + JSON.stringify({voices:reports,mix}, null, 2);
+	result.textContent = 'PASS — three finite, non-silent, unclipped, distinct voices; strong escape signal at 25 units, unaffected by ambient ducking, startup fade checked, mute respected.\n\n' + JSON.stringify({voices:reports,mix}, null, 2);
 	result.dataset.status = 'pass';
 } catch (e) { result.textContent = 'FAIL: ' + e.stack; result.dataset.status = 'fail'; }
 </script>

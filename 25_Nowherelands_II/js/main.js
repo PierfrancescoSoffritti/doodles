@@ -35,8 +35,8 @@ import { EventDirector } from './events/Events.js';
 import { PostProcessing } from './fx/PostProcessing.js';
 import { AudioEngine } from './audio/AudioEngine.js';
 import { Conductor } from './audio/Conductor.js';
-import { Fauna } from './world/fauna/Fauna.js';
-import { FaunaSurvey } from './ui/FaunaSurvey.js';
+import { Fauna } from './world/fauna/Fauna.js?v=pebble-perf-2';
+import { FaunaSurvey } from './ui/FaunaSurvey.js?v=pebble-perf-2';
 
 const canvas = document.getElementById('canvas');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
