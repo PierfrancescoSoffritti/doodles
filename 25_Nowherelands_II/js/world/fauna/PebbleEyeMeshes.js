@@ -55,8 +55,9 @@ export class PebbleEyeMeshes {
 			const fleeing = 1 - Math.min(1, extension / 0.4);
 			// Grass reaches 6.5 world units. Raised eyes clear it even on small animals.
 			const rise = Math.min(1, extension / 0.4), unfold = rise * rise * (3 - 2 * rise);
-			const distanceHeight = 7.2 + (2.2 - 7.2) * proximity;
-			let height = 0.35 + unfold * (distanceHeight / size + extension * 1.1);
+			const escape = lerp(e.prevEscape ?? 0,e.escape ?? 0);
+			const distanceHeight = (7.2 + (2.2 - 7.2) * proximity * (1-escape)) * (e.lengthScale ?? 1);
+			let height = Math.max(.35, 0.35 + unfold * ((distanceHeight + lerp(e.prevLift ?? 0,e.lift ?? 0)) / size + extension * 1.1));
 			const clearance = c.group.sample?.(c.pos.x, c.pos.z).clearance ?? Infinity;
 			height = Math.min(height, Math.max(0.4, (clearance - (c.pos.y - c.ground)) / size - 1.1));
 			// Match the rigid shell's individual X/Z proportions and upper shear.
@@ -116,14 +117,18 @@ export class PebbleEyeMeshes {
 				this.stalks.setMatrixAt(this.segments++, this.pose.matrix); this.a.copy(this.b);
 			}
 			// Keep the existing eyeball size while the rocky body grows.
-			const radius = (0.45 + extension * 0.075) * size / 1.2;
-			this.pose.position.copy(this.b); this.pose.quaternion.identity(); this.pose.scale.setScalar(radius); this.pose.updateMatrix();
+			const radius = (0.45 + extension * 0.075) * size / 1.2 * (e.radiusScale ?? 1);
+   const openness = Math.max(.025,1-lerp(e.prevBlink ?? 0,e.blink ?? 0));
+			this.pose.position.copy(this.b); this.pose.quaternion.identity(); this.pose.scale.set(radius,radius*openness,radius); this.pose.updateMatrix();
 			this.bulbs.setMatrixAt(this.count, this.pose.matrix);
 			// Aim from each actual eye center, including stalk height, shell tilt and sway.
 			this.gaze.set(viewer.x, viewer.y, viewer.z).sub(this.b).normalize();
 			this.pose.position.copy(this.b).addScaledVector(this.gaze, radius * 0.86);
 			const pupil = radius * (0.4 + lerp(e.prevDilation, e.dilation) * 0.38);
 			this.pose.quaternion.setFromUnitVectors(this.up, this.gaze); this.pose.scale.set(pupil, radius * 0.24, pupil); this.pose.updateMatrix();
+			// Compress the pupil along world-up with its eyeball, regardless of gaze.
+   this.pose.matrix.elements[13]=this.b.y+(this.pose.matrix.elements[13]-this.b.y)*openness;
+   for(const row of [1,5,9])this.pose.matrix.elements[row]*=openness;
 			this.pupils.setMatrixAt(this.count++, this.pose.matrix);
 		}
 	}

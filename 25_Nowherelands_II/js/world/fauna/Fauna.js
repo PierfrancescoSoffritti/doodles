@@ -2,10 +2,10 @@ import { LumenLight } from './LumenLight.js';
 import { FaunaProfile } from './FaunaProfile.js';
 import { Random } from '../../core/Random.js';
 import { bus, Events } from '../../core/EventBus.js';
-import { FaunaModel, SPECIES } from './FaunaModel.js?v=pebble-swim-chase-1';
-import { FaunaMeshes } from './FaunaMeshes.js?v=pebble-swim-chase-1';
+import { FaunaModel, SPECIES } from './FaunaModel.js?v=pebble-expression-2';
+import { FaunaMeshes } from './FaunaMeshes.js?v=pebble-expression-2';
 import { FaunaAudio } from '../../audio/FaunaAudio.js';
-import { pebbleHabitatSites } from './PebbleHabitats.js?v=pebble-swim-chase-1';
+import { pebbleHabitatSites } from './PebbleHabitats.js?v=pebble-expression-2';
 import { PebbleColonyTour } from './PebbleColonyTour.js?v=2';
 import { lumenLakes } from './LumenSchool.js';
 

@@ -128,6 +128,7 @@ test('a pebble crosses the rendered wet cave channel from shelf to shelf',()=>{
  const sample=pebbleCaveSampler(hm,surface,cave,5);
  for(const direction of [1,-1]) {
   const model=new FaunaModel('meshed-stream',{sample:surface}),group=model.addGroup('stream','hopper',0,0,1),c=group.members[0];
+  c.size=1.2; // A known leg length makes this channel a swim rather than a wade.
   model.creatures=group.members=[c];group.stones=[];group.sample=sample;
   c.ground=sample(100,-direction*16).ground;
   c.pos={x:100,y:c.ground+1.4*c.size,z:-direction*16};c.prev={...c.pos};c.yaw=c.prevYaw=-direction*Math.PI/2;

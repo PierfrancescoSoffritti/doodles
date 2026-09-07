@@ -1,4 +1,4 @@
-import { initializePebbles, pebbleHabitat, updatePebble } from './PebbleHoppers.js?v=pebble-swim-chase-1';
+import { initializePebbles, pebbleHabitat, updatePebble } from './PebbleHoppers.js?v=pebble-expression-2';
 import { buildLumenGrid } from './LumenFlow.js';
 import { Random } from '../../core/Random.js';
 import { initializeSchool, updateSchool, swimLumen } from './LumenSchool.js';
@@ -64,7 +64,7 @@ export class FaunaModel {
 			let sample = sampleAt(px, pz);
 			if (habitatScore(kind, sample) === -Infinity) { px = home.x; pz = home.z; sample = best.sample; }
 			// Keep the established seed draw order so existing worlds retain their shoals.
-			const size = rnd.range(0.8, 1.2) * (kind === 'hopper' ? 1.2 : 1);
+			const size = kind === 'hopper' ? rnd.range(0.75, 1.8) : rnd.range(0.8, 1.2);
 			const py = (groundKind ? sample.ground : Math.max(sample.ground, sample.water)) + def.height * (groundKind ? size : 1) + (kind === 'lumen' ? rnd.range(-3, 3) : 0);
 			const c = { id: `${id}:${i}`, kind, group, pos: { x: px, y: py, z: pz }, prev: { x: px, y: py, z: pz },
 				vel: { x: Math.cos(angle) * def.speed, y: 0, z: Math.sin(angle) * def.speed }, size,

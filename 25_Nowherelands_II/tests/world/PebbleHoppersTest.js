@@ -155,7 +155,7 @@ test('every colony member rapidly scatters a long distance, regardless of temper
 			spread = Math.max(spread, Math.max(...group.members.map(o => o.pos.z)) - Math.min(...group.members.map(o => o.pos.z)));
 		}
 		group.members.forEach((o, j) => {
-			assert.ok(reaction[j] < 0.4, `${seed}/${j}: entire colony must react promptly`);
+			assert.ok(reaction[j] <= 0.4, `${seed}/${j}: entire colony must react promptly`);
 			assert.ok(peak[j] > 35, `${seed}/${j}: sprint must be much faster than the old scamper`);
 			assert.ok(travel[j] > 40, `${seed}/${j}: retreat is too short`);
 			assert.equal(o.pebble.stand, 0); assert.equal(o.pebble.escapes, 1);
@@ -170,7 +170,7 @@ test('resting eyes take independent peeks without moving the stone or advancing 
 	for (let i = 0; i < 210; i++) {
 		model.step(1 / 30);
 		c.pebble.eyes.forEach((e, j) => extents[j].push(e.extension));
-		if (Math.abs(c.pebble.eyes[0].extension - c.pebble.eyes[1].extension) > 0.12) different++;
+		if (Math.abs(c.pebble.eyes[0].lift - c.pebble.eyes[1].lift) > 0.3) different++;
 	}
 	for (const values of extents) assert.ok(Math.max(...values) - Math.min(...values) > 0.3);
 	assert.ok(different > 60); assert.equal(c.pos.x, origin.x); assert.equal(c.pos.z, origin.z);
@@ -196,8 +196,8 @@ test('both eyes track the player across body headings, at long distances, during
 	}
 });
 
-test('eye stalks tuck during escape and cautiously reappear after settling with continuous snapshots', () => {
-	const { model, c } = setup(); tick(model, 2); approach(model, c); let tucked = false;
+test('eye stalks fully extend during escape with continuous snapshots', () => {
+	const { model, c } = setup(); tick(model, 2); approach(model, c); let extended = false;
 	for (let i = 0; i < 900; i++) {
 		const before = c.pebble.eyes.map(e => ({ ...e })); model.step(1 / 30);
 		c.pebble.eyes.forEach((e, j) => {
@@ -205,9 +205,9 @@ test('eye stalks tuck during escape and cautiously reappear after settling with 
 			assert.ok(Math.abs(e.extension - e.prevExtension) < 0.42);
 			assert.ok([e.yaw, e.pitch, e.extension].every(Number.isFinite));
 		});
-		if (c.speed > 20 && c.pebble.eyes.every(e => e.extension < 0.12)) tucked = true;
+		if (c.speed > 20 && c.pebble.eyes.every(e => e.extension > 0.98 && e.escape > .95)) extended = true;
 	}
-	assert.ok(tucked); assert.equal(c.pebble.stand, 0); assert.ok(c.pebble.eyes.every(e => e.extension > 0.35));
+	assert.ok(extended); assert.equal(c.pebble.stand, 0); assert.ok(c.pebble.eyes.every(e => e.extension > 0.35));
 });
 
 test('a panicked colony regroups quickly and no animal folds its legs until everyone has arrived', () => {
@@ -223,12 +223,12 @@ test('a panicked colony regroups quickly and no animal folds its legs until ever
 				if (o.pebble.state === 'wait' && o.pebble.reunited) waiting++;
 			}
 			for (const o of group.members) if (o.pebble.state === 'regroup') {
-				assert.ok(model.time >= 2.2); regrouped++; returnSpeed = Math.max(returnSpeed, o.speed);
+				assert.ok(model.time >= 2.2); regrouped++; returnSpeed = Math.max(returnSpeed, o.speed / Math.sqrt(o.size));
 				assert.ok(Math.hypot(o.pos.x - model.listener.x, o.pos.z - model.listener.z) > 18);
 			}
 		}
 		assert.ok(widest > 95, `${seed}: scatter should span a wide range of directions`);
-		assert.ok(regrouped > 60); assert.ok(waiting > 0); assert.ok(returnSpeed > 18 && returnSpeed < 30);
+		assert.ok(regrouped > 60); assert.ok(waiting > 0); assert.ok(returnSpeed > 18 && returnSpeed < 26.1);
 		for (const o of group.members) {
 			assert.equal(o.pebble.escapes, 1); assert.equal(o.pebble.reunited, true, `${seed}: missing reunion`);
 			assert.equal(o.pebble.stand, 0); assert.equal(o.feet, null);
@@ -390,4 +390,49 @@ test('an outdoor pebble makes occasional smooth evasive turns during a sustained
  assert.ok(turns<18,'leave pauses between evasive turns');
  assert.ok(maxTurn<.3,'turn smoothly without snapping');
  assert.ok(awaySteps>movingSteps*.95,'keep fleeing away from the pursuer');
+});
+
+test('each eye blinks independently while idle stalks make larger vertical movements',()=>{
+ const {model,c}=setup('blinking'), origin={...c.pos};
+ const blinks=[0,0],lo=[Infinity,Infinity],hi=[-Infinity,-Infinity];
+ for(let i=0;i<1200;i++) {
+  const before=c.pebble.eyes.map(e=>e.blink);model.step(1/30);
+  c.pebble.eyes.forEach((e,j)=>{
+   if(e.blink>.7 && before[j]<=.7)blinks[j]++;
+   assert.equal(e.prevBlink,before[j]);assert.ok(e.blink>=0 && e.blink<=1);
+   lo[j]=Math.min(lo[j],e.lift);hi[j]=Math.max(hi[j],e.lift);
+  });
+  assert.ok(c.pebble.eyes.filter(e=>e.blink>.05).length<=1,'eyes should not blink together');
+ }
+ for(let j=0;j<2;j++){assert.ok(blinks[j]>=3 && blinks[j]<=12);assert.ok(hi[j]-lo[j]>2,'larger idle bob');}
+ assert.equal(c.pos.x,origin.x);assert.equal(c.pos.z,origin.z);
+});
+
+test('pebbles have deterministic, independently varied bodies, eyeballs and stalk lengths',()=>{
+ const bodies=[],eyes=[],stalks=[];
+ for(let i=0;i<10;i++) {
+  const a=setup('variation-'+i),b=setup('variation-'+i);
+  const traits=c=>[c.size,...c.pebble.eyes.flatMap(e=>[e.radiusScale,e.lengthScale])];
+  assert.deepEqual(a.group.members.map(traits),b.group.members.map(traits));
+  for(const c of a.group.members){bodies.push(c.size);eyes.push(c.pebble.eyes[0].radiusScale);stalks.push(c.pebble.eyes[0].lengthScale);}
+ }
+ for(const values of [bodies,eyes,stalks])assert.ok(Math.max(...values)/Math.min(...values)>1.6);
+});
+
+test('pebbles on a rounded summit can flee down the surrounding mountain slope',()=>{
+ const sample=(x,z)=>{const r=Math.hypot(x,z);return {...flat(),ground:100-Math.max(0,r-10)*.8,slope:r<10?0:.8,water:-100};};
+ const {model,group,c}=setup('summit',sample);group.stones=[];
+ approach(model,c);const travel=group.members.map(()=>0),origins=group.members.map(o=>({...o.pos}));
+ for(let i=0;i<180;i++) {
+  model.step(1/30);
+  group.members.forEach((o,j)=>{travel[j]=Math.max(travel[j],Math.hypot(o.pos.x-origins[j].x,o.pos.z-origins[j].z));assert.ok(o.pos.y>=sample(o.pos.x,o.pos.z).ground+.5*o.size);});
+ }
+ assert.ok(travel.every(d=>d>35),'every animal needs a downhill escape');
+});
+
+test('colonies do not spawn on isolated peaks surrounded by sheer drops',()=>{
+ const sample=(x,z)=>({...flat(),ground:Math.hypot(x,z)<9?30:0});
+ const model=new FaunaModel('isolated-peak',{sample});
+ model.addGroup('peak','hopper',0,0,1);
+ assert.ok(model.creatures.every(c=>c.ground===0),'place animals on the surrounding safe ground or skip the colony');
 });

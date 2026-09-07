@@ -1,11 +1,11 @@
-import { initializePebbleEyes, updatePebbleEyes } from './PebbleEyes.js?v=pebble-swim-chase-1';
+import { initializePebbleEyes, updatePebbleEyes } from './PebbleEyes.js?v=pebble-expression-2';
 import { angleDelta, clamp, damp, smooth } from './Locomotion.js';
 
 // World units are roughly five times human scale. The eye is eleven units up;
 // proximity must be measured on the ground, with a separate height gate.
 export const PEBBLE_REST_HEIGHT = 0.55;
 const TAU = Math.PI * 2;
-const CAVE_STEP_HEIGHT = 1.5;
+const CAVE_STEP_HEIGHT = 1.5, OUTDOOR_STEP_HEIGHT = 1.3;
 const mix = (a, b, t) => a + (b - a) * t;
 const flatDistance = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
 
@@ -20,7 +20,7 @@ export function pebbleHabitat(s) {
 // Cave triangle seams can be steep over a tiny distance. The body footprint
 // and per-step height limit below determine whether a step is physically safe.
 function traversable(s) {
-	return Number.isFinite(s.ground) && Number.isFinite(s.water) && !s.roof && (s.cave || s.ground - s.water > 0.45) && (s.clearance ?? Infinity) >= 3.5 && (s.cave || s.slope < 0.4);
+	return Number.isFinite(s.ground) && Number.isFinite(s.water) && !s.roof && (s.cave || s.ground - s.water > 0.45) && (s.clearance ?? Infinity) >= 3.5 && (s.cave || s.slope < 1.05);
 }
 
 // Shallow water uses the bed; deeper cave streams support a simple paddle.
@@ -33,10 +33,10 @@ const dryRest = s => s.ground - s.water >= .7;
 // Check the whole body and each intervening step, including the bank transitions.
 export function pebbleGround(model, x, z, size, originY) {
 	const sample = model.environment.sample, center = sample(x, z);
-	if (!traversable(center) || (originY !== undefined && Math.abs(supportHeight(center, size) - supportHeight(center, size, originY)) > (center.cave ? CAVE_STEP_HEIGHT : 0.65) * size)) return null;
+	if (!traversable(center) || (originY !== undefined && Math.abs(supportHeight(center, size) - supportHeight(center, size, originY)) > (center.cave ? CAVE_STEP_HEIGHT : OUTDOOR_STEP_HEIGHT) * size)) return null;
 	for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
 		const s = sample(x + dx * size * 1.25, z + dz * size * 1.25);
-		if (!traversable(s) || Math.abs(supportHeight(s, size) - supportHeight(center, size)) > (center.cave ? CAVE_STEP_HEIGHT : 0.65) * size) return null;
+		if (!traversable(s) || Math.abs(supportHeight(s, size) - supportHeight(center, size)) > (center.cave ? CAVE_STEP_HEIGHT : OUTDOOR_STEP_HEIGHT) * size) return null;
 	}
 	if (model.environment.blocked?.(x, z, size * 1.35, center.ground)) return null;
 	return center;
@@ -56,7 +56,8 @@ export function pebbleSlope(sample, x, z, yaw, size, previous = {}) {
 function hasRunway(model, x, z, size) {
 	for (let j = 0; j < 12; j++) {
 		const angle = j * TAU / 12; let ground = model.environment.sample(x, z).ground, clear = true;
-		for (let i = 1; i <= 8; i++) {
+		const reach = model.environment.sample(x,z).cave ? 8 : 24;
+		for (let i = 1; i <= reach; i++) {
 			const s = pebbleGround(model, x + Math.cos(angle) * i, z + Math.sin(angle) * i, size, ground);
 			if (!s) { clear = false; break; } ground = s.ground;
 		}
@@ -75,7 +76,7 @@ export function initializePebbles(group, model) {
 			const a = r.range(0, TAU), reach = r.range(0, 13);
 			const x = group.home.x + Math.cos(a) * reach, z = group.home.z + Math.sin(a) * reach;
 			const s = pebbleGround(model, x, z, c.size);
-			if (!s || pebbleHabitat(s) <= 0 || (group.sample && !hasRunway(model, x, z, c.size)) || placed.some(o => Math.hypot(x - o.pos.x, z - o.pos.z) < (c.size + o.size) * 1.8)) continue;
+			if (!s || pebbleHabitat(s) <= 0 || !hasRunway(model, x, z, c.size) || placed.some(o => Math.hypot(x - o.pos.x, z - o.pos.z) < (c.size + o.size) * 1.8)) continue;
 			spot = { x, z, y: s.ground + PEBBLE_REST_HEIGHT * c.size }; c.ground = s.ground; c.water = s.water; break;
 		}
 		if (!spot) continue;
@@ -248,7 +249,7 @@ function footTarget(c, model, j, lead = 0) {
 	const p = { x: c.pos.x + co * x + si * z, z: c.pos.z - si * x + co * z };
 	const s = model.environment.sample(p.x, p.z);
 	p.y = supportHeight(s, c.size) + 0.055 * c.size;
-	return traversable(s) && Math.abs(supportHeight(s, c.size) - supportHeight(s, c.size, c.ground)) <= (s.cave ? CAVE_STEP_HEIGHT : 0.8) * c.size ? p : null;
+	return traversable(s) && Math.abs(supportHeight(s, c.size) - supportHeight(s, c.size, c.ground)) <= (s.cave ? CAVE_STEP_HEIGHT : OUTDOOR_STEP_HEIGHT) * c.size ? p : null;
 }
 
 function feet(c, model, dt) {
@@ -393,6 +394,7 @@ function advancePebble(c, model, dt, t) {
 	}
 	c.vel.x = (c.pos.x - before.x) / dt; c.vel.z = (c.pos.z - before.z) / dt;
 	c.gait += Math.hypot(c.vel.x, c.vel.z) * dt / (3.7 * c.size);
+ b.runCycle=(b.runCycle || 0)+dt*(5+Math.min(c.speed/20,3));
 	if (b.stand > 0) feet(c, model, dt);
 
 	let idle = 0;
@@ -434,6 +436,7 @@ function advancePebble(c, model, dt, t) {
 export function updatePebble(c, model, dt) {
 	if (c.group.sample) model = { ...model, environment: { ...model.environment, sample: c.group.sample } };
 	const previousStand = c.pebble.stand;
+ const previousRunCycle = c.pebble.runCycle || 0;
 	let previousFeet = c.feet?.map(f => ({ ...f.pos }));
 	const steps = Math.max(1, Math.ceil(dt * 120)), step = dt / steps;
 	for (let i = 0; i < steps; i++) {
@@ -442,5 +445,6 @@ export function updatePebble(c, model, dt) {
 	}
 	updatePebbleEyes(c, model, dt);
 	c.pebble.prevStand = previousStand;
+ c.pebble.prevRunCycle = previousRunCycle;
 	if (c.feet && previousFeet) c.feet.forEach((f, j) => { f.prev = previousFeet[j]; });
 }

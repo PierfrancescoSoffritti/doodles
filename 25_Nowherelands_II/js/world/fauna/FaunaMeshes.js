@@ -1,7 +1,7 @@
-import { PebbleMeshes } from './PebbleMeshes.js?v=pebble-swim-chase-1';
+import { PebbleMeshes } from './PebbleMeshes.js?v=pebble-expression-2';
 import { lumenAppearance } from './LumenAppearance.js';
 import * as THREE from 'three';
-import { SPECIES } from './FaunaModel.js?v=pebble-swim-chase-1';
+import { SPECIES } from './FaunaModel.js?v=pebble-expression-2';
 import { fogGlsl } from '../FogGlsl.js';
 import { faunaGeometry } from './FaunaGeometry.js';
 import { faunaDeformation } from './FaunaDeformation.js';

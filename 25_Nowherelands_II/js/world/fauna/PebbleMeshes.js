@@ -4,8 +4,8 @@ import { createRockMaterial, noiseGlsl } from '../TerrainMaterial.js';
 import { fogGlsl } from '../FogGlsl.js';
 import { faunaGeometry } from './FaunaGeometry.js';
 import { faunaDeformation } from './FaunaDeformation.js';
-import { solveLeg, SPECIES, PEBBLE_DRAW_DISTANCE } from './FaunaModel.js?v=pebble-swim-chase-1';
-import { PebbleEyeMeshes } from './PebbleEyeMeshes.js?v=pebble-swim-chase-1';
+import { solveLeg, SPECIES, PEBBLE_DRAW_DISTANCE } from './FaunaModel.js?v=pebble-expression-2';
+import { PebbleEyeMeshes } from './PebbleEyeMeshes.js?v=pebble-expression-2';
 import { clamp, smooth } from './Locomotion.js';
 
 // Bodies share the scenery's rock lighting; legs retain their darker palette.
@@ -79,11 +79,12 @@ export class PebbleMeshes {
 			const size = c.size * born * far, p = { x: lerp(c.prev.x, c.pos.x), y: lerp(c.prev.y, c.pos.y), z: lerp(c.prev.z, c.pos.z) };
 			c.renderPosition = p;
 			const yaw = lerp(c.prevYaw ?? c.yaw, c.yaw), pitch = lerp(c.prevPitch ?? c.pitch, c.pitch), bank = lerp(c.prevBank ?? c.bank, c.bank);
-			const floor = c.group.sample?.(p.x, p.z);
+			const sample = c.group.sample || model.environment.sample;
+			const floor = sample(p.x, p.z);
 			// Interpolation between two safe ticks can cut through a triangle ridge.
-			if (floor?.cave && Number.isFinite(floor.ground)) {
-    if (floor.water > floor.ground) p.y = Math.min(p.y, Math.max(floor.ground + 1.5 * size, floor.water - .55 * size));
-    p.y = Math.max(p.y, floor.ground + 0.55 * size, (floor.water ?? -Infinity) - .8 * size);
+			if (Number.isFinite(floor.ground)) {
+    if (floor.cave && floor.water > floor.ground) p.y = Math.min(p.y, Math.max(floor.ground + 1.5 * size, floor.water - .55 * size));
+    p.y = Math.max(p.y, floor.ground + 0.55 * size, (floor.cave ? (floor.water ?? -Infinity) : -Infinity) - .8 * size);
    }
 			setPebbleLight(this.bodies, bodies, floor);
 			this.place(this.bodies, bodies++, p, yaw, pitch, bank, size, c.phase);
@@ -97,6 +98,18 @@ export class PebbleMeshes {
 				const f = c.feet[j], tucked = world(-0.42, -0.31, side * 0.24);
 				const deploy = smooth(clamp(stand / 0.68, 0, 1));
 				const foot = new THREE.Vector3(lerp(f.prev.x, f.pos.x), lerp(f.prev.y, f.pos.y), lerp(f.prev.z, f.pos.z));
+				// At full speed the physical contacts can cycle between display frames.
+    // A bounded, interpolated sprint cadence keeps every stride readable.
+    const sprint = smooth(clamp((c.speed-14)/14,0,1));
+    if(sprint>0) {
+     const phase=lerp(b.prevRunCycle || 0,b.runCycle || 0)*Math.PI*2+j*Math.PI;
+     const running=world(-.25+Math.cos(phase)*.8,0,side*.88);
+     const at=sample(running.x,running.z);
+     if(Number.isFinite(at.ground)) {
+      running.y=Math.max(at.ground,at.cave?at.water-2*size:-Infinity)+(.055+Math.max(0,Math.sin(phase))*.7)*size;
+      foot.lerp(running,sprint);
+     }
+    }
 				const target = tucked.lerp(foot, deploy);
 				const bend = { x: -Math.cos(yaw) + Math.sin(yaw) * side * 0.28, y: 0.05, z: Math.sin(yaw) + Math.cos(yaw) * side * 0.28 };
 				const solved = solveLeg(hip, target, 0.94 * size, bend);
