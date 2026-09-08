@@ -1,4 +1,4 @@
-import {SpriteBirds} from './SpriteBirds.js?v=birds-9';
+import {SpriteBirds} from './SpriteBirds.js?v=birds-10';
 export const SKY_BIRD_CAPACITY=64;
 export const SKY_LANE_SPACING=128;
 const clamp=x=>Math.max(0,Math.min(1,x));

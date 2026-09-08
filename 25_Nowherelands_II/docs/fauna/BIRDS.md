@@ -218,3 +218,33 @@ The chained-flight test checks ground → three branches → ground, continuous
 position and heading at takeoff, exact foot contacts, appropriate resting
 behavior and the ability to start another trip. Field-note diagnostics include
 perch slots, visited trees and the number of transfers for live verification.
+
+
+### Three anatomies and dispersed territories
+
+Roundtail is small and round, with a short beak and tail; Longtail is slender
+with narrow wings and a longer tail; Crowncrest has a heavier body, broader
+wings and a three-feather crest. The mesh shares topology and joints across
+three immutable position sets, selected per instance in both color and depth
+passes. There are 412 triangles per bird, still one instanced draw. Species
+also have distinct body sizes, wingbeat rates, idle tempos, hop durations and
+rest intervals. Beak reach and foot anchors are preserved across all shapes.
+
+`BirdHabitats.js` assigns seeded territories to a 300-world-unit grid. A
+territory normally hosts 2–4 birds, with occasional solitary birds and empty
+areas. Suitable branch anchors are allocated across territories before adding
+companions; the 28-bird cap no longer fills from just the nearest trees. Habitat
+identity, preferred species and quota are independent of observer position.
+Only mature trees with valid feeding sites and clear flight paths are populated.
+Roughly 60% start perched. Nearby loaded groups retain their state as the player
+moves; reloaded territories keep their identity but do not persist exact poses.
+
+The study's **Three species** view compares all three anatomies. The species
+selector tests each on the original seekable ground-to-branch journey. The
+in-game **Visit another group** control tours distinct territories for review.
+
+`BirdHabitatsTest.js` checks stable identities, negative coordinates, dispersed
+allocation, per-area quotas, capacity, unsuitable sites and species behavior
+through transfers. GPU checks run on all three anatomies. In the umbra browser
+check, 13 birds occupied five territories spanning 1,044 world units, with all
+three species present and eight initially perched; there were no runtime errors.

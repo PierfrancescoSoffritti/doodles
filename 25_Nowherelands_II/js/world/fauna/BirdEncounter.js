@@ -1,14 +1,16 @@
-import {BirdJourney} from './BirdJourney.js?v=birds-9';
-import {BirdForage} from './BirdForage.js?v=birds-9';
+import {BIRD_SPECIES} from './BirdSpecies.js?v=birds-10';
+import {BirdJourney} from './BirdJourney.js?v=birds-10';
+import {BirdForage} from './BirdForage.js?v=birds-10';
 
 // Preserve the approved pose/wingbeat sequence, fitting its two contacts to
 // real terrain and branch anchors. The body itself is uniformly scaled.
 export class BirdEncounter {
- constructor(ground,perch,size=2.8){
-  this.ground=ground;this.perch=perch;this.size=size;this.journey=new BirdJourney();
+ constructor(ground,perch,size=2.8,{species=0}={}){
+  this.species=species;this.profile=BIRD_SPECIES[species];
+  this.ground=ground;this.perch=perch;this.size=size;this.journey=new BirdJourney(this.profile);
   this.flights=0;this.restTime=0;this.pose=this.sample();
  }
- enableForaging(options={}){this.forage=new BirdForage(this.ground,{size:this.size,...options});return this;}
+ enableForaging(options={}){this.forage=new BirdForage(this.ground,{size:this.size,hopDuration:this.profile.hopDuration,waitScale:this.profile.waitScale,...options});return this;}
  start(){
   if(this.leg&&!this.journey.active)return this.travelTo(this.pose.state==='perched'?this.ground:this.perch,{ground:this.pose.state==='perched'});
   if(this.forage?.hop)return false;
@@ -26,7 +28,7 @@ export class BirdEncounter {
   if(Math.hypot(target.x-from.x,target.z-from.z)<2)return false;
   this.leg={from,to:{...target},fromGround,toGround:ground};
   if(!ground)this.perch={...target};
-  this.journey=new BirdJourney({fromGround,toGround:ground});this.journey.start();
+  this.journey=new BirdJourney({...this.profile,fromGround,toGround:ground});this.journey.start();
   const yaw=Math.atan2(-(target.z-from.z),target.x-from.x)-Math.atan2(1,10);
   this.journey.startYaw=old.yaw-yaw;
   this.journey.startPose.position.y=(old.position.y-from.y)/this.size;
@@ -40,7 +42,7 @@ export class BirdEncounter {
   const x=pose.position.x+5,z=pose.position.z-1,u=(10*x-z)/101;
   const lift=Math.max(0,Math.min(1,(u-.02)/.55)),heightBlend=lift*lift*(3-2*lift);
   pose.position={x:g.x+(x*c+z*s)*scale,y:g.y+pose.position.y*this.size+(q.y-g.y-3*this.size)*heightBlend,z:g.z+(-x*s+z*c)*scale};
-  pose.yaw+=yaw;pose.size=this.size;return pose;
+  pose.yaw+=yaw;pose.size=this.size;pose.species=this.species;return pose;
  }
  update(dt){
   const ground=!this.journey.active&&this.pose.state==='ground';

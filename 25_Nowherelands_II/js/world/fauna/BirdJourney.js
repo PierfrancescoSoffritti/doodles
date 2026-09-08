@@ -61,7 +61,7 @@ function idlePose(pose,time,ground){
 }
 
 export class BirdJourney {
- constructor({fromGround=true,toGround=false}={}) { this.fromGround=fromGround;this.toGround=toGround;this.reset(); }
+ constructor({fromGround=true,toGround=false,idleTempo=1,flapRate=6.8}={}) { this.fromGround=fromGround;this.toGround=toGround;this.idleTempo=idleTempo;this.flapRate=flapRate;this.reset(); }
  reset() { this.time = 0; this.idleTime = 0; this.startYaw=0; this.startPose=null; this.active = false; this.returning = false; this.completed = false; this.knots = route(BIRD_GROUND, BIRD_PERCH, false); }
  start() {
   if (this.active) return false;
@@ -84,7 +84,7 @@ export class BirdJourney {
   const pose = { position: vec(from.x, from.y + .42, from.z), yaw: this.returning ? Math.PI : 0, pitch: .12, bank: 0,
    shoulder: .1, wrist: 0, fold: 1, tail: 0, legs: 1, contact: 1, footY: -.42, headYaw: 0, headPitch: 0, speed: 0, state: (this.returning?this.toGround:this.fromGround)?'ground':'perched' };
   if (!this.active && !this.completed && t === 0) {
-   return idlePose(pose,this.idleTime,this.fromGround);
+   return idlePose(pose,this.idleTime*this.idleTempo,this.fromGround);
   }
   if (f < 0) {
    pose.state = t < .15 ? 'alert' : 'crouch';
@@ -114,7 +114,7 @@ export class BirdJourney {
   const launch = 1 - ramp(f, .2, .5);
   // A fixed phase clock, with asymmetric stroke timing and flexed recovery.
   // The envelope follows this journey's climb/glide/braking demands.
-  const phase = (f * 6.8) % 1;
+  const phase = (f * this.flapRate) % 1;
   const down = phase < .43, u = down ? phase / .43 : (phase - .43) / .57;
   const flap = down ? Math.cos(u * Math.PI) : -Math.cos(u * Math.PI);
   const effort = (1 - glide * .96) * (1 - landing);
@@ -138,7 +138,7 @@ export class BirdJourney {
    pose.headPitch = -pose.pitch * .9 * (1-k);
    pose.fold = k; pose.shoulder = mix(.26, .1, k); pose.wrist = 0; pose.tail = 1 - k;
    pose.legs = 1; pose.contact = 1; pose.footY = to.y - pose.position.y;
-   if(settle===1)idlePose(pose,this.idleTime,this.returning?this.fromGround:this.toGround);
+   if(settle===1)idlePose(pose,this.idleTime*this.idleTempo,this.returning?this.fromGround:this.toGround);
   }
   return pose;
  }

@@ -1,9 +1,11 @@
+import {BirdHabitats,birdHash} from './BirdHabitats.js?v=birds-10';
+import {BIRD_SPECIES} from './BirdSpecies.js?v=birds-10';
 import * as THREE from 'three';
-import {BirdPassages,SKY_BIRD_CAPACITY} from './BirdPassages.js?v=birds-9';
-import {BirdSprites} from './BirdSprites.js?v=birds-9';
-import {BirdMesh} from './BirdMesh.js?v=birds-9';
-import {BirdEncounter} from './BirdEncounter.js?v=birds-9';
-import {BIRD_JOURNEY_TIME} from './BirdJourney.js?v=birds-9';
+import {BirdPassages,SKY_BIRD_CAPACITY} from './BirdPassages.js?v=birds-10';
+import {BirdSprites} from './BirdSprites.js?v=birds-10';
+import {BirdMesh} from './BirdMesh.js?v=birds-10';
+import {BirdEncounter} from './BirdEncounter.js?v=birds-10';
+import {BIRD_JOURNEY_TIME} from './BirdJourney.js?v=birds-10';
 
 const SCALE=4,MAX_ENCOUNTERS=28;
 export class WorldBirds {
@@ -15,7 +17,7 @@ export class WorldBirds {
   this.mesh=new BirdMesh(this.root,MAX_ENCOUNTERS);
   // A little diffuse lift keeps charcoal plumage readable in this moonlit world.
   this.mesh.material.color.setScalar(1.25);this.mesh.material.emissive.set('#171a28');this.mesh.material.emissiveIntensity=.35;
-  this.encounters=[];
+  this.encounters=[];this.habitats=new BirdHabitats(seed);this.rejectedSites=new WeakSet();
  }
  prime(){this.stream();this.update(0);}
  stream(){
@@ -25,42 +27,53 @@ export class WorldBirds {
   this.habitatStats={perches:[...v.chunks.values()].reduce((n,c)=>n+(c.birdPerches?.length||0),0),candidates:0,surface:0,blocked:0,attempts:0};
   const used=new Set(this.encounters.flatMap(e=>e.journey.active&&e.sourceSite?[e.site,e.sourceSite]:[e.site]));
   this.sites=[...v.chunks.values()].flatMap(c=>c.birdPerches||[]).filter(s=>v.time-s.born[s.index]>3);
-  const candidates=this.sites
-   .filter(s=>!used.has(s)&&Math.hypot(s.position.x-p.x,s.position.z-p.z)<650)
-   .sort((a,b)=>Math.hypot(a.position.x-p.x,a.position.z-p.z)-Math.hypot(b.position.x-p.x,b.position.z-p.z));
-  this.habitatStats.candidates=candidates.length;let attempts=0;
-  for(const site of candidates){
-   if(this.encounters.length>=MAX_ENCOUNTERS||attempts++>120)break;
-   if(this.encounters.filter(e=>e.site.treeId===site.treeId).length>=3)continue;
-   if(this.encounters.some(e=>Math.hypot(e.perch.x-site.position.x,e.perch.y-site.position.y,e.perch.z-site.position.z)<3.5))continue;
-   const perch=v.birdPerchPosition(site),out=Math.atan2(perch.z-site.trunk.z,perch.x-site.trunk.x);
-   for(let i=0;i<8;i++){
-    const angle=out+(i%2?1:-1)*Math.ceil(i/2)*.35,distance=29+i*2;
-    const x=perch.x+Math.cos(angle)*distance,z=perch.z+Math.sin(angle)*distance,y=hm.sample(x,z);
-    this.habitatStats.attempts++;
-    if(!Number.isFinite(y)||y<hm._water+2||hm._slope>.35||perch.y-y<6||perch.y-y>35||hm.caves.hasOpening(x,z))continue;
-    this.habitatStats.surface++;
-    if(this.encounters.some(e=>Math.hypot(e.ground.x-x,e.ground.z-z)<5))continue;
-    if(this.shared.colliders.some(c=>Math.hypot(x-c.position.x,z-c.position.z)<(c.radius||c.r||0)+5))continue;
-    const e=new BirdEncounter({x,y,z},perch);let clear=true;
-    // Reject routes through a hill, water bank or a nearby giant trunk, in both directions.
-    for(let direction=0;direction<2&&clear;direction++){
-     e.start();
-     for(let k=0;k<=24;k++){
-      e.journey.seek(k/24*BIRD_JOURNEY_TIME);const q=e.sample();
-      if(q.position.y<hm.height(q.position.x,q.position.z)+.2){clear=false;break;}
-      if(k>3&&k<21&&this.shared.colliders.some(c=>Math.hypot(q.position.x-c.position.x,q.position.z-c.position.z)<(c.radius||c.r||0)+3)){clear=false;break;}
-     }
+  const groups=this.habitats.groups(this.sites,p);
+  this.habitatStats.candidates=groups.reduce((n,g)=>n+g.sites.length,0);this.habitatStats.areas=groups.length;
+  // Give every territory its first bird before filling companions in any one.
+  this.habitats.populate(groups,this.encounters,MAX_ENCOUNTERS,(site,area)=>{
+   if(used.has(site)||this.rejectedSites.has(site))return null;
+   if(this.encounters.filter(e=>e.site.treeId===site.treeId).length>=3)return null;
+   if(this.encounters.some(e=>Math.hypot(e.perch.x-site.position.x,e.perch.y-site.position.y,e.perch.z-site.position.z)<3.5))return null;
+   const encounter=this.spawnAt(site,area);if(encounter)used.add(site);return encounter;
+  });
+ }
+
+ spawnAt(site,area){
+  const v=this.vegetation,hm=this.hm,perch=v.birdPerchPosition(site),out=Math.atan2(perch.z-site.trunk.z,perch.x-site.trunk.x);
+  const identity=birdHash(Math.round(site.position.x*13),Math.round(site.position.z*13+site.position.y),this.habitats.seed);
+  const profile=BIRD_SPECIES[area.species],size=profile.size*(.94+(identity%13)*.01);
+  let occupied=false;
+  for(let i=0;i<8;i++){
+   const angle=out+(i%2?1:-1)*Math.ceil(i/2)*.35,distance=29+i*2;
+   const x=perch.x+Math.cos(angle)*distance,z=perch.z+Math.sin(angle)*distance,y=hm.sample(x,z);
+   this.habitatStats.attempts++;
+   if(!Number.isFinite(y)||y<hm._water+2||hm._slope>.35||perch.y-y<6||perch.y-y>35||hm.caves.hasOpening(x,z))continue;
+   this.habitatStats.surface++;
+   if(this.encounters.some(e=>Math.hypot(e.ground.x-x,e.ground.z-z)<5)){occupied=true;continue;}
+   if(this.shared.colliders.some(c=>Math.hypot(x-c.position.x,z-c.position.z)<(c.radius||c.r||0)+5))continue;
+   const e=new BirdEncounter({x,y,z},perch,size,{species:area.species});let clear=true;
+   for(let direction=0;direction<2&&clear;direction++){
+    e.start();
+    for(let k=0;k<=24;k++){
+     e.journey.seek(k/24*BIRD_JOURNEY_TIME);const q=e.sample().position;
+     if(q.y<hm.height(q.x,q.z)+.2){clear=false;break;}
+     if(k>3&&k<21&&this.shared.colliders.some(c=>Math.hypot(q.x-c.position.x,q.z-c.position.z)<(c.radius||c.r||0)+3)){clear=false;break;}
     }
-    if(!clear){this.habitatStats.blocked++;continue;}
-    e.journey.reset();e.journey.idleTime=this.encounters.length*1.83;e.flights=0;e.site=site;e.safeTime=0;e.variant=this.encounters.length%3;
-    e.personality=((Math.abs(x*17+z*31)%100)/100);e.restTime=e.personality*3;e.visitedTrees=new Set();e.treeMoves=0;e.hopsSinceGround=0;e.nextChoiceAt=0;
-    e.enableForaging({seed:Math.abs(Math.round(x*193+z*47))||1,sample:(x,z)=>hm.height(x,z),valid:(x,y,z)=>{
-     hm.sample(x,z);return y>hm._water+2&&hm._slope<.35&&!hm.caves.hasOpening(x,z)&&!this.shared.colliders.some(c=>Math.hypot(x-c.position.x,z-c.position.z)<c.radius+4)&&!this.encounters.some(o=>o!==e&&Math.hypot(x-o.ground.x,z-o.ground.z)<2.5);
-    }});
-    e.update(0);this.encounters.push(e);break;
    }
+   if(!clear){this.habitatStats.blocked++;continue;}
+   e.journey.reset();e.site=site;e.habitat={id:area.id,x:area.x,z:area.z,count:area.count,species:area.species};e.safeTime=0;e.variant=[0,2,1][area.species];
+   e.personality=(identity%101)/101;e.restTime=e.personality*3;e.visitedTrees=new Set();e.treeMoves=0;e.hopsSinceGround=0;e.nextChoiceAt=0;
+   e.initialPerched=identity%5<3;
+   if(e.initialPerched){e.journey.start();e.journey.seek(BIRD_JOURNEY_TIME);e.visitedTrees.add(site.treeId);}
+   e.journey.idleTime=(identity%560)*.01;e.flights=0;e.pose=e.sample();
+   e.enableForaging({seed:identity||1,sample:(x,z)=>hm.height(x,z),valid:(x,y,z)=>{
+    hm.sample(x,z);return y>hm._water+2&&hm._slope<.35&&!hm.caves.hasOpening(x,z)&&!this.shared.colliders.some(c=>Math.hypot(x-c.position.x,z-c.position.z)<(c.radius||c.r||0)+4)&&!this.encounters.some(o=>o!==e&&Math.hypot(x-o.ground.x,z-o.ground.z)<2.5);
+   }});
+   e.update(0);return e;
   }
+  // Geometry failures are stable for this loaded tree; occupancy can change.
+  if(!occupied)this.rejectedSites.add(site);
+  return null;
  }
  clearRoute(from,to,size){
   const probe=new BirdEncounter(from,to,size);probe.start();
@@ -107,13 +120,13 @@ export class WorldBirds {
    const distance=Math.hypot(p.x-e.ground.x,p.z-e.ground.z);
    const perched=e.pose.state==='perched';
    if(!e.journey.active){
-    if(!perched&&((distance<25&&Math.abs(p.y-e.ground.y)<30)||e.restTime>7+e.personality*7)){e.sourceSite=null;e.start();}
+    if(!perched&&((distance<25&&Math.abs(p.y-e.ground.y)<30)||e.restTime>e.profile.groundRest+e.personality*6)){e.sourceSite=null;e.start();}
     else if(perched){
      e.safeTime=distance>40?e.safeTime+dt:0;
-     if(e.restTime>4+e.personality*6&&this.time>=e.nextChoiceAt){
+     if(e.restTime>e.profile.perchRest+e.personality*5&&this.time>=e.nextChoiceAt){
       e.nextChoiceAt=this.time+2;
       const moved=(e.hopsSinceGround<2||distance<40)&&this.changeTree(e);
-      if(!moved&&e.safeTime>4+e.personality*6&&this.clearRoute(e.perch,e.ground,e.size)){
+      if(!moved&&e.safeTime>e.profile.perchRest+e.personality*5&&this.clearRoute(e.perch,e.ground,e.size)){
        e.sourceSite=e.site;e.start();e.safeTime=0;
       }
      }

@@ -1,8 +1,9 @@
-import {BirdEncounter} from './world/fauna/BirdEncounter.js?v=birds-9';
+import {BIRD_SPECIES} from './world/fauna/BirdSpecies.js?v=birds-10';
+import {BirdEncounter} from './world/fauna/BirdEncounter.js?v=birds-10';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { BirdJourney, BIRD_GROUND, BIRD_JOURNEY_TIME } from './world/fauna/BirdJourney.js?v=birds-9';
-import { BirdMesh } from './world/fauna/BirdMesh.js?v=birds-9';
+import { BirdJourney, BIRD_GROUND, BIRD_JOURNEY_TIME } from './world/fauna/BirdJourney.js?v=birds-10';
+import { BirdMesh } from './world/fauna/BirdMesh.js?v=birds-10';
 
 const $=id=>document.getElementById(id);
 const reportError=message=>{ $('error').hidden=false; $('error').textContent=message; document.body.dataset.status='fail'; };
@@ -53,9 +54,11 @@ for(let i=0;i<28;i++){
  const x=(rnd()-.5)*36,z=(rnd()-.5)*25;if(Math.hypot(x+5,z-1)<1.6)continue;
  const stone=new THREE.Mesh(new THREE.IcosahedronGeometry(.1+rnd()*.18,0),matte('#a8ad9b'));stone.position.set(x,.045,z);stone.scale.y=.4;stone.rotation.y=rnd()*6;stone.receiveShadow=true;scene.add(stone);
 }
-const journey=new BirdJourney(),bird=new BirdMesh(scene,4);
+const journey=new BirdJourney(BIRD_SPECIES[0]),bird=new BirdMesh(scene,4);
+const comparison=BIRD_SPECIES.map(profile=>new BirdJourney(profile));
+let species=0;
 const companions=[[-3,0,3.2],[-6.7,0,4.2],[-7,0,-1.5]].map(([x,y,z],i)=>{
- const e=new BirdEncounter({x,y,z},{x:5,y:3,z:0},.9+i*.06);e.variant=i;
+ const e=new BirdEncounter({x,y,z},{x:5,y:3,z:0},BIRD_SPECIES[i].size/2.8,{species:i});e.variant=[0,2,1][i];
  e.journey.idleTime=i*1.1;e.enableForaging({seed:31+i*71,sample:()=>0});return e;
 });
 $('timeline').max=String(BIRD_JOURNEY_TIME);
@@ -63,13 +66,17 @@ let paused=false,slow=false,last=performance.now(),lastState='',view='encounter'
 const labels={ground:['Foraging','Pecking, stretching and watching'],alert:['Alert','A moment of attention'],crouch:['Ready','Weight shifts before departure'],takeoff:['Taking flight','A push, then strong wingbeats'],flight:['In flight','Wings carry the climb and turn'],glide:['Gliding','Wings open; a quiet arc'],landing:['Coming to rest','Tail opens, feet reach forward'],settle:['Touchdown','Feet hold; wings fold away'],perched:['Settled','Watching from the branch']};
 function setPaused(value){paused=value;$('pause').textContent=paused?'Play':'Pause';$('pause').setAttribute('aria-label',paused?'Play animation':'Pause animation');}
 function setView(){
- view=$('view').value; const pose=journey.sample(),p=pose.position,center=new THREE.Vector3(p.x,p.y,p.z);trackingYaw=pose.yaw;
+ view=$('view').value;document.querySelector('h1').textContent=view==='varieties'?'Birds of the clearing.':'Ground to branch.'; const pose=journey.sample(),p=pose.position,center=new THREE.Vector3(p.x,p.y,p.z);trackingYaw=pose.yaw;
  const dirs={follow:[.6,.35,1],side:[0,.13,1],front:[1,.18,.01],top:[0,1,.001]};
- if(view==='encounter') { controls.target.set(.3,2.25,0);camera.position.set(1.6,7.1,25.5); }
+ if(view==='varieties'){controls.target.set(0,.6,0);camera.position.set(3.4,2.6,10.8);}
+ else if(view==='encounter') { controls.target.set(.3,2.25,0);camera.position.set(1.6,7.1,25.5); }
  else {controls.target.copy(center);camera.position.fromArray(dirs[view]).normalize().multiplyScalar(view==='follow'?5:3.6);if(view==='side'||view==='front')camera.position.applyAxisAngle(new THREE.Vector3(0,1,0),pose.yaw);camera.position.add(center);}
  controls.update();
 }
-$('view').onchange=setView;
+$('view').onchange=()=>{setView();$('species').disabled=view==='varieties';};
+$('species').onchange=()=>{species=Number($('species').value);Object.assign(journey,{idleTempo:BIRD_SPECIES[species].idleTempo,flapRate:BIRD_SPECIES[species].flapRate});};
+if(new URLSearchParams(location.search).get('view')==='varieties'){$('view').value='varieties';$('species').disabled=true;}
+
 $('start').onclick=()=>{if(journey.start())setPaused(false);};
 $('replay').onclick=()=>{journey.reset();journey.start();setPaused(false);};
 $('pause').onclick=()=>setPaused(!paused);
@@ -85,25 +92,28 @@ function resize(){
 setView();resize();addEventListener('resize',()=>{setView();resize();});
 function frame(now){
  const dt=Math.min((now-last)/1000,.04)*(slow?.25:1);last=now;
- const pose=journey.update(paused?0:dt);bird.update([pose,...companions.map(e=>e.update(paused?0:dt))]);
- if(view!=='encounter'){
+ const pose=journey.update(paused?0:dt);pose.species=species;pose.variant=[0,2,1][species];
+ const variants=comparison.map((j,i)=>{const p=j.update(paused?0:dt),size=BIRD_SPECIES[i].size/2.8;p.position={x:(i-1)*2.5,y:p.position.y*size,z:0};p.size=size;p.species=i;p.variant=[0,2,1][i];return p;});
+ bird.update(view==='varieties'?variants:[pose,...companions.map(e=>e.update(paused?0:dt))]);
+ if(view!=='encounter'&&view!=='varieties'){
   if(view==='side'||view==='front')camera.position.sub(controls.target).applyAxisAngle(new THREE.Vector3(0,1,0),pose.yaw-trackingYaw).add(controls.target);
   const center=new THREE.Vector3(pose.position.x,pose.position.y,pose.position.z),delta=center.clone().sub(controls.target);
   camera.position.add(delta);controls.target.copy(center);
  }
  trackingYaw=pose.yaw;
  controls.update();renderer.render(scene,camera);
- if(lastState!==pose.state){const [name,detail]=labels[pose.state];$('state').textContent=name;$('description').textContent=detail;lastState=pose.state;}
+ if(view==='varieties'){$('state').textContent='Three shapes';$('description').textContent='Roundtail · Longtail · Crowncrest';lastState='varieties';}
+ else if(lastState!==pose.state){const [name,detail]=labels[pose.state];$('state').textContent=name;$('description').textContent=detail;lastState=pose.state;}
  $('timeline').value=String(journey.time);
- $('start').disabled=journey.active;$('start').textContent=journey.completed&&!journey.returning?'Return to ground':'Startle bird';
- document.body.dataset.bird=JSON.stringify({state:pose.state,time:journey.time,idleTime:journey.idleTime,activity:pose.activity,companions:companions.map(e=>({activity:e.pose.activity,position:e.pose.position,hops:e.forage.hops,variant:e.variant})),position:pose.position,speed:pose.speed,fold:pose.fold,contact:pose.contact,paused,returning:journey.returning});
+ $('start').disabled=journey.active||view==='varieties';$('replay').disabled=view==='varieties';$('timeline').disabled=view==='varieties';$('start').textContent=journey.completed&&!journey.returning?'Return to ground':'Startle bird';
+ document.body.dataset.bird=JSON.stringify({species,view,variants:variants.map(p=>p.species),state:pose.state,time:journey.time,idleTime:journey.idleTime,activity:pose.activity,companions:companions.map(e=>({activity:e.pose.activity,position:e.pose.position,hops:e.forage.hops,variant:e.variant})),position:pose.position,speed:pose.speed,fold:pose.fold,contact:pose.contact,paused,returning:journey.returning});
  if($('error').hidden)document.body.dataset.status='ready';
  requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
 if(new URLSearchParams(location.search).has('check')){
  try{
-  const {checkBirdRendering}=await import('../tests/BirdRenderChecks.js');
-  document.body.dataset.birdChecks=JSON.stringify(checkBirdRendering(bird.geometry));
+  const {checkBirdRendering}=await import('../tests/BirdRenderChecks.js?v=birds-10');
+  document.body.dataset.birdChecks=JSON.stringify(BIRD_SPECIES.map((_,i)=>checkBirdRendering(bird.geometry,i)));
  }catch(e){reportError(e.message);console.error(e);}
 }

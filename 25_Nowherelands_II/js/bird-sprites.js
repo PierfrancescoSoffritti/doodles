@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import {BirdPassages,SKY_BIRD_CAPACITY} from './world/fauna/BirdPassages.js?v=birds-9';
-import {BirdSprites} from './world/fauna/BirdSprites.js?v=birds-9';
+import {BirdPassages,SKY_BIRD_CAPACITY} from './world/fauna/BirdPassages.js?v=birds-10';
+import {BirdSprites} from './world/fauna/BirdSprites.js?v=birds-10';
 const $=id=>document.getElementById(id);
 const renderer=new THREE.WebGLRenderer({canvas:$('canvas'),antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;
 const scene=new THREE.Scene();scene.background=new THREE.Color('#d9ded9');scene.fog=new THREE.Fog('#d9ded9',65,220);

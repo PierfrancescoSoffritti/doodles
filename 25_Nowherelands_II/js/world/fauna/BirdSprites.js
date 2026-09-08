@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {birdCardAxes} from './SpriteBirds.js?v=birds-9';
+import {birdCardAxes} from './SpriteBirds.js?v=birds-10';
 const FRAMES=16,CELL=128,VARIANTS=3;
 // A single overhead/underside flight silhouette. Each frame gets its own array
 // layer, so minification can never sample a neighbouring animation/view frame.

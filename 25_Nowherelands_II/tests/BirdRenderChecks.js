@@ -3,7 +3,7 @@ import { BirdJourney, BIRD_ANTICIPATION, BIRD_FLIGHT_TIME, BIRD_JOURNEY_TIME } f
 
 // Run only with ?check=1. Capture the production vertex deformation on the GPU:
 // simulation contact targets alone cannot establish that rendered feet stay put.
-export function checkBirdRendering(geometry) {
+export function checkBirdRendering(geometry,species=0) {
  const gl=document.createElement('canvas').getContext('webgl2');
  if(!gl)throw new Error('Bird rendering checks require WebGL 2');
  const program=gl.createProgram(),shaders=[],buffers=[];
@@ -19,12 +19,13 @@ export function checkBirdRendering(geometry) {
   if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(program));
   gl.useProgram(program);gl.bindVertexArray(vao);
   const positions=geometry.attributes.position.array,parts=geometry.attributes.aPart.array,n=parts.length;
-  for(const [name,data,size] of [['position',positions,3],['aPart',parts,1]]){
+  for(const [name,data,size] of [['position',positions,3],['aPart',parts,1],['aSlender',geometry.attributes.aSlender.array,3],['aCrested',geometry.attributes.aCrested.array,3]]){
    const buffer=gl.createBuffer();buffers.push(buffer);gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,data,gl.STATIC_DRAW);
    const loc=gl.getAttribLocation(program,name);gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,size,gl.FLOAT,false,0,0);
   }
   const output=gl.createBuffer();buffers.push(output);gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK,feedback);gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER,0,output);gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER,positions.byteLength,gl.DYNAMIC_READ);
   function capture(p){
+   gl.vertexAttrib1f(gl.getAttribLocation(program,'aSpecies'),species);
    for(const [name,v] of [['aWing',[p.shoulder,p.wrist,p.fold,p.tail]],['aPose',[p.pitch,p.bank,p.headYaw,p.headPitch]],['aFeet',[p.legs,p.contact,p.footY,0]]]) gl.vertexAttrib4fv(gl.getAttribLocation(program,name),v);
    gl.enable(gl.RASTERIZER_DISCARD);gl.beginTransformFeedback(gl.POINTS);gl.drawArrays(gl.POINTS,0,n);gl.endTransformFeedback();gl.disable(gl.RASTERIZER_DISCARD);
    const data=new Float32Array(positions.length);gl.getBufferSubData(gl.TRANSFORM_FEEDBACK_BUFFER,0,data);
@@ -58,7 +59,7 @@ export function checkBirdRendering(geometry) {
   j.seek(1.3);const open=capture(j.sample());j.seek(BIRD_JOURNEY_TIME);const folded=capture(j.sample());
   const span=data=>{const zs=[];for(let i=0;i<n;i++)if(parts[i]===2||parts[i]===3)zs.push(data[i*3+2]);return Math.max(...zs)-Math.min(...zs);};
   if(span(open)<span(folded)*3)throw new Error('Wings do not fold against the body');
-  return {samples,vertices:n,triangles:n/3,maxFootDrift,minBeakY,maxBeakY,openSpan:span(open),foldedSpan:span(folded)};
+  return {species,samples,vertices:n,triangles:n/3,maxFootDrift,minBeakY,maxBeakY,openSpan:span(open),foldedSpan:span(folded)};
  } finally {
   buffers.forEach(b=>gl.deleteBuffer(b));shaders.forEach(s=>gl.deleteShader(s));gl.deleteVertexArray(vao);gl.deleteTransformFeedback(feedback);gl.deleteProgram(program);gl.getExtension('WEBGL_lose_context')?.loseContext();
  }
