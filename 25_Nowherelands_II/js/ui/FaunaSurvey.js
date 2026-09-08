@@ -1,3 +1,4 @@
+import { readPebbleVolume, savePebbleVolume } from '../audio/PebbleAudioSettings.js?v=pebble-audio-10';
 import { SPECIES } from '../world/fauna/FaunaModel.js';
 
 // Optional in-world field guide. Only visits real members of the current population.
@@ -34,7 +35,7 @@ export class FaunaSurvey {
 		this.approach = document.createElement('button'); this.approach.className = 'fauna-guide-explore'; this.approach.textContent = 'Approach the school';
 		this.approach.onclick = () => {
 			const c = this.subject || fauna.nearest(this.kind); if (!c || !['lumen', 'hopper'].includes(c.kind)) return;
-			this.startAudio(); this.tracking = false; fauna.model.observing = false; fauna.profile?.reset();
+			this.startAudio(); this.tracking = false; fauna.model.observing = false; fauna.profile?.reset(); this.soundPeak=0;
 			const p = c.pos, player = shared.player;
 			const view = c.kind === 'hopper' && c.group.sample ? this.caveView(c, 5.8, 11) : null;
 			const x = view?.x ?? p.x + (c.kind === 'hopper' ? 5 : 7), z = view?.z ?? p.z + (c.kind === 'hopper' ? 3 : 7), surface = (c.group.sample || fauna.sample)(x, z);
@@ -47,6 +48,13 @@ export class FaunaSurvey {
 		this.audioToggle = document.createElement('button'); this.audioToggle.className = 'fauna-guide-quiet'; this.audioToggle.textContent = 'Quiet fauna';
 		this.audioToggle.onclick = () => { if (fauna.audio) { fauna.audio.muted = !fauna.audio.muted; this.audioToggle.textContent = fauna.audio.muted ? 'Hear fauna' : 'Quiet fauna'; } };
 		this.panel.append(this.audioToggle);
+  const volumeLabel=document.createElement('label');volumeLabel.textContent='Pebble sounds ';
+  const volume=document.createElement('input');volume.type='range';volume.min=0;volume.max=150;volume.step=5;volume.value=readPebbleVolume()*100;volume.setAttribute('aria-label','Pebble volume');
+  volume.oninput=()=>{const value=Number(volume.value)/100;savePebbleVolume(value);if(fauna.audio)fauna.audio.pebbles.volume=value;};
+  volumeLabel.append(volume);this.panel.append(volumeLabel);
+  this.volumeControl=volume;
+  const soundStudio=document.createElement('a');soundStudio.href='./pebble-sound.html';soundStudio.target='_blank';soundStudio.textContent='Pebble sound studio ↗';soundStudio.style.cssText='display:block;margin:10px 0;font-size:12px;color:#afcdcf';this.panel.append(soundStudio);
+		const soundDetails=document.createElement('details');const soundSummary=document.createElement('summary');soundSummary.textContent='Sound diagnostics';this.soundReadout=document.createElement('output');soundDetails.append(soundSummary,this.soundReadout);this.panel.append(soundDetails);
 		this.readout = document.createElement('output'); this.panel.append(this.readout);
 		const help = document.createElement('small'); help.textContent = 'Esc releases the mouse · F toggles flight'; this.panel.append(help);
 		const study = document.createElement('a'); study.href = './fauna-motion.html'; study.textContent = 'Close-up motion studies ↗'; study.style.cssText = 'display:block;margin-top:12px;font-size:11px;color:#afcdcf'; this.panel.append(study);
@@ -159,6 +167,18 @@ export class FaunaSurvey {
 		}
 		if (this.kind === 'hopper' && this.subject?.pebble) {
 			const c = this.subject, b = c.pebble;
+   this.volumeControl.value=(this.fauna.pebbleVolume ?? 1)*100;
+   const sound=this.fauna.audio?.pebbles;
+   if(sound && this.fauna.model.time >= (this.soundMeterAt || 0)) {
+    this.soundMeterAt=this.fauna.model.time+.05;
+    this.soundSamples ||= new Float32Array(512);
+    const level=node=>{node.getFloatTimeDomainData(this.soundSamples);let peak=0,sum=0;for(const v of this.soundSamples){peak=Math.max(peak,Math.abs(v));sum+=v*v;}return {peak,rms:Math.sqrt(sum/this.soundSamples.length)};};
+    const pebble=level(sound.meter),mix=level(this.shared.audio.analyser),engine=this.shared.audio;
+    this.soundPeak=Math.max(this.soundPeak || 0,pebble.peak);
+    const last=sound.history.at(-1),db=this.soundPeak?20*Math.log10(this.soundPeak):-Infinity;
+    this.soundReadout.textContent=`${engine.ctx.state} · ${Math.round(sound.volume*100)}%${this.fauna.audio.muted?' · muted':''} · encounter peak ${Number.isFinite(db)?db.toFixed(1):'−∞'} dBFS${last?' · last '+last.event:''}`;
+    this.panel.dataset.pebbleSound=JSON.stringify({context:engine.ctx.state,muted:this.fauna.audio.muted,volume:sound.volume,voices:sound.voices.length,pebble,mix,peak:this.soundPeak,master:engine.master.gain.value,reduction:engine.compressor.reduction,events:sound.history.slice(-8)});
+   }
 			const descriptions = { rest: 'Watchful eyes among the stones', notice: 'Eyes following your approach', rise: 'Startled · unfolding its legs', flee: 'Scattering at full speed', regroup: 'Hurrying back to the colony', wait: 'Waiting upright for the colony', brake: 'Slowing · finding its footing', settle: 'Folding back into a stone' };
 			const colonies = [...this.fauna.model.groups.values()].filter(g => g.kind === 'hopper' && g.members.length).sort((a, b) => a.id.localeCompare(b.id));
 			this.detail.textContent = descriptions[b.state] + ` · ${this.fauna.pebbleTour?.stops ? 'tour stop ' + this.fauna.pebbleTour.stops + ' · ' : ''}${c.group.habitat || 'rocky foothills and gravel shores'}`;
@@ -170,7 +190,7 @@ export class FaunaSurvey {
 			if (this.fauna.profile) this.panel.dataset.performance = JSON.stringify(this.fauna.profile.summary());
 			const sorted = this.frames.sort((a, b) => a - b), n = this.fauna.model.creatures.length;
 			this.readout.textContent = `${n} creatures · ${(1000 / sorted[60]).toFixed(0)} fps`;
-			this.panel.dataset.stats = JSON.stringify({ count: n, p95: sorted[114], voices: this.fauna.audio?.voices.length || 0, population: this.fauna.meshes.root.userData.population });
+			this.panel.dataset.stats = JSON.stringify({ count: n, p95: sorted[114], voices: (this.fauna.audio?.voices.length || 0) + (this.fauna.audio?.pebbles.voices.length || 0), population: this.fauna.meshes.root.userData.population });
 			this.frames = [];
 		}
 	}

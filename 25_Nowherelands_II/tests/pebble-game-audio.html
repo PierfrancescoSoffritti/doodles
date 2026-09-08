@@ -1,0 +1,7 @@
+<!doctype html><meta charset="utf-8"><title>Pebble game audio checks</title>
+<h1>Pebble game audio checks</h1><pre id="result">Rendering the game mixer…</pre>
+<script type="module">
+import {checkLockedGameLayers} from './PebbleGameMixChecks.js?v=3';
+try {result.textContent='PASS '+JSON.stringify(await checkLockedGameLayers());result.dataset.status='pass';}
+catch(e){result.textContent='FAIL '+e.stack;result.dataset.status='fail';}
+</script>

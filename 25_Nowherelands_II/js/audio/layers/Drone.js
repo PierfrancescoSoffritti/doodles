@@ -25,7 +25,10 @@ export class Drone extends Layer {
 		this.filter.type = 'lowpass';
 		this.filter.frequency.value = 500;
 		this.filter.Q.value = 0.9;
-		engine.route(this.filter, { dest: this.out, reverb: 0.55 });
+		// The reverb must follow the drone's layer level, including silence.
+  this.filter.connect(this.out);
+  this.reverbSend=ctx.createGain();this.reverbSend.gain.value=.55;
+  this.out.connect(this.reverbSend);this.reverbSend.connect(engine.reverb);
 
 		this.lfo = ctx.createOscillator();
 		this.lfo.frequency.value = 0.045;

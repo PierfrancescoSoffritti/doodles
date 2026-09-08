@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { setPebbleLight } from '../js/world/fauna/PebbleLighting.js';
-import { FaunaModel } from '../js/world/fauna/FaunaModel.js?v=pebble-expression-2';
-import { PebbleMeshes } from '../js/world/fauna/PebbleMeshes.js?v=pebble-expression-2';
+import { FaunaModel } from '../js/world/fauna/FaunaModel.js?v=pebble-audio-10';
+import { PebbleMeshes } from '../js/world/fauna/PebbleMeshes.js?v=pebble-audio-10';
 import { createFogUniforms } from '../js/world/FogGlsl.js';
 
 // Check the rendered bone endpoint, not just the simulation's intended contact.

@@ -1,4 +1,4 @@
-import { initializePebbles, pebbleHabitat, updatePebble } from './PebbleHoppers.js?v=pebble-expression-2';
+import { initializePebbles, pebbleHabitat, updatePebble } from './PebbleHoppers.js?v=pebble-audio-10';
 import { buildLumenGrid } from './LumenFlow.js';
 import { Random } from '../../core/Random.js';
 import { initializeSchool, updateSchool, swimLumen } from './LumenSchool.js';
@@ -32,7 +32,7 @@ export function habitatScore(kind, s) {
 export class FaunaModel {
 	constructor(seed, environment) {
 		this.seed = seed; this.environment = environment; this.time = 0;
-		this.groups = new Map(); this.creatures = []; this.onCall = () => {}; this.onEscape = () => {};
+		this.groups = new Map(); this.creatures = []; this.onCall = () => {}; this.onEscape = () => {}; this.onPebbleSound = () => {};
 		this.listener = { x: 0, y: 0, z: 0 }; this.activity = 0; this.wind = { x: 0, z: 0 };
 		this.serial = 0;
 	}

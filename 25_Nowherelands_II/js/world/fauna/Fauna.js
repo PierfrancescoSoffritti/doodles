@@ -1,11 +1,12 @@
+import { watchPebbleVolume } from '../../audio/PebbleAudioSettings.js?v=pebble-audio-10';
 import { LumenLight } from './LumenLight.js';
 import { FaunaProfile } from './FaunaProfile.js';
 import { Random } from '../../core/Random.js';
 import { bus, Events } from '../../core/EventBus.js';
-import { FaunaModel, SPECIES } from './FaunaModel.js?v=pebble-expression-2';
-import { FaunaMeshes } from './FaunaMeshes.js?v=pebble-expression-2';
-import { FaunaAudio } from '../../audio/FaunaAudio.js';
-import { pebbleHabitatSites } from './PebbleHabitats.js?v=pebble-expression-2';
+import { FaunaModel, SPECIES } from './FaunaModel.js?v=pebble-audio-10';
+import { FaunaMeshes } from './FaunaMeshes.js?v=pebble-audio-10';
+import { FaunaAudio } from '../../audio/FaunaAudio.js?v=pebble-audio-10';
+import { pebbleHabitatSites } from './PebbleHabitats.js?v=pebble-audio-10';
 import { PebbleColonyTour } from './PebbleColonyTour.js?v=2';
 import { lumenLakes } from './LumenSchool.js';
 
@@ -14,6 +15,7 @@ const CELL = 220, STEP = 1 / 30;
 export class Fauna {
 	constructor(scene, heightmap, shared) {
 		this.shared = shared; this.hm = heightmap; this.accumulator = 0; this.streamTimer = 0; this.cells = new Set(); this.queue = [];
+		this.offVolume=watchPebbleVolume(volume=>{this.pebbleVolume=volume;if(this.audio)this.audio.pebbles.volume=volume;});
 		this.sample = (x, z) => {
 			const ground = heightmap.sample(x, z), water = heightmap._water, slope = heightmap._slope || 0, foam = heightmap._foam || 0, hardness = heightmap._hardness, roof = heightmap.caves?.surfaceDensity(x, ground, z) > -2;
 			const hab = heightmap.habitat(x, z);
@@ -26,7 +28,12 @@ export class Fauna {
 		this.model = new FaunaModel(shared.world.seed || shared.seed || 'nowhere', { sample: this.sample, lakes: this.lakes, avoid: p => this.avoid(p), blocked: (x, z, radius, ground) => this.obstacles.some(o => Math.hypot(x - o.position.x, z - o.position.z) < o.radius + radius && Math.abs(ground - o.position.y) < Math.max(12, o.radius * 2)) });
 		this.meshes = new FaunaMeshes(scene, shared);
 		this.light = new LumenLight(shared);
+		this.model.onPebbleSound = (c,event) => {
+   const surface=(c.group.sample || this.sample)(c.pos.x,c.pos.z);
+   this.audio?.pebble(c,event,{cave:!!surface.cave,listener:shared.player.position});
+  };
 		this.model.onCall = (c, landing) => {
+   if(c.kind==='hopper') {if(!landing)this.model.onPebbleSound(c,'startle');return;}
 			if ((shared.caveAmount || 0) > 0.4) return;
 			this.audio?.call(c, landing);
 			// A physical landing makes a small water ripple only at an actual waterline.
@@ -94,7 +101,7 @@ export class Fauna {
 	update(dt) {
 		const { shared, model } = this;
 		this.profile?.begin();
-		if (shared.audio && !this.audio) this.audio = new FaunaAudio(shared.audio, shared.conductor);
+		if (shared.audio && !this.audio) {this.audio = new FaunaAudio(shared.audio, shared.conductor);this.audio.pebbles.volume=this.pebbleVolume;}
 		model.listener = shared.player.position;
 		model.activity = shared.audio ? shared.audio.analysis.level : 0;
 		this.streamTimer -= dt;
@@ -159,5 +166,5 @@ export class Fauna {
 		const p = this.shared.player.position;
 		return this.model.creatures.filter(c => c.kind === kind).sort((a, b) => Math.hypot(a.pos.x - p.x, a.pos.z - p.z) - Math.hypot(b.pos.x - p.x, b.pos.z - p.z))[0];
 	}
-	dispose() { this.light.dispose(); this.off.forEach(fn => fn()); this.audio?.dispose(); this.meshes.root.removeFromParent(); this.meshes.root.traverse(o => { o.geometry?.dispose(); o.material?.dispose(); }); }
+	dispose() { this.offVolume(); this.light.dispose(); this.off.forEach(fn => fn()); this.audio?.dispose(); this.meshes.root.removeFromParent(); this.meshes.root.traverse(o => { o.geometry?.dispose(); o.material?.dispose(); }); }
 }

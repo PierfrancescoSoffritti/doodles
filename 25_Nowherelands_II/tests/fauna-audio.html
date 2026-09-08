@@ -4,9 +4,9 @@
 <style>body{background:#171322;color:#ded5e9;font:15px/1.6 monospace;padding:32px}pre{white-space:pre-wrap}</style>
 <h1>Fauna audio checks</h1><pre id="result">Rendering three voices…</pre>
 <script type="module">
-import { FaunaAudio } from '../js/audio/FaunaAudio.js';
+import { FaunaAudio } from '../js/audio/FaunaAudio.js?v=pebble-audio-10';
 import { Scale } from '../js/audio/Scale.js';
-import { AudioEngine } from '../js/audio/AudioEngine.js';
+import { AudioEngine } from '../js/audio/AudioEngine.js?v=pebble-audio-10';
 import { checkAlarmMix } from './FaunaMixChecks.js';
 const result = document.querySelector('#result');
 try {
@@ -32,7 +32,7 @@ try {
 			engine.ctx = proxy;
 			const accepted=escape ? audio.escape(creature) : audio.call(creature);
 			if(accepted===(kind==='escape-muted'))throw new Error(kind + ': incorrect mute/voice acceptance');
-			if(ducks!==(escape && accepted?1:0))throw new Error(kind+': rejected or ordinary call changed ambient mix');
+			if(ducks!==((escape || kind==='hopper') && accepted?1:0))throw new Error(kind+': rejected or ordinary call changed ambient mix');
 			await ctx.resume();
 		});
 		const buffer = await ctx.startRendering(); await scheduled;

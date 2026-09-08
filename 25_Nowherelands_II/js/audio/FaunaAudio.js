@@ -1,3 +1,4 @@
+import { PebbleAudio } from './PebbleAudio.js?v=pebble-audio-10';
 // Keep the alarm foreground level separate from ambient creature calls.
 const ESCAPE_LEVEL = 1.85;
 
@@ -14,10 +15,12 @@ export class FaunaAudio {
 		this.engine = engine; this.conductor = conductor; this.voices = []; this.history = [];
 		this.out = engine.ctx.createGain(); this.out.gain.value = 0.85; this.out.connect(engine.layerBus);
 		this.escapeOut = engine.ctx.createGain(); this.escapeOut.gain.value = ESCAPE_LEVEL; this.escapeOut.connect(engine.master);
-		this.muted = false;
+		this.muted = false; this.pebbles = new PebbleAudio(engine);
 	}
+	pebble(creature,event,context) { this.pebbles.muted=this.muted; return this.pebbles.play(creature,event,context); }
 	escape(creature) { return this.call(creature, false, true); }
 	call(creature, landing = false, escape = false) {
+		if(creature.kind==='hopper')return this.pebble(creature,landing?'settle':'startle');
 		const e = this.engine, ctx = e.ctx, spec = escape ? { octave: 2, attack: 0.012, length: 1.6, gain: 0.46 } : VOICES[creature.kind];
 		if (ctx.state !== 'running' || this.muted || this.voices.length >= (escape ? 10 : 8)) return false;
 		if (this.voices.some(v => v.creature === creature && (!escape || v.escape))) return false;
@@ -83,6 +86,7 @@ export class FaunaAudio {
 	}
 	update() {
 		const t = this.engine.now;
+  this.pebbles.muted=this.muted;this.pebbles.update();
 		this.out.gain.setTargetAtTime(this.muted ? 0 : 0.85, t, 0.12);
 		this.escapeOut.gain.setTargetAtTime(this.muted ? 0 : ESCAPE_LEVEL, t, 0.12);
 		for (const v of this.voices) {
@@ -92,6 +96,7 @@ export class FaunaAudio {
 		}
 	}
 	dispose() {
+  this.pebbles.dispose();
 		for (const voice of this.voices) { for (const source of voice.sources) { try { source.stop(); } catch {} } for (const n of voice.nodes) n.disconnect(); }
 		this.voices = []; this.out.disconnect(); this.escapeOut.disconnect();
 	}

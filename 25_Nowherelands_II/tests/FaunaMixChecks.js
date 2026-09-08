@@ -1,7 +1,7 @@
-import { AudioEngine } from '../js/audio/AudioEngine.js';
-import { FaunaAudio } from '../js/audio/FaunaAudio.js';
+import { AudioEngine } from '../js/audio/AudioEngine.js?v=pebble-audio-10';
+import { FaunaAudio } from '../js/audio/FaunaAudio.js?v=pebble-audio-10';
 import { Scale } from '../js/audio/Scale.js';
-import { Drone } from '../js/audio/layers/Drone.js';
+import { Drone } from '../js/audio/layers/Drone.js?v=pebble-audio-10';
 import { Wind } from '../js/audio/layers/Wind.js';
 
 // Exercise the actual drone/wind voices, HRTF positioning and master compressor,

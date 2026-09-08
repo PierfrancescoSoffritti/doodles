@@ -4,8 +4,8 @@ import { createRockMaterial, noiseGlsl } from '../TerrainMaterial.js';
 import { fogGlsl } from '../FogGlsl.js';
 import { faunaGeometry } from './FaunaGeometry.js';
 import { faunaDeformation } from './FaunaDeformation.js';
-import { solveLeg, SPECIES, PEBBLE_DRAW_DISTANCE } from './FaunaModel.js?v=pebble-expression-2';
-import { PebbleEyeMeshes } from './PebbleEyeMeshes.js?v=pebble-expression-2';
+import { solveLeg, SPECIES, PEBBLE_DRAW_DISTANCE } from './FaunaModel.js?v=pebble-audio-10';
+import { PebbleEyeMeshes } from './PebbleEyeMeshes.js?v=pebble-audio-10';
 import { clamp, smooth } from './Locomotion.js';
 
 // Bodies share the scenery's rock lighting; legs retain their darker palette.

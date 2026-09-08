@@ -2,12 +2,12 @@ import { bus, Events } from '../core/EventBus.js';
 import { config } from '../core/Config.js';
 import { Scale } from './Scale.js';
 import { Scheduler } from './Scheduler.js';
-import { Drone } from './layers/Drone.js';
+import { Drone } from './layers/Drone.js?v=pebble-audio-10';
 import { Arpeggio } from './layers/Arpeggio.js';
 import { Bells } from './layers/Bells.js';
 import { Bass } from './layers/Bass.js';
 import { Wind } from './layers/Wind.js';
-import { Shimmer } from './layers/Shimmer.js';
+import { Shimmer } from './layers/Shimmer.js?v=pebble-audio-10';
 import { Pulse } from './layers/Pulse.js';
 import { RainLayer } from './layers/RainLayer.js';
 import { clamp01, smoothstep, damp } from '../core/Utils.js';
@@ -41,11 +41,12 @@ export class Conductor {
 			for (const l of Object.values(this.layers)) l.onStep(step, time, dur, this.scale, this.params);
 		});
 
-		bus.on(Events.DISCOVER, ({ id }) => this.unlock(id));
-		bus.on(Events.TOGGLE_TIME, ({ fast }) => { this.fast = fast; this.scheduler.bpm = config.audio.bpm * (fast ? 2 : 1); });
+		this.off = [bus.on(Events.DISCOVER, ({ id }) => this.unlock(id)),
+			bus.on(Events.TOGGLE_TIME, ({ fast }) => { this.fast = fast; this.scheduler.bpm = config.audio.bpm * (fast ? 2 : 1); })];
 	}
 
 	start() { this.scheduler.start(); }
+	dispose() { this.scheduler.stop(); this.off.forEach(off => off()); }
 
 	randomKeyInterval() { const [a, b] = config.audio.keyChangeEvery; return a + Math.random() * (b - a); }
 

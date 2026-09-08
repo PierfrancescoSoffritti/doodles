@@ -1,4 +1,5 @@
-import { initializePebbleEyes, updatePebbleEyes } from './PebbleEyes.js?v=pebble-expression-2';
+import { updatePebbleSoundEvents } from './PebbleSoundEvents.js';
+import { initializePebbleEyes, updatePebbleEyes } from './PebbleEyes.js?v=pebble-audio-10';
 import { angleDelta, clamp, damp, smooth } from './Locomotion.js';
 
 // World units are roughly five times human scale. The eye is eleven units up;
@@ -216,6 +217,9 @@ function change(c, state) {
 
 function startle(c, model, source) {
 	const b = c.pebble;
+	// Resuming an escape while upright is silent; the cue belongs to waking
+	// from the folded stone pose (including its watchful "notice" state).
+	const wakingFromRest = ['rest', 'notice'].includes(b.state) && b.stand < 0.025;
 	// One alarm wakes the entire colony, including shy or distant members.
 	// Broadcast before route planning so a temporarily blocked animal still
 	// warns its neighbors. A single encounter cannot re-alarm them after hiding.
@@ -240,6 +244,7 @@ function startle(c, model, source) {
 	b.riseFrom = b.stand; b.riseTime = 0.07 + c.temperament * 0.015;
 	b.planAt = model.time + 1; b.escapes++; b.idleTime = -1;
 	change(c, 'rise');
+ if (wakingFromRest) model.onPebbleSound(c,'startle');
 	if (flatDistance(c.pos, model.listener) < 45) model.onCall(c, true);
 }
 
@@ -364,6 +369,7 @@ function advancePebble(c, model, dt, t) {
 			c.feet = null;
 			if (b.returning) { b.reunited = !!b.regroupTarget && flatDistance(c.pos, b.regroupTarget) < 3; b.returning = false; b.regroupAt = t + 0.6; }
 			change(c, notice ? 'notice' : 'rest');
+   model.onPebbleSound(c,'settle');
 			if (dist < 45) model.onCall(c, true);
 		}
 	}
@@ -444,6 +450,7 @@ export function updatePebble(c, model, dt) {
 		if (!previousFeet && c.feet) previousFeet = c.feet.map(f => ({ ...f.prev }));
 	}
 	updatePebbleEyes(c, model, dt);
+ updatePebbleSoundEvents(c,model);
 	c.pebble.prevStand = previousStand;
  c.pebble.prevRunCycle = previousRunCycle;
 	if (c.feet && previousFeet) c.feet.forEach((f, j) => { f.prev = previousFeet[j]; });

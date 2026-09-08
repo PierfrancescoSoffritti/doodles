@@ -4,9 +4,9 @@ import { clamp01, damp } from '../core/Utils.js';
 // Web Audio graph: voices -> layer gains -> master -> compressor -> analyser -> out.
 // Every voice also sends to a shared convolution reverb built from procedurally generated noise.
 export class AudioEngine {
-	constructor() {
-		const Ctx = window.AudioContext || window.webkitAudioContext;
-		this.ctx = new Ctx({ latencyHint: 'interactive' });
+	constructor(context = null, random = Math.random) {
+  this.random = random;
+		this.ctx = context || new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
 		const ctx = this.ctx;
 
 		this.master = ctx.createGain();
@@ -59,7 +59,7 @@ export class AudioEngine {
 		this.recorder = null;
 		this.recordDest = null;
 
-		bus.on(Events.NOTE, (n) => { this.noteEnv = Math.min(1, this.noteEnv + (n.velocity || 0.3) * 1.2); });
+		this.offNote = bus.on(Events.NOTE, (n) => { this.noteEnv = Math.min(1, this.noteEnv + (n.velocity || 0.3) * 1.2); });
 	}
 
 	get now() { return this.ctx.currentTime; }
@@ -77,8 +77,7 @@ export class AudioEngine {
 	}
 
 	// Make room for a player sound: dip the ambient layers, then let them swell back.
-	duck(amount = 0.4, seconds = 1.4) {
-		const t = this.now;
+	duck(amount = 0.4, seconds = 1.4, t = this.now) {
 		const g = this.layerBus.gain;
 		g.cancelScheduledValues(t);
 		g.setValueAtTime(g.value, t);
@@ -96,7 +95,7 @@ export class AudioEngine {
 			for (let i = 0; i < len; i++) {
 				const t = i / len;
 				const env = Math.pow(1 - t, decay) * (i < pre ? i / pre : 1);
-				lp = lp * 0.72 + (Math.random() * 2 - 1) * 0.28;
+				lp = lp * 0.72 + (this.random() * 2 - 1) * 0.28;
 				d[i] = lp * env * (1 + 0.3 * Math.sin(i * 0.0007 + c));
 			}
 		}
@@ -107,7 +106,7 @@ export class AudioEngine {
 		const rate = this.ctx.sampleRate, len = Math.floor(rate * seconds);
 		const buffer = this.ctx.createBuffer(1, len, rate);
 		const d = buffer.getChannelData(0);
-		for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+		for (let i = 0; i < len; i++) d[i] = this.random() * 2 - 1;
 		return buffer;
 	}
 

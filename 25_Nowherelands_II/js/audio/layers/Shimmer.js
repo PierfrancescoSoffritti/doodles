@@ -15,7 +15,13 @@ export class Shimmer extends Layer {
 		this.lfo.connect(this.lfoGain);
 		this.lfoGain.connect(this.trem.gain);
 		this.lfo.start();
-		engine.route(this.trem, { dest: this.out, reverb: 0.9, delay: 0.3 });
+		// Apply the layer's lock/volume before either effect send. Oscillators run
+		// continuously, so pre-fader sends otherwise sound even at zero volume.
+		this.trem.connect(this.out);
+		this.reverbSend=ctx.createGain();this.reverbSend.gain.value=.9;
+		this.delaySend=ctx.createGain();this.delaySend.gain.value=.3;
+		this.out.connect(this.reverbSend);this.reverbSend.connect(engine.reverb);
+		this.out.connect(this.delaySend);this.delaySend.connect(engine.delay);
 
 		this.oscs = [];
 		const chord = scale.chordDegrees();

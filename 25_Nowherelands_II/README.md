@@ -41,6 +41,14 @@ Lake coverage follows the connected drainage basin and its full submerged inlet 
 
 Run the river checks with `node --test 25_Nowherelands_II/tests/world/*Test.js 25_Nowherelands_II/tests/world/gen/*Test.js` from the repository root.
 
+## Pebble sound calibration
+
+Open `pebble-sound.html` on the local server for a repeatable seven-second encounter. Compare hillside, cave and stream mixes at 20, 55 and 120 units, with one or six creatures. The player-tone button provides an existing in-game loudness reference; solo playback, meters and WAV export help compare changes. The volume slider updates already-open study and game tabs through local storage (on the same server origin). The field guide’s **Sound diagnostics** shows context/mute state, the last event and the measured encounter peak; **Approach the stones** resets that peak.
+
+Expand **Audibility checks** to render 23 deterministic cases through the production audio graph. These cover distance falloff, background masking, cave reverb, startup, muting, ambient ducking and colony headroom. An additional regression checks that the complete game mixer is silent with its layer gains at zero, including reverb and delay. The study constructs all game layers and uses representative drone, wind and water levels; listening in the world remains necessary for other music/weather combinations and different speakers. Run event and waveform checks with `node --test 25_Nowherelands_II/tests/audio/*Test.js` from the repository root. The existing `tests/fauna-audio.html` checks the other fauna voices too.
+
+Pebble sounds use a dedicated volume path outside ambient ducking, with up to 16 simultaneous sources and four slots reserved for prominent events. Prebuilt samples cover startles, movement, settling, occasional stalk creaks and water crossings. Size shifts pitch, caves add a spatially attenuated tail, and footsteps follow actual movement cadence. Blinking stays silent. Tune sample character in `js/audio/PebbleSoundBank.js`, gain/range there, and spatial routing/headroom in `js/audio/PebbleAudio.js`; rerun the same listening fixture after changes.
+
 ## What reacts to what
 
 - **World to music.** Altitude opens the filter, walking speed raises note density, stillness thins everything back to the drone. Snow adds wind and shimmer. The moon's height picks the mode at each key change: lydian high, aeolian low.
