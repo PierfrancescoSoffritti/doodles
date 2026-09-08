@@ -5,7 +5,7 @@ import { damp } from './core/Utils.js';
 import { Heightmap } from './world/Heightmap.js';
 import { Ripples } from './world/Ripples.js';
 import { ShoreMap } from './world/ShoreMap.js';
-import { Terrain } from './world/Terrain.js';
+import { Terrain } from './world/Terrain.js?v=birds-9';
 import { Water } from './world/Water.js';
 import { CoastalSpray } from './world/CoastalSpray.js';
 import { InlandWater } from './world/InlandWater.js';
@@ -36,6 +36,8 @@ import { PostProcessing } from './fx/PostProcessing.js';
 import { AudioEngine } from './audio/AudioEngine.js?v=pebble-audio-10';
 import { Conductor } from './audio/Conductor.js?v=pebble-audio-10';
 import { Fauna } from './world/fauna/Fauna.js?v=pebble-audio-10';
+import { WorldBirds } from './world/fauna/WorldBirds.js?v=birds-9';
+import { BirdSurvey } from './ui/BirdSurvey.js?v=birds-9';
 import { FaunaSurvey } from './ui/FaunaSurvey.js?v=pebble-audio-10';
 
 const canvas = document.getElementById('canvas');
@@ -112,6 +114,8 @@ function start(world,caveMeshes) {
 	shared.player = player;
 	const fauna = new Fauna(scene, heightmap, shared);
 	shared.fauna = fauna;
+	const birds = new WorldBirds(scene,heightmap,shared,terrain.vegetation,config.seedHash);
+	shared.birds = birds;
 	const landmarks = new Landmarks(scene, heightmap, shared, camera);
 	landmarks.addFireflies(fireflies);
 	const director = new EventDirector(shared);
@@ -139,12 +143,14 @@ function start(world,caveMeshes) {
 	shoreMap.prime(player.position);
 	terrain.prewarm(player.position);
 	fauna.prime(player.position, config.seed);
+	birds.prime();
 	hud.ready();
 	const weatherSurvey=new URLSearchParams(location.search).has('weather') ? new WeatherSurvey(shared, sky) : null;
 	const caveSurvey=!weatherSurvey && new URLSearchParams(location.search).has('caves') ? new CaveSurvey(shared) : null;
 	const survey = !weatherSurvey && !caveSurvey && new URLSearchParams(location.search).has('rivers') ? new RiverSurvey(shared, terrain) : null;
 	const profile = survey && new URLSearchParams(location.search).has('profile') ? new MovementProfile(shared, survey, { terrain, inland, shoreMap, pmrem, watersideLife, post }) : null;
-	const faunaSurvey = new URLSearchParams(location.search).has('fauna') ? new FaunaSurvey(shared, fauna) : null;
+	const birdSurvey = new URLSearchParams(location.search).has('birds') ? new BirdSurvey(shared,birds) : null;
+	const faunaSurvey = !birdSurvey && new URLSearchParams(location.search).has('fauna') ? new FaunaSurvey(shared, fauna) : null;
 
 	// ---- enter ----
 	let started = false;
@@ -190,6 +196,7 @@ function start(world,caveMeshes) {
 		profile?.begin(now, now - previousFrame);
 		caveSurvey?.guide(now);
 		faunaSurvey?.guide(dt);
+		birdSurvey?.guide(dt);
 		player.update(dt, t);
 		caves.update(t,player.position);
 		atmosphere.update(worldDt, dt, camera.position);
@@ -222,6 +229,7 @@ function start(world,caveMeshes) {
 			shared.conductor.update(dt, shared);
 		}
 		fauna.update(dt);
+		birds.update(dt);
 
 		// fog: valley haze thickens with weather; far ranges fade to a tone darker than the sky
 		const weather = 1 + 0.9 * (shared.state.rainVisible || 0) + 0.5 * (shared.state.snowVisible || 0) + 0.9 * (shared.state.storm || 0) * atmosphere.exposure;
@@ -259,7 +267,7 @@ function start(world,caveMeshes) {
 			envTimer = 5;
 			water.setVisible(false);
 			const old = envTarget;
-			const hidden = [inland.mesh, inland.near, drift.points, watersideLife.points, fauna.meshes.root, ...caves.waterMeshes].filter(Boolean).map(mesh => [mesh, mesh.visible]);
+			const hidden = [inland.mesh, inland.near, drift.points, watersideLife.points, fauna.meshes.root, birds.root, ...caves.waterMeshes].filter(Boolean).map(mesh => [mesh, mesh.visible]);
 			for (const [mesh] of hidden) mesh.visible = false;
 			envTarget = pmrem.fromScene(scene, 0.02, 1, config.world.far, { size: 128, position: camera.position });
 			for (const [mesh, visible] of hidden) mesh.visible = visible;
@@ -301,8 +309,9 @@ function start(world,caveMeshes) {
 		weatherSurvey?.update(now-previousFrame);
 		if (survey) survey.update(now - previousFrame);
 		faunaSurvey?.update(now - previousFrame);
+		birdSurvey?.update();
 		profile?.end();
 	}
-	window.__debug = { atmosphere, sky, snow, rain, hail, scene, renderer, camera, shared, post, terrain, player, landmarksList: landmarks.list, director, shoreMap, water, inland, waterfalls, drift, heightmap, world, coastalSpray, fauna, faunaSurvey };
+	window.__debug = { atmosphere, sky, snow, rain, hail, scene, renderer, camera, shared, post, terrain, player, landmarksList: landmarks.list, director, shoreMap, water, inland, waterfalls, drift, heightmap, world, coastalSpray, fauna, faunaSurvey, birds, birdSurvey };
 	frame();
 }

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+ <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <meta name="theme-color" content="#dddcd2"><title>Nowherelands · Ground to branch</title>
+ <style>
+  *{box-sizing:border-box}body{margin:0;background:#dddcd2;color:#323c39;font:13px/1.5 system-ui,-apple-system,sans-serif;overflow:hidden}canvas{display:block;width:100%;height:100dvh;touch-action:none}header{position:absolute;top:36px;left:40px;pointer-events:none;max-width:310px}small{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#68716a}h1{font:400 38px/1.12 Georgia,serif;letter-spacing:-.035em;margin:15px 0 12px}header p{color:#6c756e;max-width:250px;font-size:13px}a{color:inherit;text-decoration:none}a:hover{text-decoration:underline}.back{position:absolute;right:36px;top:37px;font-size:12px;color:#677068}.dock{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);width:min(760px,calc(100% - 48px));padding:20px 24px 16px;border:1px solid #ffffff80;border-radius:16px;background:#f4f3ebdf;box-shadow:0 8px 35px #26332510;backdrop-filter:blur(18px)}.topline,.actions,.transport{display:flex;align-items:center;gap:9px}.topline{justify-content:space-between;margin-bottom:15px}.state{font:20px Georgia,serif;margin-right:12px}#description{font-size:12px;color:#737a70}.actions{flex-wrap:wrap}button,select{font:inherit;color:inherit;cursor:pointer;border:1px solid #68776a30;background:transparent;border-radius:7px;padding:8px 12px}button:hover,select:hover{background:#dbe0d580}button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid #6e8464;outline-offset:3px}button.primary{background:#36493e;color:#f4f4e9;border-color:#36493e}button.primary:hover{background:#485e50}button[aria-pressed=true]{background:#dce4d4;border-color:#8c9d81}button:disabled{opacity:.45;cursor:default}.transport{margin-left:auto}label{font-size:11px;color:#717b70}select{padding:8px;max-width:110px}input[type=range]{width:100%;height:3px;accent-color:#526c50;cursor:pointer;display:block;margin:22px 0 10px}.ticks{display:flex;justify-content:space-between;color:#899080;font-size:10px;letter-spacing:.02em}.hint{position:absolute;right:35px;bottom:220px;color:#7c8578;font-size:11px}.error{position:absolute;inset:35% 20%;background:#f4f3eb;padding:25px;z-index:5;border:1px solid #96746a;border-radius:12px}.error[hidden]{display:none}@media(max-width:650px){header{top:22px;left:24px}h1{font-size:29px;margin-top:10px}header p{max-width:185px;font-size:12px}.back{top:25px;right:24px;font-size:11px}.dock{bottom:16px;padding:15px;width:calc(100% - 28px)}.actions{gap:6px}.transport{margin-left:0;gap:6px}button,select{padding:7px 9px;font-size:12px}.topline{margin-bottom:12px}.state{font-size:19px}#description{max-width:150px;text-align:right;font-size:11px}.hint{right:22px;bottom:235px;font-size:10px}.ticks{font-size:9px}}@media(max-height:550px){header{top:15px;left:20px}h1{font-size:26px}header p{display:none}.dock{bottom:10px;padding:10px 16px}.topline{margin-bottom:8px}input[type=range]{margin-top:12px}.hint{display:none}}
+ </style>
+ <script type="importmap">{"imports":{"three":"../common/libs/three-0.185/build/three.module.min.js","three/addons/":"../common/libs/three-0.185/examples/jsm/"}}</script>
+</head>
+<body>
+ <canvas id="canvas" aria-label="A small charcoal bird in a quiet clearing beside a bare tree"></canvas>
+ <header><small>Nowherelands / Foldwing / 01</small><h1>Ground to branch.</h1><p>A watchful bird. A few wingbeats.<br>A place to settle.</p><p><a href="./?seed=umbra&amp;birds=1">See both in the game ↗</a></p></header>
+ <a class="back" href="./bird-sprites.html">2D silhouettes ↗</a>
+ <span class="hint">Drag to look around · Scroll to move closer</span>
+ <section class="dock" aria-label="Bird encounter controls">
+  <div class="topline"><output class="state" id="state" aria-live="polite">Watchful</output><span id="description">Resting in the clearing</span></div>
+  <div class="actions">
+   <button class="primary" id="start">Startle bird</button><button id="replay">Replay</button>
+   <div class="transport"><button id="pause" aria-label="Pause animation">Pause</button><button id="slow" aria-pressed="false">¼ speed</button><label for="view">View</label><select id="view"><option value="encounter">Clearing</option><option value="follow">Follow bird</option><option value="side">Side</option><option value="front">Front</option><option value="top">Above</option></select></div>
+  </div>
+  <input type="range" id="timeline" aria-label="Journey progress" min="0" max="6" step="0.005" value="0">
+  <div class="ticks"><span>Watchful</span><span>Takeoff</span><span>Flight & glide</span><span>Landing</span><span>Settled</span></div>
+ </section>
+ <div class="error" id="error" role="alert" hidden></div>
+ <script type="module">
+  import('./js/bird-study.js?v=birds-9').catch(error=>{const panel=document.getElementById('error');panel.hidden=false;panel.textContent='The bird study could not load: '+error.message;document.body.dataset.status='fail';console.error(error);});
+ </script>
+</body>
+</html>

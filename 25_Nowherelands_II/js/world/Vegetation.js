@@ -32,7 +32,7 @@ const KINDS = {
 // One recursive tree, shaped by its options: trunk and radius ranges, how many branches per node,
 // how wide they spread, how much they reach back up, how fast they shrink, a lean and a wind bias.
 function buildTree(rnd, o) {
-	const parts = [];
+	const parts = [], perches = [];
 	const up = new THREE.Vector3(0, 1, 0);
 	const wind = new THREE.Vector3(1, 0.15, 0).normalize();
 	function branch(origin, dir, length, radius, depth) {
@@ -41,6 +41,11 @@ function buildTree(rnd, o) {
 		geom.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(up, dir.clone().normalize()));
 		geom.translate(origin.x, origin.y, origin.z);
 		parts.push(geom);
+		if (depth < o.depth && dir.y < .82 && radius > .12 && perches.length < 96) {
+			const point = origin.clone().addScaledVector(dir, length * .65);
+			point.y += radius * (1 - (1-o.taper)*.65);
+			perches.push(point.toArray());
+		}
 		if (depth === 0) return;
 		const end = origin.clone().addScaledVector(dir, length);
 		const n = rnd.int(o.n[0], depth > 2 && o.nDeep ? o.nDeep : o.n[1]);
@@ -61,6 +66,7 @@ function buildTree(rnd, o) {
 	}
 	const merged = mergeGeometries(parts, false);
 	merged.computeVertexNormals();
+	merged.userData.birdPerches = perches;
 	return merged;
 }
 
@@ -805,6 +811,18 @@ export class Vegetation {
 			place(it, p, q, s, rnd, yAxis);
 			mesh.setMatrixAt(i, m.compose(p, q, s));
 			born[i] = it.born !== undefined ? it.born : (rnd.next() < KINDS[kind].preborn ? this.time + rnd.range(0, 0.8) : UNBORN);
+			if (kind === 'tree' && geometry.userData.birdPerches?.length) {
+                chunk.birdPerches ||= [];
+                const treeId=`${it.x.toFixed(3)},${it.z.toFixed(3)}`, seats=[];
+                const choices=geometry.userData.birdPerches.map(point=>{
+                    const local=new THREE.Vector3(...point);return {local,world:local.clone().applyMatrix4(m)};
+                }).filter(q=>q.world.y-it.y>5&&q.world.y-it.y<65).sort((a,b)=>a.world.y-b.world.y);
+                for(const {local,world} of choices){
+                    if(seats.some(q=>q.position.distanceTo(world)<3.8))continue;
+                    const seat={local,matrix:m.clone(),position:world,born,index:i,chunk,treeId,trunk:{x:it.x,z:it.z}};
+                    seats.push(seat);chunk.birdPerches.push(seat);if(seats.length===6)break;
+                }
+            }
 			pos.push(it.x, it.z);
 		});
 		geom.setAttribute('aBorn', new THREE.InstancedBufferAttribute(born, 1));
@@ -1080,6 +1098,18 @@ export class Vegetation {
 		this.chunks.set(key, chunk);
 		this.refreshFar(this.farKey(Math.floor(cx / 2), Math.floor(cz / 2)));
 	}
+
+    // Mirror the mature tree shader's wind deformation for planted bird feet.
+    birdPerchPosition(perch) {
+        const p=perch.local.clone(),m=perch.matrix.elements,u=this.uniformSets[0];
+        const t=u.uTime.value,ph=m[12]*.05+m[14]*.07,wind=u.uWindDirection.value;
+        const sx=Math.hypot(m[0],m[1],m[2]),sz=Math.hypot(m[8],m[9],m[10]);
+        const dx=(wind.x*m[0]+wind.y*m[2])/sx,dz=(wind.x*m[8]+wind.y*m[10])/sz;
+        const hw=Math.min(1,Math.max(0,p.y/TREE_HEIGHT))**2,bend=Math.min(2.5*u.uWind.value,TREE_HEIGHT*.17);
+        const sway=Math.sin(t*.8+ph)*.3+Math.sin(t*2.3+ph*1.7)*.16,cross=Math.cos(t*1.6+ph*1.3)*.18;
+        p.x+=(dx*(.8+sway)-dz*cross)*hw*bend;p.z+=(dz*(.8+sway)+dx*cross)*hw*bend;
+        return p.applyMatrix4(perch.matrix);
+    }
 
 	removeChunk(key) {
 		const chunk = this.chunks.get(key);
