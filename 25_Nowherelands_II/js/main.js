@@ -39,6 +39,8 @@ import { PostProcessing } from './fx/PostProcessing.js';
 import { AudioEngine } from './audio/AudioEngine.js?v=pebble-audio-10';
 import { Conductor } from './audio/Conductor.js?v=pebble-audio-10';
 import { Fauna } from './world/fauna/Fauna.js?v=pebble-audio-10';
+import { WorldReedWalkers } from './world/fauna/WorldReedWalkers.js?v=world-2';
+import { ReedSurvey } from './ui/ReedSurvey.js?v=world-1';
 import { WorldBirds } from './world/fauna/WorldBirds.js?v=birds-10';
 import { BirdSurvey } from './ui/BirdSurvey.js?v=birds-10';
 import { FaunaSurvey } from './ui/FaunaSurvey.js?v=pebble-audio-10';
@@ -121,13 +123,14 @@ function start(world,caveMeshes) {
 	shared.fauna = fauna;
 	const birds = new WorldBirds(scene,heightmap,shared,terrain.vegetation,config.seedHash);
 	shared.birds = birds;
+	const walkers = new WorldReedWalkers(scene,heightmap,shared,fauna); shared.walkers=walkers;
 	const landmarks = new Landmarks(scene, heightmap, shared, camera);
 	landmarks.addFireflies(fireflies);
 	const director = new EventDirector(shared);
 	const post = new PostProcessing(renderer, scene, camera);
 	const pmrem = new THREE.PMREMGenerator(renderer);
 	const environment = new EnvironmentProbe(renderer, scene, camera, shared, pmrem,
-		() => [water.far, ...water.levels, inland.mesh, inland.near, drift.points, watersideLife.points, fauna.meshes.root, birds.root, ...caves.waterMeshes],
+		() => [water.far, ...water.levels, inland.mesh, inland.near, drift.points, watersideLife.points, fauna.meshes.root, birds.root, walkers.root, ...caves.waterMeshes],
 		(target) => {
 			scene.environment = target.texture; scene.environmentIntensity = .55;
 			const image = target.texture.image;
@@ -157,13 +160,15 @@ function start(world,caveMeshes) {
 	terrain.prewarm(player.position);
 	fauna.prime(player.position, config.seed);
 	birds.prime();
+	walkers.update(0);
 	hud.ready();
 	const weatherSurvey=new URLSearchParams(location.search).has('weather') ? new WeatherSurvey(shared, sky) : null;
 	const caveSurvey=!weatherSurvey && new URLSearchParams(location.search).has('caves') ? new CaveSurvey(shared) : null;
 	const survey = !weatherSurvey && !caveSurvey && new URLSearchParams(location.search).has('rivers') ? new RiverSurvey(shared, terrain) : null;
 	const profile = survey && new URLSearchParams(location.search).has('profile') ? new MovementProfile(shared, survey, { terrain, inland, shoreMap, pmrem, watersideLife, post }) : null;
 	const birdSurvey = new URLSearchParams(location.search).has('birds') ? new BirdSurvey(shared,birds) : null;
-	const faunaSurvey = !birdSurvey && new URLSearchParams(location.search).has('fauna') ? new FaunaSurvey(shared, fauna) : null;
+	const reedSurvey = new URLSearchParams(location.search).has('reeds') ? new ReedSurvey(shared,walkers) : null;
+	const faunaSurvey = !reedSurvey && !birdSurvey && new URLSearchParams(location.search).has('fauna') ? new FaunaSurvey(shared, fauna) : null;
 
 	// ---- enter ----
 	let started = false;
@@ -214,6 +219,7 @@ function start(world,caveMeshes) {
 		profile?.begin(now, now - previousFrame);
 		caveSurvey?.guide(now);
 		faunaSurvey?.guide(dt);
+		reedSurvey?.guide(dt);
 		birdSurvey?.guide(dt);
 		player.update(dt, t);
 		caves.update(t,player.position);
@@ -248,6 +254,7 @@ function start(world,caveMeshes) {
 		}
 		fauna.update(dt);
 		birds.update(dt);
+		walkers.update(dt);
 
 		// fog: valley haze thickens with weather; far ranges fade to a tone darker than the sky
 		const weather = 1 + 0.9 * (shared.state.rainVisible || 0) + 0.5 * (shared.state.snowVisible || 0) + 0.9 * (shared.state.storm || 0) * atmosphere.exposure;
@@ -309,9 +316,10 @@ function start(world,caveMeshes) {
 		weatherSurvey?.update(now-previousFrame);
 		if (survey) survey.update(now - previousFrame);
 		faunaSurvey?.update(now - previousFrame);
+		reedSurvey?.update();
 		birdSurvey?.update();
 		profile?.end();
 	}
-	window.__debug = { environment, pacer, hud, atmosphere, sky, snow, rain, hail, scene, renderer, camera, shared, post, terrain, player, landmarksList: landmarks.list, director, shoreMap, water, inland, waterfalls, drift, heightmap, world, coastalSpray, fauna, faunaSurvey, birds, birdSurvey };
+	window.__debug = { environment, pacer, hud, atmosphere, sky, snow, rain, hail, scene, renderer, camera, shared, post, terrain, player, landmarksList: landmarks.list, director, shoreMap, water, inland, waterfalls, drift, heightmap, world, coastalSpray, fauna, faunaSurvey, birds, birdSurvey, walkers, reedSurvey };
 	frame();
 }
