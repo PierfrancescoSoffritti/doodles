@@ -29,7 +29,7 @@ export function createReedAudioScene(ctx, { background = 'river', startup = fals
   [0, 2, 4, 1, 3, 0].forEach((degree, i) => engine.playTone({ freq: scale.freq(degree, 0), time: at + i * .72, duration: .35, velocity: .2, type: 'triangle', detune: 5, attack: .02, release: 1.1, cutoff: 1700, cutoffEnv: 2.5, reverb: .6, delay: .35, dest: layers.arpeggio.out, layer: 'arpeggio', octaveLayer: .25 }));
   engine.playBell({ freq: scale.freq(2, 1), time: at + 1, velocity: .1, decay: 3, dest: layers.bells.out, reverb: .6, delay: .2 });
  }
- return { engine, audio, listener, phrase,
+ return { engine, conductor, audio, listener, phrase,
   dispose() { audio.dispose(); conductor.dispose(); engine.offNote?.(); if (ctx.close) return ctx.close().catch(() => {}); },
  };
 }

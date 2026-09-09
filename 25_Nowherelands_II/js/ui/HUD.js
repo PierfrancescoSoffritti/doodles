@@ -33,6 +33,12 @@ export class HUD {
 		});
 		label.append(select); document.getElementById('corner').append(label);
 
+		const atelierURL = './fauna-atelier.html?species=reed&seed=' + encodeURIComponent(config.seed);
+		for (const parent of [document.getElementById('corner'), this.intro.querySelector('.intro-inner')]) {
+			const link = document.createElement('a'); link.href = atelierURL; link.textContent = 'fauna atelier ↗'; link.className = 'atelier-link';
+			link.addEventListener('click', e => e.stopPropagation()); parent.append(link);
+		}
+
 		this.seed.textContent = 'seed · ' + config.seed;
 		this.seed.href = '?seed=' + encodeURIComponent(config.seed);
 		if (config.isTouch) document.body.classList.add('touch');

@@ -3,9 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Reed walkers · Character study</title>
-<style>
-:root{color-scheme:light;--paper:#e9e9df;--ink:#303c37;--muted:#6b776c;--line:#b7bfb1;--accent:#455c44}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.6 system-ui,sans-serif}button,select,input{font:inherit}button,select{color:inherit;cursor:pointer}button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:4px}header{position:absolute;left:40px;top:28px;z-index:2;pointer-events:none}header small,.eyebrow{font-size:10px;letter-spacing:.16em;text-transform:uppercase}h1{font:normal clamp(36px,4.4vw,64px)/1.05 Georgia,serif;letter-spacing:-.045em;margin:14px 0}header p{margin:0;max-width:315px;color:var(--muted)}.stage{position:relative;height:100dvh;width:calc(100% - 370px);min-height:640px}canvas{width:100%;height:100%;display:block;touch-action:none}.caption{position:absolute;left:40px;bottom:104px;pointer-events:none}.caption h2{font:normal 23px Georgia,serif;margin:8px 0}.caption p{color:var(--muted);margin:0;font-size:12px}.transport{position:absolute;left:40px;right:40px;bottom:34px;display:flex;gap:6px;align-items:center;border-top:1px solid var(--line);padding-top:15px}.transport button{border:0;background:transparent;padding:7px 12px;border-radius:5px;font-size:12px}.transport button[aria-pressed=true]{background:var(--ink);color:var(--paper)}.transport .spacer{flex:1}aside{position:absolute;right:0;top:0;width:370px;height:100dvh;overflow:auto;border-left:1px solid var(--line);padding:31px 27px;background:#eeeee6}a{color:inherit}aside>.eyebrow{display:flex;justify-content:space-between}aside h2{font:normal 27px/1.2 Georgia,serif;margin:19px 0 12px}.lede{color:var(--muted);font-size:13px}.tabs{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--line);margin:25px 0 20px}.tabs button{background:none;border:0;border-bottom:2px solid transparent;padding:10px 2px;font-size:12px}.tabs button[aria-selected=true]{border-color:var(--ink);font-weight:600}.panel[hidden],.field[hidden]{display:none}.field{display:block;margin:18px 0}.field>span{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px}select{width:100%;border:1px solid var(--line);background:transparent;border-radius:5px;padding:10px}p{margin:12px 0}h3{font-size:12px;margin:24px 0 8px}.note{font-size:12px;color:var(--muted)}.fact{border-top:1px solid var(--line);padding:12px 0}.fact strong{display:block;font-size:12px;font-weight:600}.fact p{font-size:12px;color:var(--muted);margin:4px 0}.action{width:100%;text-align:left;border:1px solid var(--line);background:transparent;border-radius:5px;padding:11px 12px;margin:4px 0}.action:hover{background:#dce1d3}.action small{display:block;color:var(--muted);font-size:11px}.action:disabled{opacity:.5;cursor:wait}.footer{border-top:1px solid var(--line);margin-top:24px;padding-top:16px;font-size:11px;color:var(--muted)}#sound-status{display:block;font-size:12px;color:var(--muted);min-height:3em;margin-top:12px}#error{position:fixed;z-index:10;inset:30%;padding:25px;background:#fff3e5;color:#772b1c}#error[hidden]{display:none}input[type=range]{width:100%;accent-color:var(--accent)}@media(max-width:850px){.stage{width:100%;height:68dvh;min-height:550px}aside{position:relative;width:100%;height:auto;border-left:0;border-top:1px solid var(--line)}header{left:24px;top:23px}header p{max-width:240px}.caption{left:24px;bottom:96px}.transport{left:20px;right:20px;flex-wrap:wrap;bottom:22px}.transport button{padding:6px 8px}.transport .spacer{display:none}aside{padding:26px 24px}.tabs{max-width:480px}}
-</style>
+<link rel="stylesheet" href="./css/fauna-atelier.css?v=1">
 <script type="importmap">{"imports":{"three":"../common/libs/three-0.185/build/three.module.min.js","three/addons/":"../common/libs/three-0.185/examples/jsm/"}}</script>
 </head>
 <body>
@@ -16,7 +14,8 @@
 <div class="transport" aria-label="Creature gestures"><button data-gesture="stand" aria-pressed="true">Rest</button><button data-gesture="graze" aria-pressed="false">Graze</button><button data-gesture="step" aria-pressed="false">One slow stride</button><span class="spacer"></span><button id="pause" aria-pressed="false">Pause</button><button id="reset-view">Reset view</button></div>
 </main>
 <aside>
-<div class="eyebrow"><span>Character study · v01</span><a href="./?fauna=1">World ↗</a></div>
+<div class="eyebrow"><span>Character study · v01</span><a id="world-link" href="./?reeds=1">World ↗</a></div>
+<label class="field atelier-nav"><span>Explore the atelier</span><select id="atelier-species" aria-label="Fauna species"></select></label>
 <h2>In its own time.</h2><p class="lede">Peaceful, ancient, unreadable.<br>A small family with nowhere else to be.</p>
 <div class="tabs" role="tablist" aria-label="Character dimensions"><button role="tab" id="tab-form" aria-controls="panel-form" aria-selected="true" data-tab="form">01 Form</button><button role="tab" id="tab-voice" aria-controls="panel-voice" aria-selected="false" tabindex="-1" data-tab="voice">02 Voice</button><button role="tab" id="tab-home" aria-controls="panel-home" aria-selected="false" tabindex="-1" data-tab="home">03 Home</button><button role="tab" id="tab-life" aria-controls="panel-life" aria-selected="false" tabindex="-1" data-tab="life">04 Traits</button></div>
 <section class="panel" id="panel-form" role="tabpanel" aria-labelledby="tab-form">
@@ -31,7 +30,7 @@
 <label class="field" id="sex-field"><span>Sex</span><select id="sex"><option value="male">Male · tusked</option><option value="female">Female · smooth-faced</option></select></label>
 <button class="action" id="individual">Another individual <small>Different proportions, wear and voice</small></button>
 <label class="field"><span>Light</span><select id="light"><option value="day">Overcast · inspect the form</option><option value="night">Moonlight · inspect the silhouette</option></select></label>
-<p class="note">The feeding anatomy is a proposal: a small underside opening touches the water as the body lowers between bent legs.</p>
+<p class="note">Feeding anatomy: a small underside opening touches the water as the body lowers between bent legs.</p>
 </section>
 <section class="panel" id="panel-voice" role="tabpanel" aria-labelledby="tab-voice" hidden>
 <p class="note">Compare each sound against the game’s music, wind and water. Nearby calls gently make room in the background.</p>
@@ -53,18 +52,18 @@
 <div class="fact"><strong>A slow, edible river</strong><p>Shallow fresh water, submerged plants and reliable footing. Quiet backwaters and broad vegetated banks.</p></div>
 <div class="fact"><strong>A familiar grazing route</strong><p>The family returns to the same patches. Finding the same family again should feel like visiting old neighbors.</p></div>
 <div class="fact"><strong>Together, without ceremony</strong><p>Two parents and one or two youngsters graze several paces apart. The youngsters stay near the adults; each animal keeps its own slow rhythm.</p></div>
-<p class="note">The diorama illustrates habitat intent. World spawning and routes are not part of this first posture study.</p>
+<p class="note">In the world, families inhabit shallow fresh water with safe footing. Each animal follows its own grazing rhythm within a shared river patch.</p>
 </section>
 <section class="panel" id="panel-life" role="tabpanel" aria-labelledby="tab-life" hidden>
 <div class="fact"><strong>Contentment, not vigilance</strong><p>Like a very old elephant: it has a routine, and your arrival rarely changes it.</p></div>
 <div class="fact"><strong>Weight before movement</strong><p>One foot lifts, reaches and settles. Then the body follows. Long pauses between mouthfuls.</p></div>
-<div class="fact"><strong>Almost indifferent</strong><p>Proposed encounter: it gradually walks around you. A touch earns a slow weight shift or low rumble.</p></div>
+<div class="fact"><strong>Almost indifferent</strong><p>It gradually changes course around a nearby visitor, keeping its unhurried rhythm.</p></div>
 <div class="fact"><strong>Family resemblance</strong><p>Males have broader, flatter husks, cool earthy colors and gently curved tusks. Females have warmer colors and an arched back. Youngsters are paler and rounder, with shorter steps; young males grow small tusks.</p></div>
 <div class="fact"><strong>A lifetime on its surface</strong><p>Softened edges, pale wear and slight asymmetry. Older, larger individuals have deeper voices.</p></div>
 <div class="fact"><strong>A small family</strong><p>A father and mother share familiar river margins with one or two youngsters. Each has room to graze; the youngsters follow a little later. Affection shows through proximity and quiet contact rumbles.</p></div>
 <div class="fact"><strong>The mystery stays</strong><p>Its feeding is understandable. Its senses, age and thoughts are harder to place.</p></div>
 </section>
-<div class="footer">A first gesture to judge together.<br>Drag to orbit · Scroll to approach.<br><a href="./docs/fauna/REED_WALKERS.md">Character brief ↗</a></div>
+<div class="footer">A living character to study together.<br>Drag to orbit · Scroll to approach.<br><a href="./docs/fauna/REED_WALKERS.md">Character brief ↗</a></div>
 </aside><div id="error" role="alert" hidden></div>
-<script type="module">import('./js/reed-study.js').catch(e=>{const el=document.getElementById('error');el.hidden=false;el.textContent=e.message;console.error(e);});</script>
+<script type="module">import { mountAtelierNavigation } from './js/atelier/AtelierCatalog.js?v=1'; mountAtelierNavigation('reed'); import('./js/reed-study.js').catch(e=>{const el=document.getElementById('error');el.hidden=false;el.textContent=e.message;console.error(e);});</script>
 </body></html>

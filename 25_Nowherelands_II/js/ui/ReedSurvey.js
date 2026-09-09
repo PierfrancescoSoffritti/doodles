@@ -9,7 +9,7 @@ export class ReedSurvey {
   button('Hear the father',()=>{this.audio();this.walkers.call(this.group?.members[0]);});
   button('Explore here ↗',()=>{this.tracking=false;shared.player.fly=false;try{shared.renderer.domElement.requestPointerLock?.()?.catch(()=>{});}catch{}});
   panel.append(actions);this.detail=document.createElement('p');panel.append(this.detail);
-  this.link=document.createElement('a');this.link.href='./reed-study.html';this.link.textContent='Reed walker study ↗';this.link.style.cssText='display:block;margin-top:12px;color:#afcdcf';panel.append(this.link);
+  this.link=document.createElement('a');this.link.href='./reed-study.html?seed='+encodeURIComponent(walkers.model.seed);this.link.textContent='Reed walker study ↗';this.link.style.cssText='display:block;margin-top:12px;color:#afcdcf';panel.append(this.link);
   document.body.append(panel);
   document.addEventListener('pointerlockchange',()=>{panel.classList.toggle('playing',shared.player.locked);if(shared.player.locked)this.tracking=false;});
  }

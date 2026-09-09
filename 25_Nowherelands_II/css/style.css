@@ -184,3 +184,6 @@ body.touch .controls:not(.touch-only) { display: none; }
 
 .frame-rate { display: block; margin-top: 8px; pointer-events: auto; }
 .frame-rate select { color: inherit; font: inherit; background: #130d20; border: 1px solid #ffffff30; border-radius: 4px; padding: 3px 5px; }
+
+.atelier-link { display: block; margin-top: 14px; font-size: 11px; letter-spacing: .12em; color: #cfddce; pointer-events: auto; }
+#corner .atelier-link:hover { text-decoration: underline; }
