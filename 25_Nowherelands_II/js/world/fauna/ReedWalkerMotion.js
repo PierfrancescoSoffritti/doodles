@@ -1,4 +1,6 @@
 export const REED_STRIDE_SECONDS = 8;
+export const REED_GRAZE_TIMING = { lower: 2.5, feed: 4, rise: 3.5, rest: 2 };
+export const REED_GRAZE_SECONDS = Object.values(REED_GRAZE_TIMING).reduce((a,b)=>a+b,0);
 const clamp = x => Math.max(0, Math.min(1, x));
 const ease = x => { const t = clamp(x); return t * t * t * (10 + t * (-15 + 6 * t)); };
 
@@ -6,9 +8,10 @@ const ease = x => { const t = clamp(x); return t * t * t * (10 + t * (-15 + 6 * 
 // throughout lowering: bent joints, rather than scaled bones, absorb the motion.
 export function reedPose(traits, time = 0, mode = 'stand', lowering = 0) {
  const t = Math.max(0, time), h = traits.legs;
- const cycle = t % 38;
+ const cycle = t % REED_GRAZE_SECONDS;
+ const lowerEnd=REED_GRAZE_TIMING.lower, feedEnd=lowerEnd+REED_GRAZE_TIMING.feed, riseEnd=feedEnd+REED_GRAZE_TIMING.rise;
  const graze = mode === 'manual' ? clamp(lowering)
-  : mode === 'graze' ? cycle < 10 ? ease(cycle / 10) : cycle < 24 ? 1 : ease((36 - cycle) / 12) : 0;
+  : mode === 'graze' ? cycle < lowerEnd ? ease(cycle / lowerEnd) : cycle < feedEnd ? 1 : ease((riseEnd - cycle) / REED_GRAZE_TIMING.rise) : 0;
  const step = mode === 'step' ? clamp(t / REED_STRIDE_SECONDS) : 0;
  const resting = mode === 'stand';
  const stridePhase = step * 4, swingIndex = Math.min(3, Math.floor(stridePhase));
@@ -30,7 +33,7 @@ export function reedPose(traits, time = 0, mode = 'stand', lowering = 0) {
   return [fore * traits.length * .94 + advance, .065 + lift, side * (traits.width + .65)];
  });
  return { body: [bodyX, bodyY, bodyZ], tilt: (traits.tilt + (traits.rock ?? 1) * (walkTilt + (resting ? Math.sin(t * .38) * .12 + settle * .03 : 0))) * (1 - graze), feet, graze,
-  feeding: graze > .985, stage: mode === 'manual' ? 'Compare the posture' : mode === 'step' ? step < 1 ? 'Lift · place · transfer weight' : 'Settled after one slow stride' : mode === 'graze' ? cycle < 10 ? 'Lowering slowly toward the water' : cycle < 24 ? 'Grazing · in no hurry at all' : cycle < 36 ? 'Rising · the river can wait' : 'Resting before the next mouthful' : 'Resting · almost indifferent to the world' };
+  feeding: graze > .985, stage: mode === 'manual' ? 'Compare the posture' : mode === 'step' ? step < 1 ? 'Lift · place · transfer weight' : 'Settled after one slow stride' : mode === 'graze' ? cycle < lowerEnd ? 'Lowering toward the water' : cycle < feedEnd ? 'Grazing · a mouthful of river plants' : cycle < riseEnd ? 'Rising and settling' : 'Resting before the next mouthful' : 'Resting · almost indifferent to the world' };
 }
 
 // Analytic two-bone solve, independent of the renderer for contact/reach tests.
@@ -46,13 +49,19 @@ export function reedJoint(hip, foot, length, side, fore = 1) {
  return hip.map((v, i) => (v + foot[i]) / 2 + perpendicular[i] / norm * reach);
 }
 
+// Euler XYZ matches the shell: pitch around Z, followed by the sideways lean.
+export function reedHip(traits, pose, i) {
+ const x=(i<2?1:-1)*traits.length*.65,z=(i%2?1:-1)*traits.width*.64;
+ const y=x*Math.sin(pose.tilt),roll=pose.roll||0;
+ return [pose.body[0]+x*Math.cos(pose.tilt),pose.body[1]+y*Math.cos(roll)-z*Math.sin(roll),pose.body[2]+y*Math.sin(roll)+z*Math.cos(roll)];
+}
+
 // Use the renderer's hip transform when validating a world stance. The small
 // reach reserve covers the motion between planning samples.
 export function reedPoseFits(traits, pose, feet = pose.feet, reserve = .04) {
  return feet.every((foot, i) => {
-  const fore = i < 2 ? 1 : -1, side = i % 2 ? 1 : -1, x = fore * traits.length * .65;
-  const distance = Math.hypot(foot[0] - pose.body[0] - x * Math.cos(pose.tilt),
-   foot[1] - pose.body[1] - x * Math.sin(pose.tilt), foot[2] - pose.body[2] - side * traits.width * .64);
+  const hip=reedHip(traits,pose,i);
+  const distance = Math.hypot(...foot.map((v,j)=>v-hip[j]));
   return Number.isFinite(distance) && distance > .001 && distance < traits.legs * 1.22 - reserve;
  });
 }

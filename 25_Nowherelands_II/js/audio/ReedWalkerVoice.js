@@ -1,4 +1,4 @@
-import { reedVoice } from '../world/fauna/ReedWalkerTraits.js?family=4';
+import { reedVoice } from '../world/fauna/ReedWalkerTraits.js?v=reed-5';
 
 // Quiet, woody attacks inside an airy hollow resonance. Sound is opt-in in the study.
 export function playReedVoice(ctx, destination, traits, event = 'rumble', { at = ctx.currentTime, onended = () => {} } = {}) {
@@ -22,7 +22,7 @@ export function playReedVoice(ctx, destination, traits, event = 'rumble', { at =
   let seed = 731;
   for (let i = 0; i < size; i++) { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; data[i] = (seed / 2147483648 - 1) * note.air; }
   const noise = ctx.createBufferSource(), filter = ctx.createBiquadFilter(); noise.buffer = buffer;
-  filter.type = 'lowpass'; filter.frequency.value = event === 'grazing' ? 1200 : 470; filter.Q.value = .6;
+  filter.type = 'lowpass'; filter.frequency.value = 470; filter.Q.value = .6;
   noise.connect(filter); filter.connect(envelope); noise.start(t); noise.stop(end + .02); nodes.push(noise, filter); sources.push(noise);
   let remaining = sources.length;
   sources.forEach(source => { source.onended = () => { if (--remaining === 0) { nodes.forEach(n => n.disconnect()); if (--notesRemaining === 0) onended(); } }; });

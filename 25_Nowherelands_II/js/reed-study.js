@@ -1,10 +1,13 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Random } from './core/Random.js';
-import { reedFamily, reedIndividual } from './world/fauna/ReedWalkerTraits.js?family=7';
-import { ReedWalkerRig } from './world/fauna/ReedWalkerRig.js?family=7';
-import { createReedAudioScene } from './audio/ReedWalkerAudioScene.js?family=6';
-import { checkReedMix } from '../tests/ReedWalkerMixChecks.js?family=6';
+import { reedFamily, reedIndividual } from './world/fauna/ReedWalkerTraits.js?v=reed-7';
+import { ReedWalkerRig } from './world/fauna/ReedWalkerRig.js?v=visibility-1';
+import { createReedAudioScene } from './audio/ReedWalkerAudioScene.js?v=reed-7';
+import { checkReedMix } from '../tests/ReedWalkerMixChecks.js?v=reed-7';
+
+import { createReedSocialStudy } from './world/fauna/ReedWalkerSocialStudy.js?v=graze-1';
+import { socialCaption } from './world/fauna/ReedWalkerSocial.js?v=graze-1';
 
 const $ = id => document.getElementById(id);
 const renderer = new THREE.WebGLRenderer({ canvas: $('canvas'), antialias: true });
@@ -20,6 +23,7 @@ const sun = new THREE.DirectionalLight('#ffefcc', 3.2); sun.position.set(-9, 19,
 sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -14, right: 14, top: 14, bottom: -14, near: 1, far: 60 }); sun.shadow.normalBias = .025; scene.add(sun);
 const fill = new THREE.DirectionalLight('#bcdedc', 1.1); fill.position.set(10, 7, -8); scene.add(fill);
 let members = [], rig, environment, water, reeds, ripples = [], traits, seed = 1, clock = 0, mode = 'stand', paused = false, lowering = 0;
+let socialStudy;
 let audition, auditionTimer, auditionSerial = 0;
 const leafGeometry = new THREE.ConeGeometry(.12, 1, 3);
 const reedGeometry = new THREE.CylinderGeometry(.014, .022, 1, 4);
@@ -74,7 +78,7 @@ function view() {
   camera.position.copy(controls.target).add(new THREE.Vector3(8 + Math.max(0, traits.tuskLength - 1.2) * 2.5, .7, 1.3)); controls.update(); return;
  }
  const dirs = { quarter: [13, 8.5, 16], side: [0, 6.7, 20], front: [20, 6.7, 0] };
- const direction = dirs[$('view').value]; controls.target.set(0, 2.25, 0); camera.position.fromArray(direction).multiplyScalar(members.length > 1 ? 1.85 : 1.2); controls.update();
+ const direction = dirs[$('view').value]; controls.target.set(0, 2.25, 0); camera.position.fromArray(direction).multiplyScalar(socialStudy ? (socialStudy.kind==='catchup'?1.85:1.45) : members.length > 1 ? 1.85 : 1.2); controls.update();
 }
 function focusMember() {
  const selected = members.find(m => m.role === $('member').value) || members[0];
@@ -85,6 +89,7 @@ function focusMember() {
  if ($('view').value === 'face') view();
 }
 function rebuild() {
+ socialStudy=null;
  for (const member of members) { scene.remove(member.rig.root); member.rig.dispose(); }
  const family = $('group').value === 'family';
  const definitions = family ? reedFamily($('form').value, seed, $('children').value === 'auto' ? null : Number($('children').value)) : [{ role: 'individual', traits: reedIndividual($('form').value, seed, $('age').value, $('sex').value), offset: [0, 0, 0], delay: 0 }];
@@ -98,26 +103,49 @@ function rebuild() {
  $('children-field').hidden = !family;
  $('member-field').hidden = !family; $('age-field').hidden = family; $('sex-field').hidden = family;
  $('individual').innerHTML = family ? 'Another family <small>One or two youngsters, different proportions and voices</small>' : 'Another individual <small>Different proportions, wear and voice</small>';
- focusMember(); createHabitat();
+ if(!family && ['catchup','lean'].includes(mode))gesture('stand');
+ document.querySelectorAll('[data-family-gesture]').forEach(b=>b.disabled=!family);
+ focusMember(); createHabitat(); applyLighting();
  $('place').textContent = traits.place; $('habitat-detail').textContent = traits.detail; clock = 0;
  view();
+ if(['catchup','lean'].includes(mode))gesture(mode);
 }
 function gesture(next) {
+ socialStudy=null;
+ if(['catchup','lean'].includes(next)) {
+  socialStudy=createReedSocialStudy(members,next,seed);
+  $('view').value='quarter'; $('member').value='mother';focusMember();view();
+ } else {for(const m of members){m.rig.root.position.fromArray(m.offset);m.rig.root.rotation.y=0;}view();}
  mode = next; clock = 0; paused = false; $('pause').textContent = 'Pause'; $('pause').setAttribute('aria-pressed', 'false');
  document.querySelectorAll('[data-gesture]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.gesture === mode)));
 }
+for(const button of document.querySelectorAll('[data-family-gesture]'))button.onclick=()=>gesture(button.dataset.familyGesture);
 for (const button of document.querySelectorAll('[data-gesture]')) button.onclick = () => gesture(button.dataset.gesture);
-$('lower').oninput = () => { mode = 'manual'; lowering = Number($('lower').value) / 100; document.querySelectorAll('[data-gesture]').forEach(b => b.setAttribute('aria-pressed', 'false')); };
+$('lower').oninput = () => { if(socialStudy)gesture('manual'); mode='manual'; lowering = Number($('lower').value) / 100; document.querySelectorAll('[data-gesture]').forEach(b => b.setAttribute('aria-pressed', 'false')); };
 $('pause').onclick = () => { paused = !paused; $('pause').textContent = paused ? 'Resume' : 'Pause'; $('pause').setAttribute('aria-pressed', String(paused)); };
-$('view').onchange = view; $('reset-view').onclick = view;
-$('children').onchange = rebuild; $('group').onchange = rebuild; $('member').onchange = focusMember;
+$('view').onchange = () => {if(socialStudy)gesture('stand');view();}; $('reset-view').onclick = view;
+$('children').onchange = rebuild; $('group').onchange = rebuild; $('member').onchange = () => {if(socialStudy)gesture('stand');focusMember();};
 $('form').onchange = rebuild; $('age').onchange = rebuild; $('sex').onchange = rebuild; $('individual').onclick = () => { seed++; rebuild(); };
-$('light').onchange = () => {
- const night = $('light').value === 'night'; scene.background.set(night ? '#26332f' : '#e9e9df');
- ambient.intensity = night ? .9 : 2.7; sun.intensity = night ? 1.2 : 3.2; sun.color.set(night ? '#bacddd' : '#ffefcc'); fill.intensity = night ? .5 : 1.1;
- $('stage').style.setProperty('--paper', night ? '#26332f' : '#e9e9df');
- $('stage').style.setProperty('--ink', night ? '#e1e6d9' : '#303c37'); $('stage').style.setProperty('--muted', night ? '#b6c4b6' : '#6b776c');
-};
+function applyLighting() {
+ const dark=$('light').value==='world', night=$('light').value!=='day';
+ const original=$('original-shading').checked;
+ $('stage').classList.toggle('night',night);
+ scene.background.set(dark?'#100c1c':night?'#26332f':'#e9e9df');
+ renderer.toneMappingExposure=dark?1.05:1.35;
+ ambient.intensity=dark?.55:night?.9:2.7;
+ ambient.color.set(dark?'#3f1e60':'#e6eedc');ambient.groundColor.set(dark?'#10050d':'#575445');
+ sun.intensity=dark?.35:night?1.2:3.2;sun.color.set(dark?'#ff3b22':night?'#bacddd':'#ffefcc');
+ fill.intensity=dark?.02:night?.5:1.1;
+ for(const m of members){
+  m.rig.visibility.value=original?0:1;
+  m.rig.root.traverse(o=>{if(o.material?.emissive)o.material.emissive.copy(o.material.color).multiplyScalar(original&&dark?.10:0);});
+ }
+ $('stage').style.setProperty('--paper',dark?'#100c1c':night?'#26332f':'#e9e9df');
+ $('stage').style.setProperty('--ink',night?'#e1e6d9':'#303c37');$('stage').style.setProperty('--muted',night?'#b6c4b6':'#6b776c');
+ document.body.dataset.lighting=JSON.stringify({preset:$('light').value,visibility:!original});
+}
+$('light').onchange=applyLighting;$('original-shading').onchange=applyLighting;
+
 const tabs = [...document.querySelectorAll('[role=tab]')];
 function selectTab(button) {
  for (const tab of tabs) { const active = tab === button; tab.setAttribute('aria-selected', String(active)); tab.tabIndex = active ? 0 : -1; $('panel-' + tab.dataset.tab).hidden = !active; }
@@ -167,8 +195,16 @@ rebuild(); view(); resize();
 let last = performance.now(), lastReport = -1;
 function frame(now) {
  requestAnimationFrame(frame); const dt = Math.min(.05, (now - last) / 1000); last = now;
- if (!paused) clock += dt;
+ if (!paused) {clock += dt; socialStudy?.update(dt);}
  for (const member of members) {
+  if(socialStudy) {
+   const m=socialStudy.group.members.find(m=>m.role===member.role);member.rig.root.visible=!!m;
+   if(!m){member.pose=member.rig.update(clock);continue;}
+   const draw=m.draw;
+   member.rig.root.position.set(draw.origin.x,draw.origin.y-1,draw.origin.z);member.rig.root.rotation.y=draw.yaw;
+   member.pose=member.rig.update(clock,m.state,0,draw.pose);
+   continue;
+  }
   // Independent breathing and feeding; the youngster follows the adults' step.
   const localTime = mode === 'stand' ? clock / member.traits.patience + member.delay * 2
    : Math.max(0, clock - member.delay) / member.traits.patience;
@@ -182,9 +218,10 @@ function frame(now) {
   ring.position.z = member.offset[2]; ring.scale.setScalar((.6 + phase * 2) * member.traits.scale); ring.material.opacity = (1 - phase) * .13;
  }
  if (Math.floor(now / 100) !== lastReport) {
-  $('gesture-status').textContent = pose.stage; $('lower-value').textContent = Math.round(pose.graze * 100) + '%'; if (mode !== 'manual') $('lower').value = Math.round(pose.graze * 100);
-  document.body.dataset.family = JSON.stringify(members.map(m => ({ role: m.role, age: m.traits.age, sex: m.traits.sex, color: m.traits.color, tuskLength: m.traits.tuskLength, scale: m.traits.scale, position: m.offset, graze: m.pose.graze, tilt: m.pose.tilt })));
-  document.body.dataset.pose = JSON.stringify({ mode, graze: pose.graze, body: pose.body, tilt: pose.tilt, feet: pose.feet, feeding: pose.feeding, eyes: rig.eyes.eyes.map(eye => ({ openness: eye.openness })) }); lastReport = Math.floor(now / 100);
+  $('gesture-status').textContent = socialStudy?socialCaption(socialStudy.group.moment):pose.stage;
+  document.body.dataset.social=JSON.stringify(socialStudy?{phase:socialStudy.group.moment?.phase||'complete',kind:mode,elapsed:clock,members:socialStudy.group.members.map(m=>({role:m.role,state:m.state,steps:m.steps,origin:m.draw.origin,body:m.draw.pose.body}))}:null); $('lower-value').textContent = Math.round(pose.graze * 100) + '%'; if (mode !== 'manual') $('lower').value = Math.round(pose.graze * 100);
+  document.body.dataset.family = JSON.stringify(members.map(m => ({ role: m.role, age: m.traits.age, sex: m.traits.sex, color: m.traits.color, tuskLength: m.traits.tuskLength, scale: m.traits.scale, position: m.rig.root.position.toArray(), graze: m.pose.graze, tilt: m.pose.tilt })));
+  document.body.dataset.pose = JSON.stringify({ mode, graze: pose.graze, body: pose.body, tilt: pose.tilt, roll: pose.roll || 0, feet: pose.feet, feeding: pose.feeding, eyes: rig.eyes.eyes.map(eye => ({ openness: eye.openness })) }); lastReport = Math.floor(now / 100);
  }
  controls.update(); renderer.render(scene, camera); document.body.dataset.status = 'ready';
 }

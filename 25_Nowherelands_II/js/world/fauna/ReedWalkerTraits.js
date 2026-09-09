@@ -97,7 +97,6 @@ export function reedVoice(individual, event = 'rumble') {
  const events = {
   rumble: [{ at: 0, frequency: f, duration: 4.8, gain: .3, attack: .9, air: .1 }, { at: 2.5, frequency: f * .82, duration: 3.4, gain: .13, attack: .8, air: .12 }],
   breath: [{ at: 0, frequency: f * .7, duration: 4.1, gain: .2, attack: .65, air: .9 }],
-  grazing: [{ at: 0, frequency: f * .83, duration: 2, gain: .2, attack: .25, air: 1.2 }, { at: 2.1, frequency: f * .73, duration: 2.5, gain: .12, attack: .4, air: 1 }],
  };
  if (!events[event]) throw new Error('Unknown reed voice: ' + event);
  const pace = individual.callPace ?? 1;

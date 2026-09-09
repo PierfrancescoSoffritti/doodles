@@ -1,5 +1,5 @@
-import { createReedAudioScene } from '../js/audio/ReedWalkerAudioScene.js?family=6';
-import { reedIndividual } from '../js/world/fauna/ReedWalkerTraits.js?family=4';
+import { createReedAudioScene } from '../js/audio/ReedWalkerAudioScene.js?v=reed-7';
+import { reedIndividual } from '../js/world/fauna/ReedWalkerTraits.js?v=reed-7';
 
 // Render stereo mix and isolated pre-compressor stems separately. Every pass
 // has identical seeded ambience and scheduled voices; no nonlinear subtraction.
@@ -34,9 +34,9 @@ async function renderCase({ form = 'peat', age = 'old', sex = 'male', event = 'b
 }
 export async function checkReedMix(progress = () => {}) {
  const cases = [];
- for (const form of ['reedbed', 'peat', 'tarn']) for (const event of ['rumble', 'breath', 'grazing']) for (const distance of [20, 45]) cases.push({ form, event, distance });
+ for (const form of ['reedbed', 'peat', 'tarn']) for (const event of ['rumble', 'breath']) for (const distance of [20, 45]) cases.push({ form, event, distance });
  cases.push({ distance: 90 }, { muted: true }, { startup: true }, { count: 3 }, { ducked: true });
- for (const form of ['reedbed', 'peat', 'tarn']) for (const [age, sex] of [['old', 'female'], ['young', 'male'], ['young', 'female']]) for (const distance of [20, 45]) cases.push({ form, age, sex, event: 'grazing', distance });
+ for (const form of ['reedbed', 'peat', 'tarn']) for (const [age, sex] of [['old', 'female'], ['young', 'male'], ['young', 'female']]) for (const distance of [20, 45]) cases.push({ form, age, sex, event: 'breath', distance });
  const reports = [];
  for (const [i, spec] of cases.entries()) { progress(i + 1, cases.length); reports.push(await renderCase(spec)); }
  const failures = [];

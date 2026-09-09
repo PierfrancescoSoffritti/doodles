@@ -1,3 +1,4 @@
+import { socialCaption } from '../world/fauna/ReedWalkerSocial.js?v=graze-1';
 export class ReedSurvey {
  constructor(shared, walkers) {
   this.shared=shared;this.walkers=walkers;this.tracking=false;
@@ -29,7 +30,7 @@ export class ReedSurvey {
  update(){
   const groups=[...this.walkers.model.groups.values()];
   if(this.group&&!groups.includes(this.group)){this.group=null;this.tracking=false;}
-  this.detail.textContent=this.group?`${this.group.members.length-2} youngster${this.group.members.length===4?'s':''} · ${this.group.site.form} · grazing, resting and wandering together`:'Choose a family to visit its real habitat.';
-  this.panel.dataset.reeds=JSON.stringify({sites:this.walkers.model.sites.length,groups:groups.length,subject:this.group?.id,members:this.group?.members.map(m=>({role:m.role,height:m.scale*m.traits.legs,giant:m.traits.giant,position:m.position,state:m.state,steps:m.steps,feet:m.draw.feet}))});
+  this.detail.textContent=this.group?`${this.group.members.length-2} youngster${this.group.members.length===4?'s':''} · ${this.group.site.form} · ${this.group.moment?socialCaption(this.group.moment):'grazing, resting and wandering together'}`:'Choose a family to visit its real habitat.';
+  this.panel.dataset.reeds=JSON.stringify({sites:this.walkers.model.sites.length,groups:groups.length,subject:this.group?.id,social:this.group?.moment?.phase||null,members:this.group?.members.map(m=>({role:m.role,height:m.scale*m.traits.legs,giant:m.traits.giant,position:m.position,state:m.state,steps:m.steps,feet:m.draw.feet}))});
  }
 }

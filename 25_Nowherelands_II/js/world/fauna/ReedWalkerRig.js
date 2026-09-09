@@ -1,11 +1,13 @@
 import * as THREE from 'three';
-import { ReedWalkerEyes } from './ReedWalkerEyes.js?husk=3';
-import { reedPose, reedJoint } from './ReedWalkerMotion.js?family=3';
+import { ReedWalkerEyes } from './ReedWalkerEyes.js?v=reed-6';
+import { reedPose, reedJoint } from './ReedWalkerMotion.js?v=graze-1';
 import { reedTusks } from './ReedWalkerTusks.js?v=3';
+import { reedWalkerLighting } from './ReedWalkerLighting.js?v=1';
 const up = new THREE.Vector3(0, 1, 0);
 
 export class ReedWalkerRig {
  constructor(traits) {
+  this.visibility = { value: 1 };
   this.traits = traits; this.root = new THREE.Group(); this.root.scale.setScalar(traits.scale);
   this.shell = new THREE.Group(); this.root.add(this.shell);
   const color = new THREE.Color(traits.color).offsetHSL(traits.hue, 0, 0);
@@ -45,10 +47,12 @@ export class ReedWalkerRig {
    const pad = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 0), legMaterial); pad.scale.set(traits.foot * 1.3, .09, traits.foot); this.root.add(pad);
    return { hip, foot, side, fore, segments, pad };
   });
+  const materials=new Set();this.root.traverse(o=>{if(o.material)materials.add(o.material);});
+  for(const material of materials)reedWalkerLighting(material,this.visibility,material===legMaterial);
  }
  update(time, gesture = 'stand', lowering = 0, worldPose = null) {
   const pose = worldPose || reedPose(this.traits, time, gesture, lowering);
-  this.shell.position.fromArray(pose.body); this.shell.rotation.z = pose.tilt;
+  this.shell.position.fromArray(pose.body); this.shell.rotation.z = pose.tilt; this.shell.rotation.x = pose.roll || 0;
   const resting = gesture === 'stand', breath = Math.sin(time * (resting ? .7 : .52));
   this.body.scale.y = .87 + (pose.feeding ? Math.sin(time * 1.7) * .018 : breath * (resting ? .035 : .018));
   this.eyes.update(time);

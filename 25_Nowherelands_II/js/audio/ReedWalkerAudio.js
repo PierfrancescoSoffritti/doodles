@@ -1,6 +1,6 @@
-import { playReedVoice } from './ReedWalkerVoice.js?family=4';
+import { playReedVoice } from './ReedWalkerVoice.js?v=reed-5';
 
-export const REED_AUDIO = { levels: { rumble: 8, breath: 15, grazing: 22 }, refDistance: 30, rolloff: 1.1, range: 180, gain: 10 ** (4 / 20), duck: .58, maxVoices: 3 };
+export const REED_AUDIO = { levels: { rumble: 8, breath: 15 }, refDistance: 30, rolloff: 1.1, range: 180, gain: 10 ** (1 / 20), duck: .58, maxVoices: 3 };
 
 // Reusable game routing: foreground animals bypass ambient ducking, while still
 // sharing the game's master level and compressor. Only close encounters duck.
@@ -23,7 +23,7 @@ export class ReedWalkerAudio {
   const distance = Math.hypot(position.x - listener.x, position.y - listener.y, position.z - listener.z);
   if (distance > REED_AUDIO.range) return false;
   const pan = engine.makePanner(position); pan.refDistance = REED_AUDIO.refDistance; pan.rolloffFactor = REED_AUDIO.rolloff;
-  const gain = ctx.createGain(); gain.gain.value = REED_AUDIO.levels[event] * (traits.age === 'young' && event === 'grazing' ? 1.3 : 1);
+  const gain = ctx.createGain(); gain.gain.value = REED_AUDIO.levels[event];
   pan.connect(gain); gain.connect(this.input); this.out.gain.setValueAtTime(this.volume * REED_AUDIO.gain, ctx.currentTime); this.voices.add(pan);
   if (distance <= 55 && at - this.lastDuck > 5 && engine.layerBus.gain.value > REED_AUDIO.duck) { engine.duck(REED_AUDIO.duck, 5.5, at); this.lastDuck = at; }
   return playReedVoice(ctx, pan, traits, event, { at, onended: () => { pan.disconnect(); gain.disconnect(); this.voices.delete(pan); } });

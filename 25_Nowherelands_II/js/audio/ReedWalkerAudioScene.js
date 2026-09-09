@@ -2,7 +2,7 @@ import { AudioEngine } from './AudioEngine.js?v=pebble-audio-10';
 import { Conductor } from './Conductor.js?v=pebble-audio-10';
 import { WatersideAmbience } from './WatersideAmbience.js';
 import { RIVER_STRIDE, RV } from '../world/gen/Rivers.js';
-import { ReedWalkerAudio } from './ReedWalkerAudio.js?family=6';
+import { ReedWalkerAudio } from './ReedWalkerAudio.js?v=reed-7';
 
 // The real mixer and layer constructors, driven by repeatable representative
 // river conditions. It is a listening fixture, not a running world simulation.

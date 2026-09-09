@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { reedFamily, reedIndividual, REED_FORMS, reedVoice } from '../../js/world/fauna/ReedWalkerTraits.js';
-import { reedPose, reedJoint, REED_STRIDE_SECONDS } from '../../js/world/fauna/ReedWalkerMotion.js';
+import { reedPose, reedJoint, REED_STRIDE_SECONDS, REED_GRAZE_SECONDS, REED_GRAZE_TIMING } from '../../js/world/fauna/ReedWalkerMotion.js';
 
 test('every habitat and age can lower to the water with fixed contacts and constant bone lengths', () => {
  for (const form of Object.keys(REED_FORMS)) for (const age of ['young', 'adult', 'old']) for (const sex of ['male', 'female']) for (let seed = 1; seed <= 20; seed++) {
@@ -24,11 +24,15 @@ test('every habitat and age can lower to the water with fixed contacts and const
 });
 test('the grazing loop joins smoothly and never moves the planted feet', () => {
  const traits = reedIndividual(), first = reedPose(traits, 0, 'graze');
+ assert.equal(REED_GRAZE_SECONDS,12);
+ assert.equal(reedPose(traits,REED_GRAZE_TIMING.lower,'graze').graze,1);
+ assert.equal(reedPose(traits,6,'graze').feeding,true);
+ assert.equal(reedPose(traits,10,'graze').graze,0);
  let previous = first;
- for (let i = 1; i <= 38 * 60; i++) {
+ for (let i = 1; i <= REED_GRAZE_SECONDS * 60; i++) {
   const pose = reedPose(traits, i / 60, 'graze');
   assert.deepEqual(pose.feet, first.feet);
-  assert.ok(Math.abs(pose.body[1] - previous.body[1]) < .03); previous = pose;
+  assert.ok(Math.abs(pose.body[1] - previous.body[1]) < .09); previous = pose;
  }
  assert.ok(Math.abs(previous.body[1] - first.body[1]) < .03);
 });
@@ -56,7 +60,7 @@ test('individual identity is repeatable and older animals have lower voices', ()
   assert.notDeepEqual(adult, reedIndividual(form, 8, 'adult'));
   assert.ok(reedIndividual(form, 7, 'old').pitch < adult.pitch);
   assert.ok(reedIndividual(form, 7, 'young').pitch > adult.pitch);
-  for (const event of ['rumble', 'breath', 'grazing']) for (const note of reedVoice(adult, event)) assert.ok(note.duration > note.attack && note.frequency > 20 && note.gain < .5);
+  for (const event of ['rumble', 'breath']) for (const note of reedVoice(adult, event)) assert.ok(note.duration > note.attack && note.frequency > 20 && note.gain < .5);
  }
 });
 
@@ -159,4 +163,8 @@ test('tusk shapes vary repeatably while young pairs stay smaller and curves stay
  }
  assert.equal(styles.size, 4);
  assert.equal(pairs.size, 300);
+});
+
+test('the removed feeding sound is no longer a voice recipe', () => {
+ assert.throws(() => reedVoice(reedIndividual(), 'grazing'), /Unknown reed voice/);
 });

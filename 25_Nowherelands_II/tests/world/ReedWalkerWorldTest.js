@@ -1,14 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ReedWalkerWorldModel } from '../../js/world/fauna/ReedWalkerWorldModel.js';
-import { createReedFamily, reedHabitat, reedLocalPoint, REED_FAMILY_CAP, REED_FAMILY_SEPARATION, REED_WORLD_STEP_SECONDS, reedWorldTraits } from '../../js/world/fauna/ReedWalkerHabitat.js';
+import { createReedFamily, reedHabitat, reedLocalPoint, REED_FAMILY_CAP, REED_FAMILY_SEPARATION, REED_WORLD_STEP_SECONDS, reedWorldTraits, reedShallowFooting } from '../../js/world/fauna/ReedWalkerHabitat.js';
 import { reedIndividual } from '../../js/world/fauna/ReedWalkerTraits.js';
 import { reedJoint } from '../../js/world/fauna/ReedWalkerMotion.js';
-const sample=(x,z)=>({ground:12+Math.sin(x*.02)*.15+Math.sin(z*.02)*.12,water:11,slope:.03,foam:.01,roof:false});
+const sample=(x,z)=>({ground:10.6+Math.sin(x*.02)*.15+Math.sin(z*.02)*.12,water:11,slope:.03,foam:.01,roof:false});
 const sites=Array.from({length:8},(_,i)=>({id:`test:${i}`,x:i*150,z:0,yaw:.2,radius:30,form:['reedbed','peat','tarn'][i%3]}));
 
-test('whole families spawn only on safe freshwater ground, and stream within a cap',()=>{
- for(const s of [{ground:0,water:0},{ground:0,water:8},{ground:12,water:11,roof:true},{ground:12,water:11,foam:.8}, {ground:10,water:11}])assert.equal(reedHabitat(s),false);
+test('whole families spawn only on shallow freshwater edges, and stream within a cap',()=>{
+ for(const s of [{ground:0,water:0},{ground:0,water:8},{ground:12,water:11},{ground:10.6,water:11,roof:true},{ground:10.6,water:11,foam:.8}, {ground:10,water:11}])assert.equal(reedHabitat(s),false);
  assert.equal(createReedFamily(sites[0],3,()=>({ground:0,water:0}),()=>false),null);
  assert.equal(createReedFamily(sites[0],3,sample,()=>true),null);
  const a=createReedFamily(sites[0],3,sample,()=>false),b=createReedFamily(sites[0],3,sample,()=>false);
@@ -18,7 +18,7 @@ test('whole families spawn only on safe freshwater ground, and stream within a c
 });
 test('terrain contacts remain planted through resting, grazing and complete wandering strides',()=>{
  const model=new ReedWalkerWorldModel('contact-test',sites,sample);model.stream({x:0,z:0});
- let steps=0,feeding=0,calls=0;model.onSound=()=>calls++;
+ let steps=0,feeding=0,calls=0;model.onSound=(m,event)=>{assert.ok(['rumble','breath'].includes(event));calls++;};
  const previous=new Map();
  for(let frame=0;frame<60*200;frame++){
   model.update(1/60,{x:80,y:20,z:80});
@@ -76,23 +76,26 @@ test('a bank family makes sustained progress at a visibly quicker walking pace',
    const old=previous.get(m);
    if(old&&m.state==='step'&&old.state==='step'){distance+=Math.hypot(m.draw.origin.x-old.x,m.draw.origin.z-old.z);walking+=1/30;}
    previous.set(m,{x:m.draw.origin.x,z:m.draw.origin.z,state:m.state});steps=Math.max(steps,m.steps);
-   assert.ok(sample(m.draw.origin.x,m.draw.origin.z).ground>11);
-   for(const f of m.draw.feet)assert.ok(sample(f.x,f.z).ground>11,'all feet stay on land');
+   assert.ok(reedHabitat(sample(m.draw.origin.x,m.draw.origin.z)));
+   for(const f of m.draw.feet)assert.ok(reedShallowFooting(sample(f.x,f.z),m.bankWater),'feet avoid deep water');
   }
  }
  assert.ok(REED_WORLD_STEP_SECONDS<=3);assert.ok(steps>=15);assert.ok(distance/walking>.55,`walking speed ${distance/walking}`);
 });
 
 
-test('families stay on the dry side of a river throughout their walking routes',()=>{
- const river=(x,z)=>({ground:z<0?10:12+Math.sin(x*.03)*.1,water:z<0?11:0,slope:.04,foam:0});
- const site={...sites[0],id:'dry-bank',z:5,water:11,yaw:0};
- const model=new ReedWalkerWorldModel('bank-test',[site],river),group=model.add(site);assert.ok(group);
+test('families stay in the shallow river margin, avoiding deep water and dry inland ground',()=>{
+ const river=(x,z)=>({ground:z < -5 ? 8.5 : z < 0 ? 10.6 : 11.4,water:z<0?11:0,slope:.04,foam:0});
+ const site={...sites[0],id:'shallow-edge',z:-1,water:11,yaw:0};
+ const model=new ReedWalkerWorldModel('edge-test',[site],river),group=model.add(site);assert.ok(group);
+ let feeding=0;
  for(let frame=0;frame<30*240;frame++){
   model.update(1/30,{x:150,z:100});
   for(const m of group.members){
-   assert.ok(m.draw.origin.z>=0,'body stays on the bank');
-   for(const f of m.draw.feet)assert.ok(f.z>=0,'feet never enter the channel');
+   assert.ok(reedHabitat(river(m.draw.origin.x,m.draw.origin.z)),'body stays over shallow water');
+   for(const f of m.draw.feet)assert.ok(reedShallowFooting(river(f.x,f.z),m.bankWater),'feet avoid deep water');
+   if(m.draw.pose.feeding){feeding++;assert.equal(m.feedingHeight,11);}
   }
  }
+ assert.ok(feeding>0);
 });
