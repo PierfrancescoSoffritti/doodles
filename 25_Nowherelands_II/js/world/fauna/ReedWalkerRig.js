@@ -30,7 +30,7 @@ export class ReedWalkerRig {
    seamPoints.push(hit.point.clone().add(new THREE.Vector3(0, .014, 0)));
   }
   const seam = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(seamPoints), 36, .018, 4, false), rimMaterial);
-  this.shell.add(seam);
+  this.shell.add(seam); this.seam=seam; this.sprayAnchor=seamPoints[6].clone();
   this.eyes = new ReedWalkerEyes(traits, bodyMaterial);
   this.tusks = reedTusks(traits, surface); this.shell.add(this.tusks);
   for (let i = 0; i < traits.marks; i++) {
@@ -54,7 +54,9 @@ export class ReedWalkerRig {
   const pose = worldPose || reedPose(this.traits, time, gesture, lowering);
   this.shell.position.fromArray(pose.body); this.shell.rotation.z = pose.tilt; this.shell.rotation.x = pose.roll || 0;
   const resting = gesture === 'stand', breath = Math.sin(time * (resting ? .7 : .52));
-  this.body.scale.y = .87 + (pose.feeding ? Math.sin(time * 1.7) * .018 : breath * (resting ? .035 : .018));
+  this.body.scale.y = .87 + (pose.waterLoad || 0) * .075 + (pose.feeding ? Math.sin(time * 1.7) * .018 : breath * (resting ? .035 : .018));
+  this.body.scale.z = this.traits.width * (1 + (pose.waterLoad || 0) * .025);
+  this.seam.scale.y = this.body.scale.y / .87;
   this.eyes.update(time);
   this.tusks.scale.y = this.body.scale.y / .87;
   this.mouth.scale.y = .14 + (pose.feeding ? Math.sin(time * 1.7) * .025 : 0);

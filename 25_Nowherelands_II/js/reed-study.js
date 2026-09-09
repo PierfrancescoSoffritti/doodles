@@ -2,12 +2,15 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Random } from './core/Random.js';
 import { reedFamily, reedIndividual } from './world/fauna/ReedWalkerTraits.js?v=reed-7';
-import { ReedWalkerRig } from './world/fauna/ReedWalkerRig.js?v=visibility-1';
+import { ReedWalkerRig } from './world/fauna/ReedWalkerRig.js?v=spray-1';
 import { createReedAudioScene } from './audio/ReedWalkerAudioScene.js?v=reed-7';
 import { checkReedMix } from '../tests/ReedWalkerMixChecks.js?v=reed-7';
 
 import { createReedSocialStudy } from './world/fauna/ReedWalkerSocialStudy.js?v=graze-1';
 import { socialCaption } from './world/fauna/ReedWalkerSocial.js?v=graze-1';
+
+import { reedDrinkPose } from './world/fauna/ReedWalkerDrink.js?v=world-spray-1';
+import { ReedWalkerSpray } from './world/fauna/ReedWalkerSpray.js?v=world-spray-1';
 
 const $ = id => document.getElementById(id);
 const renderer = new THREE.WebGLRenderer({ canvas: $('canvas'), antialias: true });
@@ -78,7 +81,7 @@ function view() {
   camera.position.copy(controls.target).add(new THREE.Vector3(8 + Math.max(0, traits.tuskLength - 1.2) * 2.5, .7, 1.3)); controls.update(); return;
  }
  const dirs = { quarter: [13, 8.5, 16], side: [0, 6.7, 20], front: [20, 6.7, 0] };
- const direction = dirs[$('view').value]; controls.target.set(0, 2.25, 0); camera.position.fromArray(direction).multiplyScalar(socialStudy ? (socialStudy.kind==='catchup'?1.85:1.45) : members.length > 1 ? 1.85 : 1.2); controls.update();
+ const direction = dirs[$('view').value]; controls.target.set(0, mode==='drink-spray'?4:2.25, 0); camera.position.fromArray(direction).multiplyScalar(socialStudy ? (socialStudy.kind==='catchup'?1.85:1.45) : mode==='drink-spray'?1.9:members.length > 1 ? 1.85 : 1.2); controls.update();
 }
 function focusMember() {
  const selected = members.find(m => m.role === $('member').value) || members[0];
@@ -90,12 +93,12 @@ function focusMember() {
 }
 function rebuild() {
  socialStudy=null;
- for (const member of members) { scene.remove(member.rig.root); member.rig.dispose(); }
+ for (const member of members) { scene.remove(member.rig.root); member.rig.dispose(); member.spray.dispose(); }
  const family = $('group').value === 'family';
  const definitions = family ? reedFamily($('form').value, seed, $('children').value === 'auto' ? null : Number($('children').value)) : [{ role: 'individual', traits: reedIndividual($('form').value, seed, $('age').value, $('sex').value), offset: [0, 0, 0], delay: 0 }];
  members = definitions.map(member => {
   const model = new ReedWalkerRig(member.traits); model.root.position.fromArray(member.offset); scene.add(model.root);
-  return { ...member, rig: model };
+  return { ...member, rig: model, spray: new ReedWalkerSpray(model,scene) };
  });
  const selectedRole = $('member').value;
  $('member').replaceChildren(...members.map(m => new Option(`${m.label || 'Individual'} · ${m.traits.age}`, m.role)));
@@ -108,20 +111,25 @@ function rebuild() {
  focusMember(); createHabitat(); applyLighting();
  $('place').textContent = traits.place; $('habitat-detail').textContent = traits.detail; clock = 0;
  view();
- if(['catchup','lean'].includes(mode))gesture(mode);
+ if(['catchup','lean','drink-spray'].includes(mode))gesture(mode);
 }
 function gesture(next) {
- socialStudy=null;
+ mode=next;clock=0;socialStudy=null;
  if(['catchup','lean'].includes(next)) {
   socialStudy=createReedSocialStudy(members,next,seed);
   $('view').value='quarter'; $('member').value='mother';focusMember();view();
  } else {for(const m of members){m.rig.root.position.fromArray(m.offset);m.rig.root.rotation.y=0;}view();}
- mode = next; clock = 0; paused = false; $('pause').textContent = 'Pause'; $('pause').setAttribute('aria-pressed', 'false');
+ if(mode==='drink-spray'&&$('view').value==='face'){$('view').value='quarter';view();}
+ for(const m of members)m.spray.update(0,false);
+ $('reservoir-field').hidden=mode!=='drink-spray';
+ if(mode==='drink-spray')view();
+ paused = false; $('pause').textContent = 'Pause'; $('pause').setAttribute('aria-pressed', 'false');
  document.querySelectorAll('[data-gesture]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.gesture === mode)));
 }
 for(const button of document.querySelectorAll('[data-family-gesture]'))button.onclick=()=>gesture(button.dataset.familyGesture);
 for (const button of document.querySelectorAll('[data-gesture]')) button.onclick = () => gesture(button.dataset.gesture);
-$('lower').oninput = () => { if(socialStudy)gesture('manual'); mode='manual'; lowering = Number($('lower').value) / 100; document.querySelectorAll('[data-gesture]').forEach(b => b.setAttribute('aria-pressed', 'false')); };
+$('lower').oninput = () => { if(socialStudy||mode==='drink-spray')gesture('manual'); mode='manual'; lowering = Number($('lower').value) / 100; document.querySelectorAll('[data-gesture]').forEach(b => b.setAttribute('aria-pressed', 'false')); };
+$('spray-now').onclick=()=>{gesture('drink-spray');const m=members.find(m=>m.rig===rig);clock=(m.spray.profile.sprayAt+m.spray.profile.bursts[0].duration*.7+.25)*m.traits.patience+m.delay;paused=true;$('pause').textContent='Resume';$('pause').setAttribute('aria-pressed','true');};
 $('pause').onclick = () => { paused = !paused; $('pause').textContent = paused ? 'Resume' : 'Pause'; $('pause').setAttribute('aria-pressed', String(paused)); };
 $('view').onchange = () => {if(socialStudy)gesture('stand');view();}; $('reset-view').onclick = view;
 $('children').onchange = rebuild; $('group').onchange = rebuild; $('member').onchange = () => {if(socialStudy)gesture('stand');focusMember();};
@@ -137,7 +145,7 @@ function applyLighting() {
  sun.intensity=dark?.35:night?1.2:3.2;sun.color.set(dark?'#ff3b22':night?'#bacddd':'#ffefcc');
  fill.intensity=dark?.02:night?.5:1.1;
  for(const m of members){
-  m.rig.visibility.value=original?0:1;
+  m.rig.visibility.value=original?0:1; m.spray.setLight(night);
   m.rig.root.traverse(o=>{if(o.material?.emissive)o.material.emissive.copy(o.material.color).multiplyScalar(original&&dark?.10:0);});
  }
  $('stage').style.setProperty('--paper',dark?'#100c1c':night?'#26332f':'#e9e9df');
@@ -208,7 +216,8 @@ function frame(now) {
   // Independent breathing and feeding; the youngster follows the adults' step.
   const localTime = mode === 'stand' ? clock / member.traits.patience + member.delay * 2
    : Math.max(0, clock - member.delay) / member.traits.patience;
-  member.pose = member.rig.update(localTime, mode, lowering);
+  member.pose = member.rig.update(localTime, mode, lowering,mode==='drink-spray'?reedDrinkPose(member.traits,localTime,member.spray.profile):null);
+  member.spray.update(localTime,mode==='drink-spray'&&member.rig.root.visible);
  }
  const selected = members.find(m => m.rig === rig), pose = selected.pose;
  for (let i = 0; i < ripples.length; i++) {
@@ -221,6 +230,8 @@ function frame(now) {
   $('gesture-status').textContent = socialStudy?socialCaption(socialStudy.group.moment):pose.stage;
   document.body.dataset.social=JSON.stringify(socialStudy?{phase:socialStudy.group.moment?.phase||'complete',kind:mode,elapsed:clock,members:socialStudy.group.members.map(m=>({role:m.role,state:m.state,steps:m.steps,origin:m.draw.origin,body:m.draw.pose.body}))}:null); $('lower-value').textContent = Math.round(pose.graze * 100) + '%'; if (mode !== 'manual') $('lower').value = Math.round(pose.graze * 100);
   document.body.dataset.family = JSON.stringify(members.map(m => ({ role: m.role, age: m.traits.age, sex: m.traits.sex, color: m.traits.color, tuskLength: m.traits.tuskLength, scale: m.traits.scale, position: m.rig.root.position.toArray(), graze: m.pose.graze, tilt: m.pose.tilt })));
+  $('water-load').value=pose.waterLoad||0;$('water-label').textContent=Math.round((pose.waterLoad||0)*100)+'%';
+  document.body.dataset.spray=JSON.stringify({phase:pose.phase||null,waterLoad:pose.waterLoad||0,drops:selected.spray.live,time:clock,releaseAt:selected.spray.profile.sprayAt});
   document.body.dataset.pose = JSON.stringify({ mode, graze: pose.graze, body: pose.body, tilt: pose.tilt, roll: pose.roll || 0, feet: pose.feet, feeding: pose.feeding, eyes: rig.eyes.eyes.map(eye => ({ openness: eye.openness })) }); lastReport = Math.floor(now / 100);
  }
  controls.update(); renderer.render(scene, camera); document.body.dataset.status = 'ready';

@@ -1,7 +1,9 @@
 import * as THREE from 'three';
 import { reedSites } from './ReedWalkerHabitat.js?v=graze-1';
-import { ReedWalkerWorldModel } from './ReedWalkerWorldModel.js?v=graze-1';
-import { ReedWalkerRig } from './ReedWalkerRig.js?v=visibility-1';
+import { ReedWalkerWorldModel } from './ReedWalkerWorldModel.js?v=world-spray-1';
+import { ReedWalkerRig } from './ReedWalkerRig.js?v=spray-1';
+import { ReedWalkerSpray } from './ReedWalkerSpray.js?v=world-spray-1';
+import { reedWorldSprayPose } from './ReedWalkerReservoir.js?v=1';
 import { ReedWalkerAudio } from '../../audio/ReedWalkerAudio.js?v=reed-7';
 import { bus, Events } from '../../core/EventBus.js';
 
@@ -16,7 +18,7 @@ export class WorldReedWalkers {
  }
  sync() {
   const members=[...this.model.groups.values()].flatMap(g=>g.members),live=new Set(members);
-  for(const [m,rig] of this.rigs) if(!live.has(m)){rig.root.removeFromParent();rig.dispose();this.rigs.delete(m);}
+  for(const [m,rig] of this.rigs) if(!live.has(m)){rig.spray?.dispose();rig.root.removeFromParent();rig.dispose();this.rigs.delete(m);}
   for(const m of members) if(!this.rigs.has(m)) {
    const rig=new ReedWalkerRig(m.traits);rig.root.scale.setScalar(m.scale);
    this.root.add(rig.root);this.rigs.set(m,rig);
@@ -35,11 +37,21 @@ export class WorldReedWalkers {
   if(this.audio)this.audio.muted=!!this.shared.fauna.audio?.muted;
   for(const [m,rig] of this.rigs){
    rig.root.visible=Math.hypot(m.origin.x-p.x,m.origin.z-p.z)<320;
-   if(!rig.root.visible)continue;
+   if(!rig.root.visible){rig.spray?.update(0,false);continue;}
    rig.root.position.set(m.draw.origin.x,m.draw.origin.y,m.draw.origin.z);rig.root.rotation.y=m.draw.yaw;
-   rig.update(m.clock,m.state,0,m.draw.pose);
+   rig.update(m.release?.time??m.clock,m.state,0,m.draw.pose);
+   const nearby=Math.hypot(m.origin.x-p.x,m.origin.z-p.z)<140;
+   if(m.release&&nearby){
+    rig.spray??=new ReedWalkerSpray(rig,this.root);
+    if(rig.sprayRelease!==m.release.id){
+     const release=m.release;
+     rig.spray.configure(release.profile,time=>reedWorldSprayPose(m.traits,release,time),true);
+     rig.spray.setLight(true);rig.sprayRelease=release.id;
+    }
+    rig.spray.update(m.release.time,true,m.bankWater);
+   }else rig.spray?.update(0,false);
   }
  }
  visit(current) {const g=this.model.findFamily(this.shared.player.position,current);this.sync();return g;}
- dispose(){this.audio?.dispose();for(const rig of this.rigs.values())rig.dispose();this.rigs.clear();this.root.removeFromParent();}
+ dispose(){this.audio?.dispose();for(const rig of this.rigs.values()){rig.spray?.dispose();rig.dispose();}this.rigs.clear();this.root.removeFromParent();}
 }

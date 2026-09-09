@@ -1,6 +1,7 @@
 import { createReedFamily, reedFootprint, reedLocalPoint, reedWorldPoint, REED_FAMILY_CAP, REED_FAMILY_SEPARATION, REED_WORLD_STEP_SECONDS, REED_WORLD_GRAZE_SECONDS, reedHabitat, reedShallowFooting } from './ReedWalkerHabitat.js?v=graze-1';
 import { reedPose, reedPoseFits, REED_STRIDE_SECONDS, REED_GRAZE_SECONDS } from './ReedWalkerMotion.js?v=graze-1';
 import { reedSocialPose, socialEase, socialDistance } from './ReedWalkerSocial.js?v=graze-1';
+import { updateReedReservoir, reedWorldSprayPose } from './ReedWalkerReservoir.js?v=1';
 const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
 const ease = x => { x = clamp(x); return x * x * x * (10 + x * (-15 + x * 6)); };
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -98,7 +99,8 @@ export class ReedWalkerWorldModel {
   return null;
  }
  pose(m) {
-  if (m.state==='step') m.draw=reedWorldStep(m,m.plan,m.clock);
+  if(m.release)m.draw={origin:m.origin,yaw:m.yaw,pose:reedWorldSprayPose(m.traits,m.release),feet:m.feet};
+  else if (m.state==='step') m.draw=reedWorldStep(m,m.plan,m.clock);
   else {
    let pose=reedPose(m.traits,m.state==='graze'?m.clock*REED_GRAZE_SECONDS/REED_WORLD_GRAZE_SECONDS:m.clock,m.state);
    if(m.state==='stand') {
@@ -120,6 +122,7 @@ export class ReedWalkerWorldModel {
    }
    m.draw={origin:m.origin,yaw:m.yaw,pose,feet:m.feet};
   }
+  m.draw.pose.waterLoad=m.reservoir?.load||0;
   m.position=reedWorldPoint(m.draw.origin,m.draw.yaw,m.draw.pose.body,m.scale);
  }
  socialHeld(m) {
@@ -137,7 +140,7 @@ export class ReedWalkerWorldModel {
   return s.phase==='approach'?{target:s.target,yaw:s.parent.yaw,partner:s.parent,clearance:s.clearance}:null;
  }
  beginSocial(group,kind,child,parent) {
-  if(group.moment || child.traits.age!=='young' || parent.traits.age==='young' || child.state!=='stand' || kind==='lean'&&parent.state!=='stand')return false;
+  if(group.moment || child.release || parent.release || child.traits.age!=='young' || parent.traits.age==='young' || child.state!=='stand' || kind==='lean'&&parent.state!=='stand')return false;
   let target,clearance;
   if(kind==='lean') {
    // Tuck beside the middle of the parent's flank, between its front and rear legs.
@@ -167,11 +170,11 @@ export class ReedWalkerWorldModel {
    if(!this.socialEnabled)return;
    group.nextMoment??=this.time+18+group.seed%19;
    if(this.time<group.nextMoment)return;
-   const children=group.members.filter(m=>m.traits.age==='young'&&m.state==='stand');
+   const children=group.members.filter(m=>m.traits.age==='young'&&m.state==='stand'&&!m.release);
    const child=children[(group.socialCount||0)%Math.max(1,children.length)];
    if(!child)return;
    const kind=group.lastMoment==='catchup'?'lean':'catchup';
-   const parent=group.members.filter(m=>m.traits.age!=='young'&&(kind!=='lean'||m.state==='stand')).sort((a,b)=>socialDistance(a.origin,child.origin)-socialDistance(b.origin,child.origin))[0];
+   const parent=group.members.filter(m=>m.traits.age!=='young'&&!m.release&&(kind!=='lean'||m.state==='stand')).sort((a,b)=>socialDistance(a.origin,child.origin)-socialDistance(b.origin,child.origin))[0];
    if(parent&&this.beginSocial(group,kind,child,parent))group.socialCount=(group.socialCount||0)+1;
    else group.nextMoment=this.time+3;
    return;
@@ -190,12 +193,15 @@ export class ReedWalkerWorldModel {
    this.updateSocial(group,dt);
    for(const m of group.members) {
    m.clock+=dt/m.traits.patience*(group.moment?.child===m&&group.moment.phase==='catchup'&&m.state==='step'?1.6:1);
+   updateReedReservoir(m,this.time,dt);
+   if(!m.release) {
    if(m.state==='graze'&&m.clock>=REED_WORLD_GRAZE_SECONDS) {m.state='stand';m.clock=0;m.rest=m.r.range(1.5,4);}
    else if(m.state==='stand'&&m.clock>=m.rest&&!this.socialHeld(m)) {
     m.plan=this.plan(m,listener);m.state=m.plan?'step':this.socialIntent(m)?'stand':'graze';m.clock=0; if(!m.plan)m.rest=1;
    } else if(m.state==='step'&&m.clock>=REED_WORLD_STEP_SECONDS) {
     m.origin=m.plan.origin;m.yaw+=m.plan.turn;m.feet=m.plan.feet;m.traits=m.plan.traits;m.water=m.plan.water;m.feedingHeight=m.plan.feedingHeight;m.steps++;
     m.state=m.steps%6===0&&!this.socialIntent(m)?'graze':'stand';m.clock=0;m.rest=this.socialIntent(m) ? .15 : m.r.range(.35,.8);
+   }
    }
    this.pose(m);
    m.nextCall-=dt;
