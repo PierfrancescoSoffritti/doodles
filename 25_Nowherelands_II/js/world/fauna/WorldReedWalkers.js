@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { reedSites } from './ReedWalkerHabitat.js?v=world-2';
-import { ReedWalkerWorldModel } from './ReedWalkerWorldModel.js?v=world-2';
+import { reedSites } from './ReedWalkerHabitat.js?v=world-3';
+import { ReedWalkerWorldModel } from './ReedWalkerWorldModel.js?v=world-3';
 import { ReedWalkerRig } from './ReedWalkerRig.js?v=world-1';
 import { ReedWalkerAudio } from '../../audio/ReedWalkerAudio.js?family=6';
 import { bus, Events } from '../../core/EventBus.js';
@@ -12,7 +12,7 @@ export class WorldReedWalkers {
   const blocked=(x,z,r,y)=>shared.colliders.some(c=>Math.hypot(x-c.position.x,z-c.position.z)<(c.radius||c.r||0)+r&&Math.abs(y-c.position.y)<Math.max(12,(c.radius||c.r||0)*2));
   this.model=new ReedWalkerWorldModel(fauna.model.seed,reedSites(shared.world,fauna.lakes),fauna.sample,blocked);
   this.model.onSound=(m,event)=>this.call(m,event);
-  this.model.onRipple=m=>{if(Math.hypot(m.position.x-shared.player.position.x,m.position.z-shared.player.position.z)<180)bus.emit(Events.RIPPLE,{x:m.position.x,z:m.position.z,size:.25,hue:shared.hue,saturation:.15});};
+  this.model.onRipple=m=>{if(m.water>=m.feedingHeight-.2&&Math.hypot(m.position.x-shared.player.position.x,m.position.z-shared.player.position.z)<180)bus.emit(Events.RIPPLE,{x:m.position.x,z:m.position.z,size:.25,hue:shared.hue,saturation:.15});};
  }
  sync() {
   const members=[...this.model.groups.values()].flatMap(g=>g.members),live=new Set(members);

@@ -18,8 +18,8 @@ export class ReedSurvey {
   const g=this.walkers.visit(current);if(!g){this.detail.textContent='No suitable shallow habitat found in this area.';return;}
   this.group=g;this.tracking=true;const p=this.shared.player;if(p.locked)document.exitPointerLock();p.keys.clear();p.velocity.set(0,0,0);p.fly=true;
   const c=g.members.reduce((a,m)=>({x:a.x+m.position.x/g.members.length,y:a.y+m.position.y/g.members.length,z:a.z+m.position.z/g.members.length}),{x:0,y:0,z:0});
-  const x=c.x+32,z=c.z+38,ground=this.shared.heightmap.height(x,z);
-  p.position.set(x,Math.max(ground+11,c.y+13),z);this.guide();
+  const x=c.x+24,z=c.z+28,ground=this.shared.heightmap.height(x,z);
+  p.position.set(x,Math.max(ground+11,c.y+8),z);this.guide();
  }
  guide(){
   if(!this.tracking||!this.group||this.shared.player.locked)return;
@@ -30,6 +30,6 @@ export class ReedSurvey {
   const groups=[...this.walkers.model.groups.values()];
   if(this.group&&!groups.includes(this.group)){this.group=null;this.tracking=false;}
   this.detail.textContent=this.group?`${this.group.members.length-2} youngster${this.group.members.length===4?'s':''} · ${this.group.site.form} · grazing, resting and wandering together`:'Choose a family to visit its real habitat.';
-  this.panel.dataset.reeds=JSON.stringify({sites:this.walkers.model.sites.length,groups:groups.length,subject:this.group?.id,members:this.group?.members.map(m=>({role:m.role,position:m.position,state:m.state,steps:m.steps,feet:m.draw.feet}))});
+  this.panel.dataset.reeds=JSON.stringify({sites:this.walkers.model.sites.length,groups:groups.length,subject:this.group?.id,members:this.group?.members.map(m=>({role:m.role,height:m.scale*m.traits.legs,giant:m.traits.giant,position:m.position,state:m.state,steps:m.steps,feet:m.draw.feet}))});
  }
 }
