@@ -304,7 +304,10 @@ function start(world,caveMeshes) {
 		}
 
 		fireflies.points.visible=shared.caveAmount<=.4;
-		if (renderFrame) post.render(t, shared);
+		if (renderFrame) {
+			post.render(t, shared);
+			hud.recordFrame(performance.now());
+		}
 		caveSurvey?.update(now-previousFrame);
 		weatherSurvey?.update(now-previousFrame);
 		if (survey) survey.update(now - previousFrame);

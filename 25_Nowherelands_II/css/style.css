@@ -82,6 +82,21 @@ body.touch .controls:not(.touch-only) { display: none; }
 #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; opacity: 0; transition: opacity 2s; }
 #hud.visible { opacity: 1; }
 
+#fps {
+	position: absolute;
+	top: max(1rem, env(safe-area-inset-top));
+	right: max(1.2rem, env(safe-area-inset-right));
+	padding: 0.45rem 0.65rem;
+	border: 1px solid rgba(243, 233, 255, 0.12);
+	border-radius: 6px;
+	background: rgba(5, 3, 12, 0.65);
+	color: var(--fg);
+	font: 12px/1.2 ui-monospace, monospace;
+	font-variant-numeric: tabular-nums;
+	min-width: 6ch;
+	text-align: right;
+}
+
 .crosshair {
 	position: absolute;
 	top: 50%;

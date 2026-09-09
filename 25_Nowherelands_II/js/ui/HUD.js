@@ -14,6 +14,9 @@ export class HUD {
 		this.rec = document.getElementById('rec');
 		this.joystick = document.getElementById('joystick');
 		this.knob = document.getElementById('joystick-knob');
+		this.fps = document.getElementById('fps');
+		this.resetFPS();
+		document.addEventListener('visibilitychange', () => this.resetFPS());
 		this.toastTimer = null;
 		this.hintTimer = null;
 
@@ -69,6 +72,22 @@ export class HUD {
 
 	setPaused(paused) {
 		if (paused) this.showHint('click to continue'); else this.showHint('');
+	}
+
+	resetFPS() {
+		this.fpsStart = null;
+		this.fpsFrames = 0;
+		this.fps.textContent = '— FPS';
+	}
+
+	recordFrame(now) {
+		if (this.fpsStart === null) { this.fpsStart = now; return; }
+		this.fpsFrames++;
+		const elapsed = now - this.fpsStart;
+		if (elapsed < 500) return;
+		this.fps.textContent = Math.round(this.fpsFrames * 1000 / elapsed) + ' FPS';
+		this.fpsStart = now;
+		this.fpsFrames = 0;
 	}
 
 	setHover(on) { this.ring.setAttribute('r', on ? 9 : 4); this.ring.setAttribute('stroke', on ? '#ff6ad5' : '#fff'); }
