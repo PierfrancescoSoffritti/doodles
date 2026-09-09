@@ -1,3 +1,4 @@
+import { fillShoreRows } from './ShoreTileData.js';
 import * as THREE from 'three';
 import { shoreDistance, riverReach, buildCoastOverview } from './ShoreMapData.js';
 
@@ -51,19 +52,7 @@ class Tier {
 		const { res, size } = this.spec;
 		const o = this.pendingOrigin, hm = this.heightmap, next = this.next;
 		const end = Math.min(res, this.row + count);
-		for (let j = this.row; j < end; j++) {
-			const z = o.y + (j / (res - 1) - 0.5) * size;
-			for (let i = 0; i < res; i++) {
-				const x = o.x + (i / (res - 1) - 0.5) * size;
-				const h = hm.sample(x, z);
-				const k = (j * res + i) * 4;
-				const water = hm._water;
-				next[k] = h;
-				next[k + 1] = water;
-				next[k + 2] = h < water - 0.02 ? 1 : 0;   // under water of any kind
-				next[k + 3] = hm._riverDist < hm._riverWidth * 0.5 + 1 ? 1 : 0;   // in a channel; dilated below
-			}
-		}
+		fillShoreRows(next, hm, res, size, o.x, o.y, this.row, end);
 		this.row = end;
 		if (this.row >= res) {
 			shoreDistance(next, res, size / (res - 1));
@@ -79,7 +68,8 @@ class Tier {
 }
 
 export class ShoreMap {
-	constructor(heightmap) {
+	constructor(heightmap, surfaceWork = null) {
+		this.surfaceWork = surfaceWork;
 		this.heightmap = heightmap;
 		this.tiers = TIERS.map((spec) => new Tier(spec, heightmap));
 		const [near, far] = this.tiers;
@@ -135,7 +125,15 @@ export class ShoreMap {
 	}
 
 	update(playerPos) {
-		for (const t of this.tiers) t.update(playerPos);
+		for (const [i, t] of this.tiers.entries()) {
+			if (!this.surfaceWork?.ready || t.pendingOrigin) { t.update(playerPos); continue; }
+			const snap = t.spec.size / 4, ox = Math.round(playerPos.x/snap)*snap, oz = Math.round(playerPos.z/snap)*snap;
+			if (t.origin.x === ox && t.origin.y === oz) continue;
+			this.surfaceWork.request(`shore:${i}`, { type: 'shore', ...t.spec, ox, oz }, -2 + i,
+				({ data }) => {
+					t.data.set(data); t.texture.needsUpdate = true; t.origin.set(ox, oz); t.uOrigin.copy(t.origin);
+				});
+		}
 	}
 
 	// Do not render precipitation against stale or uninitialized roof heights after a teleport.

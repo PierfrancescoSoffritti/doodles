@@ -181,3 +181,6 @@ body.touch .controls:not(.touch-only) { display: none; }
 .fauna-guide .fauna-guide-quiet { margin-top: 8px; padding: 3px 0; background: none; border: 0; font-size: 10px; color: #a79db8; }
 .fauna-guide output, .fauna-guide small { display: block; font-size: 9px; color: #897e9b; margin-top: 12px; }
 @media (max-width: 600px) { .fauna-guide { top: 10px; left: 10px; width: 208px; max-height: calc(100dvh - 20px); padding: 16px; } .fauna-guide-list { grid-template-columns: 1fr 1fr; } .fauna-guide button { font-size: 10px; } }
+
+.frame-rate { display: block; margin-top: 8px; pointer-events: auto; }
+.frame-rate select { color: inherit; font: inherit; background: #130d20; border: 1px solid #ffffff30; border-radius: 4px; padding: 3px 5px; }

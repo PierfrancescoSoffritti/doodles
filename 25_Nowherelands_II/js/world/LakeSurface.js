@@ -1,9 +1,12 @@
 import { RIVER_STRIDE as S, RV, surfaceHalfWidth } from './gen/Rivers.js';
 
+const NO_LAKES = Object.freeze([]);
+
 // Basin coverage is shared by lake meshes, terrain wetness and the shore map.
 export class LakeSurface {
 	constructor(world, resolve = true) {
 		this.world = world;
+		this.candidateCache = new Map();
 		const N = world.res;
 		this.ids = world.lakeId ? Int32Array.from(world.lakeId) : new Int32Array(N * N).fill(-1);
 		this.outlets = new Map();
@@ -199,10 +202,23 @@ export class LakeSurface {
 		return (at(ix, iz) * (1 - tx) + at(ix + 1, iz) * tx) * (1 - tz) + (at(ix, iz + 1) * (1 - tx) + at(ix + 1, iz + 1) * tx) * tz;
 	}
 
+	candidates(k) {
+		const n = this.world.res, a = this.ids[k], b = this.ids[k+1], c = this.ids[k+n], d = this.ids[k+n+1], joins = this.joinCells.get(k);
+		if (!(a >= 0 || b >= 0 || c >= 0 || d >= 0 || joins?.size)) return NO_LAKES;
+		let ids = this.candidateCache.get(k);
+		if (ids) return ids;
+		ids = [...new Set([a, b, c, d, ...(joins || [])])].filter(id => id >= 0);
+		// Bound memory when exploring the whole continent. Clearing affects only speed.
+		if (this.candidateCache.size >= 8192) this.candidateCache.clear();
+		this.candidateCache.set(k, ids);
+		return ids;
+	}
+
 	fillDisconnected(x, z, height) {
+		if (!this.removed?.size) return height;
 		const w = this.world, i = Math.floor((x + w.spawn.x + w.size / 2) / w.cell), j = Math.floor((z + w.spawn.z + w.size / 2) / w.cell);
 		const k = j * w.res + i;
-		const candidates = new Set([this.ids[k], this.ids[k + 1], this.ids[k + w.res], this.ids[k + w.res + 1], ...(this.joinCells.get(k) || [])]);
+		const candidates = this.candidates(k);
 		for (const id of candidates) {
 			const weight = this.removedAt(id, x, z);
 			if (id >= 0 && weight > 0) height += Math.max(0, w.lakes[id].level + 0.35 - height) * weight;
@@ -254,7 +270,7 @@ export class LakeSurface {
 		const i = Math.floor((x + w.spawn.x + w.size / 2) / w.cell), j = Math.floor((z + w.spawn.z + w.size / 2) / w.cell);
 		if (i < 0 || j < 0 || i >= N - 1 || j >= N - 1) return -10000;
 		let level = -10000;
-		const candidates = new Set([this.ids[j * N + i], this.ids[j * N + i + 1], this.ids[(j + 1) * N + i], this.ids[(j + 1) * N + i + 1], ...(this.joinCells.get(j * N + i) || [])]);
+		const candidates = this.candidates(j * N + i);
 		for (const id of candidates) {
 			if (id < 0) continue;
 			const coverage = this.coverage(id, x, z);

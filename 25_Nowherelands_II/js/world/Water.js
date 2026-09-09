@@ -60,10 +60,23 @@ export class Water {
 		shared.mirrorHide = new Set(this.levels);
 		const orig = this.far.onBeforeRender;
 		const far = this.far, inv = new THREE.Matrix4();
+		const capturePosition = new THREE.Vector3(), captureRotation = new THREE.Quaternion();
+		let capturedAt = -Infinity;
+		this.reflectionStats = { captures: 0, reused: 0 };
+		const stats = this.reflectionStats;
 		this.far.onBeforeRender = function (renderer, scene, camera, ...rest) {
-			for (const m of shared.mirrorHide) m.visible = false;
-			orig.call(far, renderer, scene, camera, ...rest);
-			for (const m of shared.mirrorHide) m.visible = true;
+			// Other reflectors and the environment probe reuse the previous texture.
+			if (camera !== shared.camera || camera.position.y < far.position.y) return;
+			const now = performance.now(), distance = camera.position.distanceTo(capturePosition);
+			const angle = camera.quaternion.angleTo(captureRotation);
+			const interval = distance > .1 || angle > .002 ? 1000 / 30 : 1000 / 15;
+			if (now - capturedAt < interval - 1 && distance < 6 && angle < .12) { stats.reused++; return; }
+			const hidden = Array.from(shared.mirrorHide, m => [m, m.visible]);
+			try {
+				for (const [m] of hidden) m.visible = false;
+				orig.call(far, renderer, scene, camera, ...rest);
+			} finally { for (const [m, visible] of hidden) m.visible = visible; }
+			capturedAt = now; capturePosition.copy(camera.position); captureRotation.copy(camera.quaternion); stats.captures++;
 			inv.copy(far.matrixWorld).invert();
 			uniforms.uReflMatrix.value.copy(far.material.uniforms.textureMatrix.value).multiply(inv);
 		};

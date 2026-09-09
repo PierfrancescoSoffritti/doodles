@@ -4,7 +4,7 @@ import { faunaDeformation } from '../js/world/fauna/FaunaDeformation.js';
 
 // Capture the actual GPU-deformed positions with an identity object transform.
 // Distance changes between vertex pairs rule out whole-object rigid motion.
-export function checkFaunaShaders() {
+export function checkFaunaShaders(detail = 0) {
 	const canvas = document.createElement('canvas'), gl = canvas.getContext('webgl2');
 	if (!gl) throw new Error('WebGL 2 is required');
 	const reports = [];
@@ -21,7 +21,7 @@ export function checkFaunaShaders() {
 		gl.transformFeedbackVaryings(program, ['deformed'], gl.INTERLEAVED_ATTRIBS); gl.linkProgram(program);
 		if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program));
 		gl.useProgram(program);
-		const geometry = faunaGeometry(kind), positions = geometry.attributes.position.array, n = positions.length / 3;
+		const geometry = faunaGeometry(kind, detail), positions = geometry.attributes.position.array, n = positions.length / 3;
 		const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
 		const input = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, input); gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
 		const loc = gl.getAttribLocation(program, 'position'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 3, gl.FLOAT, false, 0, 0);
@@ -47,7 +47,7 @@ export function checkFaunaShaders() {
 		if (kind !== 'hopper' && (displacement < 0.1 || nonRigid < 0.05)) throw new Error(kind + ': no meaningful non-rigid deformation');
 		const report = { kind, vertices: n, displacement: +displacement.toFixed(3), nonRigid: +nonRigid.toFixed(3) };
 		if (kind === 'lumen') {
-			if(nonRigid<0.3)throw new Error('Lumen surface deformation is too subtle');
+			if(nonRigid<0.3)throw new Error(`Lumen detail ${detail} surface deformation is too subtle: ${nonRigid}`);
 			let maxRadius=0,minRadius=Infinity;
 			const lengths=[];
 			for(const velocity of [[0,0,0],[120,0,0],[0,120,0],[0,0,-120]]) {

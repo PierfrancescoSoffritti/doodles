@@ -370,6 +370,7 @@ const growthGlsl = /* glsl */`
 	}`;
 
 function instancedMaterial(base, uniforms, swayStrength, extraVertex = '', extraFragment = null) {
+	base.userData.growthBounds = { height: uniforms.uHeightRef.value, sway: swayStrength };
 	base.onBeforeCompile = (shader) => {
 		Object.assign(shader.uniforms, uniforms);
 		shader.vertexShader = shader.vertexShader
@@ -730,7 +731,8 @@ export class Vegetation {
 			g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
 			g.setAttribute('aInfo', new THREE.Float32BufferAttribute(info, 4));
 			const points = new THREE.Points(g, this.lightMaterial);
-			points.frustumCulled = false;
+			g.computeBoundingSphere(); g.boundingSphere.radius += 40;
+			points.frustumCulled = true;
 			chunk.meshes.push(points);
 		}
 		if (lamps.length) {
@@ -744,7 +746,8 @@ export class Vegetation {
 				ai[i * 2] = l.phase; ai[i * 2 + 1] = l.tint;
 			});
 			geom.setAttribute('aInfo', new THREE.InstancedBufferAttribute(ai, 2));
-			mesh.frustumCulled = false;
+			mesh.computeBoundingSphere(); mesh.boundingSphere.radius += 40;
+			mesh.frustumCulled = true;
 			chunk.meshes.push(mesh);
 		}
 	}
@@ -826,10 +829,21 @@ export class Vegetation {
 			pos.push(it.x, it.z);
 		});
 		geom.setAttribute('aBorn', new THREE.InstancedBufferAttribute(born, 1));
-		mesh.frustumCulled = false;
-		if (kind === 'giant') { mesh.computeBoundingSphere(); mesh.frustumCulled = true; }
+		geom.computeBoundingBox();
+		const box = geom.boundingBox, growth = material.userData.growthBounds;
+		if (growth) {
+			const bend = 1.44 * Math.min(growth.sway * 8, growth.height * .17);
+			box.expandByPoint(new THREE.Vector3());
+			box.min.x -= bend; box.max.x += bend; box.min.z -= bend; box.max.z += bend;
+			// Back easing overshoots by at most 10%; crystals pulse up to 25%.
+			const stretch = kind === 'crystal' ? 1.4 : 1.11;
+			box.min.y = Math.min(0, box.min.y * stretch) - 2.5;
+			box.max.y = Math.max(0, box.max.y * stretch);
+		}
+		geom.boundingSphere = box.getBoundingSphere(new THREE.Sphere());
+		mesh.computeBoundingSphere(); mesh.frustumCulled = true;
 		chunk.meshes.push(mesh);
-		chunk.groups.push({ kind: KINDS[kind], attr: geom.getAttribute('aBorn'), pos, ranges: null, count: items.length, pending: items.length });
+		chunk.groups.push({ kind: KINDS[kind], attr: geom.getAttribute('aBorn'), pos, ranges: null, count: items.length, pending: born.reduce((n, b) => n + (b === UNBORN), 0) });
 	}
 
 	// one instanced mesh per geometry variant, so a stand mixes silhouettes
@@ -849,7 +863,9 @@ export class Vegetation {
 
 	key(cx, cz) { return cx + ',' + cz; }
 
-	addChunk(key, cx, cz) {
+	addChunk(key, cx, cz) { for (const _ of this.buildChunk(key, cx, cz)) {} }
+
+	*buildChunk(key, cx, cz) {
 		if (Math.abs(cx - this.centerX) > this.radius || Math.abs(cz - this.centerZ) > this.radius) return;
 		if (this.chunks.has(key)) return;
 		const size = config.world.chunkSize;
@@ -857,246 +873,275 @@ export class Vegetation {
 		const rnd = new Random(config.seed + ':veg:' + key);
 		const hm = this.heightmap;
 		const chunk = { meshes: [], groups: [] };
+		let committed = false;
+		try {
 
-		const pr = this.pr, look = (x, z) => this.look(x, z), downwind = (x, z, coast) => this.downwind(x, z, coast);
+			const pr = this.pr, look = (x, z) => this.look(x, z), downwind = (x, z, coast) => this.downwind(x, z, coast);
 
-		// ---- the giants of this chunk, full detail, solid ----
-		chunk.colliders = [];
-		{
-			const giants = this.giantSpots(cx, cz);
-			for (const conifer of [false, true]) {
-				const geoms = conifer ? this.sequoias : this.broadleaves;
-				const buckets = geoms.map(() => []);
-				for (const it of giants) if (it.conifer === conifer) buckets[it.variant % geoms.length].push(it);
-				buckets.forEach((list, v) => this.makeInstanced(geoms[v].hi.geometry, this.leafMaterial, 'giant', list, rnd, chunk, (it, p, q, s, r, yAxis) => {
-					Vegetation.stand(it, p, q, s, r, yAxis, it.sy);
-					const c = { position: new THREE.Vector3(it.x, it.y, it.z), radius: geoms[v].hi.trunkRadius * it.sc * 1.05 };
-					chunk.colliders.push(c); this.shared.colliders.push(c);
-				}));
-			}
-			this.treeLights(giants, rnd, chunk);
-		}
-
-		// ---- the smaller trees: bare silhouettes in the open ground and along the edges, dead giants
-		// as snags in the old forest, krummholz streaming downwind in the belt below the tree line ----
-		const bare = [], krumm = [], snags = [];
-		const pick2 = (arr) => [rnd.int(0, arr.length - 1), rnd.int(0, arr.length - 1)];
-		const bareVariants = pick2(this.bareTrees);
-		const krummVariant = rnd.int(0, this.krummholz.length - 1);
-		this.grid(rnd, ox, oz, size, 16, (x, z) => {
-			if (Math.hypot(x, z) < 60) return;
-			look(x, z);
-			if (pr.H < 3.5 || pr.bank > 0.35 || pr.slope > 0.8 || pr.forest < 0.015) return;
-			const f = pr.forest;
-			const p = Math.pow(f, 1.6) * 0.42 + 0.018 * ss(0.03, 0.25, f);
-			if (rnd.next() > p) return;
-			const it = { x, z, y: pr.y, yaw: rnd.range(0, Math.PI * 2), sc: 1, lean: 0, lx: 0, lz: 0, mirror: rnd.next() < 0.5, variant: 0 };
-			it.sc = rnd.range(0.7, 1.25) * (0.8 + 0.3 * pr.wet) * (0.65 + 0.35 * f) * (1 - 0.3 * pr.coast) * (0.6 + 0.4 * pr.alt);
-			if (rnd.next() < 1 - ss(0.1, 0.5, pr.alt)) {
-				const w = downwind(x, z, pr.coast);
-				it.yaw = Math.atan2(-w.z, w.x) + rnd.range(-0.45, 0.45);   // the geometry leans along +x
-				it.variant = krummVariant + rnd.int(0, 1);
-				it.sc *= rnd.range(0.9, 1.4);
-				krumm.push(it);
-				return;
-			}
-			if (pr.coast > 0.15) { const w = downwind(x, z, pr.coast); it.lx = w.x; it.lz = w.z; it.lean = pr.coast * rnd.range(0.12, 0.35); }
-			else { const a = rnd.range(0, 6.3); it.lx = Math.cos(a); it.lz = Math.sin(a); it.lean = rnd.range(0, 0.05); }
-			if (f > 0.6 && rnd.next() < 0.03) { it.variant = rnd.int(0, 1); it.sc *= 4; snags.push(it); return; }
-			const bareShare = Math.max(f < 0.35 ? 0.4 : 0.06, 0.25 * (1 - ss(25, 220, pr.hSea)));
-			if (rnd.next() < bareShare) { it.variant = bareVariants[rnd.int(0, 1)]; it.sc *= 1.6; bare.push(it); }
-		});
-		const placeTree = (it, p, q, s, r, yAxis) => Vegetation.stand(it, p, q, s, r, yAxis, r.range(1.0, 1.4));
-		this.makeVariants(this.bareTrees, this.treeMaterial, 'tree', bare, rnd, chunk, placeTree);
-		this.makeVariants(this.krummholz, this.treeMaterial, 'tree', krumm, rnd, chunk, (it, p, q, s, r, yAxis) => Vegetation.stand(it, p, q, s, r, yAxis, r.range(0.8, 1.1)));
-		this.makeVariants(this.snags, this.treeMaterial, 'tree', snags, rnd, chunk, (it, p, q, s, r, yAxis) => Vegetation.stand(it, p, q, s, r, yAxis, r.range(0.7, 1.2)));
-
-		// ---- shrubs: dwarf scrub in the belt below the tree line and on the open ground above it ----
-		const shrubs = [];
-		const shrubVariants = pick2(this.shrubs);
-		this.grid(rnd, ox, oz, size, 8, (x, z) => {
-			look(x, z);
-			if (pr.H < 3 || pr.bank > 0.35 || pr.slope > 0.85 || pr.hSea > 950 || pr.alt > 0.6) return;
-			const p = 0.3 * (1 - ss(0.05, 0.6, pr.alt)) * (1 - 0.5 * pr.hard) * (0.5 + 0.5 * (1 - pr.forest));
-			if (rnd.next() > p) return;
-			const w = downwind(x, z, pr.coast);
-			shrubs.push({ x, z, y: pr.y, yaw: rnd.range(0, 6.3), sc: rnd.range(0.6, 1.3) * (0.75 + 0.3 * pr.wet), lean: rnd.range(0.05, 0.3), lx: w.x, lz: w.z, mirror: rnd.next() < 0.5, variant: shrubVariants[rnd.int(0, 1)] });
-		});
-		this.makeVariants(this.shrubs, this.shrubMaterial, 'shrub', shrubs, rnd, chunk, (it, p, q, s, r, yAxis) => Vegetation.stand(it, p, q, s, r, yAxis, r.range(0.8, 1.2)));
-
-		// ---- fallen trunks in the old forest ----
-		const fallen = [];
-		this.grid(rnd, ox, oz, size, 64, (x, z) => {
-			look(x, z);
-			if (pr.H < 3.5 || pr.bank > 0.3 || pr.slope > 0.45 || pr.forest < 0.5 || rnd.next() > 0.3 * pr.forest) return;
-			fallen.push({ x, z, y: pr.y, len: rnd.range(50, 110), r: rnd.range(2.5, 4.5), yaw: rnd.range(0, 6.3) });
-		});
-
-		// ---- grass: solid blades seen from afar, thinning under the trees, lusher in the wet, sparse on hard ground ----
-		const grassP = (top) => (x, z) => {
-			look(x, z);
-			if (pr.H < 3.5 || pr.hSea > top || pr.bank > 0.35 || pr.slope > 0.9) return false;
-			const g = (1 - 0.6 * pr.forest) * (0.45 + 0.55 * pr.wet) * (1 - 0.45 * pr.hard) * (0.35 + 0.65 * (1 - ss(top - 250, top, pr.hSea)));
-			return rnd.next() < g;
-		};
-		const bladeSpots = this.spots(rnd, ox, oz, size, 520, grassP(640));
-		this.makeInstanced(this.blade, this.bladeMaterial, 'blade', bladeSpots, rnd, chunk, (it, p, q, s, r, yAxis) => { p.set(it.x, hm.height(it.x, it.z) - 0.3, it.z); q.setFromAxisAngle(yAxis, r.range(0, 6.3)); s.set(r.range(0.8, 1.4), r.range(2.5, 6.5), 1); });
-
-		// glowing sprouts, rare, in the wet lowland
-		const lowland = hm.height(ox, oz) - hm.waterLevel < 80;
-		if (rnd.chance(lowland ? 0.7 : 0.2)) {
-			const sproutSpots = this.spots(rnd, ox, oz, size, rnd.int(2, 7), (x, z) => { look(x, z); return pr.H > 2 && pr.hSea < 25 && pr.bank < 0.35 && pr.slope < 0.5 && rnd.next() < 0.3 + 0.7 * pr.wet; });
-			this.makeInstanced(this.sprout, this.sproutMaterial, 'sprout', sproutSpots, rnd, chunk, (it, p, q, s, r, yAxis) => { const sc = r.range(0.7, 1.6); p.set(it.x, hm.height(it.x, it.z) - 0.2, it.z); q.setFromAxisAngle(yAxis, r.range(0, 6.3)); s.set(sc, sc, sc); });
-		}
-
-		// crystal columns: clusters of hex prisms on the dry, hard, high ground
-		const crystals = [];
-		const chunkH = hm.height(ox, oz) - hm.waterLevel;
-		const highland = chunkH > 450;
-		if (rnd.chance(highland ? 0.85 : (lowland ? 0.15 : 0.4))) {
-			const clusters = this.spots(rnd, ox, oz, size, rnd.int(1, highland ? 3 : 2), (x, z) => { look(x, z); return pr.H > 3 && pr.bank < 0.35 && pr.slope < 0.4 && pr.wet < 0.55 && pr.forest < 0.3; });
-			for (const { x: cx2, z: cz2 } of clusters) {
-				const n = rnd.int(3, 7);
-				for (let i = 0; i < n; i++) {
-					const x = cx2 + rnd.range(-9, 9), z = cz2 + rnd.range(-9, 9);
-					if (!hm.isLand(x, z, 2)) continue;
-					crystals.push({ x, z, y: hm.height(x, z) - 0.5, r: rnd.range(1.2, 2.6), h: rnd.range(5, 22), rot: rnd.range(0, 6.3) });
-				}
-			}
-		}
-		if (crystals.length) {
-			this.makeInstanced(this.crystalSolid, this.crystalMaterial, 'crystal', crystals, rnd, chunk, (c, p, q, s, r, yAxis) => { p.set(c.x, c.y, c.z); q.setFromAxisAngle(yAxis, c.rot); s.set(c.r, c.h, c.r); });
-		}
-
-		// merged lines: tufts, reeds by the water, crystal edges
-		const verts = [], bases = [], infos = [], ranges = [], pos = [], kinds = [];
-		const pushLines = (arr, x, y, z, rot, sx, sy, sz, dx, dz, h, phase, kind, dur) => {
-			if(hm.caves.surfaceDensity(x,y,z)>-2)return;
-			for (let k = 0; k < arr.length; k += 3) {
-				const lx = arr[k] * sx, ly = arr[k + 1] * sy, lz = arr[k + 2] * sz;
-				const rx = lx * Math.cos(rot) - lz * Math.sin(rot), rz = lx * Math.sin(rot) + lz * Math.cos(rot);
-				verts.push(x + dx + rx, y + ly, z + dz + rz);
-				bases.push(x, y, z);
-				infos.push(ly / h, phase, kind, dur);
-			}
-		};
-		const beginPlant = (x, z, kind) => { ranges.push([verts.length / 3, 0]); pos.push(x, z); kinds.push(kind); };
-		const endPlant = () => { ranges[ranges.length - 1][1] = verts.length / 3; };
-
-		// boulders: scree on steep ground and under cliffs, outcrops on hard rock, stones in the rapids
-		{
-			const rocks = [];
-			for (const { x, z } of this.spots(rnd, ox, oz, size, 70, (x, z) => {
-				const h = hm.sample(x, z);
-				if (h < hm._water + 0.5 || hm._bank > 0.3) return false;
-				const s = hm._slope;
-				return s > 0.35 && rnd.next() < (s - 0.3) * (0.4 + hm._hardness);
-			})) rocks.push({ x, z, r: rnd.range(0.8, 3.0) * (1 + 1.6 * Math.pow(rnd.next(), 3)), sink: 0.35 });
-			if (rnd.chance(0.55)) {
-				for (const { x, z } of this.spots(rnd, ox, oz, size, rnd.int(1, 3), (x, z) => { const h = hm.sample(x, z); return h > hm._water + 3 && hm._hardness > 0.6 && hm._slope > 0.15 && hm._slope < 1.3 && hm._bank < 0.2; }))
-					rocks.push({ x, z, r: rnd.range(4.5, 11), sink: 0.4 });
-			}
-			// river rocks are world data: the stones the water pours over, boulders in the chutes and
-			// pools, the outcrops that turned the river. Driftwood is stranded on the calm banks.
-			const logs = [];
+			// ---- the giants of this chunk, full detail, solid ----
+			chunk.colliders = [];
 			{
-				const x0 = ox - size / 2, x1 = ox + size / 2, z0 = oz - size / 2, z1 = oz + size / 2;
-				for (const r of hm.world.rivers) {
-					const rk = r.rocks;
-					for (let q = 0; q < rk.length; q += ROCK_STRIDE) {
-						const x = rk[q], z = rk[q + 1];
-						if (x < x0 || x >= x1 || z < z0 || z >= z1) continue;
-						rocks.push({ x, z, y: rk[q + 2], r: rk[q + 3], sink: 0.35, kind: rk[q + 4] });
+				const giants = this.giantSpots(cx, cz);
+				for (const conifer of [false, true]) {
+					const geoms = conifer ? this.sequoias : this.broadleaves;
+					const buckets = geoms.map(() => []);
+					for (const it of giants) if (it.conifer === conifer) buckets[it.variant % geoms.length].push(it);
+					buckets.forEach((list, v) => this.makeInstanced(geoms[v].hi.geometry, this.leafMaterial, 'giant', list, rnd, chunk, (it, p, q, s, r, yAxis) => {
+						Vegetation.stand(it, p, q, s, r, yAxis, it.sy);
+						const c = { position: new THREE.Vector3(it.x, it.y, it.z), radius: geoms[v].hi.trunkRadius * it.sc * 1.05 };
+						chunk.colliders.push(c);
+					}));
+				}
+				this.treeLights(giants, rnd, chunk);
+			}
+
+			yield;
+			// ---- the smaller trees: bare silhouettes in the open ground and along the edges, dead giants
+			// as snags in the old forest, krummholz streaming downwind in the belt below the tree line ----
+			const bare = [], krumm = [], snags = [];
+			const pick2 = (arr) => [rnd.int(0, arr.length - 1), rnd.int(0, arr.length - 1)];
+			const bareVariants = pick2(this.bareTrees);
+			const krummVariant = rnd.int(0, this.krummholz.length - 1);
+			this.grid(rnd, ox, oz, size, 16, (x, z) => {
+				if (Math.hypot(x, z) < 60) return;
+				look(x, z);
+				if (pr.H < 3.5 || pr.bank > 0.35 || pr.slope > 0.8 || pr.forest < 0.015) return;
+				const f = pr.forest;
+				const p = Math.pow(f, 1.6) * 0.42 + 0.018 * ss(0.03, 0.25, f);
+				if (rnd.next() > p) return;
+				const it = { x, z, y: pr.y, yaw: rnd.range(0, Math.PI * 2), sc: 1, lean: 0, lx: 0, lz: 0, mirror: rnd.next() < 0.5, variant: 0 };
+				it.sc = rnd.range(0.7, 1.25) * (0.8 + 0.3 * pr.wet) * (0.65 + 0.35 * f) * (1 - 0.3 * pr.coast) * (0.6 + 0.4 * pr.alt);
+				if (rnd.next() < 1 - ss(0.1, 0.5, pr.alt)) {
+					const w = downwind(x, z, pr.coast);
+					it.yaw = Math.atan2(-w.z, w.x) + rnd.range(-0.45, 0.45);   // the geometry leans along +x
+					it.variant = krummVariant + rnd.int(0, 1);
+					it.sc *= rnd.range(0.9, 1.4);
+					krumm.push(it);
+					return;
+				}
+				if (pr.coast > 0.15) { const w = downwind(x, z, pr.coast); it.lx = w.x; it.lz = w.z; it.lean = pr.coast * rnd.range(0.12, 0.35); }
+				else { const a = rnd.range(0, 6.3); it.lx = Math.cos(a); it.lz = Math.sin(a); it.lean = rnd.range(0, 0.05); }
+				if (f > 0.6 && rnd.next() < 0.03) { it.variant = rnd.int(0, 1); it.sc *= 4; snags.push(it); return; }
+				const bareShare = Math.max(f < 0.35 ? 0.4 : 0.06, 0.25 * (1 - ss(25, 220, pr.hSea)));
+				if (rnd.next() < bareShare) { it.variant = bareVariants[rnd.int(0, 1)]; it.sc *= 1.6; bare.push(it); }
+			});
+			const placeTree = (it, p, q, s, r, yAxis) => Vegetation.stand(it, p, q, s, r, yAxis, r.range(1.0, 1.4));
+			this.makeVariants(this.bareTrees, this.treeMaterial, 'tree', bare, rnd, chunk, placeTree);
+			this.makeVariants(this.krummholz, this.treeMaterial, 'tree', krumm, rnd, chunk, (it, p, q, s, r, yAxis) => Vegetation.stand(it, p, q, s, r, yAxis, r.range(0.8, 1.1)));
+			this.makeVariants(this.snags, this.treeMaterial, 'tree', snags, rnd, chunk, (it, p, q, s, r, yAxis) => Vegetation.stand(it, p, q, s, r, yAxis, r.range(0.7, 1.2)));
+
+			yield;
+			// ---- shrubs: dwarf scrub in the belt below the tree line and on the open ground above it ----
+			const shrubs = [];
+			const shrubVariants = pick2(this.shrubs);
+			this.grid(rnd, ox, oz, size, 8, (x, z) => {
+				look(x, z);
+				if (pr.H < 3 || pr.bank > 0.35 || pr.slope > 0.85 || pr.hSea > 950 || pr.alt > 0.6) return;
+				const p = 0.3 * (1 - ss(0.05, 0.6, pr.alt)) * (1 - 0.5 * pr.hard) * (0.5 + 0.5 * (1 - pr.forest));
+				if (rnd.next() > p) return;
+				const w = downwind(x, z, pr.coast);
+				shrubs.push({ x, z, y: pr.y, yaw: rnd.range(0, 6.3), sc: rnd.range(0.6, 1.3) * (0.75 + 0.3 * pr.wet), lean: rnd.range(0.05, 0.3), lx: w.x, lz: w.z, mirror: rnd.next() < 0.5, variant: shrubVariants[rnd.int(0, 1)] });
+			});
+			this.makeVariants(this.shrubs, this.shrubMaterial, 'shrub', shrubs, rnd, chunk, (it, p, q, s, r, yAxis) => Vegetation.stand(it, p, q, s, r, yAxis, r.range(0.8, 1.2)));
+
+			yield;
+			// ---- fallen trunks in the old forest ----
+			const fallen = [];
+			this.grid(rnd, ox, oz, size, 64, (x, z) => {
+				look(x, z);
+				if (pr.H < 3.5 || pr.bank > 0.3 || pr.slope > 0.45 || pr.forest < 0.5 || rnd.next() > 0.3 * pr.forest) return;
+				fallen.push({ x, z, y: pr.y, len: rnd.range(50, 110), r: rnd.range(2.5, 4.5), yaw: rnd.range(0, 6.3) });
+			});
+
+			yield;
+			// ---- grass: solid blades seen from afar, thinning under the trees, lusher in the wet, sparse on hard ground ----
+			const grassP = (top) => (x, z) => {
+				look(x, z);
+				if (pr.H < 3.5 || pr.hSea > top || pr.bank > 0.35 || pr.slope > 0.9) return false;
+				const g = (1 - 0.6 * pr.forest) * (0.45 + 0.55 * pr.wet) * (1 - 0.45 * pr.hard) * (0.35 + 0.65 * (1 - ss(top - 250, top, pr.hSea)));
+				return rnd.next() < g;
+			};
+			const bladeSpots = this.spots(rnd, ox, oz, size, 520, grassP(640));
+			this.makeInstanced(this.blade, this.bladeMaterial, 'blade', bladeSpots, rnd, chunk, (it, p, q, s, r, yAxis) => { p.set(it.x, hm.height(it.x, it.z) - 0.3, it.z); q.setFromAxisAngle(yAxis, r.range(0, 6.3)); s.set(r.range(0.8, 1.4), r.range(2.5, 6.5), 1); });
+
+			yield;
+			// glowing sprouts, rare, in the wet lowland
+			const lowland = hm.height(ox, oz) - hm.waterLevel < 80;
+			if (rnd.chance(lowland ? 0.7 : 0.2)) {
+				const sproutSpots = this.spots(rnd, ox, oz, size, rnd.int(2, 7), (x, z) => { look(x, z); return pr.H > 2 && pr.hSea < 25 && pr.bank < 0.35 && pr.slope < 0.5 && rnd.next() < 0.3 + 0.7 * pr.wet; });
+				this.makeInstanced(this.sprout, this.sproutMaterial, 'sprout', sproutSpots, rnd, chunk, (it, p, q, s, r, yAxis) => { const sc = r.range(0.7, 1.6); p.set(it.x, hm.height(it.x, it.z) - 0.2, it.z); q.setFromAxisAngle(yAxis, r.range(0, 6.3)); s.set(sc, sc, sc); });
+			}
+
+			yield;
+			// crystal columns: clusters of hex prisms on the dry, hard, high ground
+			const crystals = [];
+			const chunkH = hm.height(ox, oz) - hm.waterLevel;
+			const highland = chunkH > 450;
+			if (rnd.chance(highland ? 0.85 : (lowland ? 0.15 : 0.4))) {
+				const clusters = this.spots(rnd, ox, oz, size, rnd.int(1, highland ? 3 : 2), (x, z) => { look(x, z); return pr.H > 3 && pr.bank < 0.35 && pr.slope < 0.4 && pr.wet < 0.55 && pr.forest < 0.3; });
+				for (const { x: cx2, z: cz2 } of clusters) {
+					const n = rnd.int(3, 7);
+					for (let i = 0; i < n; i++) {
+						const x = cx2 + rnd.range(-9, 9), z = cz2 + rnd.range(-9, 9);
+						if (!hm.isLand(x, z, 2)) continue;
+						crystals.push({ x, z, y: hm.height(x, z) - 0.5, r: rnd.range(1.2, 2.6), h: rnd.range(5, 22), rot: rnd.range(0, 6.3) });
 					}
 				}
-				for (const sIdx of hm.rivers.segmentsIn(x0, z0, x1, z1)) {
-					const a = hm.rivers.at(sIdx, 0);
-					if (a.x < x0 || a.x >= x1 || a.z < z0 || a.z >= z1) continue;
-					if (a.kind !== SEG_KIND.FLOW || a.foam > 0.2 || rnd.next() > 0.05) continue;
-					const len = Math.hypot(a.dx, a.dz) || 1, tx = a.dx / len, tz = a.dz / len;
-					const side = rnd.next() < 0.5 ? -1 : 1;
-					const off = a.w * 0.5 + rnd.range(2, 6);
-					const x = a.x - tz * off * side, z = a.z + tx * off * side;
-					if (hm.forestDensity(x, z) < 0.24 || hm.forestDensity(x - tz * side * 28, z + tx * side * 28) < 0.24) continue;
-					logs.push({ x, z, len: rnd.range(8, 26), r: rnd.range(0.4, 1.1), yaw: Math.atan2(tx, tz) + rnd.range(-0.6, 0.6) });
+			}
+			if (crystals.length) {
+				this.makeInstanced(this.crystalSolid, this.crystalMaterial, 'crystal', crystals, rnd, chunk, (c, p, q, s, r, yAxis) => { p.set(c.x, c.y, c.z); q.setFromAxisAngle(yAxis, c.rot); s.set(c.r, c.h, c.r); });
+			}
+
+			yield;
+			// merged lines: tufts, reeds by the water, crystal edges
+			const verts = [], bases = [], infos = [], ranges = [], pos = [], kinds = [];
+			const pushLines = (arr, x, y, z, rot, sx, sy, sz, dx, dz, h, phase, kind, dur) => {
+				if(hm.caves.surfaceDensity(x,y,z)>-2)return;
+				for (let k = 0; k < arr.length; k += 3) {
+					const lx = arr[k] * sx, ly = arr[k + 1] * sy, lz = arr[k + 2] * sz;
+					const rx = lx * Math.cos(rot) - lz * Math.sin(rot), rz = lx * Math.sin(rot) + lz * Math.cos(rot);
+					verts.push(x + dx + rx, y + ly, z + dz + rz);
+					bases.push(x, y, z);
+					infos.push(ly / h, phase, kind, dur);
 				}
-			}
-			for (const f of fallen) logs.push(f);
-			if (logs.length) {
-				this.makeInstanced(this.log, this.rockMaterial, 'rock', logs, rnd, chunk, (log, p, q, s, r, yAxis) => {
-					p.set(log.x, hm.height(log.x, log.z) + log.r * 0.6, log.z);
-					q.setFromEuler(new THREE.Euler(r.range(-0.15, 0.15), log.yaw + Math.PI / 2, r.range(-0.1, 0.1)));
-					s.set(log.len, log.r, log.r);
+			};
+			const beginPlant = (x, z, kind) => { ranges.push([verts.length / 3, 0]); pos.push(x, z); kinds.push(kind); };
+			const endPlant = () => { ranges[ranges.length - 1][1] = verts.length / 3; };
+
+			yield;
+			// boulders: scree on steep ground and under cliffs, outcrops on hard rock, stones in the rapids
+			{
+				const rocks = [];
+				for (const { x, z } of this.spots(rnd, ox, oz, size, 70, (x, z) => {
+					const h = hm.sample(x, z);
+					if (h < hm._water + 0.5 || hm._bank > 0.3) return false;
+					const s = hm._slope;
+					return s > 0.35 && rnd.next() < (s - 0.3) * (0.4 + hm._hardness);
+				})) rocks.push({ x, z, r: rnd.range(0.8, 3.0) * (1 + 1.6 * Math.pow(rnd.next(), 3)), sink: 0.35 });
+				if (rnd.chance(0.55)) {
+					for (const { x, z } of this.spots(rnd, ox, oz, size, rnd.int(1, 3), (x, z) => { const h = hm.sample(x, z); return h > hm._water + 3 && hm._hardness > 0.6 && hm._slope > 0.15 && hm._slope < 1.3 && hm._bank < 0.2; }))
+						rocks.push({ x, z, r: rnd.range(4.5, 11), sink: 0.4 });
+				}
+				// river rocks are world data: the stones the water pours over, boulders in the chutes and
+				// pools, the outcrops that turned the river. Driftwood is stranded on the calm banks.
+				const logs = [];
+				{
+					const x0 = ox - size / 2, x1 = ox + size / 2, z0 = oz - size / 2, z1 = oz + size / 2;
+					for (const r of hm.world.rivers) {
+						const rk = r.rocks;
+						for (let q = 0; q < rk.length; q += ROCK_STRIDE) {
+							const x = rk[q], z = rk[q + 1];
+							if (x < x0 || x >= x1 || z < z0 || z >= z1) continue;
+							rocks.push({ x, z, y: rk[q + 2], r: rk[q + 3], sink: 0.35, kind: rk[q + 4] });
+						}
+					}
+					for (const sIdx of hm.rivers.segmentsIn(x0, z0, x1, z1)) {
+						const a = hm.rivers.at(sIdx, 0);
+						if (a.x < x0 || a.x >= x1 || a.z < z0 || a.z >= z1) continue;
+						if (a.kind !== SEG_KIND.FLOW || a.foam > 0.2 || rnd.next() > 0.05) continue;
+						const len = Math.hypot(a.dx, a.dz) || 1, tx = a.dx / len, tz = a.dz / len;
+						const side = rnd.next() < 0.5 ? -1 : 1;
+						const off = a.w * 0.5 + rnd.range(2, 6);
+						const x = a.x - tz * off * side, z = a.z + tx * off * side;
+						if (hm.forestDensity(x, z) < 0.24 || hm.forestDensity(x - tz * side * 28, z + tx * side * 28) < 0.24) continue;
+						logs.push({ x, z, len: rnd.range(8, 26), r: rnd.range(0.4, 1.1), yaw: Math.atan2(tx, tz) + rnd.range(-0.6, 0.6) });
+					}
+				}
+				for (const f of fallen) logs.push(f);
+				if (logs.length) {
+					this.makeInstanced(this.log, this.rockMaterial, 'rock', logs, rnd, chunk, (log, p, q, s, r, yAxis) => {
+						p.set(log.x, hm.height(log.x, log.z) + log.r * 0.6, log.z);
+						q.setFromEuler(new THREE.Euler(r.range(-0.15, 0.15), log.yaw + Math.PI / 2, r.range(-0.1, 0.1)));
+						s.set(log.len, log.r, log.r);
+					});
+				}
+				// beach cobbles and lakeside stones, sparse
+				for (const { x, z } of this.spots(rnd, ox, oz, size, 8, (x, z) => { const h = hm.sample(x, z) - hm._water; return h > 0.2 && h < 2.5 && hm._slope < 0.4 && hm._hardness > 0.45; })) rocks.push({ x, z, r: rnd.range(0.7, 1.8), sink: 0.4 });
+				const byVariant = [[], [], [], []];
+				for (const r of rocks) byVariant[rnd.int(0, 3)].push(r);
+				byVariant.forEach((list, v) => {
+					if (!list.length) return;
+					this.makeInstanced(this.boulders[v], this.rockMaterial, 'rock', list, rnd, chunk, (rock, p, q, s, r, yAxis) => {
+						// river rocks sit at the height the generator gave them (partly out of the water); the rest rest on the ground
+						const y = rock.y !== undefined && !Number.isNaN(rock.y) ? rock.y : hm.height(rock.x, rock.z) - rock.r * rock.sink;
+						p.set(rock.x, y, rock.z);
+						q.setFromEuler(new THREE.Euler(r.range(-0.4, 0.4), r.range(0, 6.3), r.range(-0.4, 0.4)));
+						s.set(rock.r * r.range(0.8, 1.25), rock.r * r.range(0.7, 1.1), rock.r * r.range(0.8, 1.25));
+						if (rock.kind === 4) s.y *= 0.5;
+						if (rock.r >= 3.5) { const c = { position: new THREE.Vector3(rock.x, y, rock.z), radius: rock.r * 0.9 }; chunk.colliders.push(c); }
+					});
 				});
 			}
-			// beach cobbles and lakeside stones, sparse
-			for (const { x, z } of this.spots(rnd, ox, oz, size, 8, (x, z) => { const h = hm.sample(x, z) - hm._water; return h > 0.2 && h < 2.5 && hm._slope < 0.4 && hm._hardness > 0.45; })) rocks.push({ x, z, r: rnd.range(0.7, 1.8), sink: 0.4 });
-			const byVariant = [[], [], [], []];
-			for (const r of rocks) byVariant[rnd.int(0, 3)].push(r);
-			byVariant.forEach((list, v) => {
-				if (!list.length) return;
-				this.makeInstanced(this.boulders[v], this.rockMaterial, 'rock', list, rnd, chunk, (rock, p, q, s, r, yAxis) => {
-					// river rocks sit at the height the generator gave them (partly out of the water); the rest rest on the ground
-					const y = rock.y !== undefined && !Number.isNaN(rock.y) ? rock.y : hm.height(rock.x, rock.z) - rock.r * rock.sink;
-					p.set(rock.x, y, rock.z);
-					q.setFromEuler(new THREE.Euler(r.range(-0.4, 0.4), r.range(0, 6.3), r.range(-0.4, 0.4)));
-					s.set(rock.r * r.range(0.8, 1.25), rock.r * r.range(0.7, 1.1), rock.r * r.range(0.8, 1.25));
-					if (rock.kind === 4) s.y *= 0.5;
-					if (rock.r >= 3.5) { const c = { position: new THREE.Vector3(rock.x, y, rock.z), radius: rock.r * 0.9 }; chunk.colliders.push(c); this.shared.colliders.push(c); }
-				});
-			});
-		}
 
-		// wireframe tufts: the near grass, up into the alpine meadows
-		for (const { x, z } of this.spots(rnd, ox, oz, size, 600, grassP(950))) {
-			const y = hm.height(x, z) - 0.2, h = rnd.range(2.5, 6.5) * (0.8 + 0.4 * hm.habitat(x, z).wet), rot = rnd.range(0, 6.3), phase = rnd.range(0, 6.3);
-			beginPlant(x, z, 'tuft');
-			for (const [dx, dz, sh] of [[0, 0, h], [rnd.range(-2.5, 2.5), rnd.range(-2.5, 2.5), h * 0.5], [rnd.range(-2.5, 2.5), rnd.range(-2.5, 2.5), h * 0.55]])
-				pushLines(this.tuftEdges, x, y, z, rot, 1, sh, 1, dx, dz, h, phase, 0, KINDS.tuft.dur);
-			endPlant();
-		}
-		// reeds: at the waterline of the sea, the lakes and the rivers, and across the marshy flats
-		// (delta backswamps, wet floodplains) a little above it
-		const reedP = (x, z) => {
-			look(x, z);
-			if (pr.slope > 0.6 || hm._riverSeg >= 0) return false;
-			if (pr.H > -0.5 && pr.H < 3.5) return true;
-			return pr.wet > 0.8 && pr.H < 5 && pr.slope < 0.3 && rnd.next() < 0.6;
-		};
-		for (const { x, z } of this.spots(rnd, ox, oz, size, 130, reedP)) {
-			const y = hm.height(x, z) - 0.2, h = rnd.range(7, 14), phase = rnd.range(0, 6.3);
-			beginPlant(x, z, 'reed');
-			for (let k = 0; k < rnd.int(2, 5); k++) {
-				const dx = rnd.range(-1.8, 1.8), dz = rnd.range(-1.8, 1.8), lean = rnd.range(-0.15, 0.15), rh = h * rnd.range(0.7, 1);
-				const segs = [[0, 0, 0], [lean * rh * 0.4, rh * 0.45, 0], [lean * rh * 0.4, rh * 0.45, 0], [lean * rh, rh, 0], [lean * rh, rh, 0], [lean * rh + 0.5, rh + 0.8, 0.3]];
-				pushLines(segs.flat(), x, y, z, rnd.range(0, 6.3), 1, 1, 1, dx, dz, h, phase, 1, KINDS.reed.dur);
+			yield;
+			// wireframe tufts: the near grass, up into the alpine meadows
+			let tuftCount = 0;
+			for (const { x, z } of this.spots(rnd, ox, oz, size, 600, grassP(950))) {
+				if (++tuftCount % 64 === 0) yield;
+				const y = hm.height(x, z) - 0.2, h = rnd.range(2.5, 6.5) * (0.8 + 0.4 * hm.habitat(x, z).wet), rot = rnd.range(0, 6.3), phase = rnd.range(0, 6.3);
+				beginPlant(x, z, 'tuft');
+				for (const [dx, dz, sh] of [[0, 0, h], [rnd.range(-2.5, 2.5), rnd.range(-2.5, 2.5), h * 0.5], [rnd.range(-2.5, 2.5), rnd.range(-2.5, 2.5), h * 0.55]])
+					pushLines(this.tuftEdges, x, y, z, rot, 1, sh, 1, dx, dz, h, phase, 0, KINDS.tuft.dur);
+				endPlant();
 			}
-			endPlant();
-		}
-		for (const c of crystals) {
-			beginPlant(c.x, c.z, 'crystal');
-			pushLines(this.crystalEdges, c.x, c.y, c.z, c.rot, c.r, c.h, c.r, 0, 0, c.h, 0, 2, KINDS.crystal.dur);
-			endPlant();
-		}
-		if (verts.length) {
-			const geometry = new THREE.BufferGeometry();
-			geometry.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
-			geometry.setAttribute('aBase', new THREE.Float32BufferAttribute(bases, 3));
-			geometry.setAttribute('aInfo', new THREE.Float32BufferAttribute(infos, 4));
-			const born = new Float32Array(verts.length / 3);
-			ranges.forEach(([s, e], i) => { const b = rnd.next() < KINDS[kinds[i]].preborn ? this.time + rnd.range(0, 0.8) : UNBORN; for (let k = s; k < e; k++) born[k] = b; });
-			geometry.setAttribute('aBorn', new THREE.BufferAttribute(born, 1));
-			const lines = new THREE.LineSegments(geometry, this.lineMaterial);
-			lines.frustumCulled = false;
-			chunk.meshes.push(lines);
-			chunk.groups.push({ kind: null, kinds: kinds.map((k) => KINDS[k]), attr: geometry.getAttribute('aBorn'), pos, ranges, count: ranges.length, pending: ranges.length });
-		}
+			// reeds: at the waterline of the sea, the lakes and the rivers, and across the marshy flats
+			// (delta backswamps, wet floodplains) a little above it
+			yield;
+			const reedP = (x, z) => {
+				look(x, z);
+				if (pr.slope > 0.6 || hm._riverSeg >= 0) return false;
+				if (pr.H > -0.5 && pr.H < 3.5) return true;
+				return pr.wet > 0.8 && pr.H < 5 && pr.slope < 0.3 && rnd.next() < 0.6;
+			};
+			for (const { x, z } of this.spots(rnd, ox, oz, size, 130, reedP)) {
+				const y = hm.height(x, z) - 0.2, h = rnd.range(7, 14), phase = rnd.range(0, 6.3);
+				beginPlant(x, z, 'reed');
+				for (let k = 0; k < rnd.int(2, 5); k++) {
+					const dx = rnd.range(-1.8, 1.8), dz = rnd.range(-1.8, 1.8), lean = rnd.range(-0.15, 0.15), rh = h * rnd.range(0.7, 1);
+					const segs = [[0, 0, 0], [lean * rh * 0.4, rh * 0.45, 0], [lean * rh * 0.4, rh * 0.45, 0], [lean * rh, rh, 0], [lean * rh, rh, 0], [lean * rh + 0.5, rh + 0.8, 0.3]];
+					pushLines(segs.flat(), x, y, z, rnd.range(0, 6.3), 1, 1, 1, dx, dz, h, phase, 1, KINDS.reed.dur);
+				}
+				endPlant();
+			}
+			yield;
+			for (const c of crystals) {
+				beginPlant(c.x, c.z, 'crystal');
+				pushLines(this.crystalEdges, c.x, c.y, c.z, c.rot, c.r, c.h, c.r, 0, 0, c.h, 0, 2, KINDS.crystal.dur);
+				endPlant();
+			}
+			if (verts.length) {
+				const geometry = new THREE.BufferGeometry();
+				geometry.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+				geometry.setAttribute('aBase', new THREE.Float32BufferAttribute(bases, 3));
+				geometry.setAttribute('aInfo', new THREE.Float32BufferAttribute(infos, 4));
+				const born = new Float32Array(verts.length / 3);
+				ranges.forEach(([s, e], i) => { const b = rnd.next() < KINDS[kinds[i]].preborn ? this.time + rnd.range(0, 0.8) : UNBORN; for (let k = s; k < e; k++) born[k] = b; });
+				geometry.setAttribute('aBorn', new THREE.BufferAttribute(born, 1));
+				const lines = new THREE.LineSegments(geometry, this.lineMaterial);
+				geometry.computeBoundingBox();
+				// World-space lines bend about aBase, including during growth and crystal pulses.
+				let padding = 12;
+				for (let i = 0; i < verts.length; i += 3) padding = Math.max(padding, Math.abs(verts[i + 1] - bases[i + 1]) * .4 + 12);
+				geometry.boundingBox.expandByScalar(padding);
+				geometry.boundingSphere = geometry.boundingBox.getBoundingSphere(new THREE.Sphere());
+				lines.frustumCulled = true;
+				chunk.meshes.push(lines);
+				chunk.groups.push({ kind: null, kinds: kinds.map((k) => KINDS[k]), attr: geometry.getAttribute('aBorn'), pos, ranges, count: ranges.length, pending: ranges.reduce((n, [s, e]) => n + (e > s && born[s] === UNBORN), 0) });
+			}
 
-		this.riverEcology.build(hm, chunk, cx, cz, size, config.seed);
-		this.watersideMeshes.build(hm, chunk, cx, cz, size, config.seed);
-		for (const mesh of chunk.meshes) this.scene.add(mesh);
-		this.chunks.set(key, chunk);
-		this.refreshFar(this.farKey(Math.floor(cx / 2), Math.floor(cz / 2)));
+			yield;
+			this.riverEcology.build(hm, chunk, cx, cz, size, config.seed);
+			yield;
+			this.watersideMeshes.build(hm, chunk, cx, cz, size, config.seed);
+			yield;
+			for (const mesh of chunk.meshes) this.scene.add(mesh);
+			this.shared.colliders.push(...chunk.colliders);
+			committed = true;
+			this.chunks.set(key, chunk);
+			this.refreshFar(this.farKey(Math.floor(cx / 2), Math.floor(cz / 2)));
+		} finally {
+			if (!committed) for (const mesh of chunk.meshes) { mesh.geometry.dispose(); mesh.dispose?.(); }
+		}
 	}
 
     // Mirror the mature tree shader's wind deformation for planted bird feet.
@@ -1130,7 +1175,7 @@ export class Vegetation {
 			let changed = false;
 			for (let i = 0; i < g.count; i++) {
 				const s = g.ranges ? g.ranges[i][0] : i;
-				if (a[s] !== UNBORN) continue;
+				if (a[s] !== UNBORN || (g.ranges && g.ranges[i][1] === s)) continue;
 				const kind = g.kind || g.kinds[i];
 				const dx = g.pos[i * 2] - px, dz = g.pos[i * 2 + 1] - pz;
 				if (dx * dx + dz * dz < kind.reveal * kind.reveal) {

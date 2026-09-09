@@ -15,10 +15,10 @@ function grid(rows, columns, vertex) {
 	return g;
 }
 
-export function faunaGeometry(kind) {
+export function faunaGeometry(kind, detail = 0) {
 	if (kind === 'lumen') {
 		// A directionless sphere; all motion-driven shape changes happen in the shader.
-		const g = grid(28, 24, (u, v) => {
+		const g = grid([28, 14, 10][detail], [24, 12, 8][detail], (u, v) => {
 			const x = -Math.cos(u * Math.PI), radius = Math.sin(u * Math.PI);
 			return [x, Math.cos(v * Math.PI * 2) * radius, Math.sin(v * Math.PI * 2) * radius];
 		});

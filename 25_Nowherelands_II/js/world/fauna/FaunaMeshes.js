@@ -94,6 +94,17 @@ export class FaunaMeshes {
 			// Above-water luminous surfaces render after inland water's scene-colour capture.
 			mesh.renderOrder = light ? 3 : 0; this.root.add(mesh); this.meshes[kind] = mesh;
 		}
+		// The same deformation/material at every distance; only subpixel tessellation changes.
+		this.lumenLods = [this.meshes.lumen];
+		for (let detail = 1; detail <= 2; detail++) {
+			const g = faunaGeometry('lumen', detail), original = this.meshes.lumen;
+			for (const [name, attr] of Object.entries(original.geometry.attributes)) {
+				if (attr.isInstancedBufferAttribute) g.setAttribute(name, attr.clone().setUsage(THREE.DynamicDrawUsage));
+			}
+			const mesh = new THREE.InstancedMesh(g, original.material, SPECIES.lumen.cap);
+			mesh.count = 0; mesh.frustumCulled = false; mesh.renderOrder = original.renderOrder;
+			mesh.name = `fauna-lumen-lod-${detail}`; this.root.add(mesh); this.lumenLods.push(mesh);
+		}
 		const glowGeometry=new THREE.PlaneGeometry(2,2);
 		glowGeometry.setAttribute('aRadiance',this.radiance);glowGeometry.setAttribute('aPlacement',this.placement);glowGeometry.setAttribute('aLife',this.life.lumen);glowGeometry.setAttribute('aState',this.state.lumen);
 		const glowMaterial=new THREE.ShaderMaterial({
@@ -111,9 +122,24 @@ export class FaunaMeshes {
 	update(model, alpha, dt, sample) {
 		this.root.visible = true;
 		const aboveGround = (this.shared.caveAmount || 0) < 0.4;
-		for (const mesh of [...Object.values(this.meshes), this.glow]) mesh.visible = aboveGround;
+		for (const mesh of [...this.lumenLods, this.glow]) mesh.visible = aboveGround;
 		const counts = Object.fromEntries(Object.keys(SPECIES).map(k => [k, 0]));
+		const buckets = [[], [], []];
+		const camera = this.shared.camera;
+		const pixels = (this.shared.renderer?.domElement.height || 900) / (2 * Math.tan((camera?.fov || 66) * Math.PI / 360));
 		for (const c of model.creatures) {
+			if (c.kind !== 'lumen') continue;
+			const d = Math.hypot(c.pos.x-model.listener.x, c.pos.y-model.listener.y, c.pos.z-model.listener.z);
+			const diameter = c.size * 5 * pixels / Math.max(1, d);
+			let lod = diameter > 24 ? 0 : diameter > 7 ? 1 : 2;
+			// Hysteresis keeps a creature from flickering between meshes on a threshold.
+			if (c.renderLod === 0 && diameter > 20) lod = 0;
+			if (c.renderLod === 1 && diameter > 6 && diameter < 28) lod = 1;
+			if (c.renderLod === 2 && diameter < 8) lod = 2;
+			c.renderLod = lod;
+			if (Math.hypot(c.pos.x-model.listener.x,c.pos.z-model.listener.z) <= 4500) buckets[lod].push(c);
+		}
+		for (const c of buckets.flat()) {
 			const kind = c.kind;
 			if (kind === 'hopper') continue;
 			if (kind === 'lumen' && Math.hypot(c.pos.x-model.listener.x,c.pos.z-model.listener.z)>4500) continue;
@@ -149,6 +175,18 @@ export class FaunaMeshes {
 			const u = mesh.material.uniforms; u.uTime.value = model.time; u.uMoon.value = this.shared.moon.intensity; u.uSun.value = this.shared.sun.intensity;
 		}
 		this.glow.count=counts.lumen;this.radiance.needsUpdate=true;this.placement.needsUpdate=true;this.velocity.needsUpdate=true;this.elastic.needsUpdate=true;
+		let offset = 0;
+		for (let lod = 0; lod < this.lumenLods.length; lod++) {
+			const mesh = this.lumenLods[lod], count = buckets[lod].length;
+			mesh.count = count;
+			if (lod > 0) for (const [name, attr] of Object.entries(mesh.geometry.attributes)) {
+				if (!attr.isInstancedBufferAttribute) continue;
+				const source = this.meshes.lumen.geometry.attributes[name];
+				attr.array.set(source.array.subarray(offset * attr.itemSize, (offset + count) * attr.itemSize));
+				attr.clearUpdateRanges(); attr.addUpdateRange(0, count * attr.itemSize); attr.needsUpdate = true;
+			}
+			offset += count;
+		}
 		counts.hopper = this.pebbles.update(model, alpha);
 		this.root.userData.population = counts;
 	}

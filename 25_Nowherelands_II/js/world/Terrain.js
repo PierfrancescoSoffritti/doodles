@@ -1,3 +1,4 @@
+import { terrainMeshData } from './TerrainMeshData.js';
 import * as THREE from 'three';
 import { config } from '../core/Config.js';
 import { createTerrainMaterial } from './TerrainMaterial.js';
@@ -11,7 +12,7 @@ const ROOT = 40960;                  // covers the 16 km world wherever the spaw
 const MAX_DEPTH = 9;                 // 80 m leaves beside rivers/cave mouths; 160 m elsewhere
 const RIVER_DEPTH = 8;               // the finest level away from rivers
 const LOD_FACTOR = config.isTouch ? 1.3 : 1.7;
-const BUILD_BUDGET_MS = 6;
+const BUILD_BUDGET_MS = 3;
 const KEEP_FRAMES = 900;
 
 function buildIndex(seg) {
@@ -70,6 +71,7 @@ export class Terrain {
 
 	update(playerPos, dt) {
 		this.frame++;
+		const deadline = performance.now() + BUILD_BUDGET_MS;
 		const drawn = new Set();
 		this.requests.length = 0;
 		this.select(0, 0, 0, playerPos, drawn);
@@ -78,22 +80,31 @@ export class Terrain {
 
 		// build the most urgent missing children within a time budget
 		this.requests.sort((a, b) => a.priority - b.priority);
-		const t0 = performance.now();
-		for (const r of this.requests) {
+		const stream = this.shared.surfaceWork;
+		if (stream?.ready && !this.prewarming) {
+			const needed = new Set(this.requests.map(r => `terrain:${r.key}`));
+			stream.prune('terrain:', needed);
+			for (const r of this.requests) {
+				stream.request(`terrain:${r.key}`, { type: 'terrain', depth: r.depth, ix: r.ix, iz: r.iz }, r.priority,
+					data => { if (!this.nodes.has(r.key)) this.install(r.depth, r.ix, r.iz, data); });
+			}
+			stream.drain(deadline);
+		} else for (const r of this.requests) {
 			if (this.nodes.has(r.key)) continue;
 			this.build(r.depth, r.ix, r.iz);
-			if (performance.now() - t0 > BUILD_BUDGET_MS) break;
+			if (performance.now() >= deadline) break;
 		}
 
 		if (this.frame % 120 === 0) this.sweep();
 		this.stats.nodes = this.nodes.size;
 		this.stats.drawn = drawn.size;
 
-		this.updateVegetation(playerPos, dt);
+		this.updateVegetation(playerPos, dt, deadline);
 	}
 
 	// Build everything needed for the first view before the player enters.
 	prewarm(playerPos, maxMs = 1500) {
+		this.prewarming = true;
 		const t0 = performance.now();
 		for (let i = 0; i < 40 && performance.now() - t0 < maxMs; i++) {
 			this.update(playerPos, 0);
@@ -101,12 +112,14 @@ export class Terrain {
 		}
 		this.vegetation.centerX = Math.round(playerPos.x / config.world.chunkSize);
 		this.vegetation.centerZ = Math.round(playerPos.z / config.world.chunkSize);
+		if (this.vegJob) { for (const _ of this.vegJob) {} this.vegJob = null; }
 		const t1 = performance.now();
 		while (this.vegQueue.length && performance.now() - t1 < maxMs * 0.6) {
 			const e = this.vegQueue.shift();
 			if (e.far) this.vegetation.addFarChunk(this.vegetation.farKey(e.x, e.z), e.x, e.z);
 			else this.vegetation.addChunk(this.vegetation.key(e.x, e.z), e.x, e.z);
 		}
+		this.prewarming = false;
 	}
 
 	select(depth, ix, iz, pos, drawn) {
@@ -144,33 +157,13 @@ export class Terrain {
 	}
 
 	build(depth, ix, iz) {
-		const size = ROOT / (1 << depth);
-		const cx = -ROOT / 2 + (ix + 0.5) * size, cz = -ROOT / 2 + (iz + 0.5) * size;
-		const n = SEG + 1, step = size / SEG;
-		const skirt = step * 0.22 + 2.5;
-		const pos = new Float32Array((n * n + 4 * n) * 3);
-		const hm = this.heightmap;
-		let p = 0;
-		for (let j = 0; j < n; j++) {
-			const z = cz - size / 2 + j * step;
-			for (let i = 0; i < n; i++) {
-				const x = cx - size / 2 + i * step;
-				pos[p++] = x; pos[p++] = hm.height(x, z); pos[p++] = z;
-			}
-		}
-		const copyDown = (gi) => { pos[p++] = pos[gi * 3]; pos[p++] = pos[gi * 3 + 1] - skirt; pos[p++] = pos[gi * 3 + 2]; };
-		for (let k = 0; k < n; k++) copyDown(k);
-		for (let k = 0; k < n; k++) copyDown(SEG * n + k);
-		for (let k = 0; k < n; k++) copyDown(k * n);
-		for (let k = 0; k < n; k++) copyDown(k * n + SEG);
+		return this.install(depth, ix, iz, terrainMeshData(this.heightmap, depth, ix, iz));
+	}
 
+	install(depth, ix, iz, { pos, apron, caveMask }) {
 		const geometry = new THREE.BufferGeometry();
 		geometry.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-		const apron=new Float32Array(pos.length/3);
-		for(let i=0;i<apron.length;i++)apron[i]=hm.entranceTerrain.sample(pos[i*3],pos[i*3+2],'mask');
 		geometry.setAttribute('aApron',new THREE.BufferAttribute(apron,1));
-		const caveMask=new Float32Array(pos.length/3);
-		for(let i=0;i<caveMask.length;i++) caveMask[i]=Math.max(-32,Math.min(32,hm.caves.surfaceDensity(pos[i*3],pos[i*3+1],pos[i*3+2])));
 		geometry.setAttribute('aCave',new THREE.BufferAttribute(caveMask,1));
 		geometry.setIndex(this.index);
 		geometry.computeBoundingSphere();
@@ -194,12 +187,13 @@ export class Terrain {
 		}
 	}
 
-	updateVegetation(playerPos, dt) {
+	updateVegetation(playerPos, dt, deadline = performance.now() + BUILD_BUDGET_MS) {
 		const size = config.world.chunkSize, r = config.world.vegetationRadius;
 		const cx = Math.round(playerPos.x / size), cz = Math.round(playerPos.z / size);
 		const key = cx + ',' + cz;
 		if (key !== this.vegKey) {
 			this.vegKey = key;
+			this.vegJob?.return(); this.vegJob = null;
 			this.vegQueue.length = 0;
 			for (let dz = -r; dz <= r; dz++) for (let dx = -r; dx <= r; dx++) {
 				if (!this.vegetation.chunks.has(this.vegetation.key(cx + dx, cz + dz))) this.vegQueue.push({ x: cx + dx, z: cz + dz, d2: dx * dx + dz * dz });
@@ -214,11 +208,15 @@ export class Terrain {
 		}
 		this.vegetation.centerX = cx;
 		this.vegetation.centerZ = cz;
-		// one near chunk a frame, or a few of the cheap far blocks
-		for (let budget = 3; budget > 0 && this.vegQueue.length;) {
-			const e = this.vegQueue.shift();
-			if (e.far) { this.vegetation.addFarChunk(this.vegetation.farKey(e.x, e.z), e.x, e.z); budget--; }
-			else { this.vegetation.addChunk(this.vegetation.key(e.x, e.z), e.x, e.z); budget = 0; }
+		// Share the installation budget with terrain and shore textures. A near chunk
+		// is published atomically after its cooperative build finishes.
+		while (performance.now() < deadline && (this.vegJob || this.vegQueue.length)) {
+			if (!this.vegJob) {
+				const e = this.vegQueue.shift();
+				if (e.far) { this.vegetation.addFarChunk(this.vegetation.farKey(e.x, e.z), e.x, e.z); continue; }
+				this.vegJob = this.vegetation.buildChunk(this.vegetation.key(e.x, e.z), e.x, e.z);
+			}
+			if (this.vegJob.next().done) this.vegJob = null;
 		}
 		this.vegetation.update(dt, cx, cz);
 	}

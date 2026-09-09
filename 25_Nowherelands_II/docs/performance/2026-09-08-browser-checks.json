@@ -1,0 +1,123 @@
+{
+  "errors": [],
+  "checkSurfaceData": {
+    "nodes": 21,
+    "shoreTiles": 2,
+    "growthGroups": 431
+  },
+  "checkVegetationCancellation": {
+    "colliders": 130,
+    "sceneObjects": 1299
+  },
+  "checkVegetationCulling": {
+    "samples": 24,
+    "savedDraws": 17562,
+    "roundedChannels": 12,
+    "maxChannelError": 1,
+    "controlChannels": 6
+  },
+  "sea": {
+    "samples": 27,
+    "maxError": 2.0014830212433607e-16
+  },
+  "fauna": [
+    [
+      {
+        "kind": "lumen",
+        "vertices": 725,
+        "displacement": 0.248,
+        "nonRigid": 0.407,
+        "maxRadius": 1.688,
+        "minRadius": 0.58,
+        "velocityAxes": "pass"
+      },
+      {
+        "kind": "hopper",
+        "vertices": 240,
+        "displacement": 0,
+        "nonRigid": 0
+      },
+      {
+        "kind": "shore-light",
+        "dark": 0,
+        "near": 159,
+        "far": 0
+      }
+    ],
+    [
+      {
+        "kind": "lumen",
+        "vertices": 195,
+        "displacement": 0.243,
+        "nonRigid": 0.397,
+        "maxRadius": 1.664,
+        "minRadius": 0.629,
+        "velocityAxes": "pass"
+      },
+      {
+        "kind": "hopper",
+        "vertices": 240,
+        "displacement": 0,
+        "nonRigid": 0
+      },
+      {
+        "kind": "shore-light",
+        "dark": 0,
+        "near": 159,
+        "far": 0
+      }
+    ],
+    [
+      {
+        "kind": "lumen",
+        "vertices": 99,
+        "displacement": 0.238,
+        "nonRigid": 0.318,
+        "maxRadius": 1.65,
+        "minRadius": 0.633,
+        "velocityAxes": "pass"
+      },
+      {
+        "kind": "hopper",
+        "vertices": 240,
+        "displacement": 0,
+        "nonRigid": 0
+      },
+      {
+        "kind": "shore-light",
+        "dark": 0,
+        "near": 159,
+        "far": 0
+      }
+    ]
+  ],
+  "pebbles": {
+    "kind": "pebble-rig",
+    "caveInterpolation": true,
+    "caveWater": true,
+    "caveEdgePose": true,
+    "sprintAnimation": true,
+    "independentBlinks": true,
+    "contacts": 113,
+    "maxContactError": 0,
+    "maxStep": 4.935,
+    "hiddenLegs": true,
+    "eyes": 2,
+    "eyeFrames": 241
+  },
+  "movedSurface": {
+    "nodes": 29,
+    "shoreTiles": 2,
+    "growthGroups": 448
+  },
+  "worker": {
+    "ready": true,
+    "failed": false,
+    "stats": {
+      "completed": 441,
+      "discarded": 0,
+      "installed": 441
+    },
+    "jobs": 0
+  }
+}

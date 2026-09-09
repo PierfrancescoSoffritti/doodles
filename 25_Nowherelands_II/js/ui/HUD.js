@@ -17,6 +17,22 @@ export class HUD {
 		this.toastTimer = null;
 		this.hintTimer = null;
 
+		let saved;
+		try { saved = localStorage.getItem('nowherelands-frame-rate'); } catch { /* optional preference */ }
+		const requested = new URLSearchParams(location.search).get('fps') ?? saved;
+		this.frameRate = ['0', '30', '60'].includes(requested) ? Number(requested) : 60;
+		const label = document.createElement('label'); label.className = 'frame-rate'; label.textContent = 'motion · ';
+		const select = document.createElement('select'); select.setAttribute('aria-label', 'Frame rate');
+		for (const [value, text] of [[30, '30 · quiet'], [60, '60 · balanced'], [0, 'display rate']]) {
+			const option = document.createElement('option'); option.value = value; option.textContent = text; select.append(option);
+		}
+		select.value = this.frameRate;
+		select.addEventListener('change', () => {
+			this.frameRate = Number(select.value);
+			try { localStorage.setItem('nowherelands-frame-rate', select.value); } catch { /* optional preference */ }
+		});
+		label.append(select); document.getElementById('corner').append(label);
+
 		this.seed.textContent = 'seed · ' + config.seed;
 		this.seed.href = '?seed=' + encodeURIComponent(config.seed);
 		if (config.isTouch) document.body.classList.add('touch');

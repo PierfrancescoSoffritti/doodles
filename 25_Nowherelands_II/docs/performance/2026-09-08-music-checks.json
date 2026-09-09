@@ -1,0 +1,121 @@
+{
+  "offline": [
+    {
+      "id": 0,
+      "fps": 0,
+      "legacyGate": false,
+      "updates": 1440,
+      "frames": 1440,
+      "notes": 21,
+      "peak": 1.0932291746139526,
+      "rms": 0.2683602476043138,
+      "pcmHash": "e067da111659ccb20600c7751b2b9fd5f86f0e4e24d68cd9d0bd689de8a550d2",
+      "controlsHash": "ec73b2849e2a1ba88d0e7c0903051bf2a34806fe95c77261c0892bf9e020c1db"
+    },
+    {
+      "id": 1,
+      "fps": 0,
+      "legacyGate": false,
+      "updates": 1440,
+      "frames": 1440,
+      "notes": 21,
+      "peak": 1.0932292938232422,
+      "rms": 0.26836024506276784,
+      "pcmHash": "ea8510e406477f8f9d345daba808cb8b0fa8a51c73bf646af57e1dfb1b3d13c8",
+      "controlsHash": "ec73b2849e2a1ba88d0e7c0903051bf2a34806fe95c77261c0892bf9e020c1db"
+    },
+    {
+      "id": 2,
+      "fps": 60,
+      "legacyGate": false,
+      "updates": 1440,
+      "frames": 720,
+      "notes": 21,
+      "peak": 1.0932291746139526,
+      "rms": 0.26836024674702624,
+      "pcmHash": "eee85a1b1938c9786f25b96712b63c9036693b0c266fa29f4a6c4dc07f6ac4dc",
+      "controlsHash": "ec73b2849e2a1ba88d0e7c0903051bf2a34806fe95c77261c0892bf9e020c1db"
+    },
+    {
+      "id": 3,
+      "fps": 30,
+      "legacyGate": false,
+      "updates": 1440,
+      "frames": 360,
+      "notes": 21,
+      "peak": 1.0932292938232422,
+      "rms": 0.2683602457959241,
+      "pcmHash": "87f18dcf61d51fde6cc9219667209d2df03b3d99bfbd74a15e3879f51e329447",
+      "controlsHash": "ec73b2849e2a1ba88d0e7c0903051bf2a34806fe95c77261c0892bf9e020c1db"
+    },
+    {
+      "id": 4,
+      "fps": 30,
+      "legacyGate": true,
+      "updates": 360,
+      "frames": 360,
+      "notes": 21,
+      "peak": 1.1721043586730957,
+      "rms": 0.26655596180467617,
+      "pcmHash": "d6b55d8247bfd2f77299d9cee837ec5813dc6c202e9ca20737984dab1e34a66f",
+      "controlsHash": "ed90bf6ad0209fd27d072aeaa4a763a1fa6361841b8c3fab573a1d5496b8f577"
+    }
+  ],
+  "errors": [],
+  "comparisons": [
+    {
+      "fps": 0,
+      "legacyGate": false,
+      "samples": 1058400,
+      "peakError": 4.172325134277344e-7,
+      "rmsError": 4.297399057416406e-8
+    },
+    {
+      "fps": 60,
+      "legacyGate": false,
+      "samples": 1058400,
+      "peakError": 4.172325134277344e-7,
+      "rmsError": 4.035418358403658e-8
+    },
+    {
+      "fps": 30,
+      "legacyGate": false,
+      "samples": 1058400,
+      "peakError": 4.172325134277344e-7,
+      "rmsError": 4.2580249389825776e-8
+    },
+    {
+      "fps": 30,
+      "legacyGate": true,
+      "samples": 1058400,
+      "peakError": 1.0959933400154114,
+      "rmsError": 0.1767624824964911
+    }
+  ],
+  "cadence": [
+    {
+      "fps": 0,
+      "callbacks": 241,
+      "music": 241,
+      "engine": 241,
+      "world": 241,
+      "render": 241
+    },
+    {
+      "fps": 60,
+      "callbacks": 240,
+      "music": 240,
+      "engine": 240,
+      "world": 240,
+      "render": 120
+    },
+    {
+      "fps": 30,
+      "callbacks": 241,
+      "music": 241,
+      "engine": 241,
+      "world": 241,
+      "render": 60
+    }
+  ]
+}

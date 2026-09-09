@@ -109,23 +109,32 @@ export function updateFlow(group,time,dt) {
 export function buildLumenGrid(group) {
 	const grid=new Map();
 	for(const c of group.members) {
-		const key=`${Math.floor(c.prev.x/40)},${Math.floor(c.prev.y/40)},${Math.floor(c.prev.z/40)}`;
-		if(!grid.has(key))grid.set(key,[]);grid.get(key).push(c);
+		const x=Math.floor(c.prev.x/40),y=Math.floor(c.prev.y/40),z=Math.floor(c.prev.z/40);
+		let column=grid.get(x);if(!column)grid.set(x,column=new Map());
+		let row=column.get(y);if(!row)column.set(y,row=new Map());
+		let cell=row.get(z);if(!cell)row.set(z,cell=[]);cell.push(c);
 	}
 	group.spatial=grid;
 }
 export function nearestLumen(c,group) {
 	const nearest=[],distances=[],cx=Math.floor(c.prev.x/40),cy=Math.floor(c.prev.y/40),cz=Math.floor(c.prev.z/40);
 	for(let radius=1;radius<=3;radius++) {
-		for(let x=-radius;x<=radius;x++)for(let y=-radius;y<=radius;y++)for(let z=-radius;z<=radius;z++) {
-			if(radius>1 && Math.max(Math.abs(x),Math.abs(y),Math.abs(z))!==radius)continue;
-			for(const other of group.spatial?.get(`${cx+x},${cy+y},${cz+z}`)||[]) {
-				if(other===c)continue;
-				const dx=c.prev.x-other.prev.x,dy=c.prev.y-other.prev.y,dz=c.prev.z-other.prev.z,d=dx*dx+dy*dy+dz*dz;
-				if(d>14400)continue;
-				let i=distances.length;while(i>0&&d<distances[i-1])i--;
-				if(i>=7)continue;nearest.splice(i,0,other);distances.splice(i,0,d);
-				if(nearest.length>7){nearest.pop();distances.pop();}
+		for(let x=-radius;x<=radius;x++) {
+			const column=group.spatial?.get(cx+x);if(!column)continue;
+			for(let y=-radius;y<=radius;y++) {
+				const row=column.get(cy+y);if(!row)continue;
+				for(let z=-radius;z<=radius;z++) {
+					if(radius>1 && Math.max(Math.abs(x),Math.abs(y),Math.abs(z))!==radius)continue;
+					const cell=row.get(cz+z);if(!cell)continue;
+					for(const other of cell) {
+						if(other===c)continue;
+						const dx=c.prev.x-other.prev.x,dy=c.prev.y-other.prev.y,dz=c.prev.z-other.prev.z,d=dx*dx+dy*dy+dz*dz;
+						if(d>14400)continue;
+						let i=distances.length;while(i>0&&d<distances[i-1])i--;
+						if(i>=7)continue;nearest.splice(i,0,other);distances.splice(i,0,d);
+						if(nearest.length>7){nearest.pop();distances.pop();}
+					}
+				}
 			}
 		}
 		if(nearest.length===7)break;

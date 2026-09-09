@@ -1,9 +1,12 @@
 import * as THREE from 'three';
+import { FramePacer } from './core/FramePacer.js';
+import { EnvironmentProbe } from './fx/EnvironmentProbe.js';
 import { config } from './core/Config.js';
 import { bus, Events } from './core/EventBus.js';
 import { damp } from './core/Utils.js';
 import { Heightmap } from './world/Heightmap.js';
 import { Ripples } from './world/Ripples.js';
+import { SurfaceWork } from './world/SurfaceWork.js';
 import { ShoreMap } from './world/ShoreMap.js';
 import { Terrain } from './world/Terrain.js?v=birds-10';
 import { Water } from './world/Water.js';
@@ -92,7 +95,9 @@ function start(world,caveMeshes) {
 	shared.world = world;
 	const ripples = new Ripples();
 	shared.ripples = ripples;
-	const shoreMap = new ShoreMap(heightmap);
+	const surfaceWork = new SurfaceWork(heightmap, config.seed);
+	shared.surfaceWork = surfaceWork;
+	const shoreMap = new ShoreMap(heightmap, surfaceWork);
 	shared.shoreMap = shoreMap;
 	const atmosphere = new Weather(scene, heightmap, shared);
 	const terrain = new Terrain(scene, heightmap, shared);
@@ -121,7 +126,15 @@ function start(world,caveMeshes) {
 	const director = new EventDirector(shared);
 	const post = new PostProcessing(renderer, scene, camera);
 	const pmrem = new THREE.PMREMGenerator(renderer);
-	let envTimer = 0, envTarget = null;
+	const environment = new EnvironmentProbe(renderer, scene, camera, shared, pmrem,
+		() => [water.far, ...water.levels, inland.mesh, inland.near, drift.points, watersideLife.points, fauna.meshes.root, birds.root, ...caves.waterMeshes],
+		(target) => {
+			scene.environment = target.texture; scene.environmentIntensity = .55;
+			const image = target.texture.image;
+			inland.uniforms.uEnvironment.value = target.texture;
+			inland.uniforms.uEnvironmentSize.value.set(1/image.width, 1/image.height, Math.log2(image.height)-2);
+			inland.uniforms.uHasEnvironment.value = 1;
+		});
 
 	// ---- events ----
 	bus.on(Events.RIPPLE, ({ x, z, size, hue, saturation }) => ripples.add(x, z, size, hue % 1, saturation));
@@ -179,11 +192,16 @@ function start(world,caveMeshes) {
 
 	// ---- loop ----
 	let lastFrame = performance.now();
+	const pacer = new FramePacer();
 	const listenerUp = new THREE.Vector3(0, 1, 0);
 
 	function frame() {
 		requestAnimationFrame(frame);
 		const now = performance.now();
+		// Preserve the original world/music update cadence. Presentation quality must
+		// not change audio automation, musical timers, or the input that drives them.
+		if (document.hidden) pacer.reset();
+		const renderFrame = !document.hidden && pacer.accept(now, hud.frameRate);
 		const previousFrame = lastFrame;
 		const dt = Math.min((now - lastFrame) / 1000, 0.05);
 		lastFrame = now;
@@ -261,25 +279,7 @@ function start(world,caveMeshes) {
 		u.uSunIntensity.value = shared.sun.intensity;
 		if (shared.audio) { u.uBass.value = shared.audio.analysis.bass; u.uLevel.value = shared.audio.analysis.attack; }
 
-		// environment map for mirrors and stones, refreshed occasionally from the player's position
-		envTimer -= dt;
-		if (envTimer <= 0 && shared.caveAmount < .05) {
-			envTimer = 5;
-			water.setVisible(false);
-			const old = envTarget;
-			const hidden = [inland.mesh, inland.near, drift.points, watersideLife.points, fauna.meshes.root, birds.root, ...caves.waterMeshes].filter(Boolean).map(mesh => [mesh, mesh.visible]);
-			for (const [mesh] of hidden) mesh.visible = false;
-			envTarget = pmrem.fromScene(scene, 0.02, 1, config.world.far, { size: 128, position: camera.position });
-			for (const [mesh, visible] of hidden) mesh.visible = visible;
-			scene.environment = envTarget.texture;
-			const envImage = envTarget.texture.image;
-			inland.uniforms.uEnvironment.value = envTarget.texture;
-			inland.uniforms.uEnvironmentSize.value.set(1 / envImage.width, 1 / envImage.height, Math.log2(envImage.height) - 2);
-			inland.uniforms.uHasEnvironment.value = 1;
-			scene.environmentIntensity = 0.55;
-			water.setVisible(true);
-			if (old) old.dispose();
-		}
+		environment.update(dt, renderFrame);
 
 		// glare: how squarely we are looking at the red dwarf, and whether hills hide it
 		{
@@ -304,7 +304,7 @@ function start(world,caveMeshes) {
 		}
 
 		fireflies.points.visible=shared.caveAmount<=.4;
-		post.render(t, shared);
+		if (renderFrame) post.render(t, shared);
 		caveSurvey?.update(now-previousFrame);
 		weatherSurvey?.update(now-previousFrame);
 		if (survey) survey.update(now - previousFrame);
@@ -312,6 +312,6 @@ function start(world,caveMeshes) {
 		birdSurvey?.update();
 		profile?.end();
 	}
-	window.__debug = { atmosphere, sky, snow, rain, hail, scene, renderer, camera, shared, post, terrain, player, landmarksList: landmarks.list, director, shoreMap, water, inland, waterfalls, drift, heightmap, world, coastalSpray, fauna, faunaSurvey, birds, birdSurvey };
+	window.__debug = { environment, pacer, hud, atmosphere, sky, snow, rain, hail, scene, renderer, camera, shared, post, terrain, player, landmarksList: landmarks.list, director, shoreMap, water, inland, waterfalls, drift, heightmap, world, coastalSpray, fauna, faunaSurvey, birds, birdSurvey };
 	frame();
 }

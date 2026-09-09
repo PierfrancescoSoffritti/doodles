@@ -24,7 +24,10 @@ export class Mirrors {
 			const mesh = new Reflector(geometry, { textureWidth: 512, textureHeight: 512, clipBias: 0.01, color: '#c8c2e0', multisample: 0 });
 			mesh.material.side = THREE.DoubleSide;
 			mesh.reflectorMaterial = mesh.material;
-			mesh.reflectorRender = mesh.onBeforeRender;
+			const reflect = mesh.onBeforeRender;
+			mesh.reflectorRender = function(renderer, scene, camera, ...rest) {
+				if (camera === shared.camera) reflect.call(this, renderer, scene, camera, ...rest);
+			};
 			mesh.onBeforeRender = () => {};
 			mesh.material = this.fallback;
 			const ground = heightmap.height(spot.x, spot.z);
