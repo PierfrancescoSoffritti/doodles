@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reed walkers · Character study</title>
+<link rel="stylesheet" href="./css/fauna-atelier.css?v=1">
+<script type="importmap">{"imports":{"three":"../common/libs/three-0.185/build/three.module.min.js","three/addons/":"../common/libs/three-0.185/examples/jsm/"}}</script>
+</head>
+<body>
+<main class="stage" id="stage">
+<header><small>Nowherelands / Fauna atelier / 03</small><h1>Reed walkers.</h1><p>A few quiet lives.<br>One familiar stretch of river.</p></header>
+<canvas id="canvas" aria-label="Interactive three dimensional study of a Reed walker family"></canvas>
+<div class="caption"><span class="eyebrow" id="specimen">SPECIMEN 001 · OLD</span><h2 id="form-title">Reedbed grazer</h2><p id="gesture-status">Resting · almost indifferent to the world</p></div>
+<div class="transport" aria-label="Creature gestures"><button data-gesture="stand" aria-pressed="true">Rest</button><button data-gesture="graze" aria-pressed="false">Graze</button><button data-gesture="step" aria-pressed="false">One slow stride</button><span class="spacer"></span><button id="pause" aria-pressed="false">Pause</button><button id="reset-view">Reset view</button></div>
+</main>
+<aside>
+<div class="eyebrow"><span>Character study · v01</span><a id="world-link" href="./?reeds=1">World ↗</a></div>
+<label class="field atelier-nav"><span>Explore the atelier</span><select id="atelier-species" aria-label="Fauna species"></select></label>
+<h2>In its own time.</h2><p class="lede">Peaceful, ancient, unreadable.<br>A small family with nowhere else to be.</p>
+<div class="tabs" role="tablist" aria-label="Character dimensions"><button role="tab" id="tab-form" aria-controls="panel-form" aria-selected="true" data-tab="form">01 Form</button><button role="tab" id="tab-voice" aria-controls="panel-voice" aria-selected="false" tabindex="-1" data-tab="voice">02 Voice</button><button role="tab" id="tab-home" aria-controls="panel-home" aria-selected="false" tabindex="-1" data-tab="home">03 Home</button><button role="tab" id="tab-life" aria-controls="panel-life" aria-selected="false" tabindex="-1" data-tab="life">04 Traits</button></div>
+<section class="panel" id="panel-form" role="tabpanel" aria-labelledby="tab-form">
+<label class="field"><span>Compare the grazing posture <output id="lower-value">0%</output></span><input id="lower" type="range" min="0" max="100" value="0" aria-label="Grazing posture"></label>
+<p class="note">Slide from standing to feeding. Or press Graze to see a complete 12-second lowering, mouthful and rise.</p>
+<button class="action" data-gesture="drink-spray" aria-pressed="false">Drink → hold → spray <small>Fill the reservoir, carry it, then release a plume</small></button>
+<button class="action" id="spray-now">Jump to the spray <small>Pause at the selected animal’s plume; Resume to watch it fall</small></button>
+<label class="field" id="reservoir-field" hidden><span>Stored water <output id="water-label">0%</output></span><meter id="water-load" min="0" max="1" value="0" style="width:100%">Stored water</meter></label>
+<label class="field"><span>Study</span><select id="group"><option value="family">Family · parents &amp; youngsters</option><option value="single">One individual</option></select></label>
+<label class="field" id="children-field"><span>Youngsters</span><select id="children"><option value="auto">Varies by family · one or two</option><option value="1">One youngster</option><option value="2">Two youngsters</option></select></label>
+<label class="field" id="member-field"><span>Inspect &amp; hear</span><select id="member"><option value="father">Father · old, weathered</option><option value="mother">Mother · adult, unhurried</option><option value="son">Son · young, lightly marked</option></select></label>
+<label class="field"><span>View</span><select id="view"><option value="quarter">Three-quarter</option><option value="side">Side · judge the body</option><option value="front">Front · judge the legs</option><option value="face">Face · inspect the eyes</option></select></label>
+<label class="field"><span>Habitat form</span><select id="form"><option value="reedbed">01 / Reedbed grazer</option><option value="peat">02 / Peat grazer</option><option value="tarn">03 / Tarn grazer</option></select></label>
+<label class="field" id="age-field"><span>Age</span><select id="age"><option value="young">Young · smaller, lightly marked</option><option value="adult">Adult · settled into its routine</option><option value="old" selected>Old · worn, deeply resonant</option></select></label>
+<label class="field" id="sex-field"><span>Sex</span><select id="sex"><option value="male">Male · tusked</option><option value="female">Female · smooth-faced</option></select></label>
+<button class="action" id="individual">Another individual <small>Different proportions, wear and voice</small></button>
+<label class="field"><span>Light</span><select id="light"><option value="day">Overcast · inspect the form</option><option value="night">Moonlight · inspect the silhouette</option><option value="world">Dark riverbank · game visibility</option></select></label>
+<label class="field"><span><input type="checkbox" id="original-shading"> Compare without the visibility lift</span></label>
+<p class="note">Feeding anatomy: a small underside opening touches the water as the body lowers between bent legs.</p>
+</section>
+<section class="panel" id="panel-voice" role="tabpanel" aria-labelledby="tab-voice" hidden>
+<p class="note">Compare each sound against the game’s music, wind and water. Nearby calls gently make room in the background.</p>
+<label class="field"><span>Surrounding sounds</span><select id="sound-bed"><option value="river">River · drone, wind & water</option><option value="busy" selected>Busy · music, rain & stronger water</option><option value="solo">Creature only</option></select></label>
+<label class="field"><span>Listening distance</span><select id="sound-distance"><option value="20" selected>20 units · nearby</option><option value="45">45 units · across the bank</option><option value="90">90 units · distant</option></select></label>
+<button class="action" data-voice="rumble">A contented rumble <small>Deep, rounded resonance from inside the body</small></button>
+<button class="action" data-voice="breath">A long exhalation <small>Soft air passing through a large cavity</small></button>
+<label class="field"><span>Listening level</span><input id="volume" type="range" min="0" max="100" value="55" aria-label="Listening level"></label>
+<output id="sound-status" aria-live="polite">Select a sound to listen.</output>
+<button class="action" id="background-only">Hear the background alone</button>
+<button class="action" id="stop-audio" disabled>Stop listening</button>
+<button class="action" id="audio-check">Check the game mix <small>35 checks: family voices, distance, muting and headroom</small></button>
+<details><summary>Mix measurements</summary><pre id="mix-report" style="white-space:pre-wrap;font-size:11px">Run the mix check to compare levels.</pre></details>
+<p class="note">Uses the production mixer and sound layers with repeatable river conditions. Listening remains the final check; loud transient events and different speakers can change what stands out.</p>
+</section>
+<section class="panel" id="panel-home" role="tabpanel" aria-labelledby="tab-home" hidden>
+<h3 id="place">Sheltered reedbeds</h3><p class="note" id="habitat-detail"></p>
+<div class="fact"><strong>A slow, edible river</strong><p>Shallow fresh water, submerged plants and reliable footing. Quiet backwaters and broad vegetated banks.</p></div>
+<div class="fact"><strong>A familiar grazing route</strong><p>The family returns to the same patches. Finding the same family again should feel like visiting old neighbors.</p></div>
+<div class="fact"><strong>Together, without ceremony</strong><p>Two parents and one or two youngsters graze several paces apart. The youngsters stay near the adults; each animal keeps its own slow rhythm.</p></div>
+<p class="note">In the world, families inhabit shallow fresh water with safe footing. Each animal follows its own grazing rhythm within a shared river patch.</p>
+</section>
+<section class="panel" id="panel-life" role="tabpanel" aria-labelledby="tab-life" hidden>
+<p class="note">Two small family moments. Watch a youngster get distracted and catch up, or settle against a parent who quietly makes room. These previews isolate a parent and youngster so you can inspect the interaction. Choose a family in Form to begin.</p>
+<button class="action" data-family-gesture="catchup">A distracted youngster <small>Linger by the water, notice the gap, catch up</small></button>
+<button class="action" data-family-gesture="lean">A quiet lean <small>Approach a parent, settle together, release</small></button>
+<div class="fact"><strong>Contentment, not vigilance</strong><p>Like a very old elephant: it has a routine, and your arrival rarely changes it.</p></div>
+<div class="fact"><strong>Weight before movement</strong><p>One foot lifts, reaches and settles. Then the body follows. Long pauses between mouthfuls.</p></div>
+<div class="fact"><strong>Almost indifferent</strong><p>It gradually changes course around a nearby visitor, keeping its unhurried rhythm.</p></div>
+<div class="fact"><strong>Family resemblance</strong><p>Males have broader, flatter husks, cool earthy colors and gently curved tusks. Females have warmer colors and an arched back. Youngsters are paler and rounder, with shorter steps; young males grow small tusks.</p></div>
+<div class="fact"><strong>A lifetime on its surface</strong><p>Softened edges, pale wear and slight asymmetry. Older, larger individuals have deeper voices.</p></div>
+<div class="fact"><strong>A small family</strong><p>A father and mother share familiar river margins with one or two youngsters. Each has room to graze; the youngsters follow a little later. Affection shows through proximity and quiet contact rumbles.</p></div>
+<div class="fact"><strong>The mystery stays</strong><p>Its feeding is understandable. Its senses, age and thoughts are harder to place.</p></div>
+</section>
+<div class="footer">A living character to study together.<br>Drag to orbit · Scroll to approach.<br><a href="./docs/fauna/REED_WALKERS.md">Character brief ↗</a></div>
+</aside><div id="error" role="alert" hidden></div>
+<script type="module">import { mountAtelierNavigation } from './js/atelier/AtelierCatalog.js?v=1'; mountAtelierNavigation('reed'); import('./js/reed-study.js?v=world-spray-1').catch(e=>{const el=document.getElementById('error');el.hidden=false;el.textContent=e.message;console.error(e);});</script>
+</body></html>

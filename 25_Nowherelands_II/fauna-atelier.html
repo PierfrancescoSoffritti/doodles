@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fauna atelier · Nowherelands</title><link rel="stylesheet" href="./css/fauna-atelier.css?v=1">
+<script type="importmap">{"imports":{"three":"../common/libs/three-0.185/build/three.module.min.js","three/addons/":"../common/libs/three-0.185/examples/jsm/"}}</script></head>
+<body>
+<main class="stage atelier-stage" id="stage"><header><small id="folio">Nowherelands / Fauna atelier</small><h1 id="name">Fauna.</h1><p id="intro"></p></header>
+<canvas id="canvas" aria-label="Interactive fauna character study"></canvas>
+<div class="caption"><span class="eyebrow" id="specimen">Study 001</span><h2 id="form-title"></h2><p id="gesture-status" aria-live="off">Resting</p></div>
+<div class="transport" aria-label="Creature gestures"><span id="gestures"></span><span class="spacer"></span><button id="pause" aria-pressed="false">Pause</button><button id="reset-view">Reset view</button></div></main>
+<aside><div class="eyebrow"><span>Character study · v01</span><a id="world-link" href="./">World ↗</a></div>
+<label class="field atelier-nav"><span>Explore the atelier</span><select id="atelier-species" aria-label="Fauna species"></select></label>
+<h2 id="character-title"></h2><p class="lede" id="character"></p>
+<div class="tabs" role="tablist" aria-label="Character dimensions"></div>
+<section class="panel" id="panel-form" role="tabpanel" aria-labelledby="tab-form">
+<label class="field"><span>Study</span><select id="group"><option value="single">One individual</option><option value="group">Together</option></select></label>
+<label class="field"><span>View</span><select id="view"><option value="quarter">Three-quarter</option><option value="side">Side · judge the silhouette</option><option value="front">Front</option><option value="top">Above</option></select></label>
+<button class="action" id="individual">Another individual <small>Different color, proportions and rhythm</small></button>
+<label class="field" id="palette-field" hidden><span>Plumage</span><select id="palette"><option value="0">01 / Teal &amp; rust</option><option value="1">02 / Plum &amp; amber</option><option value="2">03 / Blue &amp; coral</option></select></label>
+<label class="field"><span>Light</span><select id="light"><option value="day">Overcast · inspect the form</option><option value="night">Moonlight · inspect the glow</option></select></label>
+<p class="note" id="form-note"></p></section>
+<section class="panel" id="panel-voice" role="tabpanel" aria-labelledby="tab-voice" hidden><p class="note" id="voice-note"></p><div id="voices"></div>
+<div id="listening"><label class="field"><span>Listening level</span><input id="volume" type="range" min="0" max="100" value="65" aria-label="Listening level"></label><button class="action" id="stop-audio">Stop listening</button><output id="sound-status" aria-live="polite">Select a sound to listen.</output></div></section>
+<section class="panel" id="panel-home" role="tabpanel" aria-labelledby="tab-home" hidden><h3 id="home-title"></h3><p class="note" id="home-detail"></p><div class="fact"><strong>A small piece of its world</strong><p>This diorama keeps the animal’s form and gestures visible. Follow World to return to the landscape.</p></div></section>
+<section class="panel" id="panel-life" role="tabpanel" aria-labelledby="tab-life" hidden></section>
+<div class="footer">A living character to study together.<br>Drag to orbit · Scroll to approach.<br>Choose another species above to continue exploring.</div></aside>
+<div id="error" role="alert" hidden></div>
+<script type="module">import('./js/fauna-atelier.js?v=1').catch(e=>{document.getElementById('error').hidden=false;document.getElementById('error').textContent=e.message;console.error(e);});</script></body></html>
