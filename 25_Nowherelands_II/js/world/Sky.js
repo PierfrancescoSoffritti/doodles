@@ -151,13 +151,15 @@ export class Sky {
 		const starGeom = new THREE.BufferGeometry();
 		starGeom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
 		starGeom.setAttribute('aStar', new THREE.BufferAttribute(attr, 3));
-		this.starUniforms = { uVisibility: { value: 1 }, uTime: { value: 0 }, uHigh: { value: 0 }, uNight: { value: 0 }, uDay: { value: 0 }, uPixelRatio: { value: 1 } };
+		this.starUniforms = { uVisibility: { value: 1 }, uTime: { value: 0 }, uHigh: { value: 0 }, uNight: { value: 0 }, uDay: { value: 0 }, uPointScale: { value: new THREE.Vector2(1, 1) }, uReflectionIntensity: { value: 1 } };
 		this.stars = new THREE.Points(starGeom, new THREE.ShaderMaterial({
 			uniforms: this.starUniforms,
 			transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
 			vertexShader: /* glsl */`
 				attribute vec3 aStar;
-				uniform float uTime, uHigh, uNight, uDay, uPixelRatio, uVisibility;
+				uniform float uTime, uHigh, uNight, uDay, uVisibility;
+				uniform vec2 uPointScale;
+				varying vec2 vPointAspect;
 				varying float vAlpha;
 				varying vec3 vTint;
 				void main() {
@@ -166,18 +168,41 @@ export class Sky {
 					vAlpha = uVisibility * tw * min(aStar.x, 1.3) * (0.7 + 0.9 * uNight) * (1.0 - uDay * 0.3);   // the red dwarf barely dims the stars
 					vTint = mix(vec3(0.75, 0.85, 1.0), mix(vec3(1.0, 0.75, 0.9), vec3(1.0), aStar.z), step(0.5, aStar.z));
 					vec4 mv = modelViewMatrix * vec4(position, 1.0);
-					gl_PointSize = (4.0 + aStar.x * 10.0) * uPixelRatio;
+					vec2 size = (4.0 + aStar.x * 10.0) * uPointScale;
+					gl_PointSize = max(1.0, max(size.x, size.y));
+					vPointAspect = vec2(gl_PointSize) / size;
 					gl_Position = projectionMatrix * mv;
 				}`,
 			fragmentShader: /* glsl */`
+				uniform float uReflectionIntensity;
+				varying vec2 vPointAspect;
 				varying float vAlpha;
 				varying vec3 vTint;
 				void main() {
-					float d = length(gl_PointCoord - 0.5) * 2.0;
+					float d = length((gl_PointCoord - 0.5) * vPointAspect) * 2.0;
 					float a = pow(max(1.0 - d, 0.0), 2.2);
-					gl_FragColor = vec4(vTint * a * vAlpha * 1.6, a * vAlpha);
+					gl_FragColor = vec4(vTint * a * vAlpha * 1.6 * uReflectionIntensity, a * vAlpha);
 				}`,
 		}));
+		const starViewport = new THREE.Vector4(), screenSize = new THREE.Vector2();
+		this.stars.onBeforeRender = (renderer, scene, camera) => {
+			// Dim only the sea capture; scale RGB once because additive blending also uses alpha.
+			const isSeaReflection = shared.sea && renderer.getRenderTarget()?.texture === shared.sea.tDiffuse.value;
+			this.starUniforms.uReflectionIntensity.value = isSeaReflection ? 0.3 : 1;
+			// Point sizes are framebuffer pixels. Recompute for every pass so the
+			// small sea mirror and environment probe preserve the stars' angular size.
+			renderer.getCurrentViewport(starViewport);
+			renderer.getSize(screenSize);
+			const reference = screenSize.y * shared.camera.projectionMatrix.elements[5];
+			const projection = camera.projectionMatrix.elements;
+			this.starUniforms.uPointScale.value.set(
+				starViewport.z * Math.abs(projection[0]) / reference,
+				starViewport.w * Math.abs(projection[5]) / reference,
+			);
+			this.stars.material.uniformsNeedUpdate = true;
+			// A square reflection target has unequal X/Y scales on a wide camera;
+			// the fragment shader compensates inside the square point sprite.
+		};
 		this.stars.frustumCulled = false;
 		this.stars.renderOrder = -9.5;   // before the sun disc, so the disc covers them
 		this.group.add(this.stars);
@@ -280,7 +305,6 @@ export class Sky {
 		this.starUniforms.uHigh.value = shared.audio ? shared.audio.analysis.high : 0;
 		this.starUniforms.uNight.value = 1 - light;
 		this.starUniforms.uDay.value = this.sunIntensitySmooth;
-		this.starUniforms.uPixelRatio.value = renderer.getPixelRatio();
 
 		this.aurora.update(worldTime, dt);
 		this.clouds.update(worldTime, dt, shared, dim);
