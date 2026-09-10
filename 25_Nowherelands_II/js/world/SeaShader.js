@@ -61,6 +61,7 @@ export function createSeaUniforms(shared, waterLevel, windAngle) {
 		uWaves2: { value: waves2 },
 		uSwell: { value: 1 },
 		uDisplace: { value: 1 },
+		uSeaExtent: { value: 4064 },
 		uReflMatrix: { value: new THREE.Matrix4() },
 		tDiffuse: { value: null },
 		textureMatrix: { value: new THREE.Matrix4() },   // Reflector fills these two
@@ -164,7 +165,7 @@ export const seaShadeGlsl = /* glsl */`
 
 export function seaVertexShader(shared) {
 	return /* glsl */`
-	uniform float uTime, uDisplace;
+	uniform float uTime, uDisplace, uSeaExtent;
 	uniform vec3 uCameraPos;
 	uniform mat4 uReflMatrix;
 	varying vec4 vUv4;
@@ -198,8 +199,10 @@ export function seaVertexShader(shared) {
 		vec2 p = wp.xz;
 		vec3 nrm; float jac, d, river;
 		vec3 disp = surface(p, nrm, jac, d, river);
-		// the far rim eases down to the flat horizon plane
-		float fade = uDisplace * (1.0 - smoothstep(5200.0, 7600.0, distance(p, uCameraPos.xz)));
+		// A continuous player-relative envelope shared by every ring. Its extent
+		// reserves half a snap cell, keeping the edge flat even just before a snap.
+		vec2 edge = abs(p - uCameraPos.xz);
+		float fade = uDisplace * (1.0 - smoothstep(uSeaExtent * 0.75, uSeaExtent, max(edge.x, edge.y)));
 		wp += disp * fade;
 		vWorldPos = wp;
 		vNrm = nrm;

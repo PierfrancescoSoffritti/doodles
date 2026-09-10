@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { Random } from '../core/Random.js';
 import { riverHabitat } from './gen/ChannelMorphology.js';
 import { surfaceHalfWidth, RIVER_STRIDE, RV } from './gen/Rivers.js';
+import { fadeSmallPlantMaterial } from './VegetationFade.js';
 
 // Small solid silhouettes alongside the world's wire grass. Nine instanced communities
 // with shared geometry, bounded recruitment and no per-plant frame updates.
@@ -91,6 +92,7 @@ export class RiverEcology {
 				transformed.x += sin(uRiverTime * 1.35 + phase) * position.y * position.y * 0.06;
 				transformed.z += cos(uRiverTime * 1.1 + phase) * position.y * position.y * 0.04;`);
 		};
+		fadeSmallPlantMaterial(this.material, shared);
 	}
 	build(hm, chunk, cx, cz, size, seed) {
 		const rnd = new Random(seed + ':riparian:' + cx + ':' + cz);

@@ -3,6 +3,7 @@ import { weatherGlsl } from './weather/WeatherGlsl.js';
 import * as THREE from 'three';
 import { Ripples } from './Ripples.js';
 import { fogGlsl } from './FogGlsl.js';
+import { vegetationFadeUniforms, vegetationFadeGlsl } from './VegetationFade.js';
 import { shoreWaveGlsl } from './ShoreWaves.js';
 
 export const hslGlsl = /* glsl */`
@@ -120,6 +121,7 @@ export function createTerrainMaterial(shared, heightmap) {
 		uRockSize: { value: world.size },
 	};
 	Object.assign(uniforms, lumenLightUniforms(shared), shared.ripples.uniforms, shared.shoreMap.uniforms, shared.fogUniforms, shared.weather.uniforms);
+	Object.assign(uniforms, vegetationFadeUniforms(shared));
 
 	const material = new THREE.ShaderMaterial({
 		uniforms,
@@ -153,6 +155,7 @@ export function createTerrainMaterial(shared, heightmap) {
 			${lumenLightGlsl}
 			${weatherGlsl}
 			${terrainLightGlsl}
+			${vegetationFadeGlsl}
 
 			float gridLine(vec2 p, float cell) {
 				vec2 q = p / cell;
@@ -259,6 +262,15 @@ export function createTerrainMaterial(shared, heightmap) {
 				float pulse = (0.045 + 0.07 * uBass + 0.16 * uLevel) * (1.0 + 0.5 * uNight) * (1.0 - 0.15 * uSunIntensity) + 0.35 * uHum * (0.5 + 0.5 * sin(uTime * 2.0 - dist * 0.02));
 				color += lineColor * grid * pulse * (1.0 - riverBed * 0.95) * (1.0 - 0.6 * clamp(-h / 1.5, 0.0, 1.0));   // dimmer through the water
 				color += contourColor * contour * (0.03 + 0.1 * uLevel);
+
+				// Carry the unresolved grass/reed cover into the ground as individual
+				// plants taper away. Reuse the habitat and stand noise already sampled
+				// above; no new texture, geometry or pass. Keep rock, snow and cave rims bare.
+				float meadow = (1.0 - 0.6 * hab.r) * (0.45 + 0.55 * hab.g) * (1.0 - 0.45 * hard);
+				meadow *= smoothstep(0.74, 0.85, n.y) * smoothstep(3.5, 6.0, h) * (1.0 - smoothstep(700.0, 950.0, hSea));
+				float reeds = smoothstep(0.84, 0.9, n.y) * smoothstep(-0.5, 0.5, h) * (1.0 - smoothstep(3.5, 5.0, h)) * hab.g;
+				float farCover = (1.0 - vegetationFade(vWorldPos.xz)) * (1.0 - snowMask) * (1.0 - caveRim) * (1.0 - vApron);
+				color += mix(lineColor, vec3(0.6, 0.6, 0.75), 0.7) * (meadow + reeds * 0.6) * farCover * (0.65 + 0.35 * speck) * (0.035 + 0.015 * uLevel);
 
 				// ripples from notes and footsteps
 				color += rippleGlow(vWorldPos.xz, uTime) * 1.4;

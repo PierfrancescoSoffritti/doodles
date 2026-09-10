@@ -1,0 +1,182 @@
+{
+  "seed": "umbra",
+  "position": [
+    0,
+    20.553555586971612,
+    0
+  ],
+  "configuration": {
+    "chunkSize": 256,
+    "vegetationRadius": 4,
+    "giantRadius": 6,
+    "waterLevel": 0,
+    "eyeHeight": 11,
+    "far": 30000
+  },
+  "vegetation": {
+    "before": 81,
+    "after": 72,
+    "farChunks": 169,
+    "deleted": [
+      "-4,0",
+      "-4,-1",
+      "-4,1",
+      "-4,-2",
+      "-4,2",
+      "-4,-3",
+      "-4,3",
+      "-4,-4",
+      "-4,4"
+    ],
+    "removed": [
+      {
+        "key": "-4,0",
+        "meshes": 5,
+        "instances": 522
+      },
+      {
+        "key": "-4,-1",
+        "meshes": 8,
+        "instances": 539
+      },
+      {
+        "key": "-4,1",
+        "meshes": 7,
+        "instances": 527
+      },
+      {
+        "key": "-4,-2",
+        "meshes": 8,
+        "instances": 526
+      },
+      {
+        "key": "-4,2",
+        "meshes": 18,
+        "instances": 752
+      },
+      {
+        "key": "-4,-3",
+        "meshes": 8,
+        "instances": 537
+      },
+      {
+        "key": "-4,3",
+        "meshes": 20,
+        "instances": 890
+      },
+      {
+        "key": "-4,-4",
+        "meshes": 4,
+        "instances": 530
+      },
+      {
+        "key": "-4,4",
+        "meshes": 14,
+        "instances": 575
+      }
+    ]
+  },
+  "ocean": {
+    "rings": [
+      {
+        "min": [
+          -132,
+          0,
+          -132
+        ],
+        "max": [
+          132,
+          0,
+          132
+        ],
+        "triangles": 33544
+      },
+      {
+        "min": [
+          -264,
+          0,
+          -264
+        ],
+        "max": [
+          264,
+          0,
+          264
+        ],
+        "triangles": 24832
+      },
+      {
+        "min": [
+          -528,
+          0,
+          -528
+        ],
+        "max": [
+          528,
+          0,
+          528
+        ],
+        "triangles": 24832
+      },
+      {
+        "min": [
+          -1056,
+          0,
+          -1056
+        ],
+        "max": [
+          1056,
+          0,
+          1056
+        ],
+        "triangles": 24832
+      },
+      {
+        "min": [
+          -2112,
+          0,
+          -2112
+        ],
+        "max": [
+          2112,
+          0,
+          2112
+        ],
+        "triangles": 24832
+      },
+      {
+        "min": [
+          -4096,
+          0,
+          -4096
+        ],
+        "max": [
+          4096,
+          0,
+          4096
+        ],
+        "triangles": 24056
+      }
+    ],
+    "far": {
+      "min": [
+        -32768,
+        -32768,
+        0
+      ],
+      "max": [
+        32768,
+        32768,
+        0
+      ],
+      "triangles": 504
+    },
+    "displace": 1,
+    "farDisplace": 0
+  },
+  "inland": {
+    "radius": 260,
+    "nearTriangles": 21648
+  },
+  "fogDensity": 0.00045,
+  "errors": []
+}

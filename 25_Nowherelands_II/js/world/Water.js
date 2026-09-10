@@ -4,18 +4,22 @@ import { config } from '../core/Config.js';
 import { createSeaUniforms, seaVertexShader, seaFragmentShader, updateSeaUniforms } from './SeaShader.js';
 
 // The sea: a clipmap of concentric square rings around the player, 2 m cells at the feet doubling
-// to 64 m eight kilometres out, displaced by the waves in the vertex shader, and beyond it a flat
+// to 64 m four kilometres out, displaced by the waves in the vertex shader, and beyond it a flat
 // ring to the horizon that is also the mirror rendering the reflection every ring reads.
 // Everything snaps to the coarsest cell so the vertices never swim as the player walks.
 const LEVELS = 6, CELL0 = 2, CELLS = 128;
 const SNAP = CELL0 << (LEVELS - 1);
-const RIM = CELL0 * CELLS << (LEVELS - 1);    // 8192 m: where the clipmap ends
+const RIM = (CELL0 * CELLS << (LEVELS - 1)) / 2;    // 4096 m: half-width of the waved square
 const FAR = 65536;
 
 export class Water {
 	constructor(scene, shared, waterLevel) {
 		const windAngle = ((config.seedHash % 1000) / 1000) * Math.PI * 2;
 		const uniforms = createSeaUniforms(shared, waterLevel, windAngle);
+		// The player can be half a snap cell away from the mesh centre. A fade
+		// measured from the player stays continuous across mesh snaps and still
+		// finishes before every side of the waved square.
+		uniforms.uSeaExtent.value = RIM - SNAP / 2;
 		this.uniforms = uniforms;
 		const vertexShader = seaVertexShader(shared), fragmentShader = seaFragmentShader(shared);
 
@@ -23,7 +27,7 @@ export class Water {
 		uniforms.color = { value: new THREE.Color('#ffffff') };   // Reflector expects one
 		const farUniforms = { ...uniforms, uDisplace: { value: 0 } };
 		const shader = { name: 'NowhereSea', uniforms: farUniforms, vertexShader, fragmentShader };
-		this.far = new Reflector(ringGeometry(RIM / 2, FAR / (RIM / 2), 2, true), { textureWidth: 768, textureHeight: 768, clipBias: 0.02, shader, multisample: 0 });
+		this.far = new Reflector(ringGeometry(RIM, FAR / RIM, 2, true), { textureWidth: 768, textureHeight: 768, clipBias: 0.02, shader, multisample: 0 });
 		// Reflector clones its uniforms; share the live ones and take its texture and matrix
 		for (const k of Object.keys(uniforms)) if (k !== 'uDisplace' && k !== 'tDiffuse' && k !== 'textureMatrix') this.far.material.uniforms[k] = uniforms[k];
 		// Reflector updates its private matrix object in place. Replacing that

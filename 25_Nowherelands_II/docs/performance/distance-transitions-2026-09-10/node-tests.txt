@@ -1,0 +1,24 @@
+✔ frame limits preserve elapsed time at 60, 120 and 144 Hz (1.470917ms)
+✔ changing modes and resuming do not burst through missed frames (0.155333ms)
+✔ neighbours cross negative cells and branch boundaries without attracting distant animals (0.796ms)
+✔ terrain data preserves sampling, skirt continuity and cave masks at every detail level (3.656208ms)
+✔ complete worker shore tiles exactly match incremental rows, including distance and river reach (6.547417ms)
+✔ teleporting discards stale terrain results and installs the latest request once (1.447792ms)
+✔ worker failure makes synchronous fallback available and drops unfinished jobs (0.150708ms)
+✔ banks slow the current and a bend shifts the fast channel to the outside (0.456167ms)
+✔ a rock divides the approaching flow and forms a reversing wake (1.393083ms)
+✔ indexed lake vertices preserve shoreline area with fewer transferable vertices (15.986833ms)
+✔ water keeps complete coverage while detail streams or the camera teleports (0.115084ms)
+✔ cinder-tenebra delta ribbons avoid channel-scale folds (9461.710167ms)
+✔ a worker-style world clone preserves terrain, lake coverage and large-wood wakes (741.36325ms)
+✔ a gravel island leaves two wet channels and reduces the flowing section area (0.43775ms)
+✔ fern, willow and lily recruitment respects forest, elevation, depth and current (0.14875ms)
+✔ generated wood is supported, finite and uniquely assigned across chunk boundaries (5283.184125ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 10367.422

@@ -9,6 +9,7 @@ import { ROCK_STRIDE } from './gen/Rivers.js';
 import { SEG_KIND } from './Heightmap.js';
 import { WatersideMeshes } from './WatersideMeshes.js';
 import { RiverEcology } from './RiverEcology.js';
+import { vegetationFadeUniforms, vegetationFadeGlsl, fadeSmallPlantMaterial } from './VegetationFade.js';
 
 const UNBORN = 1e9;
 const ss = (a, b, x) => { const t = Math.min(Math.max((x - a) / (b - a), 0), 1); return t * t * (3 - 2 * t); };
@@ -391,6 +392,7 @@ export class Vegetation {
 		this.time = 0;
 		this.centerX = 0;
 		this.centerZ = 0;
+		this.fadeUniforms = vegetationFadeUniforms(shared);
 
 		const rnd = new Random(config.seed + ':flora');
 		this.bareTrees = [0, 1, 2, 3, 4, 5].map(() => buildBareTree(rnd));
@@ -553,9 +555,11 @@ export class Vegetation {
 		this.sproutMaterial = instancedMaterial(new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, fog: true }), mk('sprout', 5), 0.4,
 			'if (color.g > 0.15 && color.r < 0.1) transformed.y += sin(uTime * 1.1 + ipos.x) * 0.5 * transformed.x * 0.3;\nif (color.r > 1.0) transformed.y += sin(uTime * 0.9 + ipos.z) * 0.35;',
 			(fs) => fs.replace('#include <color_fragment>', '#include <color_fragment>\nif (diffuseColor.r > 1.0) diffuseColor.rgb *= 0.8 + uPulse * 1.5;').replace('#include <common>', '#include <common>\nuniform float uPulse;'));
+		for (const material of [this.shrubMaterial, this.crystalMaterial, this.bladeMaterial, this.sproutMaterial]) fadeSmallPlantMaterial(material, shared);
 
 		// merged line plants (tufts, reeds, crystal edges) share one shader
 		this.lineUniforms = THREE.UniformsUtils.merge([THREE.UniformsLib.fog]);
+		Object.assign(this.lineUniforms, this.fadeUniforms);
 		Object.assign(this.lineUniforms, { uWindDirection: { value: new THREE.Vector2(1, 0) }, uTime: { value: 0 }, uWind: { value: 1 }, uHue: { value: 0.8 }, uPulse: { value: 0 } });
 		this.lineMaterial = new THREE.ShaderMaterial({
 			uniforms: this.lineUniforms,
@@ -568,13 +572,15 @@ export class Vegetation {
 				uniform vec2 uWindDirection;
 				uniform float uTime, uWind, uPulse;
 				varying float vT; varying float vKind;
+				varying float vDetailFade;
+				${vegetationFadeGlsl}
 				float easeOutCubic(float t) { return 1.0 - pow(1.0 - t, 3.0); }
 				float easeOutBack(float t) { float c1 = 1.70158, c3 = c1 + 1.0; float u = t - 1.0; return 1.0 + c3 * u * u * u + c1 * u * u; }
 				void main() {
 					float t = clamp((uTime - aBorn) / aInfo.w, 0.0, 1.0);
 					if (aInfo.z < 0.5) {
 						// grass is densest around the player and thins toward the horizon
-						float keep = mix(1.0, 0.32, smoothstep(50.0, 320.0, distance(aBase.xz, cameraPosition.xz)));
+						float keep = mix(1.0, 0.32, smoothstep(50.0, 320.0, distance(aBase.xz, uVegetationCamera)));
 						float rnd = fract(aInfo.y * 0.159155 + aBase.x * 0.013);
 						t *= 1.0 - smoothstep(keep - 0.12, keep + 0.02, rnd);
 					}
@@ -587,18 +593,23 @@ export class Vegetation {
 					float sway = sin(uTime * 1.3 + aInfo.y) * 0.35 + sin(uTime * 2.7 + aInfo.y * 1.9) * 0.15;
 					p.xz += (uWindDirection*(sway+0.25)+vec2(-uWindDirection.y,uWindDirection.x)*cos(uTime*0.9+aInfo.y)*0.2)*hw*hw*uWind*swayAmt;
 					if (aInfo.z > 1.5) p.y += (p.y - aBase.y) * uPulse * 0.25;
-					float near = smoothstep(1.5, 5.0, distance(aBase.xz, cameraPosition.xz));
-					p = mix(aBase, p, near);
+					float near = smoothstep(1.5, 5.0, distance(aBase.xz, uVegetationCamera));
+					vDetailFade = vegetationFade(aBase.xz);
+					p = mix(aBase, p, near * vDetailFade);
 					vT = hw; vKind = aInfo.z;
 					vec4 worldPosition = vec4(p, 1.0);
 					vec4 mvPosition = viewMatrix * worldPosition;
 					gl_Position = projectionMatrix * mvPosition;
+					// Clip zero-length lines in the vertex stage. Fragment discard would
+					// inhibit early depth rejection for all the dense nearby grass too.
+					if (vDetailFade <= 0.0) gl_Position = vec4(0.0, 0.0, 2.0, 1.0);
 					#include <fog_vertex>
 				}`,
 			fragmentShader: /* glsl */`
 				#include <fog_pars_fragment>
 				uniform float uHue, uPulse;
 				varying float vT; varying float vKind;
+				varying float vDetailFade;
 				${hslGlsl}
 				void main() {
 					vec3 tint = hsl2rgb(vec3(uHue, 0.7, 0.75));
@@ -606,10 +617,11 @@ export class Vegetation {
 					if (vKind > 1.5) col = hsl2rgb(vec3(fract(uHue + 0.5), 0.8, 0.65)) * (1.0 + 1.2 * uPulse);
 					else if (vKind > 0.5) col = mix(vec3(0.2, 0.25, 0.4), vec3(0.75, 0.9, 1.0), vT) * (0.8 + 1.0 * uPulse);
 					else col = mix(vec3(0.25, 0.2, 0.4), mix(tint, vec3(1.0), 0.45), vT) * (0.75 + 0.5 * uPulse);
-					gl_FragColor = vec4(col, 1.0);
+					gl_FragColor = vec4(col * vDetailFade, 1.0);
 					#include <fog_fragment>
 				}`,
 		});
+		this.lineMaterial.userData.distanceFaded = true;
 	}
 
 	// ---- placement helpers ----
@@ -1134,6 +1146,7 @@ export class Vegetation {
 			yield;
 			this.watersideMeshes.build(hm, chunk, cx, cz, size, config.seed);
 			yield;
+			chunk.detailMeshes = chunk.meshes.filter(mesh => mesh.material.userData.distanceFaded);
 			for (const mesh of chunk.meshes) this.scene.add(mesh);
 			this.shared.colliders.push(...chunk.colliders);
 			committed = true;
@@ -1213,9 +1226,19 @@ export class Vegetation {
 		this.lampUniforms.uTime.value = this.time; this.lampUniforms.uWind.value = wind; this.lampUniforms.uPulse.value = pulse;
 
 		const player = this.shared.player ? this.shared.player.position : null;
+		if (player) this.fadeUniforms.uVegetationCamera.value.set(player.x, player.z);
+		const size = config.world.chunkSize, fadeEnd = this.fadeUniforms.uVegetationRange.value.y;
 		for (const [key, chunk] of this.chunks) {
 			const [x, z] = key.split(',').map(Number);
 			if (Math.abs(x - cx) > this.radius || Math.abs(z - cz) > this.radius) { this.removeChunk(key); continue; }
+			if (player) {
+				// Every plant base belongs to this square. Once even its nearest point
+				// is beyond the fade, skip the now-invisible draws and vertex work.
+				const dx = Math.max(0, Math.abs(player.x - x * size) - size / 2);
+				const dz = Math.max(0, Math.abs(player.z - z * size) - size / 2);
+				const visible = dx * dx + dz * dz < fadeEnd * fadeEnd;
+				for (const mesh of chunk.detailMeshes) mesh.visible = visible;
+			}
 			if (player && Math.abs(x - cx) <= 2 && Math.abs(z - cz) <= 2) this.reveal(chunk, player.x, player.z);
 		}
 		const fcx = Math.floor(cx / 2), fcz = Math.floor(cz / 2);
