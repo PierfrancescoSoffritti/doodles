@@ -826,6 +826,11 @@ export class Vegetation {
 			place(it, p, q, s, rnd, yAxis);
 			mesh.setMatrixAt(i, m.compose(p, q, s));
 			born[i] = it.born !== undefined ? it.born : (rnd.next() < KINDS[kind].preborn ? this.time + rnd.range(0, 0.8) : UNBORN);
+			if (kind === 'giant' && !chunk.far) {
+				chunk.lanternHosts ||= [];
+				chunk.lanternHosts.push({ id: `${it.x.toFixed(3)},${it.z.toFixed(3)}`, x: it.x, y: it.y, z: it.z,
+					matrix: m.clone(), geometry, radius: chunk.colliders.at(-1)?.radius || 4, chunk });
+			}
 			if (kind === 'tree' && geometry.userData.birdPerches?.length) {
                 chunk.birdPerches ||= [];
                 const treeId=`${it.x.toFixed(3)},${it.z.toFixed(3)}`, seats=[];
@@ -1138,7 +1143,7 @@ export class Vegetation {
 				geometry.boundingSphere = geometry.boundingBox.getBoundingSphere(new THREE.Sphere());
 				lines.frustumCulled = true;
 				chunk.meshes.push(lines);
-				chunk.groups.push({ kind: null, kinds: kinds.map((k) => KINDS[k]), attr: geometry.getAttribute('aBorn'), pos, ranges, count: ranges.length, pending: ranges.reduce((n, [s, e]) => n + (e > s && born[s] === UNBORN), 0) });
+				chunk.groups.push({ kind: null, names: kinds, kinds: kinds.map((k) => KINDS[k]), attr: geometry.getAttribute('aBorn'), pos, ranges, count: ranges.length, pending: ranges.reduce((n, [s, e]) => n + (e > s && born[s] === UNBORN), 0) });
 			}
 
 			yield;

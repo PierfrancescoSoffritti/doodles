@@ -35,7 +35,7 @@ export class ReedWalkerAudio {
 // Install once on an engine that hosts Reed walkers. The production compressor
 // controls loudness but is not a brick-wall limiter: coincident effects can
 // overshoot. This leaves normal samples linear and softens only the top peaks.
-function ensureReedMixHeadroom(engine) {
+export function ensureReedMixHeadroom(engine) {
  if (engine.reedPeakGuard) return;
  const guard = engine.ctx.createWaveShaper();
  guard.curve = Float32Array.from({ length: 8193 }, (_, i) => {

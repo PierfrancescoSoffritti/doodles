@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lantern mites · Character study</title>
+<link rel="stylesheet" href="./css/fauna-atelier.css?v=1">
+<style>
+.stage{background:#182328}.stage header p{max-width:290px}.transport{flex-wrap:wrap}.status-line{display:flex;justify-content:space-between;gap:12px;font-size:11px;color:var(--muted);margin-top:12px}.key{display:inline-block;width:10px;height:10px;border:1px solid #bda56e;border-radius:50%;margin-right:7px}.encounter{background:#455c44;color:#f0f0df;border-color:#455c44}.encounter small{color:#d5dfca}.encounter:hover{background:#344c34}.progress{height:2px;background:#d8ded1;margin:18px 0 8px}.progress span{display:block;width:0;height:100%;background:#617455}.stage .caption p{min-height:2.5em}.stage header{max-width:calc(100% - 48px)}@media(max-width:850px){.stage{min-height:590px}.stage h1{font-size:42px}.stage header p{font-size:12px}.caption{bottom:108px}.caption h2{font-size:21px}.transport{bottom:18px}.transport button{font-size:11px}}
+</style>
+<script type="importmap">{"imports":{"three":"../common/libs/three-0.185/build/three.module.min.js","three/addons/":"../common/libs/three-0.185/examples/jsm/"}}</script>
+</head>
+<body>
+<main class="stage night atelier-stage" id="stage">
+<header><small>Nowherelands / Fauna atelier</small><h1>Lantern mites.</h1><p>A small light at the roots.<br>A little courage, if you wait.</p></header>
+<canvas id="canvas" aria-label="Three dimensional root hollow with five lantern mites and a ring marking the visitor. Drag to orbit and scroll to zoom."></canvas>
+<div class="caption"><span class="eyebrow">01 / Cautious curiosity</span><h2 id="moment">A busy little hollow</h2><p id="description">Drift, browse, greet a neighbor. A brief rest, then off again.</p></div>
+<div class="transport" aria-label="Study playback"><button id="pause" aria-pressed="false">Pause</button><button id="slow" aria-pressed="false">Slow motion</button><button id="reset">Reset encounter</button><span class="spacer"></span><button id="reset-view">Reset view</button></div>
+</main>
+<aside>
+<div class="eyebrow"><span>Character study · 01</span><a href="./fauna-atelier.html">Atelier ↗</a></div>
+<p class="note"><a href="./?seed=umbra&amp;mites=1">Meet a colony in the world ↗</a></p>
+<h2>Let them come to you.</h2>
+<p class="lede">Five tiny lives around one familiar refuge. Try approaching, staying still, then making a sudden move.</p>
+<button class="action encounter" id="demo">Play the encounter <small>Approach → wait → startle → give space · 35 seconds</small></button>
+<div class="progress" aria-hidden="true"><span id="progress"></span></div>
+<div class="status-line"><span id="playback">Explore at your own pace</span><span id="clock">0:00</span></div>
+<h3>YOUR PRESENCE</h3>
+<button class="action" data-action="approach">Approach slowly <small>Walk toward the edge of their hollow.</small></button>
+<button class="action" data-action="wait">Stand still <small>Stop where you are. Give curiosity time.</small></button>
+<button class="action" data-action="startle">A sudden step <small>Nearby mites dim and withdraw into shelter.</small></button>
+<button class="action" data-action="leave">Step away <small>Let the colony return to its own routine.</small></button>
+<p class="note"><span class="key"></span>The ring marks your position. Orbiting the view does not disturb the animals.</p>
+<h3>VOICE · A SMALL CONVERSATION</h3>
+<p class="note">A soft double call. One answer from a neighbor. Watch their light swell with each note.</p>
+<label class="field"><span>Listen against</span><select id="sound-bed"><option value="solo">Mites alone</option><option value="river">Wind &amp; water</option><option value="busy">Game music, rain &amp; water</option></select></label>
+<label class="field"><span>Calling individual</span><select id="voice-mite"><option value="0">Mite 1</option><option value="1">Mite 2</option><option value="2" selected>Mite 3 · the curious one</option><option value="3">Mite 4</option><option value="4">Mite 5</option></select></label>
+<button class="action" id="hear-exchange">Hear contact &amp; reply <small>Replay a close encounter · a single exchange</small></button>
+<button class="action" id="listen-colony">Listen to the colony <small>Natural conversations, heard from your position</small></button>
+<button class="action" id="background-only">Background alone <small>Eight seconds to compare the surrounding sound</small></button>
+<label class="field"><span>Listening level · <output id="volume-value">45%</output></span><input id="volume" type="range" min="0" max="100" value="45"></label>
+<button class="action" id="stop-audio" disabled>Stop listening</button>
+<output id="sound-status" aria-live="polite">Sound starts when you choose an audition.</output>
+<p class="note">Listening runs at normal speed. Pause, slow motion or leaving the page stops the sound.</p>
+<h3>WHAT TO LOOK FOR</h3>
+<div class="fact"><strong>A colony with its own business.</strong><p>Short feeding trips and visits to neighbors keep the hollow alive. Rests are brief and happen at different times.</p></div>
+<div class="fact"><strong>Cautious, then comfortable.</strong><p>They pause as you approach, then get back to browsing. One bolder mite comes closer while the others carry on.</p></div>
+<div class="fact"><strong>Light carries the conversation.</strong><p>Interest builds slowly. A contact pulse receives a delayed answer. Fear dims the light.</p></div>
+<div class="fact"><strong>Safety is somewhere particular.</strong><p>They retreat beneath these roots and emerge separately when the disturbance passes.</p></div>
+<div class="footer">A first behavior and voice sketch. Simple seed bodies; provisional scale. Flight and settling remain quiet in this audition.<br><br>Drag to orbit · Scroll to approach<br><a href="./docs/fauna/LANTERN_MITES.md">Read the character brief ↗</a></div>
+</aside>
+<div id="error" role="alert" hidden></div>
+<script type="module">import('./js/lantern-study.js').catch(error=>{const box=document.getElementById('error');box.hidden=false;box.textContent='The study could not load: '+error.message;console.error(error);});</script>
+</body>
+</html>

@@ -30,6 +30,17 @@ The dioramas illustrate habitat; they do not generate the full world. The Home
 panels describe current game placement. Birds and Fireflies have no dedicated
 voices assigned in the game yet, and their Voice panels state this explicitly.
 
+## Lantern mite character study
+
+The separate [Lantern mite character study](../../lantern-study.html) explores
+cautious curiosity around a root hollow. Play the encounter or use the visitor
+controls to approach, wait and startle the colony. Its Voice section auditions
+individual contact/reply exchanges or the natural colony, against silence,
+wind/water or game music/rain/water. This behavior and voice sketch uses
+provisional seed bodies. The same behavior, renderer and voices now inhabit
+varied root-and-stone homes beside forest giants in the game. Open [the world encounter](../../?seed=umbra&mites=1)
+to find colonies, approach slowly, wait, or resume exploration.
+
 ## Listening
 
 Lumen and hopper previews use FaunaAudio and the shared production mixer fixture

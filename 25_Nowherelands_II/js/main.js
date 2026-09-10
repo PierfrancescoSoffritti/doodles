@@ -41,6 +41,8 @@ import { Conductor } from './audio/Conductor.js?v=pebble-audio-10';
 import { Fauna } from './world/fauna/Fauna.js?v=pebble-audio-10';
 import { WorldReedWalkers } from './world/fauna/WorldReedWalkers.js?v=world-spray-1';
 import { ReedSurvey } from './ui/ReedSurvey.js?v=world-spray-1';
+import { WorldLanternMites } from './world/fauna/WorldLanternMites.js';
+import { LanternMiteSurvey } from './ui/LanternMiteSurvey.js';
 import { WorldBirds } from './world/fauna/WorldBirds.js?v=birds-10';
 import { BirdSurvey } from './ui/BirdSurvey.js?v=birds-10';
 import { FaunaSurvey } from './ui/FaunaSurvey.js?v=pebble-audio-10';
@@ -124,13 +126,14 @@ function start(world,caveMeshes) {
 	const birds = new WorldBirds(scene,heightmap,shared,terrain.vegetation,config.seedHash);
 	shared.birds = birds;
 	const walkers = new WorldReedWalkers(scene,heightmap,shared,fauna,config.seed); shared.walkers=walkers;
+	const mites = new WorldLanternMites(scene,heightmap,shared,terrain.vegetation,config.seed,terrain.material); shared.mites=mites;
 	const landmarks = new Landmarks(scene, heightmap, shared, camera);
 	landmarks.addFireflies(fireflies);
 	const director = new EventDirector(shared);
 	const post = new PostProcessing(renderer, scene, camera);
 	const pmrem = new THREE.PMREMGenerator(renderer);
 	const environment = new EnvironmentProbe(renderer, scene, camera, shared, pmrem,
-		() => [water.far, ...water.levels, inland.mesh, inland.near, drift.points, watersideLife.points, fauna.meshes.root, birds.root, walkers.root, ...caves.waterMeshes],
+		() => [water.far, ...water.levels, inland.mesh, inland.near, drift.points, watersideLife.points, fauna.meshes.root, birds.root, walkers.root, mites.root, ...caves.waterMeshes],
 		(target) => {
 			scene.environment = target.texture; scene.environmentIntensity = .55;
 			const image = target.texture.image;
@@ -142,11 +145,13 @@ function start(world,caveMeshes) {
 	// ---- events ----
 	bus.on(Events.RIPPLE, ({ x, z, size, hue, saturation }) => ripples.add(x, z, size, hue % 1, saturation));
 	bus.on(Events.NOTE, (n) => {
+		mites.hearNote(n);
 		if (n.position) terrain.vegetation.noteAt(n.position.x, n.position.z, 0.5 + (n.velocity || 0.3));
 		if (n.position && n.layer !== 'sequencer') ripples.add(n.position.x, n.position.z, 0.6 + n.velocity * 2, (shared.hue + 0.15) % 1);
 		else if (n.layer === 'sequencer') ripples.add(n.position.x, n.position.z, 0.5, (shared.hue + 0.05) % 1);
 	});
 	bus.on(Events.KEY_CHANGE, () => { shared.hue = (shared.hue + 0.11 + Math.random() * 0.1) % 1; });
+	bus.on(Events.PRESS_END, ({duration}) => { if(!landmarks.aim())mites.playerNote(Math.max(0,(duration-0.28)/1.1)); });
 	bus.on('plant', ({ x, z }) => { if (sprouts.add(x, z, shared.time)) ripples.add(x, z, 0.5, shared.hue, 0.8); });
 	bus.on('footstep', ({ inWater }) => { if (shared.conductor) shared.conductor.footstep(inWater); });
 	bus.on('meteor', () => { if (shared.conductor) shared.conductor.meteor(); });
@@ -161,6 +166,7 @@ function start(world,caveMeshes) {
 	fauna.prime(player.position, config.seed);
 	birds.prime();
 	walkers.update(0);
+	mites.update(0);
 	hud.ready();
 	const weatherSurvey=new URLSearchParams(location.search).has('weather') ? new WeatherSurvey(shared, sky) : null;
 	const caveSurvey=!weatherSurvey && new URLSearchParams(location.search).has('caves') ? new CaveSurvey(shared) : null;
@@ -168,7 +174,8 @@ function start(world,caveMeshes) {
 	const profile = survey && new URLSearchParams(location.search).has('profile') ? new MovementProfile(shared, survey, { terrain, inland, shoreMap, pmrem, watersideLife, post }) : null;
 	const birdSurvey = new URLSearchParams(location.search).has('birds') ? new BirdSurvey(shared,birds) : null;
 	const reedSurvey = new URLSearchParams(location.search).has('reeds') ? new ReedSurvey(shared,walkers) : null;
-	const faunaSurvey = !reedSurvey && !birdSurvey && new URLSearchParams(location.search).has('fauna') ? new FaunaSurvey(shared, fauna) : null;
+	const miteSurvey = new URLSearchParams(location.search).has('mites') ? new LanternMiteSurvey(shared, mites) : null;
+	const faunaSurvey = !reedSurvey && !birdSurvey && !miteSurvey && new URLSearchParams(location.search).has('fauna') ? new FaunaSurvey(shared, fauna) : null;
 
 	// ---- enter ----
 	let started = false;
@@ -221,6 +228,7 @@ function start(world,caveMeshes) {
 		faunaSurvey?.guide(dt);
 		reedSurvey?.guide(dt);
 		birdSurvey?.guide(dt);
+		miteSurvey?.guide(dt);
 		player.update(dt, t);
 		caves.update(t,player.position);
 		atmosphere.update(worldDt, dt, camera.position);
@@ -255,6 +263,7 @@ function start(world,caveMeshes) {
 		fauna.update(dt);
 		birds.update(dt);
 		walkers.update(dt);
+		mites.update(dt);
 
 		// fog: valley haze thickens with weather; far ranges fade to a tone darker than the sky
 		const weather = 1 + 0.9 * (shared.state.rainVisible || 0) + 0.5 * (shared.state.snowVisible || 0) + 0.9 * (shared.state.storm || 0) * atmosphere.exposure;
@@ -321,8 +330,9 @@ function start(world,caveMeshes) {
 		faunaSurvey?.update(now - previousFrame);
 		reedSurvey?.update();
 		birdSurvey?.update();
+		miteSurvey?.update();
 		profile?.end();
 	}
-	window.__debug = { environment, pacer, hud, atmosphere, sky, snow, rain, hail, scene, renderer, camera, shared, post, terrain, player, landmarksList: landmarks.list, director, shoreMap, water, inland, waterfalls, drift, heightmap, world, coastalSpray, fauna, faunaSurvey, birds, birdSurvey, walkers, reedSurvey };
+	window.__debug = { environment, pacer, hud, atmosphere, sky, snow, rain, hail, scene, renderer, camera, shared, post, terrain, player, landmarksList: landmarks.list, director, shoreMap, water, inland, waterfalls, drift, heightmap, world, coastalSpray, fauna, faunaSurvey, birds, birdSurvey, walkers, reedSurvey, mites, miteSurvey };
 	frame();
 }

@@ -1,0 +1,57 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Lantern mite audio checks</title>
+<style>body{background:#e9e9df;color:#303c37;font:14px/1.6 system-ui;padding:32px}pre{white-space:pre-wrap}</style>
+<h1>Lantern mite audio checks</h1><p>Offline renders through the game mixer. No sound is played.</p><pre id="report">Rendering…</pre>
+<script type="module">
+import { createReedAudioScene } from '../js/audio/ReedWalkerAudioScene.js';
+import { LanternMiteAudio, lanternAmbientDip } from '../js/audio/LanternMiteVoice.js';
+import { LanternMiteStudy } from '../js/world/fauna/LanternMiteStudy.js';
+const mites = new LanternMiteStudy().mites;
+const rms = (buffer, from, to) => { let sum=0,count=0;for(let c=0;c<buffer.numberOfChannels;c++){const d=buffer.getChannelData(c);for(let i=Math.floor(from*buffer.sampleRate);i<Math.floor(to*buffer.sampleRate);i++){sum+=d[i]*d[i];count++;}}return Math.sqrt(sum/count); };
+const peak = buffer => { let value=0;for(let c=0;c<buffer.numberOfChannels;c++)for(const v of buffer.getChannelData(c)){if(!Number.isFinite(v))throw Error('Non-finite audio');value=Math.max(value,Math.abs(v));}return value; };
+async function voiceBand(buffer) {
+ const ctx=new OfflineAudioContext(2,buffer.length,buffer.sampleRate),source=ctx.createBufferSource(),high=ctx.createBiquadFilter(),low=ctx.createBiquadFilter();
+ source.buffer=buffer;high.type='highpass';high.frequency.value=650;high.Q.value=0.707;low.type='lowpass';low.frequency.value=1800;low.Q.value=0.707;
+ source.connect(high);high.connect(low);low.connect(ctx.destination);source.start();return ctx.startRendering();
+}
+async function render(background, voiced, distance=2, muted=false, overlap=false) {
+ const ctx = new OfflineAudioContext(2, 44100*4, 44100), fixture = createReedAudioScene(ctx,{background});
+ const audio = new LanternMiteAudio(fixture.engine);
+ fixture.engine.master.gain.value=muted?0:0.9;
+ const listener={x:0,y:1.2,z:distance};
+ fixture.engine.updateListener(listener,{x:0,y:0,z:-1},{x:0,y:1,z:0});
+ fixture.phrase(0);
+ if(overlap) {
+  for(let i=0;i<3;i++)audio.play({...mites[i],pos:{x:0,y:1,z:0}},false,1,listener);
+  if(audio.play({...mites[3],pos:{x:0,y:1,z:0}},false,1,listener))throw Error('Voice cap exceeded');
+ }
+ for(const [id,reply,at,x] of (overlap?[]:[[2,false,1,-0.6],[4,true,2.6,0.6]])) {
+  const mite={...mites[id],pos:{x,y:1,z:0}};
+  if(voiced)audio.play(mite,reply,at,listener);
+  else lanternAmbientDip(fixture.engine,mite,reply,at,listener);
+ }
+ const buffer=await ctx.startRendering(); audio.dispose();await fixture.dispose();return buffer;
+}
+try {
+ const solo=await render('solo',true),far=await render('solo',true,8),muted=await render('busy',true,2,true),reports=[];
+ const soloBand=await voiceBand(solo);
+ const overlap=await render('busy',true,2,false,true);
+ if(peak(overlap)>=0.95)throw Error('Overlapping calls exceed headroom');
+ if(peak(muted)>1e-7)throw Error('Muted output is not silent');
+ const falloff=20*Math.log10(rms(far,1,1.6)/rms(solo,1,1.6));
+ if(falloff>-7)throw Error('Insufficient distance falloff: '+falloff);
+ for(const background of ['river','busy']) {
+  const bed=await render(background,false),mix=await render(background,true);
+  const bedBand=await voiceBand(bed);
+  const margins=[[1,1.6],[2.6,2.95]].map(([a,b])=>20*Math.log10(rms(solo,a,b)/rms(bed,a,b)));
+  const bandMargins=[[1,1.6],[2.6,2.95]].map(([a,b])=>20*Math.log10(rms(soloBand,a,b)/rms(bedBand,a,b)));
+  const max=peak(mix);
+  if(max>=0.95)throw Error('Mix peak too high: '+max);
+  reports.push({background,callMarginDb:margins[0],replyMarginDb:margins[1],callVoiceBandDb:bandMargins[0],replyVoiceBandDb:bandMargins[1],mixPeakDb:20*Math.log10(max)});
+ }
+ // Tonal presence is screened in the seed voice's band. Full-band margins are
+ // also reported: a tiny animal need not exceed the bass and all ambient noise.
+ if(reports.some(r=>Math.min(r.callVoiceBandDb,r.replyVoiceBandDb)<0))throw Error('Close voice-band masking check: '+JSON.stringify(reports));
+ const report={status:'pass',distanceFalloffDb:falloff,mutedPeak:peak(muted),overlapPeakDb:20*Math.log10(peak(overlap)),reports};
+ document.body.dataset.audioChecks=JSON.stringify(report);document.body.dataset.status='pass';document.getElementById('report').textContent=JSON.stringify(report,null,2);
+} catch(error) {document.body.dataset.status='fail';document.getElementById('report').textContent=error.stack;console.error(error);}
+</script></html>
