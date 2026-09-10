@@ -2,7 +2,7 @@
 
 Open `http://127.0.0.1:8089/25_Nowherelands_II/bird-study.html`.
 
-The foldwing study has a main colorful bird and three foraging companions in a clearing.
+The bird study has a main colorful bird and three foraging companions in a clearing.
 Startle it to see attention, crouch, takeoff, powered flight, a banked glide,
 braking, foot contact, wing folding and perched rest. **Return to ground** runs
 the second journey. Replay restarts the first. Drag the timeline to pause at any
