@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { setPebbleLight } from '../js/world/fauna/PebbleLighting.js';
 import { FaunaModel } from '../js/world/fauna/FaunaModel.js?v=player-notes-13';
-import { PebbleMeshes } from '../js/world/fauna/PebbleMeshes.js?v=outline-2';
+import { PebbleMeshes } from '../js/world/fauna/PebbleMeshes.js?v=pebble-full-1';
 import { createFogUniforms } from '../js/world/FogGlsl.js';
 
 // Check the rendered bone endpoint, not just the simulation's intended contact.
@@ -94,7 +94,15 @@ export function checkPebbleRendering() {
 	for(const mesh of [meshes.bodies,meshes.legs,meshes.eyes.stalks,meshes.eyes.bulbs,meshes.eyes.pupils]) for(let i=0;i<mesh.count;i++) {
 		mesh.getMatrixAt(i,matrix);if(!matrix.elements.every(Number.isFinite))throw new Error(`${mesh.name} disappears at a cave floor edge`);
 	}
-	const geometries = new Set(), materials = new Set(); scene.traverse(o => { if (o.geometry) geometries.add(o.geometry); if (o.material) materials.add(o.material); });
+	c.replyGlow=1;c.replyProgress=.4;c.replyCharged=true;meshes.update(model,.5);
+ for(const mesh of [meshes.bodies,meshes.legs,meshes.eyes.stalks,meshes.eyes.bulbs,meshes.eyes.pupils]) {
+  if(!mesh.children.some(o=>o.name.endsWith('-reply-mask')))throw new Error(`${mesh.name} has no silhouette mask`);
+  for(let i=0;i<mesh.count;i++){
+   const strength=mesh===meshes.bodies?mesh.geometry.attributes.aLife.getY(i):mesh.geometry.attributes.aReply.getX(i);
+   if(strength!==1||Math.abs(mesh.geometry.attributes.aReplyEcho.getX(i)-.4)>.00001||mesh.geometry.attributes.aReplyEcho.getY(i)!==1)throw new Error(`${mesh.name} does not share its creature's highlight`);
+  }
+ }
+ const geometries = new Set(), materials = new Set(); scene.traverse(o => { if (o.geometry) geometries.add(o.geometry); if (o.material) materials.add(o.material); });
 	geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose());
 	return { kind: 'pebble-rig', caveInterpolation: true, caveWater: true, caveEdgePose: true, sprintAnimation: true, independentBlinks: true, contacts, maxContactError: +error.toFixed(5), maxStep: +maxStep.toFixed(3), hiddenLegs: true, eyes: 2, eyeFrames: 241 };
 }

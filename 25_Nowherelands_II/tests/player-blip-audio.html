@@ -1,7 +1,7 @@
 <!doctype html><meta charset="utf-8"><title>Player blip sound checks</title><pre id="result">Rendering blips through the production mixer…</pre>
 <script type="module">
 import {createReedAudioScene} from '../js/audio/ReedWalkerAudioScene.js';
-import {PlayerNotes} from '../js/player/PlayerNotes.js?v=outline-2';
+import {PlayerNotes} from '../js/player/PlayerNotes.js?v=pebble-full-1';
 const reports=[];
 for(const background of ['solo','busy'])for(const charge of [0,1]){
  const ctx=new OfflineAudioContext(2,22050*4,22050),scene=createReedAudioScene(ctx,{background}),e=scene.engine;

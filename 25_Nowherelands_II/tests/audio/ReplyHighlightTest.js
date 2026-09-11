@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {replyHighlight} from '../../js/world/fauna/ReplyHighlight.js?v=player-notes-13';
 import {CreatureReplyAudio} from '../../js/audio/CreatureReplyAudio.js?v=player-notes-13';
-import {PlayerNotes} from '../../js/player/PlayerNotes.js?v=outline-2';
+import {PlayerNotes} from '../../js/player/PlayerNotes.js?v=pebble-full-1';
 const node=()=>({gain:{value:0},connect(){},disconnect(){},start(){},stop(){}});
 const engine=()=>({now:0,master:node(),reverb:node(),duck(){},makePanner:()=>node(),ctx:{state:'running',sampleRate:22050,createGain:node,createBufferSource:node,createBuffer:(n,length,rate)=>({duration:length/rate,copyToChannel(){}})}});
 test('reply audio reports actual playback starts separately from queued or muted replies',()=>{

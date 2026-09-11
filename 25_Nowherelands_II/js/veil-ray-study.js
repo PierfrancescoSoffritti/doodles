@@ -5,7 +5,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { VeilRayStudy } from './world/fauna/VeilRayStudy.js?v=player-notes-13';
-import { FaunaMeshes } from './world/fauna/FaunaMeshes.js?v=outline-2';
+import { FaunaMeshes } from './world/fauna/FaunaMeshes.js?v=pebble-full-1';
 import { createFogUniforms } from './world/FogGlsl.js';
 import { Random } from './core/Random.js';
 import { mountVeilRayListening } from './atelier/VeilRayListening.js';

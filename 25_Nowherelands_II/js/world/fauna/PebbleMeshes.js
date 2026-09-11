@@ -6,7 +6,7 @@ import { fogGlsl } from '../FogGlsl.js';
 import { faunaGeometry } from './FaunaGeometry.js';
 import { faunaDeformation } from './FaunaDeformation.js';
 import { solveLeg, SPECIES, PEBBLE_DRAW_DISTANCE } from './FaunaModel.js?v=player-notes-13';
-import { PebbleEyeMeshes } from './PebbleEyeMeshes.js?v=player-notes-13';
+import { PebbleEyeMeshes } from './PebbleEyeMeshes.js?v=pebble-full-1';
 import { clamp, smooth } from './Locomotion.js';
 
 // Bodies share the scenery's rock lighting; legs retain their darker palette.
@@ -47,7 +47,9 @@ export class PebbleMeshes {
 		this.shadows = new THREE.InstancedMesh(shadowGeometry, shadowMaterial, SPECIES.hopper.cap * 7);
 		this.shadows.count = 0; this.shadows.frustumCulled = false; this.shadows.renderOrder = 1; this.shadows.name = 'pebble-contact-shadows'; root.add(this.shadows);
 		for (const mesh of [this.bodies, this.stones, this.legs]) pebbleLighting(mesh, shared, 'albedo', 'n');
-		this.legs.name = 'pebble-legs'; this.legs.frustumCulled = false; this.legs.count = 0; this.legs.instanceMatrix.setUsage(THREE.DynamicDrawUsage); root.add(this.legs);
+		this.legs.geometry.setAttribute('aReply',new THREE.InstancedBufferAttribute(new Float32Array(SPECIES.hopper.cap*4),1).setUsage(THREE.DynamicDrawUsage));
+  legMaterial.vertexShader='attribute float aReply;\n'+legMaterial.vertexShader;replyOutline(this.legs,{expression:'aReply'});
+  this.legs.name = 'pebble-legs'; this.legs.frustumCulled = false; this.legs.count = 0; this.legs.instanceMatrix.setUsage(THREE.DynamicDrawUsage); root.add(this.legs);
 	}
 	instances(root, geometry, material, count, name) {
 		geometry.setAttribute('aLife', new THREE.InstancedBufferAttribute(new Float32Array(count * 4), 4).setUsage(THREE.DynamicDrawUsage));
@@ -116,6 +118,7 @@ export class PebbleMeshes {
 				const bend = { x: -Math.cos(yaw) + Math.sin(yaw) * side * 0.28, y: 0.05, z: Math.sin(yaw) + Math.cos(yaw) * side * 0.28 };
 				const solved = solveLeg(hip, target, 0.94 * size, bend);
 				setPebbleLight(this.legs, legs, floor); setPebbleLight(this.legs, legs + 1, floor);
+				for(const index of [legs,legs+1]){this.legs.geometry.attributes.aReply.setX(index,c.replyGlow||0);writeReplyEcho(this.legs,index,c);}
 				this.segment(hip, solved.knee, size * 1.35, legs++);
 				this.segment(solved.knee, solved.foot, size * 0.88, legs++);
 			}
@@ -132,6 +135,7 @@ export class PebbleMeshes {
 		}
 		this.eyes.finish();
 		this.shadows.count = shadows; this.shadows.instanceMatrix.needsUpdate = true; this.shadows.geometry.attributes.aOpacity.needsUpdate = true;
+		this.legs.geometry.attributes.aReply.needsUpdate=true;
 		this.bodies.count = bodies; this.stones.count = stones; this.legs.count = legs;
 		for (const mesh of [this.bodies, this.stones, this.legs]) { mesh.instanceMatrix.needsUpdate = true; mesh.geometry.attributes.aCaveLight.needsUpdate = true; if (mesh.geometry.attributes.aLife) mesh.geometry.attributes.aLife.needsUpdate = true; }
 		return bodies;

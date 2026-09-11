@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { FaunaModel } from './world/fauna/FaunaModel.js?v=player-notes-13';
-import { PebbleMeshes } from './world/fauna/PebbleMeshes.js?v=outline-2';
+import { PebbleMeshes } from './world/fauna/PebbleMeshes.js?v=pebble-full-1';
 import { createFogUniforms } from './world/FogGlsl.js';
-import { checkPebbleRendering, checkPebbleAppearance } from '../tests/PebbleRenderChecks.js?v=outline-2';
+import { checkPebbleRendering, checkPebbleAppearance } from '../tests/PebbleRenderChecks.js?v=pebble-full-1';
 import { checkFaunaShaders } from '../tests/FaunaShaderChecks.js';
 
 const $ = id => document.getElementById(id);

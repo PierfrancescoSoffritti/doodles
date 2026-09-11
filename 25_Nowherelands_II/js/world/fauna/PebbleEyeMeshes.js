@@ -1,3 +1,4 @@
+import {replyOutline,writeReplyEcho} from './ReplyOutline.js?v=outline-2';
 import { pebbleLighting, setPebbleLight } from './PebbleLighting.js';
 import * as THREE from 'three';
 import { terrainLightGlsl } from '../TerrainMaterial.js?v=player-notes-13';
@@ -31,6 +32,7 @@ export class PebbleEyeMeshes {
 	constructor(root, shared, capacity) {
 		const add = (name, geometry, color, count) => {
 			geometry.setAttribute('aNote',new THREE.InstancedBufferAttribute(new Float32Array(count*3),3));
+   geometry.setAttribute('aReply',new THREE.InstancedBufferAttribute(new Float32Array(count),1).setUsage(THREE.DynamicDrawUsage));
 			const mesh = new THREE.InstancedMesh(geometry, material(shared, color, name === 'pebble-eyes'), count);
 			mesh.name = name; mesh.count = 0; mesh.frustumCulled = false;
 			mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage); root.add(mesh); return mesh;
@@ -39,6 +41,7 @@ export class PebbleEyeMeshes {
 		pebbleLighting(this.stalks, shared, 'uColor', 'n');
 		this.bulbs = add('pebble-eyes', new THREE.SphereGeometry(1, 12, 8), '#ffffff', capacity * 2);
 		this.pupils = add('pebble-pupils', new THREE.SphereGeometry(1, 12, 8), '#191720', capacity * 2);
+  for(const mesh of [this.stalks,this.bulbs,this.pupils]){mesh.material.vertexShader='attribute float aReply;\n'+mesh.material.vertexShader;replyOutline(mesh,{expression:'aReply'});}
 		this.pose = new THREE.Object3D(); this.up = new THREE.Vector3(0, 1, 0);
 		this.a = new THREE.Vector3(); this.b = new THREE.Vector3(); this.direction = new THREE.Vector3();
 		this.curve = new THREE.CubicBezierCurve3(); this.gaze = new THREE.Vector3();
@@ -115,13 +118,13 @@ export class PebbleEyeMeshes {
 				const radius = (0.075 - k / SEGMENTS * 0.025) * size;
 				this.pose.scale.set(radius, length + size * 0.009, radius); this.pose.updateMatrix();
 				setPebbleLight(this.stalks, this.segments, floor);
-				this.stalks.setMatrixAt(this.segments++, this.pose.matrix); this.a.copy(this.b);
+				this.highlight(this.stalks,this.segments,c);this.stalks.setMatrixAt(this.segments++, this.pose.matrix); this.a.copy(this.b);
 			}
 			// Keep the existing eyeball size while the rocky body grows.
 			const radius = (0.45 + extension * 0.075) * size / 1.2 * (e.radiusScale ?? 1);
    const openness = Math.max(.025,1-lerp(e.prevBlink ?? 0,e.blink ?? 0));
 			this.pose.position.copy(this.b); this.pose.quaternion.identity(); this.pose.scale.set(radius,radius*openness,radius); this.pose.updateMatrix();
-			this.bulbs.setMatrixAt(this.count, this.pose.matrix);
+			this.highlight(this.bulbs,this.count,c);this.bulbs.setMatrixAt(this.count, this.pose.matrix);
 			this.bulbs.geometry.attributes.aNote.setXYZ(this.count,c.noteGlow||0,c.notePhase||0,c.noteAlarm?1:0);
 			// Aim from each actual eye center, including stalk height, shell tilt and sway.
 			this.gaze.set(viewer.x, viewer.y, viewer.z).sub(this.b).normalize();
@@ -132,15 +135,16 @@ export class PebbleEyeMeshes {
    this.pose.matrix.elements[13]=this.b.y+(this.pose.matrix.elements[13]-this.b.y)*openness;
    for(const row of [1,5,9])this.pose.matrix.elements[row]*=openness;
 			this.pupils.geometry.attributes.aNote.setXYZ(this.count,c.noteGlow||0,c.notePhase||0,c.noteAlarm?1:0);
-   this.pupils.setMatrixAt(this.count++, this.pose.matrix);
+   this.highlight(this.pupils,this.count,c);this.pupils.setMatrixAt(this.count++, this.pose.matrix);
 		}
 	}
+	highlight(mesh,index,c){mesh.geometry.attributes.aReply.setX(index,c.replyGlow||0);writeReplyEcho(mesh,index,c);}
 	finish() {
 		for (const c of this.motion.keys()) if (!this.active.has(c)) this.motion.delete(c);
 		this.stalks.geometry.attributes.aCaveLight.needsUpdate = true;
 		this.bulbs.geometry.attributes.aNote.needsUpdate = true;
   this.pupils.geometry.attributes.aNote.needsUpdate = true;
 		this.stalks.count = this.segments; this.bulbs.count = this.pupils.count = this.count;
-		for (const mesh of [this.stalks, this.bulbs, this.pupils]) mesh.instanceMatrix.needsUpdate = true;
+		for (const mesh of [this.stalks, this.bulbs, this.pupils]) {mesh.instanceMatrix.needsUpdate = true;mesh.geometry.attributes.aReply.needsUpdate=true;}
 	}
 }

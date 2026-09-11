@@ -5,7 +5,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ATELIER_SPECIES, atelierURL, mountAtelierNavigation } from './atelier/AtelierCatalog.js?v=1';
-import { AtelierFauna } from './atelier/AtelierFauna.js?v=outline-2';
+import { AtelierFauna } from './atelier/AtelierFauna.js?v=pebble-full-1';
 import { createReedAudioScene } from './audio/ReedWalkerAudioScene.js?v=reed-7';
 import { FaunaAudio } from './audio/FaunaAudio.js';
 
