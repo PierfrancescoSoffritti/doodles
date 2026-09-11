@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Veil rays · Character study</title>
+<link rel="stylesheet" href="./css/fauna-atelier.css">
+<style>
+:root{--paper:#eae6eb;--ink:#403849;--muted:#79707f;--line:#c5bdca;--accent:#71607f}.stage.night{--paper:#161321;--ink:#e8dfee;--muted:#ada0ba;--line:#50455e;background:var(--paper)}aside{background:#f0ecf1}.action:hover{background:#e1d9e6}.encounter{background:#71607f;color:#fff;border-color:#71607f}.encounter small{color:#e7ddea}.encounter:hover{background:#63526f}.progress{height:2px;background:var(--line);margin:17px 0 8px}.progress span{display:block;width:0;height:100%;background:var(--accent)}.status-line{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}.key{display:inline-block;width:10px;height:10px;border:1px solid #d4b984;border-radius:50%;margin-right:6px}.caption p{min-height:3em}.transport{flex-wrap:wrap}.stage header h1{font-size:clamp(38px,4.6vw,66px)}#feedback{display:block;min-height:3em;font-size:12px;color:var(--muted);margin-top:12px}@media(max-width:850px){.stage{min-height:570px}.stage header p{font-size:12px}.caption h2{font-size:21px}.transport button{font-size:11px}}
+</style>
+<script type="importmap">{"imports":{"three":"../common/libs/three-0.185/build/three.module.min.js","three/addons/":"../common/libs/three-0.185/examples/jsm/"}}</script>
+</head>
+<body>
+<main class="stage night atelier-stage" id="stage">
+<header><small>Nowherelands / Fauna atelier</small><h1>Veil rays.</h1><p>A wide turn over quiet water.<br>For a moment, the same direction.</p></header>
+<canvas id="canvas" aria-label="A violet veil ray gliding above a sheltered lake. A gold ring marks the visitor on the near shore."></canvas>
+<div class="caption"><span class="eyebrow">01 / Sharing the shoreline</span><h2 id="moment">A low crossing</h2><p id="description">A few strokes, then a long glide above the water.</p></div>
+<div class="transport" aria-label="Study playback"><button id="pause" aria-pressed="false">Pause</button><button id="slow" aria-pressed="false">Slow motion</button><button id="reset">Reset</button><span class="spacer"></span><button id="visitor-view" aria-pressed="false">Visitor view</button><button id="reset-view">Lake view</button></div>
+</main>
+<aside>
+<div class="eyebrow"><span>Character study · 01</span><a href="./fauna-atelier.html">Atelier ↗</a></div>
+<h2>A little room to turn.</h2><p class="lede">Reach the shore. Wait. Offer a quiet note, then let the ray decide how close to pass.</p>
+<button class="action encounter" id="demo">Play the encounter <small>Approach → invite → walk together → give space · 62 seconds</small></button>
+<div class="progress" aria-hidden="true"><span id="progress"></span></div><div class="status-line"><span id="playback">Explore at your own pace</span><span id="clock">0:00</span></div>
+<label class="field"><span>At the lake</span><select id="population"><option value="1">One ray</option><option value="2">A loose pair</option></select></label>
+<h3>YOUR PRESENCE</h3>
+<button class="action" data-action="approach">Approach slowly <small>Move to the water’s edge.</small></button>
+<button class="action" data-action="wait">Stand still <small>Give it a few quiet seconds.</small></button>
+<button class="action" data-action="invite">Offer a soft note <small>A passing acknowledgment, if it is ready.</small></button>
+<button class="action" data-action="walk">Walk along the shore <small>Let it share your direction for a little while.</small></button>
+<button class="action" data-action="rush">Make a sudden move <small>Firmer strokes carry it toward shelter.</small></button>
+<button class="action" data-action="leave">Step away <small>The ray returns to its own route.</small></button>
+<output id="feedback" aria-live="polite">The lake has its own rhythm.</output>
+<p class="note"><span class="key"></span>The ring is your position. Drag to orbit; scroll to zoom. Moving the camera does not disturb the rays.</p>
+<h3>VOICE · AIR OVER WATER</h3>
+<p class="note">A warm, hollow singing call with two slow breath swells. A shorter rising phrase acknowledges your presence.</p>
+<label class="field"><span>Listen against</span><select id="sound-bed"><option value="solo">Ray alone</option><option value="river">Wind &amp; water</option><option value="busy">Game music, rain &amp; water</option></select></label>
+<button class="action" id="hear-contact">Hear a contact call <small>A rounded, sustained call, heard beside the ray.</small></button>
+<button class="action" id="hear-ack">Hear an acknowledgment <small>A clear, shorter reply that gently rises.</small></button>
+<button class="action" id="listen-encounter">Watch &amp; hear the encounter <small>Replay from the visitor’s listening position.</small></button>
+<button class="action" id="background-only">Background alone <small>Eight seconds for comparison.</small></button>
+<label class="field"><span>Listening level · <output id="volume-value">60%</output></span><input id="volume" type="range" min="0" max="100" value="60"></label>
+<button class="action" id="stop-audio" disabled>Stop listening</button><output id="sound-status" aria-live="polite">Choose an audition to enable sound.</output>
+<p class="note">Pause, slow motion, reset and leaving the page stop the sound. Backgrounds use the game mixer in a repeatable listening scene.</p>
+<div class="fact"><strong>A life beyond the encounter.</strong><p>Low passes, open crossings and sheltered drifts continue when you leave.</p></div>
+<div class="fact"><strong>A brief acknowledgment.</strong><p>Give it time to approach. Repeated invitations make it seek more distance.</p></div>
+<div class="footer">First behavior and voice study. Now inhabiting selected lakes in the game.<br><br><a href="./index.html?seed=veil-lake&fauna=ray">Meet them in the world ↗</a><br><a href="./fauna-motion.html">Stationary membrane study ↗</a><br><a href="./docs/fauna/VEIL_RAYS.md">Read the character brief ↗</a></div>
+</aside>
+<div id="error" role="alert" hidden></div>
+<script type="module">import('./js/veil-ray-study.js').catch(e=>{const box=document.getElementById('error');box.hidden=false;box.textContent='The study could not load: '+e.message;console.error(e);});</script>
+</body>
+</html>

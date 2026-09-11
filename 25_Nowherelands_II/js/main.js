@@ -151,7 +151,7 @@ function start(world,caveMeshes) {
 		else if (n.layer === 'sequencer') ripples.add(n.position.x, n.position.z, 0.5, (shared.hue + 0.05) % 1);
 	});
 	bus.on(Events.KEY_CHANGE, () => { shared.hue = (shared.hue + 0.11 + Math.random() * 0.1) % 1; });
-	bus.on(Events.PRESS_END, ({duration}) => { if(!landmarks.aim())mites.playerNote(Math.max(0,(duration-0.28)/1.1)); });
+	bus.on(Events.PRESS_END, ({duration}) => { if(!landmarks.aim()){const charge=Math.max(0,(duration-0.28)/1.1);if(!mites.playerNote(charge))fauna.playerRayNote(charge);} });
 	bus.on('plant', ({ x, z }) => { if (sprouts.add(x, z, shared.time)) ripples.add(x, z, 0.5, shared.hue, 0.8); });
 	bus.on('footstep', ({ inWater }) => { if (shared.conductor) shared.conductor.footstep(inWater); });
 	bus.on('meteor', () => { if (shared.conductor) shared.conductor.meteor(); });
@@ -176,6 +176,8 @@ function start(world,caveMeshes) {
 	const reedSurvey = new URLSearchParams(location.search).has('reeds') ? new ReedSurvey(shared,walkers) : null;
 	const miteSurvey = new URLSearchParams(location.search).has('mites') ? new LanternMiteSurvey(shared, mites) : null;
 	const faunaSurvey = !reedSurvey && !birdSurvey && !miteSurvey && new URLSearchParams(location.search).has('fauna') ? new FaunaSurvey(shared, fauna) : null;
+
+	if(faunaSurvey && new URLSearchParams(location.search).get('fauna')==='ray')faunaSurvey.visit('ray');
 
 	// ---- enter ----
 	let started = false;

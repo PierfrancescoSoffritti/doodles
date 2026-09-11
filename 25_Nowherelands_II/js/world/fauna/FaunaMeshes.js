@@ -6,15 +6,17 @@ import { fogGlsl } from '../FogGlsl.js';
 import { faunaGeometry } from './FaunaGeometry.js';
 import { faunaDeformation } from './FaunaDeformation.js';
 
-const KIND = { lumen: 0 };
+const KIND = { lumen: 0, ray: 5 };
 
 const vertexShader = /* glsl */`
 	attribute vec4 aLife;
 	attribute vec4 aMotion;
 	attribute vec2 aState;
+	#if KIND == 0
 		attribute vec4 aPlacement, aRadiance;
 		varying vec4 vRadiance;
 		attribute vec3 aVelocity, aElastic;
+	#endif
 	uniform float uTime;
 	varying vec3 vWorld, vNormal, vLocal;
 	varying vec2 vUv;
@@ -29,8 +31,12 @@ const vertexShader = /* glsl */`
 		vec3 t = normalize(cross(n, abs(n.y) < 0.9 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0)));
 		vec3 b = cross(n, t);
 		vec3 displacedNormal = normalize(cross(deformFauna(position + t * 0.008) - p, deformFauna(position + b * 0.008) - p));
+		#if KIND == 0
 			vRadiance = aRadiance;
 			vec4 world = modelMatrix * vec4(aPlacement.xyz + p * aPlacement.w, 1.0);
+		#else
+			vec4 world = modelMatrix * instanceMatrix * vec4(p, 1.0);
+		#endif
 		vWorld = world.xyz;
 		vNormal = normalize(mat3(modelMatrix * instanceMatrix) * displacedNormal);
 		gl_Position = projectionMatrix * viewMatrix * world;
@@ -40,7 +46,9 @@ const vertexShader = /* glsl */`
 const fragmentShader = /* glsl */`
 	uniform float uTime, uMoon, uSun;
 	uniform vec3 uMoonDir;
+	#if KIND == 0
 		varying vec4 vRadiance;
+	#endif
 	varying vec3 vWorld, vNormal, vLocal;
 	varying vec2 vUv;
 	varying vec4 vLife;
@@ -50,15 +58,23 @@ const fragmentShader = /* glsl */`
 		vec3 viewDir = normalize(cameraPosition - vWorld);
 		float facing = abs(dot(normalize(vNormal), viewDir));
 		vec3 col; float alpha = vFade;
+		#if KIND == 0
 			float core = pow(facing, 0.8);
 			// Motion colour remains visible inside the volume; bounded radiance
 			// keeps a reunited population from blooming into one white patch.
 			col = mix(vRadiance.rgb, vec3(0.84, 0.94, 1.0), core * 0.28) * (1.0 + core * 0.65) * vRadiance.w;
 			alpha *= smoothstep(0.0, 0.28, facing) * (0.6 + core * 0.35);
 
-			float dist = distance(vWorld, cameraPosition);
-			float extinction = (1.0 - heightFog(vWorld, cameraPosition)) * exp(-pow(dist * uFogDistance, 2.0) * 1.4);
-			alpha *= extinction;
+		#elif KIND == 5
+			float edge = min(vUv.y, 1.0 - vUv.y);
+			float rim = 1.0 - smoothstep(0.0, max(fwidth(edge) * 1.5, 0.025), edge);
+			float wave = 0.72 + 0.28 * sin(vUv.x * 14.0 - uTime * 1.8 + vLife.x);
+			col = mix(vec3(0.2, 0.14, 0.29) + facing * vec3(0.17, 0.11, 0.21), vec3(0.63, 0.51, 0.83) * (0.9 + vLife.y * 0.3), rim);
+			alpha *= (0.28 + facing * 0.15 + rim * 0.42) * wave;
+		#endif
+		float dist = distance(vWorld, cameraPosition);
+		float extinction = (1.0 - heightFog(vWorld, cameraPosition)) * exp(-pow(dist * uFogDistance, 2.0) * 1.4);
+		alpha *= extinction;
 		if (alpha < 0.005) discard;
 		gl_FragColor = vec4(col, alpha);
 	}
@@ -88,7 +104,7 @@ export class FaunaMeshes {
 				uTime: { value: 0 }, uMoon: { value: 1 }, uSun: { value: 0 }, uMoonDir: { value: shared.moon.dir }, ...shared.fogUniforms,
 			}, vertexShader, fragmentShader, transparent: light, depthWrite: !light,
 				blending: THREE.NormalBlending,
-				side: THREE.FrontSide });
+				side: kind === 'ray' ? THREE.DoubleSide : THREE.FrontSide });
 			const mesh = new THREE.InstancedMesh(g, material, def.cap);
 			mesh.name = `fauna-${kind}`; mesh.count = 0; mesh.frustumCulled = false; mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
 			// Above-water luminous surfaces render after inland water's scene-colour capture.
@@ -122,7 +138,7 @@ export class FaunaMeshes {
 	update(model, alpha, dt, sample) {
 		this.root.visible = true;
 		const aboveGround = (this.shared.caveAmount || 0) < 0.4;
-		for (const mesh of [...this.lumenLods, this.glow]) mesh.visible = aboveGround;
+		for (const mesh of [...Object.values(this.meshes), ...this.lumenLods, this.glow]) mesh.visible = aboveGround;
 		const counts = Object.fromEntries(Object.keys(SPECIES).map(k => [k, 0]));
 		const buckets = [[], [], []];
 		const camera = this.shared.camera;
@@ -139,7 +155,7 @@ export class FaunaMeshes {
 			c.renderLod = lod;
 			if (Math.hypot(c.pos.x-model.listener.x,c.pos.z-model.listener.z) <= 4500) buckets[lod].push(c);
 		}
-		for (const c of buckets.flat()) {
+		for (const c of [...buckets.flat(), ...model.creatures.filter(c => c.kind === 'ray')]) {
 			const kind = c.kind;
 			if (kind === 'hopper') continue;
 			if (kind === 'lumen' && Math.hypot(c.pos.x-model.listener.x,c.pos.z-model.listener.z)>4500) continue;

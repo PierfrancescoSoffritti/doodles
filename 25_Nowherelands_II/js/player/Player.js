@@ -215,7 +215,8 @@ export class Player {
 		if (len > 1) { input.x /= len; input.z /= len; }
 
 		if (this.fly) { this.updateFlight(input, dt, time, active); return; }
-		const max = input.sprint ? SPRINT : WALK;
+		const careful = this.keys.has('AltLeft') || this.keys.has('AltRight');
+		const max = careful ? 6 : input.sprint ? SPRINT : WALK;
 		const fwd = new THREE.Vector3(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
 		const right = new THREE.Vector3(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
 		const target = new THREE.Vector3().addScaledVector(fwd, -input.z * max).addScaledVector(right, input.x * max);

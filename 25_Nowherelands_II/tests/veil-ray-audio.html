@@ -1,0 +1,58 @@
+<!doctype html><meta charset="utf-8"><title>Veil ray audio checks</title>
+<style>body{background:#171322;color:#ded5e9;font:15px/1.6 monospace;padding:32px}pre{white-space:pre-wrap}</style>
+<h1>Veil ray audio checks</h1><pre id="result">Rendering contact, acknowledgment, distance, mute and interrupted calls…</pre>
+<script type="module">
+import { FaunaAudio } from '../js/audio/FaunaAudio.js';
+import { checkVeilRayMix } from './VeilRayMixChecks.js';
+import { Scale } from '../js/audio/Scale.js';
+import { createReedAudioScene } from '../js/audio/ReedWalkerAudioScene.js';
+const result = document.getElementById('result');
+try {
+ const reports = [];
+ for (const mode of ['contact', 'acknowledgment', 'distant', 'left', 'ducked', 'muted', 'overlap', 'interrupted', 'busy-contact', 'busy-acknowledgment']) {
+  const ctx = new OfflineAudioContext(2, 44100 * 8, 44100);
+  let fixture = null, engine, conductor;
+  if (mode.startsWith('busy')) { fixture = createReedAudioScene(ctx, { background: 'busy' }); engine = fixture.engine; conductor = fixture.conductor; }
+  else {
+   const master = ctx.createGain(); master.connect(ctx.destination);
+   const layerBus = ctx.createGain(); layerBus.connect(master);
+   const reverb = ctx.createGain(); reverb.gain.value = 0;
+   const noiseBuffer = ctx.createBuffer(1, 44100, 44100), samples = noiseBuffer.getChannelData(0);
+   let seed = 17; for (let i = 0; i < samples.length; i++) { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; samples[i] = seed / 2147483648 - 1; }
+   engine = { ctx, master, layerBus, reverb, noiseBuffer, get now() { return ctx.currentTime; }, makePanner(p) { const n = ctx.createPanner(); n.panningModel = 'equalpower'; n.positionX.value = p.x; n.positionY.value = p.y; n.positionZ.value = p.z; return n; } };
+   conductor = { scale: new Scale(50, 'pentMinor') };
+  }
+  if (mode === 'ducked') engine.layerBus.gain.value = 0.1;
+  const audio = new FaunaAudio(engine, conductor), p = { x: mode === 'left' ? -15 : 0, y: mode.startsWith('busy') ? 11 : 0, z: mode === 'distant' ? -180 : mode === 'left' ? 0 : -15 };
+  const creature = { kind: 'ray', id: 'one', degree: 0, voice: 0, pos: p };
+  if (mode === 'muted') audio.muted = true;
+  const scheduled = ctx.suspend(0.01).then(async () => {
+   engine.ctx = new Proxy(ctx, { get(target, key) { if (key === 'state') return 'running'; const v = Reflect.get(target, key, target); return typeof v === 'function' ? v.bind(target) : v; } });
+   const accepted = audio.call(creature, false, false, mode.includes('acknowledgment') ? 'acknowledgment' : 'contact');
+   if (accepted === (mode === 'muted')) throw new Error(mode + ': incorrect acceptance');
+   if (mode === 'overlap' && audio.call({ ...creature, id: 'two' })) throw new Error('overlapping ray calls accepted');
+   fixture?.phrase(engine.now);
+   await ctx.resume();
+  });
+  const interruption = mode === 'interrupted' ? ctx.suspend(1.2).then(async () => { audio.silenceRays(); await ctx.resume(); }) : Promise.resolve();
+  const buffer = await ctx.startRendering(); await scheduled; await interruption;
+  let sum = 0, peak = 0, tail = 0;
+  for (let channel = 0; channel < 2; channel++) for (const [i, v] of buffer.getChannelData(channel).entries()) {
+   if (!Number.isFinite(v)) throw new Error(mode + ': nonfinite samples');
+   sum += v * v; peak = Math.max(peak, Math.abs(v)); if (i > 44100 * 1.4) tail = Math.max(tail, Math.abs(v));
+  }
+  const rms = Math.sqrt(sum / (buffer.length * 2));
+  if (mode === 'muted' ? peak !== 0 : rms < 0.00001 || peak >= 0.999) throw new Error(mode + ': silent or clipped output');
+  if (mode === 'interrupted' && tail > 0.00001) throw new Error('retreat did not silence the active phrase');
+  reports.push({ mode, rms, peak, tail }); audio.dispose(); await fixture?.dispose();
+ }
+ const get = name => reports.find(r => r.mode === name);
+ if (get('distant').rms > get('contact').rms * 0.3) throw new Error('distance attenuation too weak');
+ if (Math.abs(get('overlap').rms - get('contact').rms) > 0.000001) throw new Error('rejected overlap changed the mix');
+ if (Math.abs(get('ducked').rms - get('contact').rms) > 0.000001) throw new Error('ambient ducking attenuates the ray');
+ const mix = await checkVeilRayMix();
+ if (!mix.passed) throw new Error('Audibility: ' + JSON.stringify(mix));
+ result.textContent = 'PASS — audible foreground phrases, two finite voices, distance falloff, mute, overlap rejection, retreat fade and busy game mixes.\n\n' + JSON.stringify({ voices: reports, mix }, null, 2);
+ result.dataset.status = 'pass';
+} catch (e) { result.textContent = 'FAIL: ' + e.stack; result.dataset.status = 'fail'; console.error(e); }
+</script>

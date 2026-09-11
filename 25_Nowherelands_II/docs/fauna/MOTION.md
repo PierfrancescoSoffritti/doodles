@@ -109,3 +109,15 @@ A generated-terrain replay identified repeated escape planning at short refuge e
 In 20-second generated `umbra` replays at resolution 512, surface queries fell from 1,859,613 to 129,504 (93%), and cave-entrance queries from 3,364,802 to 575,831 (83%). Surface simulation p95 fell from 7.81 to 1.02 ms; cave-entrance p95 from 8.02 to 3.57 ms. Gallery gains were smaller: p95 5.43 to 4.68 ms, with occasional planning spikes still measurable. These CPU replay numbers exclude world rendering. `tests/pebble-performance-audit.mjs` reproduces the measurements with optional resolution and seed.
 
 The opt-in `faunaProfile=1` URL parameter records streaming, simulation and rig timings in the guide's `data-performance` attribute; Approach resets the capture. Main-game surface and cave encounters confirmed that the rig was under 1 ms/frame, with simulation peaks of 9 and 13.5 ms respectively in the profiled runs. The measured cave frame maximum was 29.1 ms; the surface capture included one 66.5 ms overall frame, so this does not claim elimination of every whole-game hitch. All 120 world/weather/UI tests passed, including a confined-terrain query-budget regression.
+
+## Veil-ray prototype
+
+See [the veil-ray character proposal](VEIL_RAYS.md) for the behavior, habitat, voice and player-encounter draft.
+
+Veil rays are the remaining fauna study to refine. The current prototype has a subdivided translucent membrane, asymmetric fin strokes, delayed fin tips and trailing edges, alternating powered motion and glides, and a slow breathy voice. Navigation keeps rays above calm water. These are artistic procedural approximations.
+
+Open `fauna-motion.html` through the local server and select **Veil rays** for a stationary close-up, or use `?fauna=1` in the world to visit one. The motion study offers pause, slow motion, wireframe and four camera angles.
+
+The shared fauna model contains lumen shoals, pebble hoppers and veil rays. Reed walkers and lantern mites use their dedicated world, study and audio systems; see [Reed walkers](REED_WALKERS.md) and [Lantern mites](LANTERN_MITES.md).
+
+`tests/world/FaunaModelTest.js` covers recruitment, ray habitat containment and continuous motion. `tests/FaunaShaderChecks.js` includes the ray membrane alongside lumen deformation and rigid pebble shells. `tests/fauna-audio.html` checks the shared voices and lumen escape cue. Run these checks after editing; earlier prototype validation counts do not describe the current build.

@@ -6,7 +6,7 @@ export class FaunaSurvey {
 	constructor(shared, fauna) {
 		this.shared = shared; this.fauna = fauna; this.kind = 'lumen'; this.tracking = false; this.frames = [];
 		this.panel = document.createElement('aside'); this.panel.className = 'fauna-guide';
-		this.panel.innerHTML = '<div class="fauna-guide-kicker">NOWHERELANDS · FIELD NOTES</div><h2>Living echoes</h2><p>Living lights and watchful stones.<br>Choose a creature to meet it.</p>';
+		this.panel.innerHTML = '<div class="fauna-guide-kicker">NOWHERELANDS · FIELD NOTES</div><h2>Living echoes</h2><p>Living lights, watchful stones, and drifting veils.<br>Choose a creature to meet it.</p>';
 		this.list = document.createElement('div'); this.list.className = 'fauna-guide-list'; this.buttons = {};
 		for (const [kind, def] of Object.entries(SPECIES)) {
 			const b = document.createElement('button'); b.type = 'button'; b.textContent = def.name;
@@ -20,12 +20,13 @@ export class FaunaSurvey {
 		this.answer = document.createElement('button'); this.answer.textContent = 'Send a tone';
 		this.answer.onclick = () => {
 			this.startAudio(); const e = shared.audio;
+			if (this.kind === 'ray') { fauna.playerRayNote(); return; }
 			if (e) e.playTone({ freq: shared.conductor.scale.freq(0, 2), position: shared.player.position, velocity: 0.42, attack: 0.05, duration: 0.3, release: 1, type: 'sine', layer: 'invitation', dest: e.playerBus });
 		};
 		actions.append(this.listen, this.answer); this.panel.append(actions);
 		const explore = document.createElement('button'); explore.className = 'fauna-guide-explore'; explore.textContent = 'Explore here ↗';
 		explore.onclick = () => {
-			this.startAudio(); this.tracking = false; this.watchFlight = null; this.watchPebble = null; shared.player.fly = false;
+			this.startAudio(); this.tracking = false; this.watchFlight = null; this.watchPebble = null; this.watchRay = null; shared.player.fly = false;
 			if (!shared.player.locked) {
 				// Embedded previews may reject mouse capture; leave the guide usable.
 				try { const request = shared.renderer.domElement.requestPointerLock?.(); request?.catch(() => {}); } catch {}
@@ -34,7 +35,8 @@ export class FaunaSurvey {
 		this.panel.append(explore);
 		this.approach = document.createElement('button'); this.approach.className = 'fauna-guide-explore'; this.approach.textContent = 'Approach the school';
 		this.approach.onclick = () => {
-			const c = this.subject || fauna.nearest(this.kind); if (!c || !['lumen', 'hopper'].includes(c.kind)) return;
+			const c = this.subject || fauna.nearest(this.kind); if (!c || !['lumen', 'hopper', 'ray'].includes(c.kind)) return;
+			if(c.kind==='ray'){this.startAudio();this.tracking=false;fauna.model.observing=false;const v=c.group.raySite.view,player=shared.player;player.position.set(v.x,v.y,v.z);player.velocity.set(0,0,0);player.groundY=v.y-11;player.fly=false;this.watchRay=c;return;}
 			this.startAudio(); this.tracking = false; fauna.model.observing = false; fauna.profile?.reset(); this.soundPeak=0;
 			const p = c.pos, player = shared.player;
 			const view = c.kind === 'hopper' && c.group.sample ? this.caveView(c, 5.8, 11) : null;
@@ -44,7 +46,7 @@ export class FaunaSurvey {
 			player.yaw = Math.atan2(p.x - x, p.z - z) + Math.PI; player.pitch = Math.atan2(p.y - player.position.y, Math.hypot(p.x - x, p.z - z));
 		}; this.panel.append(this.approach);
 		this.nextStream = document.createElement('button'); this.nextStream.className = 'fauna-guide-explore'; this.nextStream.textContent = 'Next flock ↗';
-		this.nextStream.onclick = () => this.kind === 'hopper' ? this.nextColony() : this.nextFlock(); this.panel.append(this.nextStream);
+		this.nextStream.onclick = () => this.kind === 'ray' ? this.nextRay() : this.kind === 'hopper' ? this.nextColony() : this.nextFlock(); this.panel.append(this.nextStream);
 		this.audioToggle = document.createElement('button'); this.audioToggle.className = 'fauna-guide-quiet'; this.audioToggle.textContent = 'Quiet fauna';
 		this.audioToggle.onclick = () => { if (fauna.audio) { fauna.audio.muted = !fauna.audio.muted; this.audioToggle.textContent = fauna.audio.muted ? 'Hear fauna' : 'Quiet fauna'; } };
 		this.panel.append(this.audioToggle);
@@ -63,7 +65,7 @@ export class FaunaSurvey {
 			const locked = document.pointerLockElement === shared.renderer.domElement;
 			this.panel.classList.toggle('playing', locked);
 			if (locked) {
-				this.tracking = false; this.watchFlight = null; this.watchPebble = null; fauna.model.observing = false;
+				this.tracking = false; this.watchFlight = null; this.watchPebble = null; this.watchRay = null; fauna.model.observing = false;
 			} else if (this.pendingVisit) {
 				this.pendingVisit = false; this.guide(1, true);
 			}
@@ -93,22 +95,28 @@ export class FaunaSurvey {
 		this.subject = next.members[0]; this.visit('hopper');
 	}
 
+	nextRay() {
+		const group=this.fauna.findRay(this.subject?.kind==='ray'?this.subject.group:null);
+		if(group){this.subject=group.members[0];this.visit('ray');}
+	}
+
 	startAudio() {
 		if (!this.shared.audio) this.shared.hud.enterBtn.click();
 		this.shared.audio?.resume();
 	}
 	visit(kind) {
 		const { shared, fauna } = this;
-		let c = ['lumen', 'hopper'].includes(kind) && this.subject?.kind === kind && fauna.model.creatures.includes(this.subject) ? this.subject : fauna.nearest(kind);
-		if (!c) {
+		let c = ['lumen', 'hopper', 'ray'].includes(kind) && this.subject?.kind === kind && fauna.model.creatures.includes(this.subject) ? this.subject : fauna.nearest(kind);
+		if (!c && kind === 'ray') c=fauna.findRay()?.members[0];
+		if (!c && kind !== 'ray') {
 			const p = shared.player.position;
 			fauna.model.addGroup(`guide:${kind}:${Math.round(p.x / 100)}:${Math.round(p.z / 100)}`, kind, p.x, p.z, 650);
 			c = fauna.nearest(kind);
 		}
 		if (!c) { this.detail.textContent = 'No suitable habitat nearby. Explore another shore.'; return; }
 		this.kind = kind; this.subject = c; this.tracking = true;
-		this.watchFlight = null; this.watchPebble = null;
-		this.offset = kind === 'lumen' ? { x: 48, y: 23, z: 58 } : { x: 14, y: 6, z: 17 };
+		this.watchFlight = null; this.watchPebble = null; this.watchRay = null;
+		this.offset = kind === 'lumen' ? { x: 48, y: 23, z: 58 } : kind === 'ray' ? { x: 18, y: 9, z: 20 } : { x: 14, y: 6, z: 17 };
 		for (const [key, b] of Object.entries(this.buttons)) b.setAttribute('aria-pressed', String(key === kind));
 		this.detail.textContent = SPECIES[kind].voice + ' · ' + (kind === 'lumen' ? 'a call travels through the group' : 'listen, then send a tone');
 		shared.player.keys.clear(); shared.player.velocity.set(0, 0, 0);
@@ -127,8 +135,8 @@ export class FaunaSurvey {
 
 	guide(dt, snap = false) {
 		this.fauna.model.observing = this.tracking && !this.shared.player.locked;
-		if (!this.tracking && (this.watchFlight || this.watchPebble) && !this.shared.player.locked) {
-			const p = this.watchPebble ? (this.watchPebble.renderPosition || this.watchPebble.pos) : this.watchFlight.center, player = this.shared.player;
+		if (!this.tracking && (this.watchFlight || this.watchPebble || this.watchRay) && !this.shared.player.locked) {
+			const p = this.watchRay ? this.watchRay.pos : this.watchPebble ? (this.watchPebble.renderPosition || this.watchPebble.pos) : this.watchFlight.center, player = this.shared.player;
 			const dx = p.x - player.position.x, dz = p.z - player.position.z;
 			player.yaw = Math.atan2(-dx, -dz); player.pitch = Math.atan2(p.y - player.position.y, Math.hypot(dx, dz));
 		}
@@ -136,6 +144,7 @@ export class FaunaSurvey {
 		const { shared, subject: c, offset: o } = this, p = c.kind === 'lumen' ? c.navigation.center : (c.renderPosition || c.pos);
 		const width=c.kind==='lumen' ? (c.navigation.state==='resting'?2.4:2.8) : 1;
 		let x = p.x + o.x*width, z = p.z + o.z*width, y = Math.max(p.y + o.y*width, shared.heightmap.height(x, z) + 4);
+		if (c.kind === 'ray' && c.group.raySite) { const view=c.group.raySite.view;x=view.x;z=view.z;y=view.y; }
 		if (c.kind === 'hopper' && c.group.sample) {
 			const view = this.caveView(c, 9, 5); x = view.x; z = view.z; y = view.y;
 		}
@@ -146,10 +155,15 @@ export class FaunaSurvey {
 		player.yaw = Math.atan2(-dx, -dz); player.pitch = Math.atan2(p.y - player.position.y, Math.hypot(dx, dz));
 	}
 	update(ms) {
-		this.approach.hidden = !['lumen', 'hopper'].includes(this.kind); this.nextStream.hidden = !['lumen', 'hopper'].includes(this.kind);
-		this.nextStream.textContent = this.kind === 'hopper' ? 'Next colony ↗' : 'Next flock ↗';
-		this.approach.textContent = this.kind === 'hopper' ? 'Approach the stones' : 'Approach the school';
+		this.approach.hidden = !['lumen', 'hopper', 'ray'].includes(this.kind); this.nextStream.hidden = !['lumen', 'hopper', 'ray'].includes(this.kind);
+		this.nextStream.textContent = this.kind === 'ray' ? 'Next lake ↗' : this.kind === 'hopper' ? 'Next colony ↗' : 'Next flock ↗';
+		this.approach.textContent = this.kind === 'ray' ? 'Stand on the shore' : this.kind === 'hopper' ? 'Approach the stones' : 'Approach the school';
 		this.approach.disabled = this.subject?.kind === 'lumen' && !['resting', 'settling'].includes(this.subject.navigation.state);
+		if(this.kind==='ray'&&this.subject?.group.raySite){
+			const c=this.subject,g=c.group;
+			this.detail.textContent=({skim:'A low crossing',cross:'Across the open water',rest:'A sheltered drift',approach:'Turning toward you',pass:'A passing acknowledgment',follow:'Sharing the shoreline',retreat:'Giving you more distance',return:'Returning to its own route',company:'A shared crossing'})[c.state]+'. Wait quietly, then send a tone. Hold Alt while walking to move gently.';
+			this.panel.dataset.ray=JSON.stringify({state:c.state,site:g.raySite,quiet:g.quiet,position:c.pos,members:g.members.length,calls:c.calls,energy:c.energy,voice:c.callPhrase,avoidUntil:g.avoidUntil,time:this.fauna.model.time,population:this.fauna.model.creatures.filter(c=>c.kind==='ray').length,sounds:this.fauna.audio?.history.filter(h=>h.kind==='ray').slice(-4)});
+		}
 		if (this.kind === 'lumen' && this.subject?.group.state) {
 			const population = this.subject.group, group = this.subject.navigation, descriptions = { resting: 'Playing along the shore', startled: 'Startled · scattering upward', playing: 'Playing in the sky · no destination yet', travelling: 'Heading toward the next shore', settling: 'Descending toward the shore' };
 			if(this.fauna.model.time>=(this.flightSampleAt||0)) {

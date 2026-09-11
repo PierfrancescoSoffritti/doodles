@@ -27,6 +27,10 @@ export function faunaGeometry(kind, detail = 0) {
 		for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), length = Math.hypot(x, y, z); n.setXYZ(i, x / length, y / length, z / length); }
 		return g;
 	}
+	if (kind === 'ray') return grid(36, 22, (u, v) => {
+		const s = u * 2 - 1, w = Math.abs(s), front = 2.7 - 1.1 * w - 3.8 * w * w, back = -4 + 1.8 * w;
+		return [front + (back - front) * v, 0.3 * (1 - w) ** 3 * Math.sin(v * Math.PI), s * 6.6];
+	});
 	if (kind === 'hopper') {
 		const g = new THREE.IcosahedronGeometry(1, 1), p = g.attributes.position;
 		for (let i = 0; i < p.count; i++) {

@@ -1,10 +1,10 @@
 # Nowherelands 2 — Fauna reference sheets v1
 
-Four creature studies generated with the built-in image generation tool on 2026-09-06, based on the approved fauna concept board and game screenshot.
+Five creature studies generated with the built-in image generation tool on 2026-09-06, based on the approved fauna concept board and game screenshot.
 
 Each sheet includes front, left side, rear, top, underside, three-quarter, and two behavior/material studies. These are concept turnarounds for discussing form before 3D modeling; they are not frame-aligned animation atlases. Exact projection, facet patterns and proportions still need to be reconciled on the eventual model.
 
-These September 6 sheets are historical concept references. Later creature refinements supersede their original form decisions; use the current species documentation and atelier for the implemented designs.
+These September 6 sheets are historical concept references. Later creature refinements supersede their original form decisions; use the current species documentation and atelier for the implemented designs. The veil-ray sheet remains a starting reference for the unfinished ray study.
 
 ## Original form decisions
 
@@ -12,6 +12,7 @@ These September 6 sheets are historical concept references. Later creature refin
 - Reed walkers: pebble body with exactly four long, thin, jointed legs. No separate head.
 - Pebble hoppers: low faceted body with exactly two short folded legs; the resting silhouette reads as a stone.
 - Lantern mites: one tiny rounded light seed, shown enlarged. No insect anatomy; dormant and calling states share geometry.
+- Veil rays: a single thin curved translucent membrane with a faint luminous rim; no torso or separate tail.
 
 Absolute scale is not established by these sheets. Every species fills its own panels independently. For modeling, glow should remain a material/effect around the underlying form; compare the restrained-glow views when judging silhouettes.
 
@@ -32,6 +33,11 @@ Absolute scale is not established by these sheets. Every species fills its own p
 ### Lantern mites
 
 ![Lantern mites reference sheet](./05-lantern-mites.png)
+
+### Veil rays
+
+![Veil rays reference sheet](./06-veil-rays.png)
+
 
 ## Generation record
 

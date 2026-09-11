@@ -9,6 +9,7 @@ Open `index.html` through any static server (ES modules need `http://`). A seed 
 | input | action |
 | --- | --- |
 | W A S D / arrows, Shift | walk, sprint |
+| Alt + movement | walk gently beside wildlife |
 | mouse | look (pointer lock) |
 | click | touch a thing: cycle a monolith's note, ring a stone, flip time |
 | hold click | charge a strike: louder, brighter, bigger ripple |
@@ -79,3 +80,9 @@ The river tour now includes **Fallen tree**, **Divided channel**, and **Sheltere
 Weather now grows from advected moisture, temperature and terrain lift. Evolving translucent clouds accompany localized rain, mountain-only snow, thunderstorms with gusts/lightning/delayed thunder, and rare brief hail. Ground wetness and snowpack persist as weather passes. See [weather implementation notes](docs/WEATHER.md) for the model, performance budgets and the optional `?weather=1` inspection controls.
 
 Weather survey refinements: `?weather=1` now includes clear/scattered skies and sliders for cloud cover, wind/gusts, rain, mountain snow, hail, storm development, lightning rate/brightness and thunder volume. Weather presentation interpolates between simulation steps, and storm winds bend vegetation more strongly.
+
+## Veil rays
+
+Veil rays inhabit selected open-water pockets of generated freshwater lakes, alone or in loose pairs. Wait quietly on the bank, then offer a short click away from a landmark. A willing ray turns for a passing acknowledgment. Hold Alt while walking to share its direction briefly; sprinting, crowding or repeated calls sends it away. Strong wind and heavy weather favor quiet drifts.
+
+Open `?seed=veil-lake&fauna=ray` for a guide to an actual ray habitat, with **Stand on the shore**, **Send a tone** and **Next lake** controls. The [character study](veil-ray-study.html) remains available for repeatable movement and voice auditions. See [the ray brief](docs/fauna/VEIL_RAYS.md) for implementation scope and validation.

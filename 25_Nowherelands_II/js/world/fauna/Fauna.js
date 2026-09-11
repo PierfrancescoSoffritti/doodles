@@ -1,3 +1,4 @@
+import { rayHabitatSite } from './VeilRayHabitat.js';
 import { watchPebbleVolume } from '../../audio/PebbleAudioSettings.js?v=pebble-audio-10';
 import { LumenLight } from './LumenLight.js';
 import { FaunaProfile } from './FaunaProfile.js';
@@ -17,27 +18,30 @@ export class Fauna {
 		this.shared = shared; this.hm = heightmap; this.accumulator = 0; this.streamTimer = 0; this.cells = new Set(); this.queue = [];
 		this.offVolume=watchPebbleVolume(volume=>{this.pebbleVolume=volume;if(this.audio)this.audio.pebbles.volume=volume;});
 		this.sample = (x, z) => {
-			const ground = heightmap.sample(x, z), water = heightmap._water, slope = heightmap._slope || 0, foam = heightmap._foam || 0, hardness = heightmap._hardness, roof = heightmap.caves?.surfaceDensity(x, ground, z) > -2;
+			const ground = heightmap.sample(x, z), water = heightmap._water, lake = heightmap.lakes?.shoreId, slope = heightmap._slope || 0, foam = heightmap._foam || 0, hardness = heightmap._hardness, roof = heightmap.caves?.surfaceDensity(x, ground, z) > -2;
 			const hab = heightmap.habitat(x, z);
-			return { ground, water, slope, foam, hardness, roof, forest: hab.forest, wet: hab.wet, coast: hab.coast };
+			return { ground, water, lake, slope, foam, hardness, roof, forest: hab.forest, wet: hab.wet, coast: hab.coast };
 		};
 		this.obstacles = [];
 		this.lakes = lumenLakes(shared.world, this.sample);
 		this.pebbleSites = pebbleHabitatSites(shared.world, this.lakes, heightmap, this.sample);
 		this.pebbleSiteRetries = new Map(); this.pebbleTour = new PebbleColonyTour(this.pebbleSites);
-		this.model = new FaunaModel(shared.world.seed || shared.seed || 'nowhere', { sample: this.sample, lakes: this.lakes, avoid: p => this.avoid(p), blocked: (x, z, radius, ground) => this.obstacles.some(o => Math.hypot(x - o.position.x, z - o.position.z) < o.radius + radius && Math.abs(ground - o.position.y) < Math.max(12, o.radius * 2)) });
+		this.model = new FaunaModel(shared.world.seed || shared.seed || 'nowhere', { sample: this.sample, lakes: this.lakes, raySites: true, avoid: p => this.avoid(p), blocked: (x, z, radius, ground) => this.obstacles.some(o => Math.hypot(x - o.position.x, z - o.position.z) < o.radius + radius && Math.abs(ground - o.position.y) < Math.max(12, o.radius * 2)) });
+		this.raySites = new Map(); this.rayVisited = new Set();
 		this.meshes = new FaunaMeshes(scene, shared);
 		this.light = new LumenLight(shared);
 		this.model.onPebbleSound = (c,event) => {
    const surface=(c.group.sample || this.sample)(c.pos.x,c.pos.z);
    this.audio?.pebble(c,event,{cave:!!surface.cave,listener:shared.player.position});
   };
-		this.model.onCall = (c, landing) => {
+		this.model.onRaySilence = () => this.audio?.silenceRays();
+		this.model.onCall = (c, landing, phrase = 'contact') => {
    if(c.kind==='hopper') {if(!landing)this.model.onPebbleSound(c,'startle');return;}
-			if ((shared.caveAmount || 0) > 0.4) return;
-			this.audio?.call(c, landing);
+			if ((shared.caveAmount || 0) > 0.4 || document.hidden) return false;
+			const accepted = this.audio?.call(c, landing, false, phrase);
 			// A physical landing makes a small water ripple only at an actual waterline.
 			if (landing && Math.abs(c.water - c.ground) < 0.5) bus.emit(Events.RIPPLE, { x: c.pos.x, z: c.pos.z, size: 0.12, hue: shared.hue });
+			return accepted;
 		};
 		this.model.onEscape = c => { if ((shared.caveAmount || 0) < 0.4) this.audio?.escape(c); };
 		if (new URLSearchParams(globalThis.location?.search || '').has('faunaProfile')) this.profile = new FaunaProfile(this);
@@ -49,7 +53,8 @@ export class Fauna {
 		this.refreshObstacles(position);
 		this.streamPebbleSites(position);
 		// Seed a diverse first encounter using real habitat searches around the spawn.
-		for (const kind of Object.keys(SPECIES)) {
+		this.streamRays(position);
+		for (const kind of Object.keys(SPECIES).filter(k => k !== 'ray')) {
 			if (kind === 'lumen' && this.lakes.length) {
 				const lakes = [...this.lakes].sort((a, b) => Math.hypot(a.x - position.x, a.z - position.z) - Math.hypot(b.x - position.x, b.z - position.z));
 				const lake = lakes[0];
@@ -78,6 +83,7 @@ export class Fauna {
 		this.pebbleTour.remember(this.model.groups.values());
 		this.model.removeFar(position);
 		this.streamPebbleSites(position);
+		this.streamRays(position);
 		if ((this.shared.caveAmount || 0) > 0.4) return;
 		const cx = Math.floor(position.x / CELL), cz = Math.floor(position.z / CELL);
 		for (const key of this.cells) {
@@ -90,7 +96,7 @@ export class Fauna {
 		wanted.sort((a, b) => a.distance - b.distance);
 		const next = wanted[0];
 		if (next) {
-			this.cells.add(next.key); const rnd = new Random(`${this.model.seed}:fauna-cell:${next.key}`), kinds = Object.keys(SPECIES);
+			this.cells.add(next.key); const rnd = new Random(`${this.model.seed}:fauna-cell:${next.key}`), kinds = Object.keys(SPECIES).filter(k => k !== 'ray');
 			for (let i = 0; i < 2; i++) {
 				const kind = rnd.pick(kinds); if (kind === 'lumen' && this.lakes.length) continue;
 				const group = this.model.addGroup(`${next.key}:${kind}`, kind, (next.x + 0.5) * CELL, (next.z + 0.5) * CELL, 100);
@@ -103,6 +109,11 @@ export class Fauna {
 		this.profile?.begin();
 		if (shared.audio && !this.audio) {this.audio = new FaunaAudio(shared.audio, shared.conductor);this.audio.pebbles.volume=this.pebbleVolume;}
 		model.listener = shared.player.position;
+		model.playerSpeed = shared.player.speed; model.playerVelocity = shared.player.velocity;
+		model.raysHidden = shared.surfaceStreaming === false || (shared.caveAmount || 0) > 0.4 || document.hidden;
+		model.rayWeather = { storm: shared.state.storm || 0, rain: shared.state.rainVisible || 0, wind: shared.weather?.local.windSpeed || 0, bright: shared.sun.height > 0.12 && shared.sun.intensity > 0.65 };
+		if(model.raysHidden && !this.raysWereHidden)this.audio?.silenceRays();
+		this.raysWereHidden=model.raysHidden;
 		model.activity = shared.audio ? shared.audio.analysis.level : 0;
 		this.streamTimer -= dt;
 		if (this.streamTimer <= 0) { this.stream(model.listener); this.streamTimer = 0.5; }
@@ -161,6 +172,51 @@ export class Fauna {
 		}
 		return null;
 	}
+
+ raySite(lake) {
+  if (!this.raySites.has(lake.id)) this.raySites.set(lake.id, rayHabitatSite(lake,this.model.seed,this.sample));
+  return this.raySites.get(lake.id);
+ }
+ addRaySite(site) {
+  if (!site) return null;
+  // Streamed obstacles may reject a home, but never change its seeded identity.
+  if(this.model.environment.blocked(site.x,site.z,site.radius,site.y+10))return null;
+  return this.model.addGroup(site.id,'ray',site.x,site.z,1,{raySite:site});
+ }
+ streamRays(position) {
+  if ((this.shared.caveAmount || 0)>0.4) return;
+  const lakes=this.lakes.filter(l=>l.shore.some(q=>Math.hypot(q.x-position.x,q.z-position.z)<500))
+   .sort((a,b)=>Math.hypot(a.x-position.x,a.z-position.z)-Math.hypot(b.x-position.x,b.z-position.z));
+  let attempts=0;
+  for (const lake of lakes) {
+   if(this.model.creatures.filter(c=>c.kind==='ray').length>=SPECIES.ray.cap)break;
+   if(!this.raySites.has(lake.id)&&attempts++>=1)break;
+   this.addRaySite(this.raySite(lake));
+  }
+ }
+ findRay(current = null) {
+  const p=this.shared.player.position;
+  const lakes=[...this.lakes].sort((a,b)=>Math.hypot(a.x-p.x,a.z-p.z)-Math.hypot(b.x-p.x,b.z-p.z));
+  if(current)this.rayVisited.add(current.id);
+  if(lakes.every(l=>this.rayVisited.has(`ray-lake:${l.id}`)||this.raySites.get(l.id)===null))this.rayVisited.clear();
+  for(let i=0;i<lakes.length;i++) {
+   const lake=lakes[i];if(this.rayVisited.has(`ray-lake:${lake.id}`))continue;
+   const site=this.raySite(lake);if(!site||site.id===current?.id)continue;
+   // A guided visit loads a real habitat, freeing distant ray slots if needed.
+   const existing=this.model.groups.get(site.id);if(existing){this.rayVisited.add(site.id);return existing;}
+   for(const g of [...this.model.groups.values()])if(g.raySite && Math.hypot(g.home.x-site.x,g.home.z-site.z)>200) {
+    this.model.groups.delete(g.id);this.model.creatures=this.model.creatures.filter(c=>c.group!==g);
+   }
+   const group=this.addRaySite(site);if(group){this.rayVisited.add(site.id);return group;}
+  }
+  return current;
+ }
+ playerRayNote(charge=0) {
+  const e=this.shared.audio,p=this.shared.player.position;
+  if(!e||e.ctx.state!=='running'||this.model.raysHidden||!this.model.creatures.some(c=>c.kind==='ray'&&Math.hypot(c.pos.x-p.x,c.pos.y-p.y,c.pos.z-p.z)<80))return false;
+  e.playTone({freq:this.shared.conductor.scale.freq(0,2),position:{x:p.x,y:p.y,z:p.z},velocity:0.35+Math.min(1,charge)*0.55,attack:0.05,duration:0.3,release:1,type:'sine',layer:'ray-player',dest:e.playerBus});
+  return true;
+ }
 
 	nearest(kind) {
 		const p = this.shared.player.position;

@@ -69,6 +69,23 @@ All views genuinely rotate same seed: side and top are short rounded capsules, f
 Action labels: "DORMANT", "CALLING". Dormant shows same capsule almost unlit smoky cream, plainly visible; calling shows same capsule bright warm white with slightly expanded halo. Neither changes geometry. No extra swarm, rays, stars or particles. This is an enlarged modeling reference for a very small luminous form; do not introduce anatomy to fill space.
 ```
 
+## Veil rays
+
+```text
+Use case: stylized-concept.
+Asset type: sprite-sheet-like creature turnaround reference for later 3D modeling, NOT an animation atlas.
+Input image 1: the approved six-family Nowherelands 2 fauna concept board; use ONLY the named family from its specified panel for identity. Input image 2: original game screenshot, use only for simplicity and palette.
+Primary request: a clean high-resolution landscape model sheet of ONE consistent creature, repeated across 8 separated panels in a precise 4-column x 2-row grid. All eight depict the SAME individual with identical proportions and topology, never design alternatives.
+Layout: small title at top; row 1 labels exactly "FRONT", "LEFT SIDE", "REAR", "TOP"; row 2 labels exactly "UNDERSIDE", "THREE-QUARTER", followed by the two specified pose labels. First five are genuinely orthographic views of one neutral pose, true top and bottom plans, no perspective. The sixth is a clear three-quarter view of that same pose. Last two show specified actions from three-quarter angle. Consistent scale across neutral views, generous padding, thin subtle divider lines. Small simple off-white typography below each view. No extra prose.
+Style: extremely minimal low polygon game asset reference faithful to approved forms, understated studio presentation on a uniform desaturated mid-dark plum-gray background. Distinct but gentle flat lighting so dark geometry remains legible. No environmental scene, stars, water, grass, trees, props, ground textures, fancy dramatic lighting, depth of field, decorative diagrams, invented anatomy or photoreal detail.
+Constraints: no eyes, mouth, facial features, fur, feathers, scales, textures, mechanical parts or unnecessary details. Prioritize useful readable silhouettes and spatial consistency. Do not make shapes more elaborate just because shown close up.
+Family: Veil rays, from BOTTOM RIGHT panel. Title: "06 / VEIL RAYS".
+Subject: ONE very thin continuous translucent smoke-violet kite/ray membrane. A single sheet surface with central low ridge, two long pointed lateral wing corners and shorter front/rear tips; width about 1.8 times front-to-back length. Leading edges gently convex; trailing edges softly concave, organic draped-kite outline. Preserve approved almost empty translucent body bounded by a very fine pale lilac contour with a few dim gaps. No torso, eyes, mouth, horns, stinger, spine, bones, tentacles or separate tail; no interior star particles. One soft bend along each wing, not complex crumpling. Gently shaded translucent interior sufficiently visible for 3D shape but much dimmer than perimeter.
+Neutral membrane has shallow arch: front and rear views must show very thin broad shallow curved cross section, LEFT SIDE thin low ridge profile, TOP full broad ray outline, UNDERSIDE that same membrane underside, THREE-QUARTER reveals shallow curvature and paper thin edge. Same wing tips and outline throughout. Avoid showing a perspective ray in panels labeled front or side.
+Action labels: "FOLDING", "RESONATING". Folding lifts same two lateral corners upward in a slow curved fold; resonating retains neutral shape with a slightly brighter rim. No glow beams, texture or environment.
+```
+
+
 ## Lantern mites — final correction
 
 Edit reference: /Users/pier/.codex/generated_images/01a07645-2b8b-7993-bef4-764b812ba61f/exec-935f1cb8-e360-4b02-b6e0-175854356cdc.png

@@ -1,4 +1,6 @@
-// Directionless lumen volume, shared by live rendering and the motion study.
+// Same vertex deformation is used by live fauna and the stationary motion study.
+// Local +X is forwards. aMotion = integrated stroke, muscle effort, compression,
+// breath phase. aLife.w is turn curvature, not a random per-frame wobble.
 export const faunaDeformation = /* glsl */`
 vec3 deformFauna(vec3 p) {
 	float stroke = aMotion.x, effort = aMotion.y;
@@ -29,6 +31,19 @@ vec3 deformFauna(vec3 p) {
 		p.x *= 1.0 + sin(aLife.x * 2.1) * 0.13;
 		p.z *= 1.0 + cos(aLife.x * 1.7) * 0.12;
 		p.x += max(p.y + 0.55, 0.0) * sin(aLife.x * 3.7) * 0.09;
+		return p;
+	#elif KIND == 5
+		float side = sign(p.z), span = abs(p.z) / 6.6;
+		float rear = clamp((2.7 - p.x) / 6.7, 0.0, 1.0);
+		// Outer fin follows the root; the trailing edge follows the leading edge.
+		float asymmetry = 1.0 + side * aLife.w * 0.48;
+		float wave = sin(stroke - span * 0.9 - rear * 1.4);
+		float finAngle = 0.08 + wave * (0.12 + effort * 0.56) * asymmetry;
+		float curve = finAngle * pow(span, 0.7);
+		p.y += sin(curve) * abs(p.z);
+		p.z *= cos(curve);
+		p.y += sin(stroke - rear * 2.2 - span * 1.1) * rear * rear * span * (0.12 + effort * 0.3);
+		p.x += sin(stroke - rear * 1.5) * span * span * effort * 0.16;
 		return p;
 	#endif
 	return p;

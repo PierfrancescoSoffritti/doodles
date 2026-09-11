@@ -8,7 +8,7 @@ export function checkFaunaShaders(detail = 0) {
 	const canvas = document.createElement('canvas'), gl = canvas.getContext('webgl2');
 	if (!gl) throw new Error('WebGL 2 is required');
 	const reports = [];
-	for (const [kind, id] of Object.entries({ lumen: 0, hopper: 3 })) {
+	for (const [kind, id] of Object.entries({ lumen: 0, hopper: 3, ray: 5 })) {
 		const program = gl.createProgram(), shaders = [];
 		for (const [type, source] of [
 			[gl.VERTEX_SHADER, `#version 300 es\n#define KIND ${id}\nprecision highp float;\nin vec3 position; uniform vec4 aLife, aMotion; uniform vec3 aVelocity, aElastic; out vec3 deformed;\n${faunaDeformation}\nvoid main(){deformed=deformFauna(position);gl_Position=vec4(deformed,1.0);}`],
