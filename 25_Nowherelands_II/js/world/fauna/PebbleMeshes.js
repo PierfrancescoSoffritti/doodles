@@ -1,11 +1,12 @@
+import {replyOutline} from './ReplyOutline.js?v=player-notes-13';
 import { pebbleLighting, setPebbleLight } from './PebbleLighting.js';
 import * as THREE from 'three';
-import { createRockMaterial, noiseGlsl } from '../TerrainMaterial.js';
+import { createRockMaterial, noiseGlsl } from '../TerrainMaterial.js?v=player-notes-13';
 import { fogGlsl } from '../FogGlsl.js';
 import { faunaGeometry } from './FaunaGeometry.js';
 import { faunaDeformation } from './FaunaDeformation.js';
-import { solveLeg, SPECIES, PEBBLE_DRAW_DISTANCE } from './FaunaModel.js?v=pebble-audio-10';
-import { PebbleEyeMeshes } from './PebbleEyeMeshes.js?v=pebble-audio-10';
+import { solveLeg, SPECIES, PEBBLE_DRAW_DISTANCE } from './FaunaModel.js?v=player-notes-13';
+import { PebbleEyeMeshes } from './PebbleEyeMeshes.js?v=player-notes-13';
 import { clamp, smooth } from './Locomotion.js';
 
 // Bodies share the scenery's rock lighting; legs retain their darker palette.
@@ -34,6 +35,7 @@ export class PebbleMeshes {
 		${faunaDeformation.replace('float stroke = aMotion.x, effort = aMotion.y;', '')}
 		void main(){vec4 p=modelMatrix*instanceMatrix*vec4(deformFauna(position),1.0);vWorldPos=p.xyz;gl_Position=projectionMatrix*viewMatrix*p;}`;
 		this.bodies = this.instances(root, faunaGeometry('hopper'), bodyMaterial, SPECIES.hopper.cap, 'pebble-bodies');
+		replyOutline(this.bodies,{expression:'aLife.y'});
 		const sceneryMaterial = stoneMaterial(shared); sceneryMaterial.vertexShader = bodyMaterial.vertexShader;
 		this.stones = this.instances(root, faunaGeometry('hopper'), sceneryMaterial, SPECIES.hopper.cap * 6, 'pebble-habitat-stones');
 		this.legs = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.065, 0.115, 1, 5), legMaterial, SPECIES.hopper.cap * 4);
@@ -87,7 +89,7 @@ export class PebbleMeshes {
     p.y = Math.max(p.y, floor.ground + 0.55 * size, (floor.cave ? (floor.water ?? -Infinity) : -Infinity) - .8 * size);
    }
 			setPebbleLight(this.bodies, bodies, floor);
-			this.place(this.bodies, bodies++, p, yaw, pitch, bank, size, c.phase);
+			this.place(this.bodies, bodies, p, yaw, pitch, bank, size, c.phase);this.bodies.geometry.attributes.aLife.setY(bodies++,c.replyGlow||0);
 			this.eyes.update(c, this.pose.matrix, alpha, size, model.time - (1 - alpha) / 30, model.eyeTarget || model.listener, floor);
 			const stand = lerp(b.prevStand, b.stand);
 			this.shadow(shadows++, p, c.ground, b.restPitch, b.restBank, yaw, size, stand);

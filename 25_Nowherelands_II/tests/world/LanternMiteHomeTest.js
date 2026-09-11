@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { registerHooks } from 'node:module';
 import { lanternHome } from '../../js/world/fauna/LanternMiteHome.js';
 import { lanternBarkSite, lanternHollowSite } from '../../js/world/fauna/LanternMiteHabitat.js';
-import { LanternMiteColony } from '../../js/world/fauna/LanternMiteWorldModel.js';
+import { LanternMiteColony } from '../../js/world/fauna/LanternMiteWorldModel.js?v=player-notes-13';
 
 registerHooks({resolve(specifier,context,next){
  if(specifier==='three')return{url:new URL('../../../common/libs/three-0.185/build/three.module.min.js',import.meta.url).href,shortCircuit:true};

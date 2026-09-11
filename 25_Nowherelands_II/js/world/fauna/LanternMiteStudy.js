@@ -1,3 +1,4 @@
+import { receiveNote, updateNote } from './NoteResponse.js?v=player-notes-13';
 import { Random } from '../../core/Random.js';
 import { lanternLight } from '../../audio/LanternMiteVoice.js';
 
@@ -102,6 +103,13 @@ export class LanternMiteStudy {
   }
  }
 
+ answerPlayer(note,range=12) {
+  if(this.sheltered||this.time<this.alarmUntil)return false;
+  let heard=false;
+  for(const m of this.mites)if(receiveNote(m,this.time,note,{delay:m.id*.22,range,duration:5}))heard=true;
+  return heard;
+ }
+
  hearNote(position,velocity=0.35) {
   if(this.sheltered||this.time<this.alarmUntil||Math.hypot(position.x,position.z)>10||position.z<0||this.time-this.lastHeard<0.12)return false;
   this.lastHeard=this.time;this.heardNotes=this.heardNotes.filter(t=>this.time-t<3);this.heardNotes.push(this.time);
@@ -156,9 +164,18 @@ export class LanternMiteStudy {
   const disturbed = this.sheltered || this.time < this.alarmUntil;
 
   for (const mite of this.mites) {
+   updateNote(mite,this.time,r=>{
+    mite.replyAt=Infinity;
+    if(r.alarm){this.startle(true);return;}
+    const x=clamp(r.source.x*.35,-1.5,1.5),z=clamp(r.source.z-1.2,1.8,3.8),y=clamp(r.source.y*.5,1.4,2.5);
+    mite.noteOrbit=Array.from({length:4},(_,i)=>point(x+Math.cos(i*Math.PI/2+mite.id)*.6,y+Math.sin(i*Math.PI/2)*.25,z+Math.sin(i*Math.PI/2+mite.id)*.6));
+    this.transition(mite,'note-orbit',mite.noteOrbit.shift());this.nextSocial=this.time+8;
+   },r=>this.onNoteSound?.(mite,r.alarm));
+   if(mite.state==='note-orbit'&&!mite.noteResponse)this.transition(mite,'return',mite.perch);
    const age = this.time - mite.since;
    if(mite.waypoints?.length&&distance(mite.pos,mite.target)<0.06){mite.target=mite.waypoints.shift();mite.arrivedAt=Infinity;}
    const arrived = !mite.waypoints?.length&&distance(mite.pos, mite.target) < 0.035;
+   if(mite.state==='note-orbit'&&arrived&&mite.noteOrbit.length)this.transition(mite,'note-orbit',mite.noteOrbit.shift());
    if (mite.state === 'retreat' && arrived) {
     this.transition(mite, 'hidden', mite.refuge);
    } else if (mite.state === 'hidden') {
@@ -169,7 +186,7 @@ export class LanternMiteStudy {
     this.rest(mite);
    } else if (!['retreat', 'hidden', 'emerge'].includes(mite.state)) {
     if (nearby && (!this.wasNearby || this.visitorSpeed > 0.3)) {
-     if (!['investigate', 'contact', 'return', 'notice','orient','answering','note-rest'].includes(mite.state)) this.transition(mite, 'notice');
+     if (!['investigate', 'contact', 'return', 'notice','orient','answering','note-rest','note-orbit'].includes(mite.state)) this.transition(mite, 'notice');
     }
     if (nearby && mite.bold && ['notice', 'rest', 'forage'].includes(mite.state) && this.quiet > 3.8 && this.time > mite.nextContact) {
       this.transition(mite, 'investigate', point(clamp(this.visitor.x * 0.6 + 0.3, -2.15, 2.15), 1.05, clamp(this.visitor.z - 1.4, 0.6, 2.3)));
@@ -216,14 +233,14 @@ export class LanternMiteStudy {
     if (!disturbed && !['retreat', 'hidden'].includes(mite.state)) this.pulse(mite, true, mite.replyKind);
    }
    const d = distance(mite.pos, mite.target);
-   const speed = mite.state === 'retreat' ? 3.3 + mite.id * 0.18 : ['investigate','answering'].includes(mite.state) ? (this.homeExcursion?1.1:0.7) : (this.homeExcursion?1.5:0.9) + mite.id * 0.07;
+   const speed = mite.state === 'note-orbit' ? 2.4 : mite.state === 'retreat' ? 3.3 + mite.id * 0.18 : ['investigate','answering'].includes(mite.state) ? (this.homeExcursion?1.1:0.7) : (this.homeExcursion?1.5:0.9) + mite.id * 0.07;
    const amount = d > 0 ? Math.min(1, speed * dt / d, mite.waypoints?.length?1:1 - Math.exp(-3 * dt)) : 0;
    for (const key of ['x', 'y', 'z']) mite.pos[key] += (mite.target[key] - mite.pos[key]) * amount;
 
    const pulseAge = this.time - mite.pulseAt;
    const pulse = lanternLight(pulseAge, mite, mite.pulseReply);
-   const base = { rest: 0.13, forage: 0.3, visit: 0.44, listen: 0.3, exchange: 0.38, notice: 0.2, orient:0.46,answering:0.62,'note-rest':0.42,investigate: 0.64, contact: 0.48, return: 0.24, retreat: 0.012, hidden: 0.008, emerge: 0.12 }[mite.state];
-   const light = base + pulse * 0.75;
+   const base = { 'note-orbit':.4, rest: 0.13, forage: 0.3, visit: 0.44, listen: 0.3, exchange: 0.38, notice: 0.2, orient:0.46,answering:0.62,'note-rest':0.42,investigate: 0.64, contact: 0.48, return: 0.24, retreat: 0.012, hidden: 0.008, emerge: 0.12 }[mite.state];
+   const light = base + pulse * 0.75 + (mite.noteGlow||0)*.3;
    mite.brightness += (light - mite.brightness) * (1 - Math.exp(-(disturbed ? 13 : pulseAge < 0.8 ? 28 : 3) * dt));
   }
   this.events = this.events.filter(event => this.time - event.time < 5);

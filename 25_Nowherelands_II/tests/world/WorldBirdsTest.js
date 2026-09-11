@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {BirdPassages,SKY_BIRD_CAPACITY,SKY_LANE_SPACING} from '../../js/world/fauna/BirdPassages.js';
-import {BirdEncounter} from '../../js/world/fauna/BirdEncounter.js';
+import {BirdEncounter} from '../../js/world/fauna/BirdEncounter.js?v=player-notes-13';
 import {BIRD_JOURNEY_TIME} from '../../js/world/fauna/BirdJourney.js';
 
 test('separate flocks arrive, circle occasionally, depart, and remain bounded for ten minutes',()=>{

@@ -1,0 +1,33 @@
+<!doctype html><meta charset="utf-8"><title>Player note reply audio checks</title>
+<style>body{background:#161721;color:#dae5e8;font:15px monospace;padding:30px}pre{white-space:pre-wrap}</style>
+<h1>Player note reply audio checks</h1><pre id="result">Rendering the production game mix…</pre>
+<script type="module">
+import {createReedAudioScene} from '../js/audio/ReedWalkerAudioScene.js';
+import {CreatureReplyAudio} from '../js/audio/CreatureReplyAudio.js?v=player-notes-6';
+const result=document.querySelector('#result'),reports=[],failures=[];
+async function render(kind,mode){
+ const ctx=new OfflineAudioContext(2,22050*6,22050),scene=createReedAudioScene(ctx,{background:mode==='busy'||mode==='chorus'?'busy':'solo'}),e=scene.engine;
+ e.ctx=new Proxy(ctx,{get(t,k){if(k==='state')return 'running';const v=Reflect.get(t,k,t);return typeof v==='function'?v.bind(t):v;}});
+ const audio=new CreatureReplyAudio(e);if(mode==='muted')audio.muted=true;
+ scene.phrase(.1);const accepted=audio.play(kind,{pos:{x:0,y:0,z:mode==='distant'?-200:-20}},mode==='alarm');
+ if(mode==='chorus')for(const other of ['bird','lumen','mite','hopper'])audio.play(other,{pos:{x:0,y:0,z:-20}});
+ const count=audio.voices.length,queued=audio.pending.length,buffer=await ctx.startRendering();let sum=0,peak=0;
+ for(let ch=0;ch<2;ch++){const a=buffer.getChannelData(ch);for(let i=0;i<a.length;i++){sum+=a[i]*a[i];peak=Math.max(peak,Math.abs(a[i]));}}
+ const rms=Math.sqrt(sum/(buffer.length*2));audio.dispose();scene.dispose();return {kind,mode,accepted,count,queued,rms,peak};
+}
+try{
+ for(const kind of ['reed','hopper','bird','mite','lumen','ray'])for(const mode of ['solo','alarm','distant','busy','muted']){
+  const r=await render(kind,mode);reports.push(r);
+  if(!Number.isFinite(r.rms)||r.peak>=.98)failures.push(`${kind}/${mode}: nonfinite or clipping`);
+  if(['solo','alarm'].includes(mode)&&r.rms<.045)failures.push(`${kind}/${mode}: too faint`);
+  if(mode==='muted'&&(r.accepted||r.rms>.00001))failures.push(`${kind}: mute failed`);
+ }
+ for(const kind of ['reed','hopper','bird','mite','lumen','ray']){
+  const near=reports.find(r=>r.kind===kind&&r.mode==='solo'),far=reports.find(r=>r.kind===kind&&r.mode==='distant');
+  if(far.rms>near.rms*.5)failures.push(`${kind}: distance falloff failed`);
+ }
+ const chorus=await render('reed','chorus');reports.push(chorus);if(chorus.count!==4||chorus.queued!==1||chorus.peak>=.98)failures.push('chorus: cap or headroom failed');
+ result.textContent=(failures.length?'FAIL':'PASS')+' — six distinct reply voices, alarms, mute, distance, busy mixes and bounded chorus.\n'+JSON.stringify({failures,reports},null,2);
+ document.body.dataset.result=JSON.stringify({passed:!failures.length,failures,reports});
+}catch(e){result.textContent='FAIL '+e.stack;console.error(e);}
+</script>

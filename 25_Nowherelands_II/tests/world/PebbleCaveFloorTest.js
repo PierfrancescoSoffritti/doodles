@@ -4,7 +4,7 @@ import { CaveFloorSurface } from '../../js/world/caves/CaveFloorSurface.js';
 import { CaveField } from '../../js/world/caves/CaveField.js';
 import { buildCaveMeshes } from '../../js/world/caves/CaveMeshData.js';
 import { pebbleCaveSampler } from '../../js/world/fauna/PebbleHabitats.js';
-import { FaunaModel } from '../../js/world/fauna/FaunaModel.js';
+import { FaunaModel } from '../../js/world/fauna/FaunaModel.js?v=player-notes-13';
 
 const triangle=(y)=>[0,y,0, 0,y,8, 8,y+2,0];
 test('rendered support uses triangle height, rejects ceilings, and keeps stacked floors separate',()=>{
@@ -54,7 +54,7 @@ test('pebbles stay above the actual meshed cave floor during escape and settling
 });
 
 test('a missing tilted floor probe cannot make a supported pebble disappear',async()=>{
- const {pebbleSlope,pebbleGround}=await import('../../js/world/fauna/PebbleHoppers.js');
+ const {pebbleSlope,pebbleGround}=await import('../../js/world/fauna/PebbleHoppers.js?v=player-notes-13');
  const sample=(x,z)=>({ground:Math.abs(x)>.6 && Math.abs(z)>.6?NaN:2,water:-4,cave:true,clearance:20,slope:0,hardness:1,wet:0,forest:0});
  assert.ok(pebbleGround({environment:{sample}},0,0,1));
  const tilt=pebbleSlope(sample,0,0,Math.PI/4,1);
@@ -62,7 +62,7 @@ test('a missing tilted floor probe cannot make a supported pebble disappear',asy
 });
 
 test('cave foot placement accepts a small ledge but still rejects a cliff',async()=>{
- const {pebbleGround}=await import('../../js/world/fauna/PebbleHoppers.js');
+ const {pebbleGround}=await import('../../js/world/fauna/PebbleHoppers.js?v=player-notes-13');
  const model=height=>({environment:{sample:(x,z)=>({ground:x>=0?height:0,water:-4,cave:true,clearance:20,slope:0,hardness:1,wet:0,forest:0})}});
  assert.ok(pebbleGround(model(1.2),-.5,0,1,0),'approach the ledge with the body footprint');
  assert.ok(pebbleGround(model(1.2),.2,0,1,0),'step onto the ledge');

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {BirdEncounter} from '../../js/world/fauna/BirdEncounter.js';
-import {BirdForage} from '../../js/world/fauna/BirdForage.js';
+import {BirdEncounter} from '../../js/world/fauna/BirdEncounter.js?v=player-notes-13';
+import {BirdForage} from '../../js/world/fauna/BirdForage.js?v=player-notes-13';
 import {BirdJourney} from '../../js/world/fauna/BirdJourney.js';
 
 test('feeding birds repeatedly hop, stay near their patch, and land with planted feet',()=>{

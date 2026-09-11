@@ -1,6 +1,8 @@
+import {replyOutline} from './ReplyOutline.js?v=player-notes-13';
+import { noteGlow } from './NoteGlow.js?v=player-notes-13';
 import * as THREE from 'three';
 import { reedSites } from './ReedWalkerHabitat.js?v=graze-1';
-import { ReedWalkerWorldModel } from './ReedWalkerWorldModel.js?v=world-spray-1';
+import { ReedWalkerWorldModel } from './ReedWalkerWorldModel.js?v=player-notes-13';
 import { ReedWalkerRig } from './ReedWalkerRig.js?v=spray-1';
 import { ReedWalkerSpray } from './ReedWalkerSpray.js?v=world-spray-1';
 import { reedWorldSprayPose } from './ReedWalkerReservoir.js?v=1';
@@ -13,6 +15,7 @@ export class WorldReedWalkers {
   this.rigs=new Map();this.streamAt=0;
   const blocked=(x,z,r,y)=>shared.colliders.some(c=>Math.hypot(x-c.position.x,z-c.position.z)<(c.radius||c.r||0)+r&&Math.abs(y-c.position.y)<Math.max(12,(c.radius||c.r||0)*2));
   this.model=new ReedWalkerWorldModel(seed,reedSites(shared.world,fauna.lakes),fauna.sample,blocked);
+  this.model.onNoteReply=(m,alarm)=>shared.playerNotes?.reply('reed',m,alarm);
   this.model.onSound=(m,event)=>this.call(m,event);
   this.model.onRipple=m=>{if(m.water>=m.feedingHeight-.2&&Math.hypot(m.position.x-shared.player.position.x,m.position.z-shared.player.position.z)<180)bus.emit(Events.RIPPLE,{x:m.position.x,z:m.position.z,size:.25,hue:shared.hue,saturation:.15});};
  }
@@ -20,7 +23,10 @@ export class WorldReedWalkers {
   const members=[...this.model.groups.values()].flatMap(g=>g.members),live=new Set(members);
   for(const [m,rig] of this.rigs) if(!live.has(m)){rig.spray?.dispose();rig.root.removeFromParent();rig.dispose();this.rigs.delete(m);}
   for(const m of members) if(!this.rigs.has(m)) {
-   const rig=new ReedWalkerRig(m.traits);rig.root.scale.setScalar(m.scale);
+   const rig=new ReedWalkerRig(m.traits);
+   rig.noteUniforms={uNoteGlow:{value:0},uNotePhase:{value:0},uNoteAlarm:{value:0},uNoteFloor:{value:0},uNoteHeight:{value:m.traits.legs*m.scale}};
+   const materials=new Set();rig.root.traverse(o=>{if(o.material)materials.add(o.material);});for(const material of materials)noteGlow(material,rig.noteUniforms);rig.root.scale.setScalar(m.scale);
+   rig.replySignal={value:0};const parts=[];rig.root.traverse(o=>{if(o.isMesh)parts.push(o);});for(const part of parts)replyOutline(part,{signal:rig.replySignal});
    this.root.add(rig.root);this.rigs.set(m,rig);
   }
  }
@@ -29,6 +35,7 @@ export class WorldReedWalkers {
   this.audio ||= new ReedWalkerAudio(this.shared.audio);
   return this.audio.play(m.traits,event,{position:m.position,listener:this.shared.player.position});
  }
+ hearNote(note){if(this.root.visible&&(this.shared.caveAmount||0)<.4)this.model.hearNote(note);}
  update(dt) {
   const p=this.shared.player.position;this.root.visible=this.shared.surfaceStreaming!==false;
   if(!this.root.visible)return;
@@ -39,6 +46,8 @@ export class WorldReedWalkers {
    rig.root.visible=Math.hypot(m.origin.x-p.x,m.origin.z-p.z)<320;
    if(!rig.root.visible){rig.spray?.update(0,false);continue;}
    rig.root.position.set(m.draw.origin.x,m.draw.origin.y,m.draw.origin.z);rig.root.rotation.y=m.draw.yaw;
+   rig.replySignal.value=m.replyGlow||0;
+   rig.noteUniforms.uNoteGlow.value=m.noteGlow||0;rig.noteUniforms.uNotePhase.value=m.notePhase||0;rig.noteUniforms.uNoteAlarm.value=m.noteAlarm?1:0;rig.noteUniforms.uNoteFloor.value=m.origin.y;
    rig.update(m.release?.time??m.clock,m.state,0,m.draw.pose);
    const nearby=Math.hypot(m.origin.x-p.x,m.origin.z-p.z)<140;
    if(m.release&&nearby){

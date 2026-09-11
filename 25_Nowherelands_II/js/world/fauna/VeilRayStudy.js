@@ -1,5 +1,5 @@
 import { rayEnvelope } from '../../audio/VeilRayVoice.js';
-import { FaunaModel } from './FaunaModel.js';
+import { FaunaModel } from './FaunaModel.js?v=player-notes-13';
 import { motor, damp, clamp, angleDelta } from './Locomotion.js';
 
 export const RAY_LAKE = { x: 0, z: -20, radius: 44 };

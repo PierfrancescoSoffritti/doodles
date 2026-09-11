@@ -11,8 +11,8 @@ Open `index.html` through any static server (ES modules need `http://`). A seed 
 | W A S D / arrows, Shift | walk, sprint |
 | Alt + movement | walk gently beside wildlife |
 | mouse | look (pointer lock) |
-| click | touch a thing: cycle a monolith's note, ring a stone, flip time |
-| hold click | charge a strike: louder, brighter, bigger ripple |
+| click | sing a note anywhere, or touch a thing: cycle a monolith's note, ring a stone, flip time |
+| hold click | charge a note or strike: louder, brighter, bigger ripple |
 | R | record the session's audio to a `.webm` |
 | gamepad | left stick move, right stick look, A / RT touch |
 | touch | left half joystick, right half look, tap to touch |
@@ -86,3 +86,13 @@ Weather survey refinements: `?weather=1` now includes clear/scattered skies and 
 Veil rays inhabit selected open-water pockets of generated freshwater lakes, alone or in loose pairs. Wait quietly on the bank, then offer a short click away from a landmark. A willing ray turns for a passing acknowledgment. Hold Alt while walking to share its direction briefly; sprinting, crowding or repeated calls sends it away. Strong wind and heavy weather favor quiet drifts.
 
 Open `?seed=veil-lake&fauna=ray` for a guide to an actual ray habitat, with **Stand on the shore**, **Send a tone** and **Next lake** controls. The [character study](veil-ray-study.html) remains available for repeatable movement and voice auditions. See [the ray brief](docs/fauna/VEIL_RAYS.md) for implementation scope and validation.
+
+## Player notes and creature exchanges
+
+Click anywhere away from an interactive object, press **N**, or use **Send a note**. Holding the click or N makes a stronger call. Your note always sounds, including in empty places. Objects retain their existing interactions.
+
+Nearby available creatures answer with movement, a distinct phrase and a traveling light/color signal: rays bank and sing with lavender membranes; pebble colonies rise and double-hop at varied times and heights with neutral eyes and stone knocks; lumen shoals curl toward you with turquoise-white pulses and whistles; walkers pause feeding and take a supported answering step as gold climbs their legs and crowns; birds hop or change perch with a chirping phrase and iridescent wings; mites make a small, path-checked orbit near the invitation with gold lanterns and glassy chatter. Strong or repeated notes produce withdrawal and a warm warning color. Existing habitat, ground-contact and obstacle checks remain in charge of movement.
+
+Exchanges last roughly 4–6 seconds (the ray encounter takes longer). A soft click reaches 82.5 world units; charging smoothly extends that reach to 165. The visible circle and animal hearing use exactly the same horizontal radius. Ripples finish in 0.7 seconds with a brisk launch, gentle deceleration and a slightly wider edge, staying ahead of ground sprinting. Charged blips use a lower layered voice and a warm double ring. Color accents are subdued. Rays bank promptly and approach in 4–7 seconds; pebbles perform two varied hops with a higher second jump, capped by cave headroom. Animals begin reacting on click; their voices can answer shortly afterward. Flying animals use their horizontal position, and rays in a pair react independently; repeated input cannot restart an active gesture and may queue one alarm afterward. Every blip immediately pulses a thin silhouette contour on nearby creatures, even during gesture cooldowns or when no voice plays. The pulse fades over 0.8 seconds (1.1 seconds for a charged blip). Reply audio has a four-voice limit, foreground spatial routing, ambient ducking and finite cleanup. Decorative distant wildlife remains ambient; the six detailed creature systems participate.
+
+The field guide links to each creature tour. Run `node --test 25_Nowherelands_II/tests/world/PlayerNoteTest.js` for the interaction checks and open `tests/player-note-audio.html` for production-mixer reply checks. These changes are an audition pass for behavior, sound and color.

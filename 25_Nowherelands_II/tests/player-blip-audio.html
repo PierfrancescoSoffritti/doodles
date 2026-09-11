@@ -1,0 +1,17 @@
+<!doctype html><meta charset="utf-8"><title>Player blip sound checks</title><pre id="result">Rendering blips through the production mixer…</pre>
+<script type="module">
+import {createReedAudioScene} from '../js/audio/ReedWalkerAudioScene.js';
+import {PlayerNotes} from '../js/player/PlayerNotes.js?v=player-notes-10';
+const reports=[];
+for(const background of ['solo','busy'])for(const charge of [0,1]){
+ const ctx=new OfflineAudioContext(2,22050*4,22050),scene=createReedAudioScene(ctx,{background}),e=scene.engine;
+ e.ctx=new Proxy(ctx,{get(t,k){if(k==='state')return 'running';const v=Reflect.get(t,k,t);return typeof v==='function'?v.bind(t):v;}});
+ const player={shared:{audio:e,player:{position:scene.listener},conductor:scene.conductor},last:-100,serial:0,button:{dataset:{}}};
+ scene.phrase(.1);await PlayerNotes.prototype.send.call(player,charge);
+ const buffer=await ctx.startRendering();let peak=0,sum=0;
+ for(let c=0;c<2;c++)for(const v of buffer.getChannelData(c)){peak=Math.max(peak,Math.abs(v));sum+=v*v;}
+ reports.push({background,charge,peak,rms:Math.sqrt(sum/(buffer.length*2))});scene.dispose();
+}
+const passed=reports.every(r=>Number.isFinite(r.rms)&&r.peak<.98&&r.rms>.005);
+document.querySelector('#result').textContent=JSON.stringify({passed,reports},null,2);
+</script>

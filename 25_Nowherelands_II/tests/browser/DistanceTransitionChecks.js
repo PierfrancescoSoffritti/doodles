@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { seaVertexShader, buildWaves } from '../../js/world/SeaShader.js';
+import { seaVertexShader, buildWaves } from '../../js/world/SeaShader.js?v=player-notes-13';
 
 const assert = (ok, message) => { if (!ok) throw new Error(message); };
 

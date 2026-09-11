@@ -1,3 +1,4 @@
+import { receiveNote, updateNote } from './NoteResponse.js?v=player-notes-13';
 import { rayEnvelope } from '../../audio/VeilRayVoice.js';
 import { motor, damp, clamp, angleDelta } from './Locomotion.js';
 
@@ -41,13 +42,15 @@ export function worldRayCall(c,m,phrase='contact') {
  if(m.onCall(c,false,phrase)!==true)return false;
  c.voiceAt=m.time;c.callPhrase=phrase;c.calls++;m.rayVoiceUntil=m.time+7;return true;
 }
-function retreat(g,m) {
+function retreat(g,m,members=g.members) {
  g.quiet=0;g.reply=null;g.avoidUntil=m.time+18;
- for(const c of g.members){c.nextInvite=g.avoidUntil+12;c.voiceAt=-100;c.energy=0;if(c.state!=='retreat')route(c,m,local(g.raySite,-15+c.index*30,24,13),'retreat',10);}
+ for(const c of members){c.nextInvite=g.avoidUntil+12;c.voiceAt=-100;c.energy=0;if(c.state!=='retreat')route(c,m,local(g.raySite,-15+c.index*30,24,13),'retreat',10);}
  m.onRaySilence?.(g);
 }
-export function hearWorldRays(g,m,{position=m.listener,strength=0.5,layer=''}) {
- if(m.raysHidden || distance(position,g.home)>100 || Math.abs(position.y-g.home.y)>30)return false;
+export function hearWorldRays(g,m,{position=m.listener,strength=0.5,layer='',radius}) {
+ if(m.raysHidden)return false;
+ if(layer!=='player-note'&&(distance(position,g.home)>100||Math.abs(position.y-g.home.y)>30))return false;
+ if(layer==='player-note'){let heard=false;for(const c of g.members)heard=receiveNote(c,m.time,{layer,position,velocity:strength,radius},{range:110,duration:8})||heard;return heard;}
  if(layer!=='invitation' && layer!=='ray-player')return false;
  g.invitations=g.invitations.filter(t=>m.time-t<5);g.invitations.push(m.time);
  if(strength>0.75||g.invitations.length>=3){retreat(g,m);return false;}
@@ -68,7 +71,7 @@ function nextRoute(c,m) {
  if(m.time<g.avoidUntil || g.sheltered){route(c,m,local(s,c.pos.x>s.x?-12:12,c.index?24:-14),'rest',14);return;}
  if(c.state==='approach'){
   route(c,m,{x:c.passPoint.x+s.tx*10,y:c.passPoint.y,z:c.passPoint.z+s.tz*10},'pass',8.5,{x:s.tx,z:s.tz});
-  worldRayCall(c,m,'acknowledgment');return;
+  if(!c.noteGreeting)worldRayCall(c,m,'acknowledgment');c.noteGreeting=false;return;
  }
  if(c.state==='pass'||c.state==='follow'){
   if(!m.observing && m.playerSpeed>0.2 && m.playerSpeed<=8 && distance(c.pos,p)<42){
@@ -83,6 +86,19 @@ function nextRoute(c,m) {
  const [t,n,height]=stops[index], y=m.rayWeather?.bright?10:height;route(c,m,local(s,t+c.rnd.range(-2,2),n+c.rnd.range(-2,2),y),index===3?'rest':index===2?'cross':'skim');
 }
 export function updateWorldRays(g,m,dt) {
+ for(const c of g.members){
+ if(m.raysHidden||g.sheltered)c.noteResponse=null;
+ updateNote(c,m.time,r=>{
+  if(r.alarm){retreat(g,m,[c]);return;}
+  g.reply=null;c.noteGreeting=true;
+  // Each accepted note gets its own bank, even during a previous pass/cooldown.
+  c.noteBankAt=m.time;c.noteBankSign=c.index?1:-1;c.powered=true;c.motorTimer=4;
+  if(m.time>=g.avoidUntil){
+   c.passPoint=safeRayPoint(c,r.source);c.followUntil=0;
+   route(c,m,c.passPoint,'approach',clamp(distance(c.pos,c.passPoint)/5,4,7),{x:g.raySite.tx,z:g.raySite.tz});
+  }
+ },r=>{if(r.alarm)m.onNoteReply?.('ray',c,true);else if(!worldRayCall(c,m,'acknowledgment'))m.onNoteReply?.('ray',c,false);});
+ }
  const speed=m.playerSpeed??Math.hypot(m.listenerVelocity.x,m.listenerVelocity.z),p=m.listener;
  const near=distance(p,g.home)<100 && Math.abs(p.y-g.home.y)<30;
  g.quiet=near&&speed<0.5&&!m.raysHidden?g.quiet+dt:0;
@@ -113,9 +129,10 @@ export function updateWorldRays(g,m,dt) {
   }
   Object.assign(c.pos,next);Object.assign(c.vel,velocity);c.speed=Math.hypot(c.vel.x,c.vel.z);
   if(c.speed>0.15)c.yaw+=clamp(angleDelta(Math.atan2(-c.vel.z,c.vel.x),c.yaw),-0.65*dt,0.65*dt);
-  c.turnRate=(c.yaw-c.prevYaw)/dt;c.bank=damp(c.bank,clamp(c.turnRate*c.speed*0.065,-0.45,0.45),3,dt);
+  const bankAge=m.time-(c.noteBankAt??-100),noteBank=!c.noteAlarm&&c.noteGlow>0&&bankAge<3.2?Math.sin(Math.PI*clamp(bankAge/3.2,0,1))*.58*c.noteBankSign:0;
+  c.turnRate=(c.yaw-c.prevYaw)/dt;c.bank=damp(c.bank,clamp(c.turnRate*c.speed*0.065+noteBank,-0.65,0.65),4,dt);
   c.bend=damp(c.bend,clamp(c.turnRate*0.7,-0.7,0.7),4,dt);c.pitch=damp(c.pitch,clamp(Math.atan2(c.vel.y,Math.max(1,c.speed)),-0.25,0.25),3,dt);
-  c.energy=rayEnvelope(m.time-c.voiceAt,c.callPhrase)*0.75;motor(c,dt,c.state==='retreat');if(c.state==='rest')c.effort=damp(c.effort,0.12,5,dt);
+  c.energy=Math.max(rayEnvelope(m.time-c.voiceAt,c.callPhrase)*0.75,c.noteGlow);motor(c,dt,c.state==='retreat');if(c.state==='rest')c.effort=damp(c.effort,0.12,5,dt);
  }
  if(!g.sheltered&&!m.raysHidden&&m.time>=g.nextSocial&&m.time>=g.avoidUntil&&g.members.every(c=>routine.has(c.state))){
   const [a,b]=g.members;

@@ -1,0 +1,23 @@
+<!doctype html><meta charset="utf-8"><title>Reply silhouette checks</title>
+<script type="importmap">{"imports":{"three":"../../common/libs/three-0.185/build/three.module.min.js","three/addons/":"../../common/libs/three-0.185/examples/jsm/"}}</script>
+<style>body{background:#161721;color:#dbe4ea;font:14px monospace}canvas{display:block}</style><pre id="result">Checking contours…</pre>
+<script type="module">
+import * as THREE from 'three';
+import {replyOutline} from '../js/world/fauna/ReplyOutline.js?v=player-notes-10';
+const renderer=new THREE.WebGLRenderer();renderer.setSize(256,256);document.body.append(renderer.domElement);
+const target=new THREE.WebGLRenderTarget(256,256),camera=new THREE.PerspectiveCamera(40,1,.1,20);camera.position.z=4;
+const reports=[];
+for(const instanced of [false,true]){
+ const scene=new THREE.Scene(),geometry=new THREE.SphereGeometry(.8,24,16);
+ const material=instanced?new THREE.ShaderMaterial({vertexShader:'attribute float aReply;void main(){gl_Position=projectionMatrix*modelViewMatrix*instanceMatrix*vec4(position,1.0);}',fragmentShader:'void main(){gl_FragColor=vec4(.03,.03,.03,1.0);}'}):new THREE.MeshBasicMaterial({color:'#333333'});
+ const mesh=instanced?new THREE.InstancedMesh(geometry,material,1):new THREE.Mesh(geometry,material);
+ if(instanced){geometry.setAttribute('aReply',new THREE.InstancedBufferAttribute(new Float32Array([0]),1));mesh.setMatrixAt(0,new THREE.Matrix4());}
+ scene.add(mesh);const contour=replyOutline(mesh,{expression:instanced?'aReply':'uReplySignal'});
+ const render=value=>{contour.signal.value=value;if(instanced){geometry.attributes.aReply.setX(0,value);geometry.attributes.aReply.needsUpdate=true;}renderer.setRenderTarget(target);renderer.render(scene,camera);const pixels=new Uint8Array(256*256*4);renderer.readRenderTargetPixels(target,0,0,256,256,pixels);return pixels;};
+ const before=render(0),after=render(1),off=render(0);let outlined=0,interior=0,restored=true;
+ for(let i=0;i<before.length;i+=4){if(after[i]>before[i]+30){outlined++;if(before[i]>3)interior++;}if(off[i]!==before[i])restored=false;}
+ reports.push({instanced,outlined,interior,restored,passed:outlined>100&&outlined<2000&&interior<outlined*.15&&restored});
+ renderer.setRenderTarget(null);contour.signal.value=1;if(instanced){geometry.attributes.aReply.setX(0,1);geometry.attributes.aReply.needsUpdate=true;}renderer.render(scene,camera);
+}
+document.querySelector('#result').textContent=JSON.stringify({passed:reports.every(r=>r.passed),reports},null,2);
+</script>

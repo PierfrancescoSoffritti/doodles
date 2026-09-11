@@ -3,7 +3,7 @@ import { WaterOptics } from './WaterOptics.js';
 import { WaterMeshData, NEAR_RADIUS, NEAR_REBUILD, nearCoverageRadius } from './WaterMeshData.js';
 import { config } from '../core/Config.js';
 export { NEAR_RADIUS } from './WaterMeshData.js';
-import { createWaterUniforms, waterVertexShader, waterFragmentShader, updateWaterUniforms } from './WaterShader.js';
+import { createWaterUniforms, waterVertexShader, waterFragmentShader, updateWaterUniforms } from './WaterShader.js?v=player-notes-13';
 
 // Lakes and rivers: flat lake sheets at each lake's own level, and river ribbons that follow the
 // water surface sample by sample: sloping runs, short steep riffle ramps, and gaps where a

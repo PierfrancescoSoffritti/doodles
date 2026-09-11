@@ -1,6 +1,7 @@
+import { receiveNote, updateNote } from './NoteResponse.js?v=player-notes-13';
 import {BIRD_SPECIES} from './BirdSpecies.js?v=birds-10';
 import {BirdJourney} from './BirdJourney.js?v=birds-10';
-import {BirdForage} from './BirdForage.js?v=birds-10';
+import {BirdForage} from './BirdForage.js?v=player-notes-13';
 
 // Preserve the approved pose/wingbeat sequence, fitting its two contacts to
 // real terrain and branch anchors. The body itself is uniformly scaled.
@@ -44,19 +45,30 @@ export class BirdEncounter {
   pose.position={x:g.x+(x*c+z*s)*scale,y:g.y+pose.position.y*this.size+(q.y-g.y-3*this.size)*heightBlend,z:g.z+(-x*s+z*c)*scale};
   pose.yaw+=yaw;pose.size=this.size;pose.species=this.species;return pose;
  }
+ hearNote(note,delay=0){return receiveNote(this,this.noteClock||0,note,{position:this.pose.position,delay,duration:4.5,range:100});}
  update(dt){
+  this.noteClock=(this.noteClock||0)+dt;
+  updateNote(this,this.noteClock,r=>{
+   if(!r.alarm&&this.pose.state==='ground')this.forage?.answerHop(r.source);
+   this.onNoteGesture?.(r);
+  },r=>this.onNoteReply?.(r.alarm));
   const ground=!this.journey.active&&this.pose.state==='ground';
   if(this.forage){this.forage.update(dt,ground);this.ground={...this.forage.position};}
   if(this.leg){if(this.leg.fromGround)this.leg.from={...this.ground};if(this.leg.toGround)this.leg.to={...this.ground};}
   const previous=this.pose?.position,wasActive=this.journey.active;this.journey.update(dt);this.pose=this.sample();
   if(wasActive&&!this.journey.active&&this.pose.state==='ground'&&this.forage){this.forage.yaw=this.pose.yaw;this.forage.facing=this.pose.yaw;}
   if(!this.journey.active)this.restTime+=dt;
-  this.pose.variant=this.variant ?? 0;
+  this.pose.variant=this.variant ?? 0;this.pose.replyGlow=this.replyGlow||0;
   if(ground&&this.forage)this.forage.pose(this.pose);
   if(previous&&dt>0&&['takeoff','flight','glide'].includes(this.pose.state)){
    const q=this.pose.position,vertical=q.y-previous.y,horizontal=Math.hypot(q.x-previous.x,q.z-previous.z);
    const pitch=Math.atan2(vertical,horizontal)*.65;
    if(horizontal>.005){const t=Math.max(0,Math.min(1,(this.journey.time-.28)/.12)),k=t*t*(3-2*t);this.pose.pitch+=(pitch-this.pose.pitch)*k;this.pose.headPitch+=(-pitch*.55-this.pose.headPitch)*k;}
+  }
+  if(this.noteGlow>0&&this.noteResponse){
+   const p=this.pose,r=this.noteResponse,dx=r.source.x-p.position.x,dz=r.source.z-p.position.z;
+   if(!this.journey.active){p.headYaw=Math.atan2(Math.sin(Math.atan2(-dz,dx)-p.yaw),Math.cos(Math.atan2(-dz,dx)-p.yaw))*.7;p.headPitch=-.2;p.fold=1-this.noteGlow*.55;}
+   p.noteGlow=this.noteGlow;p.notePhase=this.notePhase;p.noteAlarm=this.noteAlarm;
   }
   return this.pose;
  }

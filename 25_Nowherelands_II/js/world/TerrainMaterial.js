@@ -1,7 +1,7 @@
 import { lumenLightUniforms, lumenLightGlsl } from './fauna/LumenLight.js';
 import { weatherGlsl } from './weather/WeatherGlsl.js';
 import * as THREE from 'three';
-import { Ripples } from './Ripples.js';
+import { Ripples } from './Ripples.js?v=player-notes-13';
 import { fogGlsl } from './FogGlsl.js';
 import { vegetationFadeUniforms, vegetationFadeGlsl } from './VegetationFade.js';
 import { shoreWaveGlsl } from './ShoreWaves.js';

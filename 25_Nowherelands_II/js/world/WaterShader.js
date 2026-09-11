@@ -2,11 +2,11 @@ import { lumenLightUniforms, lumenLightGlsl } from './fauna/LumenLight.js';
 import { weatherGlsl } from './weather/WeatherGlsl.js';
 import * as THREE from 'three';
 import { riverFlowGlsl } from './RiverFlow.js';
-import { Ripples } from './Ripples.js';
-import { hslGlsl, noiseGlsl } from './TerrainMaterial.js';
+import { Ripples } from './Ripples.js?v=player-notes-13';
+import { hslGlsl, noiseGlsl } from './TerrainMaterial.js?v=player-notes-13';
 import { fogGlsl } from './FogGlsl.js';
 import { shoreWaveGlsl } from './ShoreWaves.js';
-import { seaWaveGlsl, seaShadeGlsl } from './SeaShader.js';
+import { seaWaveGlsl, seaShadeGlsl } from './SeaShader.js?v=player-notes-13';
 
 // The inland water look, shared by the lakes and the rivers (the sea has its own, SeaShader.js):
 // the local environment supplies reflections; flow and channel shape come per vertex.

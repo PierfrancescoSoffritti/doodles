@@ -1,0 +1,16 @@
+<!doctype html><meta charset="utf-8"><title>Pebble eye color check</title>
+<script type="importmap">{"imports":{"three":"../../common/libs/three-0.185/build/three.module.min.js"}}</script>
+<pre id="result">Checking eyes remain neutral during a reply…</pre>
+<script type="module">
+import * as THREE from 'three';
+import {PebbleEyeMeshes} from '../js/world/fauna/PebbleEyeMeshes.js?v=player-notes-8';
+import {createFogUniforms} from '../js/world/FogGlsl.js';
+const renderer=new THREE.WebGLRenderer(),scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(40,1,.1,20);
+renderer.setSize(128,128);document.body.append(renderer.domElement);camera.position.z=4;
+const shared={moon:{dir:new THREE.Vector3(0,1,0),intensity:1},fogUniforms:createFogUniforms()};
+const eyes=new PebbleEyeMeshes(scene,shared,1);eyes.bulbs.count=1;eyes.bulbs.setMatrixAt(0,new THREE.Matrix4());
+const target=new THREE.WebGLRenderTarget(128,128),pixels=new Uint8Array(4);renderer.setRenderTarget(target);
+const render=glow=>{eyes.bulbs.geometry.attributes.aNote.setXYZ(0,glow,.3,0);eyes.bulbs.geometry.attributes.aNote.needsUpdate=true;renderer.render(scene,camera);renderer.readRenderTargetPixels(target,64,64,1,1,pixels);return [...pixels];};
+const before=render(0),after=render(1),pass=before.every((v,i)=>Math.abs(v-after[i])<2);
+document.querySelector('#result').textContent=JSON.stringify({pass,before,after});
+</script>

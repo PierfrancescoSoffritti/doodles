@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { Random, Simplex2D } from '../core/Random.js';
 import { config } from '../core/Config.js';
-import { hslGlsl, createRockMaterial } from './TerrainMaterial.js';
+import { hslGlsl, createRockMaterial } from './TerrainMaterial.js?v=player-notes-13';
 import { ROCK_STRIDE } from './gen/Rivers.js';
 import { SEG_KIND } from './Heightmap.js';
 import { WatersideMeshes } from './WatersideMeshes.js';

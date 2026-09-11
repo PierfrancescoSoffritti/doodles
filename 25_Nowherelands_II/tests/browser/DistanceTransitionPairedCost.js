@@ -5,9 +5,9 @@ import * as THREE from 'three';
 // geometry, fauna, viewport and camera; only the changed materials are swapped.
 export async function measurePairedCost(debug = window.__debug) {
 	const [{ Vegetation }, { createTerrainMaterial }, sea] = await Promise.all([
-		import('../../js/world/Vegetation.js?distance-baseline=1'),
-		import('../../js/world/TerrainMaterial.js?distance-baseline=1'),
-		import('../../js/world/SeaShader.js?distance-baseline=1'),
+		import('../../js/world/Vegetation.js?v=player-notes-13'),
+		import('../../js/world/TerrainMaterial.js?v=player-notes-13'),
+		import('../../js/world/SeaShader.js?v=player-notes-13'),
 	]);
 	const d = debug, v = d.terrain.vegetation, gl = d.renderer.getContext();
 	const ext = gl.getExtension('EXT_disjoint_timer_query_webgl2');

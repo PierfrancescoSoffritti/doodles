@@ -3,8 +3,8 @@ import {BIRD_SPECIES} from './BirdSpecies.js?v=birds-10';
 import * as THREE from 'three';
 import {BirdPassages,SKY_BIRD_CAPACITY} from './BirdPassages.js?v=birds-10';
 import {BirdSprites} from './BirdSprites.js?v=birds-10';
-import {BirdMesh} from './BirdMesh.js?v=birds-10';
-import {BirdEncounter} from './BirdEncounter.js?v=birds-10';
+import {BirdMesh} from './BirdMesh.js?v=player-notes-13';
+import {BirdEncounter} from './BirdEncounter.js?v=player-notes-13';
 import {BIRD_JOURNEY_TIME} from './BirdJourney.js?v=birds-10';
 
 const SCALE=4,MAX_ENCOUNTERS=28;
@@ -69,6 +69,8 @@ export class WorldBirds {
    e.enableForaging({seed:identity||1,sample:(x,z)=>hm.height(x,z),valid:(x,y,z)=>{
     hm.sample(x,z);return y>hm._water+2&&hm._slope<.35&&!hm.caves.hasOpening(x,z)&&!this.shared.colliders.some(c=>Math.hypot(x-c.position.x,z-c.position.z)<(c.radius||c.r||0)+4)&&!this.encounters.some(o=>o!==e&&Math.hypot(x-o.ground.x,z-o.ground.z)<2.5);
    }});
+   e.onNoteGesture=r=>{if(e.journey.active)return;if(r.alarm){if(e.pose.state==='ground')e.start();else this.changeTree(e);}else if(e.pose.state==='perched')this.changeTree(e,r.source);};
+   e.onNoteReply=alarm=>this.shared.playerNotes?.reply('bird',{replyOwner:e,get position(){return e.pose.position;}},alarm);
    e.update(0);return e;
   }
   // Geometry failures are stable for this loaded tree; occupancy can change.
@@ -84,13 +86,13 @@ export class WorldBirds {
   }
   return true;
  }
- changeTree(e){
+ changeTree(e,toward=null){
   const reserved=new Set(this.encounters.flatMap(b=>b.journey.active&&b.sourceSite?[b.site,b.sourceSite]:[b.site]));
   const occupied=new Map();for(const b of this.encounters)occupied.set(b.site.treeId,(occupied.get(b.site.treeId)||0)+1);
   const from=e.perch;
   const choices=(this.sites||[]).filter(s=>s.treeId!==e.site.treeId&&!reserved.has(s)).map(site=>{
    const p=site.position,d=Math.hypot(p.x-from.x,p.z-from.z);
-   return {site,d,score:d+(e.visitedTrees.has(site.treeId)?25:0)-Math.min(2,occupied.get(site.treeId)||0)*7};
+   return {site,d,score:(toward?Math.hypot(p.x-toward.x,p.z-toward.z):d)+(e.visitedTrees.has(site.treeId)?25:0)-Math.min(2,occupied.get(site.treeId)||0)*7};
   }).filter(c=>c.d>12&&c.d<95&&Math.abs(c.site.position.y-from.y)<22&&c.site.position.y-e.ground.y<40&&c.site.position.y-e.ground.y>4&&Math.hypot(c.site.position.x-e.ground.x,c.site.position.z-e.ground.z)<115).sort((a,b)=>a.score-b.score);
   for(const {site} of choices.slice(0,12)){
    const target=this.vegetation.birdPerchPosition(site);
@@ -101,6 +103,7 @@ export class WorldBirds {
   return false;
  }
 
+ hearNote(note){if(!this.root.visible||(this.shared.caveAmount||0)>.4)return;const p=note.position;if(!p)return;[...this.encounters].sort((a,b)=>Math.hypot(a.pose.position.x-p.x,a.pose.position.z-p.z)-Math.hypot(b.pose.position.x-p.x,b.pose.position.z-p.z)).forEach((e,i)=>e.hearNote(note,Math.min(1,i*.2)));}
  update(dt){
   this.time+=dt;const p=this.shared.player.position;
   this.root.visible=this.shared.surfaceStreaming!==false;
@@ -119,7 +122,7 @@ export class WorldBirds {
    }
    const distance=Math.hypot(p.x-e.ground.x,p.z-e.ground.z);
    const perched=e.pose.state==='perched';
-   if(!e.journey.active){
+   if(!e.journey.active&&!e.noteResponse){
     if(!perched&&((distance<25&&Math.abs(p.y-e.ground.y)<30)||e.restTime>e.profile.groundRest+e.personality*6)){e.sourceSite=null;e.start();}
     else if(perched){
      e.safeTime=distance>40?e.safeTime+dt:0;

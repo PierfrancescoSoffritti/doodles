@@ -1,9 +1,10 @@
-import { initializeWorldRays, updateWorldRays, hearWorldRays, worldRayCall } from './VeilRayWorld.js';
-import { initializePebbles, pebbleHabitat, updatePebble } from './PebbleHoppers.js?v=pebble-audio-10';
+import { receiveNote, updateNote, isPlayerNote } from './NoteResponse.js?v=player-notes-13';
+import { initializeWorldRays, updateWorldRays, hearWorldRays, worldRayCall } from './VeilRayWorld.js?v=player-notes-13';
+import { initializePebbles, pebbleHabitat, updatePebble, answerPebble } from './PebbleHoppers.js?v=player-notes-13';
 import { buildLumenGrid } from './LumenFlow.js';
 import { Random } from '../../core/Random.js';
 import { motor, steer, damp } from './Locomotion.js';
-import { initializeSchool, updateSchool, swimLumen } from './LumenSchool.js';
+import { initializeSchool, updateSchool, swimLumen } from './LumenSchool.js?v=player-notes-13';
 
 export const SPECIES = {
 	lumen: { name: 'Lumen shoal', count: 640, cap: 640, speed: 6, height: 13, radius: 42, voice: 'liquid whistles', interval: 12 },
@@ -118,11 +119,16 @@ export class FaunaModel {
 
 	// A creature voice is never fed back into this external-stimulus path. Each group
 	// may answer only once per cooldown; the visual reaction spreads with distance.
-	hear({ position, strength = 0.5, layer = '', freq = 400 }) {
+	hear({ position, strength = 0.5, layer = '', freq = 400, radius }) {
 		if (layer.startsWith('fauna:')) return;
 		const source = position || this.listener;
 		for (const group of this.groups.values()) {
-			if (group.raySite) { hearWorldRays(group,this,{position:source,strength,layer}); continue; }
+			if (group.raySite) { hearWorldRays(group,this,{position:source,strength,layer,radius}); continue; }
+			if(isPlayerNote({layer})){
+				const near=group.members.filter(c=>(radius!==undefined?Math.hypot(c.pos.x-source.x,c.pos.z-source.z):distance(c.pos,source))<=(radius??(strength>.75?165:110))).sort((a,b)=>distance(a.pos,source)-distance(b.pos,source));
+				near.forEach((c,i)=>{if(receiveNote(c,this.time,{layer,position:source,velocity:strength,radius},{delay:Math.min(1.3,i*.075),duration:5,range:110}))c.noteSpeak=group.kind==='hopper'||i<3;});
+				continue;
+			}
 			let closest = null, nearest = Infinity;
 			for (const c of group.members) {
 				const d = distance(c.pos, source);
@@ -206,6 +212,7 @@ export class FaunaModel {
 		}
 		for (const c of this.creatures) {
 			if(c.group.raySite) continue;
+			updateNote(c,this.time,r=>{if(c.kind==='hopper')answerPebble(c,this,r);},r=>{if(c.noteSpeak)this.onNoteReply?.(c.kind,c,r.alarm);});
 			const def = SPECIES[c.kind], t = this.time, p = c.pos, home = c.group.home;
 			c.energy *= Math.exp(-dt * (c.kind === 'ray' ? 0.6 : 1.5));
 			if (t >= c.responseAt) { c.energy = Math.max(c.energy, c.responseStrength); c.responseAt = Infinity; }

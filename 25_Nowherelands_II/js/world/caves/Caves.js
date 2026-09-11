@@ -3,7 +3,7 @@ import { caveLightingGlsl } from './CaveLighting.js';
 import { EntranceDressing } from './EntranceDressing.js';
 import * as THREE from 'three';
 import { WaterOptics } from '../WaterOptics.js';
-import { noiseGlsl,terrainLightGlsl } from '../TerrainMaterial.js';
+import { noiseGlsl,terrainLightGlsl } from '../TerrainMaterial.js?v=player-notes-13';
 
 const vertex=/* glsl */`
 varying vec3 vWorldPos;

@@ -1,5 +1,5 @@
 import { Random } from '../../core/Random.js';
-import { ReedWalkerWorldModel } from './ReedWalkerWorldModel.js?v=graze-1';
+import { ReedWalkerWorldModel } from './ReedWalkerWorldModel.js?v=player-notes-13';
 import { reedFootprint } from './ReedWalkerHabitat.js?v=graze-1';
 
 // Stage an encounter on the diorama, then run the production movement/controller.

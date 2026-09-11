@@ -1,6 +1,6 @@
 import { pebbleLighting, setPebbleLight } from './PebbleLighting.js';
 import * as THREE from 'three';
-import { terrainLightGlsl } from '../TerrainMaterial.js';
+import { terrainLightGlsl } from '../TerrainMaterial.js?v=player-notes-13';
 import { fogGlsl } from '../FogGlsl.js';
 
 const SEGMENTS = 7;
@@ -12,17 +12,17 @@ function material(shared, color, neutralWhite = false) {
 		uniforms.uLightning = shared.weather.uniforms.uLightning;
 	}
 	return new THREE.ShaderMaterial({ uniforms,
-		vertexShader: `varying vec3 vWorldPos; varying vec3 vNormal;
-		void main(){mat4 m=modelMatrix*instanceMatrix;vec4 p=m*vec4(position,1.0);vWorldPos=p.xyz;
+		vertexShader: `varying vec3 vWorldPos; varying vec3 vNormal; varying vec3 vNote;
+		attribute vec3 aNote; void main(){vNote=aNote;mat4 m=modelMatrix*instanceMatrix;vec4 p=m*vec4(position,1.0);vWorldPos=p.xyz;
 		mat3 basis=mat3(m);vNormal=normalize(basis*(normal/vec3(dot(basis[0],basis[0]),dot(basis[1],basis[1]),dot(basis[2],basis[2]))));
 		gl_Position=projectionMatrix*viewMatrix*p;}`,
-		fragmentShader: `varying vec3 vWorldPos; varying vec3 vNormal; uniform vec3 uColor; uniform vec3 uMoonDir; uniform float uMoon; ${fogGlsl}
+		fragmentShader: `varying vec3 vWorldPos; varying vec3 vNormal; varying vec3 vNote; uniform vec3 uColor; uniform vec3 uMoonDir; uniform float uMoon; ${fogGlsl}
 		${world ? `uniform float uMoonIntensity, uSunIntensity, uLightning; uniform vec3 uMoonColor, uSunDir, uSunColor, uSkyColor, uGroundColor; ${terrainLightGlsl}` : ''}
 		void main(){vec3 n=normalize(vNormal);float light=max(0.0,dot(n,uMoonDir));
 		vec3 col=${neutralWhite ? 'vec3(.58+.10*max(0.0,dot(n,normalize(vec3(.3,1.0,.5)))))' : world ? 'terrainLight(uColor,n)' : 'uColor*(.55+light*uMoon*.45)'};
 		vec3 fogged=applyFog(col,vWorldPos,cameraPosition);
 		${neutralWhite ? 'fogged=vec3(min(.68,dot(fogged,vec3(.2126,.7152,.0722))));' : ''}
-		gl_FragColor=vec4(fogged,1.0);}` });
+ gl_FragColor=vec4(fogged,1.0);}` });
 }
 
 // Curved stalks and directional pupils share the shell's interpolated transform.
@@ -30,6 +30,7 @@ function material(shared, color, neutralWhite = false) {
 export class PebbleEyeMeshes {
 	constructor(root, shared, capacity) {
 		const add = (name, geometry, color, count) => {
+			geometry.setAttribute('aNote',new THREE.InstancedBufferAttribute(new Float32Array(count*3),3));
 			const mesh = new THREE.InstancedMesh(geometry, material(shared, color, name === 'pebble-eyes'), count);
 			mesh.name = name; mesh.count = 0; mesh.frustumCulled = false;
 			mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage); root.add(mesh); return mesh;
@@ -121,6 +122,7 @@ export class PebbleEyeMeshes {
    const openness = Math.max(.025,1-lerp(e.prevBlink ?? 0,e.blink ?? 0));
 			this.pose.position.copy(this.b); this.pose.quaternion.identity(); this.pose.scale.set(radius,radius*openness,radius); this.pose.updateMatrix();
 			this.bulbs.setMatrixAt(this.count, this.pose.matrix);
+			this.bulbs.geometry.attributes.aNote.setXYZ(this.count,c.noteGlow||0,c.notePhase||0,c.noteAlarm?1:0);
 			// Aim from each actual eye center, including stalk height, shell tilt and sway.
 			this.gaze.set(viewer.x, viewer.y, viewer.z).sub(this.b).normalize();
 			this.pose.position.copy(this.b).addScaledVector(this.gaze, radius * 0.86);
@@ -129,12 +131,15 @@ export class PebbleEyeMeshes {
 			// Compress the pupil along world-up with its eyeball, regardless of gaze.
    this.pose.matrix.elements[13]=this.b.y+(this.pose.matrix.elements[13]-this.b.y)*openness;
    for(const row of [1,5,9])this.pose.matrix.elements[row]*=openness;
-			this.pupils.setMatrixAt(this.count++, this.pose.matrix);
+			this.pupils.geometry.attributes.aNote.setXYZ(this.count,c.noteGlow||0,c.notePhase||0,c.noteAlarm?1:0);
+   this.pupils.setMatrixAt(this.count++, this.pose.matrix);
 		}
 	}
 	finish() {
 		for (const c of this.motion.keys()) if (!this.active.has(c)) this.motion.delete(c);
 		this.stalks.geometry.attributes.aCaveLight.needsUpdate = true;
+		this.bulbs.geometry.attributes.aNote.needsUpdate = true;
+  this.pupils.geometry.attributes.aNote.needsUpdate = true;
 		this.stalks.count = this.segments; this.bulbs.count = this.pupils.count = this.count;
 		for (const mesh of [this.stalks, this.bulbs, this.pupils]) mesh.instanceMatrix.needsUpdate = true;
 	}

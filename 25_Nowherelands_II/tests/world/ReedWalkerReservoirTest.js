@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ReedWalkerWorldModel } from '../../js/world/fauna/ReedWalkerWorldModel.js';
+import { ReedWalkerWorldModel } from '../../js/world/fauna/ReedWalkerWorldModel.js?v=player-notes-13';
 import { reedPoseFits } from '../../js/world/fauna/ReedWalkerMotion.js';
 import { updateReedReservoir } from '../../js/world/fauna/ReedWalkerReservoir.js';
 const sample=(x,z)=>({ground:10.6+Math.sin(x*.02)*.15+Math.sin(z*.02)*.12,water:11,slope:.03,foam:.01,roof:false});

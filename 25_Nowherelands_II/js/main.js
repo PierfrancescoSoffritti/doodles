@@ -1,3 +1,4 @@
+import { PlayerNotes } from './player/PlayerNotes.js?v=player-notes-13';
 import * as THREE from 'three';
 import { FramePacer } from './core/FramePacer.js';
 import { EnvironmentProbe } from './fx/EnvironmentProbe.js';
@@ -5,18 +6,18 @@ import { config } from './core/Config.js';
 import { bus, Events } from './core/EventBus.js';
 import { damp } from './core/Utils.js';
 import { Heightmap } from './world/Heightmap.js';
-import { Ripples } from './world/Ripples.js';
+import { Ripples } from './world/Ripples.js?v=player-notes-13';
 import { SurfaceWork } from './world/SurfaceWork.js';
 import { ShoreMap } from './world/ShoreMap.js';
-import { Terrain } from './world/Terrain.js?v=birds-10';
-import { Water } from './world/Water.js';
-import { CoastalSpray } from './world/CoastalSpray.js';
-import { InlandWater } from './world/InlandWater.js';
-import { Waterfalls } from './world/Waterfalls.js';
+import { Terrain } from './world/Terrain.js?v=player-notes-13';
+import { Water } from './world/Water.js?v=player-notes-13';
+import { CoastalSpray } from './world/CoastalSpray.js?v=player-notes-13';
+import { InlandWater } from './world/InlandWater.js?v=player-notes-13';
+import { Waterfalls } from './world/Waterfalls.js?v=player-notes-13';
 import { WatersideLife } from './world/WatersideLife.js';
 import { WatersideAmbience } from './audio/WatersideAmbience.js';
 import { WatersideFeatures } from './world/WatersideFeatures.js';
-import { RiverDrift } from './world/RiverDrift.js';
+import { RiverDrift } from './world/RiverDrift.js?v=player-notes-13';
 import { createFogUniforms } from './world/FogGlsl.js';
 import { Sky } from './world/Sky.js';
 import { RainCurtains } from './world/weather/RainCurtains.js';
@@ -29,7 +30,7 @@ import { Sprouts } from './world/Sprouts.js';
 import { Landmarks } from './landmarks/Landmarks.js';
 import { Player } from './player/Player.js';
 import { HUD } from './ui/HUD.js?v=atelier-1';
-import { Caves } from './world/caves/Caves.js?v=pebble-audio-10';
+import { Caves } from './world/caves/Caves.js?v=player-notes-13';
 import { WeatherSurvey } from './ui/WeatherSurvey.js';
 import { CaveSurvey } from './ui/CaveSurvey.js';
 import { MovementProfile } from './ui/MovementProfile.js';
@@ -38,14 +39,14 @@ import { EventDirector } from './events/Events.js';
 import { PostProcessing } from './fx/PostProcessing.js';
 import { AudioEngine } from './audio/AudioEngine.js?v=pebble-audio-10';
 import { Conductor } from './audio/Conductor.js?v=pebble-audio-10';
-import { Fauna } from './world/fauna/Fauna.js?v=pebble-audio-10';
-import { WorldReedWalkers } from './world/fauna/WorldReedWalkers.js?v=world-spray-1';
+import { Fauna } from './world/fauna/Fauna.js?v=player-notes-13';
+import { WorldReedWalkers } from './world/fauna/WorldReedWalkers.js?v=player-notes-13';
 import { ReedSurvey } from './ui/ReedSurvey.js?v=world-spray-1';
-import { WorldLanternMites } from './world/fauna/WorldLanternMites.js';
+import { WorldLanternMites } from './world/fauna/WorldLanternMites.js?v=player-notes-13';
 import { LanternMiteSurvey } from './ui/LanternMiteSurvey.js';
-import { WorldBirds } from './world/fauna/WorldBirds.js?v=birds-10';
+import { WorldBirds } from './world/fauna/WorldBirds.js?v=player-notes-13';
 import { BirdSurvey } from './ui/BirdSurvey.js?v=birds-10';
-import { FaunaSurvey } from './ui/FaunaSurvey.js?v=pebble-audio-10';
+import { FaunaSurvey } from './ui/FaunaSurvey.js?v=player-notes-13';
 
 const canvas = document.getElementById('canvas');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
@@ -123,6 +124,7 @@ function start(world,caveMeshes) {
 	shared.player = player;
 	const fauna = new Fauna(scene, heightmap, shared);
 	shared.fauna = fauna;
+	shared.playerNotes = new PlayerNotes(shared);
 	const birds = new WorldBirds(scene,heightmap,shared,terrain.vegetation,config.seedHash);
 	shared.birds = birds;
 	const walkers = new WorldReedWalkers(scene,heightmap,shared,fauna,config.seed); shared.walkers=walkers;
@@ -145,13 +147,15 @@ function start(world,caveMeshes) {
 	// ---- events ----
 	bus.on(Events.RIPPLE, ({ x, z, size, hue, saturation }) => ripples.add(x, z, size, hue % 1, saturation));
 	bus.on(Events.NOTE, (n) => {
+		if(n.layer==='player-note'){shared.playerNotes.hear(n);if(n.position)terrain.vegetation.noteAt(n.position.x,n.position.z,.5+(n.velocity||.3));return;}
 		mites.hearNote(n);
+		walkers.hearNote(n);birds.hearNote(n);
 		if (n.position) terrain.vegetation.noteAt(n.position.x, n.position.z, 0.5 + (n.velocity || 0.3));
 		if (n.position && n.layer !== 'sequencer') ripples.add(n.position.x, n.position.z, 0.6 + n.velocity * 2, (shared.hue + 0.15) % 1);
 		else if (n.layer === 'sequencer') ripples.add(n.position.x, n.position.z, 0.5, (shared.hue + 0.05) % 1);
 	});
 	bus.on(Events.KEY_CHANGE, () => { shared.hue = (shared.hue + 0.11 + Math.random() * 0.1) % 1; });
-	bus.on(Events.PRESS_END, ({duration}) => { if(!landmarks.aim()){const charge=Math.max(0,(duration-0.28)/1.1);if(!mites.playerNote(charge))fauna.playerRayNote(charge);} });
+	bus.on(Events.PRESS_END, ({duration}) => { if(!landmarks.aim())shared.playerNotes.send(Math.max(0,(duration-.28)/1.1)); });
 	bus.on('plant', ({ x, z }) => { if (sprouts.add(x, z, shared.time)) ripples.add(x, z, 0.5, shared.hue, 0.8); });
 	bus.on('footstep', ({ inWater }) => { if (shared.conductor) shared.conductor.footstep(inWater); });
 	bus.on('meteor', () => { if (shared.conductor) shared.conductor.meteor(); });
@@ -177,7 +181,8 @@ function start(world,caveMeshes) {
 	const miteSurvey = new URLSearchParams(location.search).has('mites') ? new LanternMiteSurvey(shared, mites) : null;
 	const faunaSurvey = !reedSurvey && !birdSurvey && !miteSurvey && new URLSearchParams(location.search).has('fauna') ? new FaunaSurvey(shared, fauna) : null;
 
-	if(faunaSurvey && new URLSearchParams(location.search).get('fauna')==='ray')faunaSurvey.visit('ray');
+	const initialFauna = new URLSearchParams(location.search).get('fauna');
+	if (faunaSurvey && ['lumen', 'hopper', 'ray'].includes(initialFauna)) faunaSurvey.visit(initialFauna);
 
 	// ---- enter ----
 	let started = false;
@@ -263,6 +268,7 @@ function start(world,caveMeshes) {
 			shared.conductor.update(dt, shared);
 		}
 		fauna.update(dt);
+		shared.playerNotes.update();
 		birds.update(dt);
 		walkers.update(dt);
 		mites.update(dt);

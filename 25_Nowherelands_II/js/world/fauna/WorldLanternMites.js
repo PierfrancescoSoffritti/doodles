@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { lanternAngles, lanternBarkSite, lanternHabitat, lanternHollowSite } from './LanternMiteHabitat.js';
-import { LanternMiteColony } from './LanternMiteWorldModel.js';
-import { LanternMiteMeshes } from './LanternMiteMeshes.js';
+import { LanternMiteColony } from './LanternMiteWorldModel.js?v=player-notes-13';
+import { LanternMiteMeshes } from './LanternMiteMeshes.js?v=player-notes-13';
 import { LanternMiteHomeMeshes } from './LanternMiteHomeMeshes.js';
 import { LanternMitePaths } from './LanternMitePaths.js';
 import { LanternMiteAudio } from '../../audio/LanternMiteVoice.js';
@@ -78,6 +78,7 @@ export class WorldLanternMites {
    this.audio ||= new LanternMiteAudio(this.shared.audio, 3);
    this.audio.play(mite, reply, this.shared.audio.now, this.shared.player.position);
   };
+  colony.model.onNoteSound=(m,alarm)=>this.shared.playerNotes?.reply('mite',{replyOwner:m,get pos(){return colony.position(m);}},alarm);
   colony.onAlarm = id => this.audio?.silence(id);
   this.colonies.set(site.id, colony); return colony;
  }
@@ -126,15 +127,8 @@ export class WorldLanternMites {
   if(!this.root.visible||document.hidden)return;
   for(const colony of this.colonies.values())colony.hearNote(note);
  }
- playerNote(charge=0) {
-  const e=this.shared.audio,p=this.shared.player.position;
-  if(!e||e.ctx.state!=='running'||!this.root.visible||!this.colonies.size)return false;
-  if(![...this.colonies.values()].some(c=>Math.hypot(c.site.center.x-p.x,c.site.center.z-p.z)<10*c.site.scale))return false;
-  this.observing=false;
-  e.playTone({freq:this.shared.conductor?.scale.freq(2,2)||660,time:e.now,position:{x:p.x,y:p.y,z:p.z},dest:e.playerBus,
-   velocity:0.35+Math.min(1,charge)*0.55,duration:0.18,type:'sine',attack:0.025,release:0.55,cutoff:2200,reverb:0.45,layer:'lantern-player'});
-  return true;
- }
+ playerNote(charge=0) { return this.shared.playerNotes?.send(charge) || false; }
+
  update(dt) {
   this.time += dt;
   this.root.visible = this.shared.surfaceStreaming !== false && (this.shared.caveAmount || 0) < 0.4;

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { CaveField } from '../../js/world/caves/CaveField.js';
 import { pebbleCaveSampler, pebbleHabitatSites } from '../../js/world/fauna/PebbleHabitats.js';
-import { FaunaModel } from '../../js/world/fauna/FaunaModel.js';
+import { FaunaModel } from '../../js/world/fauna/FaunaModel.js?v=player-notes-13';
 
 const surface = () => ({ ground: 100, water: -4, slope: 0.1, hardness: 0.8, forest: 0.9, wet: 0.95, roof: false });
 function fixture(wet = false, height = 25) {

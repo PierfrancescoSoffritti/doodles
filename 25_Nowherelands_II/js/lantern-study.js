@@ -4,9 +4,9 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { LanternMiteStudy } from './world/fauna/LanternMiteStudy.js';
+import { LanternMiteStudy } from './world/fauna/LanternMiteStudy.js?v=player-notes-13';
 import { Random } from './core/Random.js';
-import { LanternMiteMeshes } from './world/fauna/LanternMiteMeshes.js';
+import { LanternMiteMeshes } from './world/fauna/LanternMiteMeshes.js?v=player-notes-13';
 import { mountLanternListening } from './atelier/LanternMiteListening.js';
 
 const $ = id => document.getElementById(id);

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { Random } from '../core/Random.js';
 import { crestOffset } from './RiverGeometry.js';
-import { noiseGlsl } from './TerrainMaterial.js';
+import { noiseGlsl } from './TerrainMaterial.js?v=player-notes-13';
 import { fogGlsl } from './FogGlsl.js';
 import { RIVER_STRIDE, RV, RIVER_KIND, fallFaceRun, surfaceHalfWidth } from './gen/Rivers.js';
 

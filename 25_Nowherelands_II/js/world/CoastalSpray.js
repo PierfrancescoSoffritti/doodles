@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { config } from '../core/Config.js';
 import { Random } from '../core/Random.js';
-import { noiseGlsl } from './TerrainMaterial.js';
+import { noiseGlsl } from './TerrainMaterial.js?v=player-notes-13';
 import { shoreWaveGlsl } from './ShoreWaves.js';
 import { fogGlsl } from './FogGlsl.js';
 import { weatherGlsl } from './weather/WeatherGlsl.js';

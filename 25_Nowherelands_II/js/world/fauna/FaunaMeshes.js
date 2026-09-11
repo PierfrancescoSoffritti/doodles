@@ -1,7 +1,7 @@
-import { PebbleMeshes } from './PebbleMeshes.js?v=pebble-audio-10';
+import { PebbleMeshes } from './PebbleMeshes.js?v=player-notes-13';
 import { lumenAppearance } from './LumenAppearance.js';
 import * as THREE from 'three';
-import { SPECIES } from './FaunaModel.js?v=pebble-audio-10';
+import { SPECIES } from './FaunaModel.js?v=player-notes-13';
 import { fogGlsl } from '../FogGlsl.js';
 import { faunaGeometry } from './FaunaGeometry.js';
 import { faunaDeformation } from './FaunaDeformation.js';
@@ -21,11 +21,11 @@ const vertexShader = /* glsl */`
 	varying vec3 vWorld, vNormal, vLocal;
 	varying vec2 vUv;
 	varying vec4 vLife;
-	varying float vFade;
+	varying float vFade; varying float vNotePhase; varying float vReply;
 	${faunaDeformation}
 	void main() {
 		vec3 p = deformFauna(position);
-		vLocal = position; vUv = uv; vLife = aLife; vFade = aState.y;
+		vLocal = position; vUv = uv; vLife = aLife; vFade = aState.y; vNotePhase = aState.x;vReply=aLife.z;
 		// Reconstruct the deformed normal so illumination follows the bending body.
 		vec3 n = normalize(normal);
 		vec3 t = normalize(cross(n, abs(n.y) < 0.9 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0)));
@@ -52,7 +52,7 @@ const fragmentShader = /* glsl */`
 	varying vec3 vWorld, vNormal, vLocal;
 	varying vec2 vUv;
 	varying vec4 vLife;
-	varying float vFade;
+	varying float vFade; varying float vNotePhase; varying float vReply;
 	${fogGlsl}
 	void main() {
 		vec3 viewDir = normalize(cameraPosition - vWorld);
@@ -70,9 +70,16 @@ const fragmentShader = /* glsl */`
 			float rim = 1.0 - smoothstep(0.0, max(fwidth(edge) * 1.5, 0.025), edge);
 			float wave = 0.72 + 0.28 * sin(vUv.x * 14.0 - uTime * 1.8 + vLife.x);
 			col = mix(vec3(0.2, 0.14, 0.29) + facing * vec3(0.17, 0.11, 0.21), vec3(0.63, 0.51, 0.83) * (0.9 + vLife.y * 0.3), rim);
+			float pulse=vLife.y;float sweep=exp(-pow((vUv.y-fract(abs(vNotePhase)*1.6))/.22,2.0));
+			col+=(vNotePhase<0.?vec3(1.,.25,.1):vec3(.7,.4,1.))*pulse*(rim*.4+sweep*.3);
 			alpha *= (0.28 + facing * 0.15 + rim * 0.42) * wave;
 		#endif
-		float dist = distance(vWorld, cameraPosition);
+		float contour=1.0-smoothstep(.06,.2,facing);
+  #if KIND == 5
+   contour=1.0-smoothstep(0.0,.014,min(vUv.y,1.0-vUv.y));
+  #endif
+  col+=vec3(.65,.8,.85)*contour*vReply*.9;alpha=max(alpha,contour*vReply*.65*vFade);
+  float dist = distance(vWorld, cameraPosition);
 		float extinction = (1.0 - heightFog(vWorld, cameraPosition)) * exp(-pow(dist * uFogDistance, 2.0) * 1.4);
 		alpha *= extinction;
 		if (alpha < 0.005) discard;
@@ -172,17 +179,18 @@ export class FaunaMeshes {
 			this.dummy.scale.setScalar(c.size * Math.max(0.001, born));
 			if(kind==='lumen') {
 				const glow=lumenAppearance(c.phase,c.speed,Math.hypot(c.elastic?.x||0,c.elastic?.y||0,c.elastic?.z||0),c.energy,model.time);
-				c.radiance=glow;this.radiance.setXYZW(i,glow.r,glow.g,glow.b,glow.brightness);
+				if(c.noteGlow>0){const k=c.noteGlow*.3;glow.r=glow.r*(1-k)+(c.noteAlarm?1:.25)*k;glow.g=glow.g*(1-k)+(c.noteAlarm?.24:1)*k;glow.b=glow.b*(1-k)+(c.noteAlarm?.1:1)*k;glow.brightness+=k*.8;}
+			c.radiance=glow;this.radiance.setXYZW(i,glow.r,glow.g,glow.b,glow.brightness);
 				this.placement.setXYZW(i,p.x,p.y,p.z,c.size*Math.max(0.001,born));
 				this.velocity.setXYZ(i,(c.oldVX??c.vel.x)+(c.vel.x-(c.oldVX??c.vel.x))*alpha,(c.oldVY??c.vel.y)+(c.vel.y-(c.oldVY??c.vel.y))*alpha,(c.oldVZ??c.vel.z)+(c.vel.z-(c.oldVZ??c.vel.z))*alpha);
 				this.elastic.setXYZ(i,c.elastic?.x||0,c.elastic?.y||0,c.elastic?.z||0);
 				this.dummy.position.set(0,0,0);this.dummy.scale.setScalar(1);
 			}
 			this.dummy.updateMatrix(); mesh.setMatrixAt(i, this.dummy.matrix);
-			this.life[kind].setXYZW(i, c.phase, c.energy, c.speed, c.bend);
+			this.life[kind].setXYZW(i, c.phase, c.energy, c.replyGlow||0, c.bend);
 			this.motion[kind].setXYZW(i, (c.prevStroke ?? c.stroke) + (c.stroke - (c.prevStroke ?? c.stroke)) * alpha, c.effort, c.compression, c.breath);
 			const far = Math.max(0, Math.min(1, ((kind === 'lumen' ? 4500 : 650) - Math.hypot(p.x - model.listener.x, p.z - model.listener.z)) / (kind === 'lumen' ? 1000 : 130)));
-			this.state[kind].setXY(i, c.hop, born * far);
+			this.state[kind].setXY(i, kind==='ray'?(c.noteAlarm?-(c.notePhase+.001):(c.notePhase||0)):c.hop, born * far);
 
 		}
 		for (const [kind, mesh] of Object.entries(this.meshes)) {

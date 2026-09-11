@@ -1,3 +1,4 @@
+import {replyOutline} from './ReplyOutline.js?v=player-notes-13';
 import * as THREE from 'three';
 
 export class LanternMiteMeshes {
@@ -15,20 +16,22 @@ export class LanternMiteMeshes {
   this.root.add(body, halo);
   const light = this.lights ? new THREE.PointLight('#ffd398', 0, 2, 2) : null;
   if (light) this.root.add(light);
-  const rig = { body, halo, light }; this.rigs.set(id, rig); return rig;
+  const reply=replyOutline(body);const rig = { body, halo, light, reply }; this.rigs.set(id, rig); return rig;
  }
  update(mites, time, position = m => m.pos, scale = 1, opacity = 1) {
   for (const m of mites) {
    const rig = this.rigs.get(m.id) || this.create(m.id), p = position(m);
-   rig.body.position.set(p.x, p.y, p.z);
-   const airborne = ['forage', 'visit', 'listen', 'exchange', 'investigate', 'contact', 'return', 'emerge','answering','note-rest'].includes(m.state);
+   rig.body.position.set(p.x, p.y, p.z);rig.reply.signal.value=m.replyGlow||0;
+   const airborne = ['forage', 'visit', 'listen', 'exchange', 'investigate', 'contact', 'return', 'emerge','answering','note-rest','note-orbit'].includes(m.state);
    if (airborne) rig.body.position.y += Math.sin((time - m.since) * 1.7) * 0.03 * scale * Math.min(1, (time - m.since) * 2);
    if (Number.isFinite(p.minY)) rig.body.position.y=Math.max(p.minY,rig.body.position.y);
    rig.body.scale.set(m.size * 0.88 * scale, m.size * scale, m.size * 0.8 * scale);
    rig.body.rotation.set(0, m.phase, 0.12);
+   rig.body.material.emissive.set(m.noteGlow>0?(m.noteAlarm?'#ff5426':'#ffda8b'):'#ffd27b');
+   rig.halo.material.color.set(m.noteGlow>0&&m.noteAlarm?'#ff5426':'#ffffff');
    rig.body.material.emissiveIntensity = m.brightness * 3.8;
    rig.body.material.opacity = opacity;
-   rig.halo.position.copy(rig.body.position); rig.halo.scale.setScalar(m.size * 9 * scale);
+   rig.halo.position.copy(rig.body.position); rig.halo.scale.setScalar(m.size * (9+(m.noteGlow||0)*2) * scale);
    rig.halo.material.opacity = m.brightness * 0.65 * opacity;
    if (rig.light) { rig.light.position.copy(rig.body.position); rig.light.intensity = m.brightness * 0.65 * opacity; }
   }

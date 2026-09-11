@@ -4,12 +4,12 @@ import { LumenLight } from './LumenLight.js';
 import { FaunaProfile } from './FaunaProfile.js';
 import { Random } from '../../core/Random.js';
 import { bus, Events } from '../../core/EventBus.js';
-import { FaunaModel, SPECIES } from './FaunaModel.js?v=pebble-audio-10';
-import { FaunaMeshes } from './FaunaMeshes.js?v=pebble-audio-10';
+import { FaunaModel, SPECIES } from './FaunaModel.js?v=player-notes-13';
+import { FaunaMeshes } from './FaunaMeshes.js?v=player-notes-13';
 import { FaunaAudio } from '../../audio/FaunaAudio.js?v=pebble-audio-10';
 import { pebbleHabitatSites } from './PebbleHabitats.js?v=pebble-audio-10';
 import { PebbleColonyTour } from './PebbleColonyTour.js?v=2';
-import { lumenLakes } from './LumenSchool.js';
+import { lumenLakes } from './LumenSchool.js?v=player-notes-13';
 
 const CELL = 220, STEP = 1 / 30;
 
@@ -34,6 +34,7 @@ export class Fauna {
    const surface=(c.group.sample || this.sample)(c.pos.x,c.pos.z);
    this.audio?.pebble(c,event,{cave:!!surface.cave,listener:shared.player.position});
   };
+		this.model.onNoteReply = (kind,c,alarm) => shared.playerNotes?.reply(kind,c,alarm);
 		this.model.onRaySilence = () => this.audio?.silenceRays();
 		this.model.onCall = (c, landing, phrase = 'contact') => {
    if(c.kind==='hopper') {if(!landing)this.model.onPebbleSound(c,'startle');return;}
@@ -45,7 +46,7 @@ export class Fauna {
 		};
 		this.model.onEscape = c => { if ((shared.caveAmount || 0) < 0.4) this.audio?.escape(c); };
 		if (new URLSearchParams(globalThis.location?.search || '').has('faunaProfile')) this.profile = new FaunaProfile(this);
-		this.off = [bus.on(Events.NOTE, note => this.model.hear({ ...note, strength: note.velocity })),
+		this.off = [bus.on(Events.NOTE, note => {if(note.layer!=='player-note')this.model.hear({ ...note, strength: note.velocity });}),
 			bus.on('footstep', () => this.model.hear({ position: shared.player.position, strength: 0.38, freq: 180, layer: 'footstep' }))];
 	}
 	prime(position, seed) {
@@ -211,12 +212,7 @@ export class Fauna {
   }
   return current;
  }
- playerRayNote(charge=0) {
-  const e=this.shared.audio,p=this.shared.player.position;
-  if(!e||e.ctx.state!=='running'||this.model.raysHidden||!this.model.creatures.some(c=>c.kind==='ray'&&Math.hypot(c.pos.x-p.x,c.pos.y-p.y,c.pos.z-p.z)<80))return false;
-  e.playTone({freq:this.shared.conductor.scale.freq(0,2),position:{x:p.x,y:p.y,z:p.z},velocity:0.35+Math.min(1,charge)*0.55,attack:0.05,duration:0.3,release:1,type:'sine',layer:'ray-player',dest:e.playerBus});
-  return true;
- }
+ playerRayNote(charge=0) { return this.shared.playerNotes?.send(charge) || false; }
 
 	nearest(kind) {
 		const p = this.shared.player.position;

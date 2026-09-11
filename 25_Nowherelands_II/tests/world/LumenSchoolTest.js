@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { updateFlow, buildLumenGrid, nearestLumen } from '../../js/world/fauna/LumenFlow.js';
-import { lumenLakes, departSchool } from '../../js/world/fauna/LumenSchool.js';
-import { FaunaModel } from '../../js/world/fauna/FaunaModel.js';
+import { lumenLakes, departSchool } from '../../js/world/fauna/LumenSchool.js?v=player-notes-13';
+import { FaunaModel } from '../../js/world/fauna/FaunaModel.js?v=player-notes-13';
 
 const lakes = [{ id: 0, x: 0, y: 0, z: 0, radius: 35 }, { id: 1, x: 600, y: 25, z: 180, radius: 35 }, { id: 2, x: 1800, y: 70, z: -300, radius: 35 }];
 const sample = (x, z) => {

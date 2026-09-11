@@ -1,9 +1,9 @@
 import {BIRD_SPECIES} from './world/fauna/BirdSpecies.js?v=birds-10';
-import {BirdEncounter} from './world/fauna/BirdEncounter.js?v=birds-10';
+import {BirdEncounter} from './world/fauna/BirdEncounter.js?v=player-notes-13';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { BirdJourney, BIRD_GROUND, BIRD_JOURNEY_TIME } from './world/fauna/BirdJourney.js?v=birds-10';
-import { BirdMesh } from './world/fauna/BirdMesh.js?v=birds-10';
+import { BirdMesh } from './world/fauna/BirdMesh.js?v=player-notes-13';
 
 const $=id=>document.getElementById(id);
 const reportError=message=>{ $('error').hidden=false; $('error').textContent=message; document.body.dataset.status='fail'; };
@@ -113,7 +113,7 @@ function frame(now){
 requestAnimationFrame(frame);
 if(new URLSearchParams(location.search).has('check')){
  try{
-  const {checkBirdRendering}=await import('../tests/BirdRenderChecks.js?v=birds-10');
+  const {checkBirdRendering}=await import('../tests/BirdRenderChecks.js?v=player-notes-13');
   document.body.dataset.birdChecks=JSON.stringify(BIRD_SPECIES.map((_,i)=>checkBirdRendering(bird.geometry,i)));
  }catch(e){reportError(e.message);console.error(e);}
 }

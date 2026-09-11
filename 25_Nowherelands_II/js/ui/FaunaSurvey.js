@@ -1,5 +1,5 @@
 import { readPebbleVolume, savePebbleVolume } from '../audio/PebbleAudioSettings.js?v=pebble-audio-10';
-import { SPECIES } from '../world/fauna/FaunaModel.js';
+import { SPECIES } from '../world/fauna/FaunaModel.js?v=player-notes-13';
 
 // Optional in-world field guide. Only visits real members of the current population.
 export class FaunaSurvey {
@@ -13,16 +13,15 @@ export class FaunaSurvey {
 			b.onclick = () => this.visit(kind); this.list.append(b); this.buttons[kind] = b;
 		}
 		this.panel.append(this.list);
+  const tours=document.createElement('p');tours.style.cssText='font-size:12px;line-height:1.9';
+  for(const [label,key] of [['Reed walkers','reeds'],['Birds','birds'],['Lantern mites','mites']]){const a=document.createElement('a');const url=new URL(location.href);url.searchParams.delete('fauna');url.searchParams.set(key,'1');a.href=url.href;a.textContent=label+' ↗';a.style.cssText='color:#afcdcf;display:block';tours.append(a);}this.panel.append(tours);
 		this.detail = document.createElement('p'); this.detail.className = 'fauna-guide-detail'; this.panel.append(this.detail);
 		const actions = document.createElement('div'); actions.className = 'fauna-guide-actions';
 		this.listen = document.createElement('button'); this.listen.textContent = 'Hear its voice';
 		this.listen.onclick = () => { this.startAudio(); const c = this.subject || fauna.nearest(this.kind); if (c) fauna.model.call(c); };
 		this.answer = document.createElement('button'); this.answer.textContent = 'Send a tone';
-		this.answer.onclick = () => {
-			this.startAudio(); const e = shared.audio;
-			if (this.kind === 'ray') { fauna.playerRayNote(); return; }
-			if (e) e.playTone({ freq: shared.conductor.scale.freq(0, 2), position: shared.player.position, velocity: 0.42, attack: 0.05, duration: 0.3, release: 1, type: 'sine', layer: 'invitation', dest: e.playerBus });
-		};
+		this.answer.onclick = () => shared.playerNotes.send();
+
 		actions.append(this.listen, this.answer); this.panel.append(actions);
 		const explore = document.createElement('button'); explore.className = 'fauna-guide-explore'; explore.textContent = 'Explore here ↗';
 		explore.onclick = () => {
@@ -193,12 +192,12 @@ export class FaunaSurvey {
     this.soundReadout.textContent=`${engine.ctx.state} · ${Math.round(sound.volume*100)}%${this.fauna.audio.muted?' · muted':''} · encounter peak ${Number.isFinite(db)?db.toFixed(1):'−∞'} dBFS${last?' · last '+last.event:''}`;
     this.panel.dataset.pebbleSound=JSON.stringify({context:engine.ctx.state,muted:this.fauna.audio.muted,volume:sound.volume,voices:sound.voices.length,pebble,mix,peak:this.soundPeak,master:engine.master.gain.value,reduction:engine.compressor.reduction,events:sound.history.slice(-8)});
    }
-			const descriptions = { rest: 'Watchful eyes among the stones', notice: 'Eyes following your approach', rise: 'Startled · unfolding its legs', flee: 'Scattering at full speed', regroup: 'Hurrying back to the colony', wait: 'Waiting upright for the colony', brake: 'Slowing · finding its footing', settle: 'Folding back into a stone' };
+			const descriptions = { answer: 'Answering your note with two hops', rest: 'Watchful eyes among the stones', notice: 'Eyes following your approach', rise: 'Startled · unfolding its legs', flee: 'Scattering at full speed', regroup: 'Hurrying back to the colony', wait: 'Waiting upright for the colony', brake: 'Slowing · finding its footing', settle: 'Folding back into a stone' };
 			const colonies = [...this.fauna.model.groups.values()].filter(g => g.kind === 'hopper' && g.members.length).sort((a, b) => a.id.localeCompare(b.id));
 			this.detail.textContent = descriptions[b.state] + ` · ${this.fauna.pebbleTour?.stops ? 'tour stop ' + this.fauna.pebbleTour.stops + ' · ' : ''}${c.group.habitat || 'rocky foothills and gravel shores'}`;
 			this.panel.dataset.pebble = JSON.stringify({ rendered: { visible: this.fauna.meshes.root.visible, eyes: this.fauna.meshes.pebbles.eyes.bulbs.count, position: c.renderPosition }, state: b.state, stand: b.stand, speed: c.speed, steps: b.steps, escapes: b.escapes, position: c.pos, playerDistance: Math.hypot(c.pos.x - this.shared.player.position.x, c.pos.z - this.shared.player.position.z), stones: c.group.stones.length, habitat: c.group.habitat, reunion: c.group.reunion, colony: c.group.id, colonies: colonies.length, tourStops: this.fauna.pebbleTour?.stops, knownSites: this.fauna.pebbleTour?.locations.size, home: c.group.home });
 		}
-		this.listen.disabled = this.answer.disabled = !this.shared.audio;
+		this.listen.disabled = !this.shared.audio;
 		this.frames.push(ms);
 		if (this.frames.length >= 120) {
 			if (this.fauna.profile) this.panel.dataset.performance = JSON.stringify(this.fauna.profile.summary());

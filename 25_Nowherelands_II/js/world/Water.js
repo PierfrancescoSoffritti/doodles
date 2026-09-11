@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { Reflector } from 'three/addons/objects/Reflector.js';
 import { config } from '../core/Config.js';
-import { createSeaUniforms, seaVertexShader, seaFragmentShader, updateSeaUniforms } from './SeaShader.js';
+import { createSeaUniforms, seaVertexShader, seaFragmentShader, updateSeaUniforms } from './SeaShader.js?v=player-notes-13';
 
 // The sea: a clipmap of concentric square rings around the player, 2 m cells at the feet doubling
 // to 64 m four kilometres out, displaced by the waves in the vertex shader, and beyond it a flat

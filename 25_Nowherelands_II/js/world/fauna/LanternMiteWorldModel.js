@@ -1,4 +1,4 @@
-import { LanternMiteStudy } from './LanternMiteStudy.js';
+import { LanternMiteStudy } from './LanternMiteStudy.js?v=player-notes-13';
 import { lanternRestingFloor } from './LanternMiteHome.js';
 
 export class LanternMiteColony {
@@ -13,8 +13,9 @@ export class LanternMiteColony {
  }
  hearNote(note) {
   const p=note.position,s=this.site,origin=s.point({x:0,y:0,z:0});
-  if(!p||!['lantern-player','monolith','octahedron'].includes(note.layer)||Math.abs(p.y-s.center.y)>22)return false;
+  if(!p||!['player-note','lantern-player','monolith','octahedron'].includes(note.layer)||(note.layer!=='player-note'&&Math.abs(p.y-s.center.y)>22))return false;
   const dx=(p.x-origin.x)/s.scale,dz=(p.z-origin.z)/s.scale;
+  if(note.layer==='player-note')return this.model.answerPlayer({...note,radius:note.radius===undefined?undefined:note.radius/s.scale,position:{x:dx*s.tangent.x+dz*s.tangent.z,y:(p.y-s.base)/s.scale,z:dx*s.normal.x+dz*s.normal.z}},110/s.scale);
   return this.model.hearNote({x:dx*s.tangent.x+dz*s.tangent.z,y:(p.y-s.base)/s.scale,z:dx*s.normal.x+dz*s.normal.z},note.velocity);
  }
  update(dt, player, { active = true, sheltered = false } = {}) {

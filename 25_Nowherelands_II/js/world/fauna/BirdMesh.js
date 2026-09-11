@@ -1,3 +1,4 @@
+import {replyOutline} from './ReplyOutline.js?v=player-notes-13';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
@@ -5,7 +6,8 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 // Parts share a compact pose; no per-frame vertex uploads or skeletal objects.
 export const birdDeformation = /* glsl */`
 attribute float aPart;
-attribute float aSpecies;
+attribute vec4 aAppearance;
+#define aSpecies aAppearance.x
 attribute vec3 aSlender;
 attribute vec3 aCrested;
 attribute vec4 aWing;
@@ -120,22 +122,28 @@ function geometry() {
 export class BirdMesh {
  constructor(scene, capacity=1) {
   this.geometry=geometry();
+  this.geometry.setAttribute('aAppearance',new THREE.InstancedBufferAttribute(new Float32Array(capacity*4),4));
   for(const name of ['aWing','aPose','aFeet']) this.geometry.setAttribute(name,new THREE.InstancedBufferAttribute(new Float32Array(capacity*4),4).setUsage(THREE.DynamicDrawUsage));
-  this.geometry.setAttribute('aSpecies',new THREE.InstancedBufferAttribute(new Float32Array(capacity),1));
-  this.geometry.setAttribute('aPalette',new THREE.InstancedBufferAttribute(new Float32Array(capacity),1));
-  const inject=shader=>{shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nattribute float aPalette;\n'+birdDeformation).replace('#include <begin_vertex>','vec3 transformed = deformBird(position);').replace('#include <color_vertex>',`#include <color_vertex>
+  const inject=shader=>{shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\n#define aPalette aAppearance.y\nvarying vec3 vNote; varying float vNoteSpan;\n'+birdDeformation).replace('#include <begin_vertex>','vec3 transformed = deformBird(position);vNote=vec3(aAppearance.z,abs(aAppearance.w),aAppearance.w<0.?1.:0.);vNoteSpan=abs(position.z);').replace('#include <color_vertex>',`#include <color_vertex>
    vec3 wing=aPalette<.5?vec3(.045,.34,.40):aPalette<1.5?vec3(.28,.12,.43):vec3(.07,.20,.52);
    vec3 breast=aPalette<.5?vec3(.82,.24,.09):aPalette<1.5?vec3(.88,.55,.13):vec3(.83,.37,.24);
    vec3 cream=vec3(.82,.73,.49);
    if(aPart<.5)vColor.rgb=mix(wing,breast,(1.-smoothstep(-.13,.08,position.y)));
    else if(aPart<1.5&&max(max(color.r,color.g),color.b)>.012){vColor.rgb=color.g<.026?cream:wing;if(aSpecies>1.5&&color.r>.2)vColor.rgb=mix(wing,cream,.65);}
    else if(aPart>1.5&&aPart<4.5){vColor.rgb=mix(wing,cream,smoothstep(.95,1.4,abs(position.z))*.7);}
-  `);};
+  `);
+   shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vNote;varying float vNoteSpan;').replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
+    float band=exp(-pow((vNoteSpan-vNote.y*1.6)/.35,2.));
+    vec3 response=vNote.z>.5?vec3(1.,.25,.04):mix(vec3(.1,.95,.85),vec3(.5,.3,1.),clamp(vNoteSpan,0.,1.));
+    totalEmissiveRadiance+=response*vNote.x*(.12+band*.4);
+   `);
+  };
   this.material=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.93,flatShading:true,side:THREE.DoubleSide});
-  this.material.onBeforeCompile=inject; this.material.customProgramCacheKey=()=> 'bird-three-anatomies-v3';
+  this.material.onBeforeCompile=inject; this.material.customProgramCacheKey=()=> 'bird-three-anatomies-note-v4';
   this.depthMaterial=new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking,side:THREE.DoubleSide}); this.depthMaterial.onBeforeCompile=inject;
   this.mesh=new THREE.InstancedMesh(this.geometry,this.material,capacity); this.mesh.count=0;
   this.mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage); this.mesh.castShadow=true; this.mesh.frustumCulled=false; this.mesh.customDepthMaterial=this.depthMaterial;
+  replyOutline(this.mesh,{expression:'aAppearance.z'});
   this.transform=new THREE.Object3D(); scene.add(this.mesh);
  }
  update(poses) {
@@ -143,14 +151,13 @@ export class BirdMesh {
   this.mesh.count=poses.length;
   poses.forEach((p,i)=>{
    this.transform.position.set(p.position.x,p.position.y,p.position.z); this.transform.rotation.set(0,p.yaw,0); this.transform.scale.setScalar(p.size ?? 1); this.transform.updateMatrix(); this.mesh.setMatrixAt(i,this.transform.matrix);
-   this.geometry.attributes.aSpecies.setX(i,p.species ?? 0);
-   this.geometry.attributes.aPalette.setX(i,p.variant ?? i%3);
+   this.geometry.attributes.aAppearance.setXYZW(i,p.species??0,p.variant??i%3,p.replyGlow||0,p.noteAlarm?-(p.notePhase+.001):(p.notePhase||0));
    this.geometry.attributes.aWing.setXYZW(i,p.shoulder,p.wrist,p.fold,p.tail);
    this.geometry.attributes.aPose.setXYZW(i,p.pitch,p.bank,p.headYaw,p.headPitch);
    this.geometry.attributes.aFeet.setXYZW(i,p.legs,p.contact,p.footY,0);
   });
   this.mesh.instanceMatrix.needsUpdate=true;
-  for(const name of ['aWing','aPose','aFeet','aPalette','aSpecies']) this.geometry.attributes[name].needsUpdate=true;
+  for(const name of ['aWing','aPose','aFeet','aAppearance']) this.geometry.attributes[name].needsUpdate=true;
  }
  dispose() { this.mesh.removeFromParent(); this.mesh.dispose(); this.geometry.dispose(); this.material.dispose(); this.depthMaterial.dispose(); }
 }

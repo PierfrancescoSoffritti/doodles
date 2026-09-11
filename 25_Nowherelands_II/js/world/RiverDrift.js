@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { RIVER_STRIDE, RV, RIVER_KIND, bedProfile } from './gen/Rivers.js';
 import { riverCurrent, riverWakes } from './RiverFlow.js';
-import { riverWaveGlsl } from './WaterShader.js';
+import { riverWaveGlsl } from './WaterShader.js?v=player-notes-13';
 import { fogGlsl } from './FogGlsl.js';
-import { noiseGlsl } from './TerrainMaterial.js';
+import { noiseGlsl } from './TerrainMaterial.js?v=player-notes-13';
 
 // Clumps of foam that drift down the rivers near the player at the speed of the flow, riding
 // the same waves as the surface, so the water is seen to move. Each clump lives on one river

@@ -306,6 +306,13 @@ export function swimLumen(c, model, dt) {
 		}
 	}
 
+	if(c.noteGlow>0 && c.noteResponse){
+  const n=c.noteResponse,source=n.source,dx=p.x-source.x,dz=p.z-source.z,d=Math.hypot(dx,dz)||1,age=t-n.start;
+  const theta=Math.atan2(dz,dx)+age*(n.alarm?-.75:.8)+c.phase*.12;
+  const radius=n.alarm?Math.min(90,d+40):20+8*Math.sin(c.phase);
+  const weight=c.noteGlow;tx+=(source.x+Math.cos(theta)*radius-tx)*weight;tz+=(source.z+Math.sin(theta)*radius-tz)*weight;ty+=(source.y+8+Math.sin(theta)*8-ty)*weight;
+  feedX*=1-weight;feedZ*=1-weight;
+ }
 	let sx=0,sy=0,sz=0,vx=0,vy=0,vz=0,cx=0,cy=0,cz=0,n=0;
 	// Topological interaction: select seven nearest neighbours, not everybody in
 	// a fixed-radius ball. Re-evaluate at 5 Hz, using the common motion snapshot.

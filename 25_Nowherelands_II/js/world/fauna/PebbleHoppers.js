@@ -215,6 +215,16 @@ function change(c, state) {
 	c.resting = state === 'rest' || state === 'notice';
 }
 
+export function answerPebble(c, model, response) {
+ const b=c.pebble;
+ if(response.alarm){startle(c,model,response.source);return;}
+ if(!['rest','notice','wait'].includes(b.state))return;
+ b.answerHeights=[c.rnd.range(1.3,2.3),c.rnd.range(2.2,3.5)];
+ b.answerDurations=[c.rnd.range(.5,.7),c.rnd.range(.6,.85)];
+ const first=c.rnd.range(.55,1.4);b.answerTimes=[first,first+b.answerDurations[0]+c.rnd.range(.25,.5)];b.answerAt=model.time;b.answerSource=response.source;b.answerFrom=b.stand;
+ b.alarmAt=Infinity;b.idleTime=-1;change(c,'answer');
+}
+
 function startle(c, model, source) {
 	const b = c.pebble;
 	// Resuming an escape while upright is silent; the cue belongs to waking
@@ -374,6 +384,12 @@ function advancePebble(c, model, dt, t) {
 		}
 	}
 
+	if(b.state==='answer'){
+  const age=t-b.answerAt;
+  b.stand=mix(b.answerFrom,1,smooth(clamp(age/.6,0,1)))*(1-smooth(clamp((age-3.5)/1.2,0,1)));
+  const heading=Math.atan2(-(b.answerSource.z-c.pos.z),b.answerSource.x-c.pos.x);c.yaw+=clamp(angleDelta(heading,c.yaw),-3*dt,3*dt);
+  if(age>=4.8){b.stand=0;c.feet=null;change(c,'rest');b.retryAt=t+.5;}
+ }
 	const previousSpeed = c.speed, moving = ['flee', 'regroup', 'brake'].includes(b.state);
 	if (b.refuge && ['rise', 'flee', 'regroup', 'brake'].includes(b.state)) {
 		const goal = b.refuge;
@@ -424,14 +440,21 @@ function advancePebble(c, model, dt, t) {
 	c.pitch = damp(c.pitch, slope.pitch + b.stand * (-0.06 * run - clamp(acceleration * 0.006, -0.12, 0.12)) + idle * 0.02 + settle, 13, dt);
 	c.bank = damp(c.bank, slope.bank + supportLean * run + clamp(c.turnRate * c.speed * 0.009, -0.12, 0.12) + idle * 0.035, 12, dt);
 	const lift = b.stand * (0.83 + (transfer * 0.06 - b.impact * 0.035) * run) + Math.abs(idle) * 0.035;
+	const answerAge=t-(b.answerAt??-100), secondHop=answerAge>=(b.answerTimes?.[1]??2.05);
+ const hopTime=answerAge-(b.answerTimes?.[secondHop?1:0]??1),hopDuration=b.answerDurations?.[secondHop?1:0]??.7,previousHop=b.answerHop||0;
+ const headroom=terrain.cave?Math.max(0,(terrain.clearance??0)-3.2*c.size-(supportHeight(terrain,c.size)-terrain.ground)):Infinity;
+ const height=Math.min((b.answerHeights?.[secondHop?1:0]||0)*c.size,headroom);
+ const hopPhase=hopTime/hopDuration;
+ b.answerHop=b.state==='answer'&&hopPhase>0&&hopPhase<1?4*hopPhase*(1-hopPhase)*height:0;
 	const goalY = supportHeight(terrain, c.size) + (PEBBLE_REST_HEIGHT + lift) * c.size;
  // The shell sits mostly below the surface; the eye stalks clear the water.
  const bodyCeiling = terrain.cave && terrain.water > c.ground ? Math.max(c.ground + (PEBBLE_REST_HEIGHT + lift) * c.size, terrain.water - .55 * c.size) : Infinity;
  const bodyFloor = Math.max(c.ground + PEBBLE_REST_HEIGHT * c.size, terrain.cave ? terrain.water - .8 * c.size : -Infinity);
 	// Critically damped suspension gives the body weight while feet keep their
 	// contacts. Clamp the underside at rest so settling cannot sink the shell.
-	b.yVelocity += ((goalY - c.pos.y) * 190 - b.yVelocity * 27) * dt;
-	c.pos.y = Math.max(bodyFloor, Math.min(bodyCeiling, c.pos.y + b.yVelocity * dt));
+	const supportedY=c.pos.y-previousHop;
+ b.yVelocity += ((goalY - supportedY) * 190 - b.yVelocity * 27) * dt;
+	c.pos.y = Math.max(bodyFloor, Math.min(bodyCeiling, supportedY + b.yVelocity * dt + b.answerHop));
 	if (b.stand === 0 && Math.abs(goalY - c.pos.y) < 0.0001 && Math.abs(b.yVelocity) < 0.002) { c.pos.y = goalY; b.yVelocity = 0; }
 	c.vel.y = (c.pos.y - before.y) / dt;
 	c.compression = 0; c.hop = 0; c.hopState = b.state;
@@ -449,6 +472,7 @@ export function updatePebble(c, model, dt) {
 		advancePebble(c, model, step, model.time - dt + (i + 1) * step);
 		if (!previousFeet && c.feet) previousFeet = c.feet.map(f => ({ ...f.prev }));
 	}
+	if(c.pebble.state==='answer'&&c.feet)c.feet.forEach((f,j)=>{const p=footTarget(c,model,j);if(p)f.pos.y=p.y+c.pebble.answerHop;});
 	updatePebbleEyes(c, model, dt);
  updatePebbleSoundEvents(c,model);
 	c.pebble.prevStand = previousStand;

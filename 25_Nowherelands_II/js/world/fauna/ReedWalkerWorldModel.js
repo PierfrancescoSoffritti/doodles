@@ -1,3 +1,4 @@
+import { receiveNote, updateNote } from './NoteResponse.js?v=player-notes-13';
 import { createReedFamily, reedFootprint, reedLocalPoint, reedWorldPoint, REED_FAMILY_CAP, REED_FAMILY_SEPARATION, REED_WORLD_STEP_SECONDS, REED_WORLD_GRAZE_SECONDS, reedHabitat, reedShallowFooting } from './ReedWalkerHabitat.js?v=graze-1';
 import { reedPose, reedPoseFits, REED_STRIDE_SECONDS, REED_GRAZE_SECONDS } from './ReedWalkerMotion.js?v=graze-1';
 import { reedSocialPose, socialEase, socialDistance } from './ReedWalkerSocial.js?v=graze-1';
@@ -24,6 +25,13 @@ export class ReedWalkerWorldModel {
   this.seed = seed; this.sites = sites; this.sample = sample; this.blocked = blocked;
   this.groups = new Map(); this.rejected = new Set(); this.time = 0; this.onSound = () => {}; this.onRipple = () => {}; this.socialEnabled = true;
  }
+ hearNote(note) {
+  let accepted=0;
+  for(const g of this.groups.values())g.members.forEach((m,i)=>{
+   if(!m.release && receiveNote(m,this.time,note,{delay:i*.35,range:110,duration:6}))accepted++;
+  });return accepted;
+ }
+
  separated(site) {
   return [...this.groups.values()].every(g=>g.id===site.id||Math.hypot(g.site.x-site.x,g.site.z-site.z)>=REED_FAMILY_SEPARATION);
  }
@@ -57,7 +65,7 @@ export class ReedWalkerWorldModel {
   return null;
  }
  plan(m, listener) {
-  const intent = this.socialIntent(m), target = intent?.target;
+  const intent = m.noteIntent || this.socialIntent(m), target = intent?.target;
   const away = Math.hypot(m.origin.x-listener.x,m.origin.z-listener.z)<10;
   const toHome = Math.hypot(m.origin.x-m.home.x,m.origin.z-m.home.z)>10;
   let turn = m.r.range(-.18,.18);
@@ -121,6 +129,11 @@ export class ReedWalkerWorldModel {
     }
    }
    m.draw={origin:m.origin,yaw:m.yaw,pose,feet:m.feet};
+  }
+  if(m.noteFrom&&m.noteResponse&&m.state!=='step'){
+   const blend=ease((this.time-m.noteResponse.start)/.85),p=m.draw.pose;
+   for(let i=0;i<3;i++)p.body[i]=lerp(m.noteFrom.body[i],p.body[i],blend);
+   p.tilt=lerp(m.noteFrom.tilt,p.tilt,blend);if(blend>=1)m.noteFrom=null;
   }
   m.draw.pose.waterLoad=m.reservoir?.load||0;
   m.position=reedWorldPoint(m.draw.origin,m.draw.yaw,m.draw.pose.body,m.scale);
@@ -192,6 +205,12 @@ export class ReedWalkerWorldModel {
   for(const group of this.groups.values()) {
    this.updateSocial(group,dt);
    for(const m of group.members) {
+   updateNote(m,this.time,r=>{
+    if(group.moment)this.endSocial(group);
+    const dx=r.source.x-m.origin.x,dz=r.source.z-m.origin.z,d=Math.hypot(dx,dz)||1,sign=r.alarm?-1:1;
+    m.noteIntent={target:{x:m.origin.x+dx/d*sign*Math.min(5,Math.max(0,d-10)),z:m.origin.z+dz/d*sign*Math.min(5,Math.max(0,d-10))}};
+    if(m.state!=='step'){m.noteFrom=structuredClone(m.draw.pose);m.state='stand';m.clock=0;m.rest=1;}
+   },r=>this.onNoteReply?.(m,r.alarm));
    m.clock+=dt/m.traits.patience*(group.moment?.child===m&&group.moment.phase==='catchup'&&m.state==='step'?1.6:1);
    updateReedReservoir(m,this.time,dt);
    if(!m.release) {
@@ -199,8 +218,9 @@ export class ReedWalkerWorldModel {
    else if(m.state==='stand'&&m.clock>=m.rest&&!this.socialHeld(m)) {
     m.plan=this.plan(m,listener);m.state=m.plan?'step':this.socialIntent(m)?'stand':'graze';m.clock=0; if(!m.plan)m.rest=1;
    } else if(m.state==='step'&&m.clock>=REED_WORLD_STEP_SECONDS) {
+    m.noteIntent=null;
     m.origin=m.plan.origin;m.yaw+=m.plan.turn;m.feet=m.plan.feet;m.traits=m.plan.traits;m.water=m.plan.water;m.feedingHeight=m.plan.feedingHeight;m.steps++;
-    m.state=m.steps%6===0&&!this.socialIntent(m)?'graze':'stand';m.clock=0;m.rest=this.socialIntent(m) ? .15 : m.r.range(.35,.8);
+    m.state=m.steps%6===0&&!this.socialIntent(m)?'graze':'stand';m.clock=0;m.rest=m.noteGlow>0?4:this.socialIntent(m) ? .15 : m.r.range(.35,.8);
    }
    }
    this.pose(m);

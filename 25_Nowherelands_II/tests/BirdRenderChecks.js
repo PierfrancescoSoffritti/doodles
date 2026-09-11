@@ -1,4 +1,4 @@
-import { birdDeformation } from '../js/world/fauna/BirdMesh.js';
+import { birdDeformation } from '../js/world/fauna/BirdMesh.js?v=player-notes-13';
 import { BirdJourney, BIRD_ANTICIPATION, BIRD_FLIGHT_TIME, BIRD_JOURNEY_TIME } from '../js/world/fauna/BirdJourney.js';
 
 // Run only with ?check=1. Capture the production vertex deformation on the GPU:
