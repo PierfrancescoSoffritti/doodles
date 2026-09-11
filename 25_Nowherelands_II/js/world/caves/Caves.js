@@ -3,6 +3,7 @@ import { caveLightingGlsl } from './CaveLighting.js';
 import { EntranceDressing } from './EntranceDressing.js';
 import * as THREE from 'three';
 import { WaterOptics } from '../WaterOptics.js';
+import { Ripples } from '../Ripples.js?v=player-notes-13';
 import { noiseGlsl,terrainLightGlsl } from '../TerrainMaterial.js?v=player-notes-13';
 
 const vertex=/* glsl */`
@@ -28,11 +29,13 @@ export class Caves {
 			const uniforms={uSecondEntrance:{value:new THREE.Vector3(second.x,second.y,second.z)},uCamera:{value:new THREE.Vector3()},uEntrance:{value:new THREE.Vector3(cave.entrance.x,cave.entrance.y,cave.entrance.z)},uLamp:{value:0}};
 			for(const k of ['uMoonDir','uMoonColor','uMoonIntensity','uSunDir','uSunColor','uSunIntensity','uSkyColor','uGroundColor'])uniforms[k]=shared.terrainUniforms[k];
 			uniforms.uLightning=shared.weather.uniforms.uLightning;
+			Object.assign(uniforms,shared.ripples.uniforms,{uTime:{value:0}});
 			const rock=new THREE.ShaderMaterial({uniforms,side:THREE.DoubleSide,vertexShader:vertex,fragmentShader:/* glsl */`
 			varying vec3 vWorldPos;${noiseGlsl}${lighting}
 			uniform vec3 uMoonDir,uMoonColor,uSunDir,uSunColor,uSkyColor,uGroundColor;
-			uniform float uMoonIntensity,uSunIntensity,uLightning;
+			uniform float uMoonIntensity,uSunIntensity,uLightning,uTime;
 			${terrainLightGlsl}
+			${Ripples.glsl()}
 			void main(){
 			 vec3 p=vWorldPos,n=normalize(cross(dFdx(p),dFdy(p)));
 			 vec3 view=normalize(uCamera-p);if(dot(n,view)<0.0)n=-n;
@@ -51,6 +54,7 @@ export class Caves {
 			 // Daylit rock and sediment share the surface lighting across the threshold.
 			 float exposure=smoothstep(.12,.7,daylight(p));
 			 color=mix(color,terrainLight(limestone*.65,n),exposure);
+			 color+=rippleGlow(p.xz,uTime)*1.4*floorMask;
 			 float sheen=pow(max(dot(reflect(-view,n),view),0.0),24.0)*smoothstep(.55,.75,wet)*uLamp/(1.0+distance(p,uCamera)*.03);
 			 gl_FragColor=vec4(color+sheen*vec3(.06,.055,.07),1.0);
 			}`});
@@ -72,6 +76,7 @@ export class Caves {
 				fragmentShader:/* glsl */`
 				uniform float uTime,uHasScene;uniform sampler2D uSceneColor;uniform vec2 uResolution;
 				varying vec2 vFlow;varying float vDepth;varying vec3 vWorldPos;${lighting}
+				${Ripples.glsl()}
 				void main(){
 				 if(vDepth<.03)discard;
 				 vec3 p=vWorldPos,n=normalize(cross(dFdx(p),dFdy(p)));if(n.y<0.0)n=-n;
@@ -86,6 +91,7 @@ export class Caves {
 				 color=mix(color,caveLight(vec3(.3,.35,.42),p,n),fresnel);
 				 float riffle=pow(wave,12.0)*(1.0-smoothstep(.4,1.5,vDepth));
 				 color+=caveLight(vec3(.65),p,n)*riffle*.075;
+				 color+=rippleGlow(p.xz,uTime)*.8;
 				 gl_FragColor=vec4(color,1.0);
 				}`});
 				const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(water.position,3));
