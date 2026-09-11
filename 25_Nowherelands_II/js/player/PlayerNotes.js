@@ -43,10 +43,10 @@ export class PlayerNotes {
  }
  clearHighlight(creature){const owner=creature.replyOwner||creature;owner.replyGlow=0;owner.replyEnd=this.shared.audio?.now||0;this.highlights.delete(owner);}
  highlight(creature,duration,start=this.shared.audio?.now||0){
-  const owner=creature.replyOwner||creature;owner.replyStart=start;owner.replyEnd=start+duration;this.highlights.add(owner);
+  const owner=creature.replyOwner||creature;owner.replyStart=start;owner.replyEnd=start+duration;owner.replyProgress=0;owner.replyCharged=duration>1;this.highlights.add(owner);
  }
  reply(kind,creature,alarm=false){const s=this.shared;if(!s.audio||document.hidden||s.fauna?.audio?.muted)return false;if(!this.replies)this.replies=new CreatureReplyAudio(s.audio);return this.replies.play(kind,creature,alarm);}
- update(){const now=this.shared.audio?.now||0,quiet=document.hidden;for(const c of this.highlights){c.replyGlow=quiet?0:replyHighlight(now,c.replyStart,c.replyEnd);if(now>=c.replyEnd||quiet){c.replyGlow=0;this.highlights.delete(c);}}if(this.replies){this.replies.muted=!!this.shared.fauna?.audio?.muted;this.replies.update();}this.button.dataset.replies=JSON.stringify(this.replies?.history||[]);
+ update(){const now=this.shared.audio?.now||0,quiet=document.hidden;for(const c of this.highlights){c.replyProgress=Math.max(0,Math.min(1,(now-c.replyStart)/(c.replyEnd-c.replyStart)));c.replyGlow=quiet?0:replyHighlight(now,c.replyStart,c.replyEnd);if(now>=c.replyEnd||quiet){c.replyGlow=0;this.highlights.delete(c);}}if(this.replies){this.replies.muted=!!this.shared.fauna?.audio?.muted;this.replies.update();}this.button.dataset.replies=JSON.stringify(this.replies?.history||[]);
   if(performance.now()>(this.inspectAt||0)){this.inspectAt=performance.now()+200;const s=this.shared,groups={};
    const add=(kind,c,state)=>{const g=groups[kind]??={active:0,glow:0,states:[]};if(c.noteGlow>0){g.active++;g.glow=Math.max(g.glow,c.noteGlow);if(!g.states.includes(state))g.states.push(state);}};
    for(const c of s.fauna.model.creatures)add(c.kind,c,c.state||c.pebble?.state||c.navigation?.state);

@@ -3,21 +3,34 @@
 <style>body{background:#161721;color:#dbe4ea;font:14px monospace}canvas{display:block}</style><pre id="result">Checking contours…</pre>
 <script type="module">
 import * as THREE from 'three';
-import {replyOutline} from '../js/world/fauna/ReplyOutline.js?v=player-notes-10';
+import {replyOutline} from '../js/world/fauna/ReplyOutline.js?v=outline-2';
+import {ReplyOutlinePass} from '../js/fx/ReplyOutlinePass.js?v=outline-2';
 const renderer=new THREE.WebGLRenderer();renderer.setSize(256,256);document.body.append(renderer.domElement);
 const target=new THREE.WebGLRenderTarget(256,256),camera=new THREE.PerspectiveCamera(40,1,.1,20);camera.position.z=4;
-const reports=[];
+const pass=new ReplyOutlinePass(),reports=[];
 for(const instanced of [false,true]){
  const scene=new THREE.Scene(),geometry=new THREE.SphereGeometry(.8,24,16);
- const material=instanced?new THREE.ShaderMaterial({vertexShader:'attribute float aReply;void main(){gl_Position=projectionMatrix*modelViewMatrix*instanceMatrix*vec4(position,1.0);}',fragmentShader:'void main(){gl_FragColor=vec4(.03,.03,.03,1.0);}'}):new THREE.MeshBasicMaterial({color:'#333333'});
+ const material=instanced?new THREE.ShaderMaterial({uniforms:{uOffset:{value:0}},vertexShader:'uniform float uOffset;attribute float aReply;void main(){vec3 p=position;p.x+=uOffset;gl_Position=projectionMatrix*modelViewMatrix*instanceMatrix*vec4(p,1.0);}',fragmentShader:'void main(){gl_FragColor=vec4(.03,.03,.03,1.0);}'}):new THREE.MeshBasicMaterial({color:'#333333'});
  const mesh=instanced?new THREE.InstancedMesh(geometry,material,1):new THREE.Mesh(geometry,material);
  if(instanced){geometry.setAttribute('aReply',new THREE.InstancedBufferAttribute(new Float32Array([0]),1));mesh.setMatrixAt(0,new THREE.Matrix4());}
  scene.add(mesh);const contour=replyOutline(mesh,{expression:instanced?'aReply':'uReplySignal'});
- const render=value=>{contour.signal.value=value;if(instanced){geometry.attributes.aReply.setX(0,value);geometry.attributes.aReply.needsUpdate=true;}renderer.setRenderTarget(target);renderer.render(scene,camera);const pixels=new Uint8Array(256*256*4);renderer.readRenderTargetPixels(target,0,0,256,256,pixels);return pixels;};
- const before=render(0),after=render(1),off=render(0);let outlined=0,interior=0,restored=true;
- for(let i=0;i<before.length;i+=4){if(after[i]>before[i]+30){outlined++;if(before[i]>3)interior++;}if(off[i]!==before[i])restored=false;}
- reports.push({instanced,outlined,interior,restored,passed:outlined>100&&outlined<2000&&interior<outlined*.15&&restored});
- renderer.setRenderTarget(null);contour.signal.value=1;if(instanced){geometry.attributes.aReply.setX(0,1);geometry.attributes.aReply.needsUpdate=true;}renderer.render(scene,camera);
+ if(instanced)material.uniforms.uOffset.value=.25;
+ const render=(value,progress=.08,charged=false)=>{contour.signal.value=value;contour.echo.value.set(progress,charged?1:0);if(instanced){geometry.attributes.aReplyEcho.setXY(0,progress,charged?1:0);geometry.attributes.aReplyEcho.needsUpdate=true;}if(instanced){geometry.attributes.aReply.setX(0,value);geometry.attributes.aReply.needsUpdate=true;}renderer.setRenderTarget(target);renderer.render(scene,camera);pass.render(renderer,scene,camera);const pixels=new Uint8Array(256*256*4);renderer.readRenderTargetPixels(target,0,0,256,256,pixels);return pixels;};
+ const before=render(0),after=render(1),later=render(1,.45),charged=render(1,.45,true),off=render(0);
+ const stats=pixels=>{let count=0,interior=0,sum=0,min=30,max=0;
+  for(let y=0;y<256;y++)for(let x=0;x<256;x++){const i=(y*256+x)*4;if(pixels[i]<=before[i]+25)continue;
+   count++;if(before[i]>3)interior++;let distance=30;
+   for(let dy=-21;dy<=21;dy++)for(let dx=-21;dx<=21;dx++){const nx=x+dx,ny=y+dy;if(nx>=0&&nx<256&&ny>=0&&ny<256&&before[(ny*256+nx)*4]>3)distance=Math.min(distance,Math.hypot(dx,dy));}
+   sum+=distance;min=Math.min(min,distance);max=Math.max(max,distance);
+  }return {count,interior,min,max,mean:sum/Math.max(1,count)};
+ };
+ const early=stats(after),late=stats(later),multi=stats(charged),restored=off.every((v,i)=>v===before[i]);
+ const blocker=new THREE.Mesh(new THREE.PlaneGeometry(8,8),new THREE.MeshBasicMaterial({color:'#111111'}));blocker.position.z=2;scene.add(blocker);
+ const covered=render(0),through=render(1);let throughPixels=0;for(let i=0;i<covered.length;i+=4)if(through[i]>covered[i]+30)throughPixels++;
+ scene.remove(blocker);
+ reports.push({instanced,early,late,multi,throughPixels,restored,passed:early.count>30&&early.interior===0&&early.min>=2&&late.mean>early.mean+3&&multi.count>late.count*1.2&&multi.interior===0&&multi.max<21&&throughPixels>30&&restored});
+ renderer.setRenderTarget(null);renderer.render(scene,camera);pass.render(renderer,scene,camera);
+ material.dispose();geometry.dispose();blocker.material.dispose();blocker.geometry.dispose();
 }
 document.querySelector('#result').textContent=JSON.stringify({passed:reports.every(r=>r.passed),reports},null,2);
 </script>

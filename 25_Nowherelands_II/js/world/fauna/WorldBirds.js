@@ -3,8 +3,8 @@ import {BIRD_SPECIES} from './BirdSpecies.js?v=birds-10';
 import * as THREE from 'three';
 import {BirdPassages,SKY_BIRD_CAPACITY} from './BirdPassages.js?v=birds-10';
 import {BirdSprites} from './BirdSprites.js?v=birds-10';
-import {BirdMesh} from './BirdMesh.js?v=player-notes-13';
-import {BirdEncounter} from './BirdEncounter.js?v=player-notes-13';
+import {BirdMesh} from './BirdMesh.js?v=outline-2';
+import {BirdEncounter} from './BirdEncounter.js?v=outline-2';
 import {BIRD_JOURNEY_TIME} from './BirdJourney.js?v=birds-10';
 
 const SCALE=4,MAX_ENCOUNTERS=28;

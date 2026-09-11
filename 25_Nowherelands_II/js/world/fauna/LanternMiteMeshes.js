@@ -1,4 +1,4 @@
-import {replyOutline} from './ReplyOutline.js?v=player-notes-13';
+import {replyOutline} from './ReplyOutline.js?v=outline-2';
 import * as THREE from 'three';
 
 export class LanternMiteMeshes {
@@ -21,7 +21,7 @@ export class LanternMiteMeshes {
  update(mites, time, position = m => m.pos, scale = 1, opacity = 1) {
   for (const m of mites) {
    const rig = this.rigs.get(m.id) || this.create(m.id), p = position(m);
-   rig.body.position.set(p.x, p.y, p.z);rig.reply.signal.value=m.replyGlow||0;
+   rig.body.position.set(p.x, p.y, p.z);rig.reply.signal.value=m.replyGlow||0;rig.reply.echo.value.set(m.replyProgress||0,m.replyCharged?1:0);
    const airborne = ['forage', 'visit', 'listen', 'exchange', 'investigate', 'contact', 'return', 'emerge','answering','note-rest','note-orbit'].includes(m.state);
    if (airborne) rig.body.position.y += Math.sin((time - m.since) * 1.7) * 0.03 * scale * Math.min(1, (time - m.since) * 2);
    if (Number.isFinite(p.minY)) rig.body.position.y=Math.max(p.minY,rig.body.position.y);

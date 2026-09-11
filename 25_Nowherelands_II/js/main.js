@@ -1,4 +1,5 @@
-import { PlayerNotes } from './player/PlayerNotes.js?v=player-notes-13';
+import { ReplyOutlinePass } from './fx/ReplyOutlinePass.js?v=outline-2';
+import { PlayerNotes } from './player/PlayerNotes.js?v=outline-2';
 import * as THREE from 'three';
 import { FramePacer } from './core/FramePacer.js';
 import { EnvironmentProbe } from './fx/EnvironmentProbe.js';
@@ -39,12 +40,12 @@ import { EventDirector } from './events/Events.js';
 import { PostProcessing } from './fx/PostProcessing.js';
 import { AudioEngine } from './audio/AudioEngine.js?v=pebble-audio-10';
 import { Conductor } from './audio/Conductor.js?v=pebble-audio-10';
-import { Fauna } from './world/fauna/Fauna.js?v=player-notes-13';
-import { WorldReedWalkers } from './world/fauna/WorldReedWalkers.js?v=player-notes-13';
+import { Fauna } from './world/fauna/Fauna.js?v=outline-2';
+import { WorldReedWalkers } from './world/fauna/WorldReedWalkers.js?v=outline-2';
 import { ReedSurvey } from './ui/ReedSurvey.js?v=world-spray-1';
-import { WorldLanternMites } from './world/fauna/WorldLanternMites.js?v=player-notes-13';
+import { WorldLanternMites } from './world/fauna/WorldLanternMites.js?v=outline-2';
 import { LanternMiteSurvey } from './ui/LanternMiteSurvey.js';
-import { WorldBirds } from './world/fauna/WorldBirds.js?v=player-notes-13';
+import { WorldBirds } from './world/fauna/WorldBirds.js?v=outline-2';
 import { BirdSurvey } from './ui/BirdSurvey.js?v=birds-10';
 import { FaunaSurvey } from './ui/FaunaSurvey.js?v=player-notes-13';
 
@@ -133,6 +134,7 @@ function start(world,caveMeshes) {
 	landmarks.addFireflies(fireflies);
 	const director = new EventDirector(shared);
 	const post = new PostProcessing(renderer, scene, camera);
+	const replyOutlines = new ReplyOutlinePass();
 	const pmrem = new THREE.PMREMGenerator(renderer);
 	const environment = new EnvironmentProbe(renderer, scene, camera, shared, pmrem,
 		() => [water.far, ...water.levels, inland.mesh, inland.near, drift.points, watersideLife.points, fauna.meshes.root, birds.root, walkers.root, mites.root, ...caves.waterMeshes],
@@ -330,6 +332,7 @@ function start(world,caveMeshes) {
 		fireflies.points.visible=shared.caveAmount<=.4;
 		if (renderFrame) {
 			post.render(t, shared);
+			if(shared.playerNotes.highlights.size)replyOutlines.render(renderer,scene,camera);
 			hud.recordFrame(performance.now());
 		}
 		caveSurvey?.update(now-previousFrame);

@@ -1,4 +1,5 @@
-import { PebbleMeshes } from './PebbleMeshes.js?v=player-notes-13';
+import {replyOutline,writeReplyEcho} from './ReplyOutline.js?v=outline-2';
+import { PebbleMeshes } from './PebbleMeshes.js?v=outline-2';
 import { lumenAppearance } from './LumenAppearance.js';
 import * as THREE from 'three';
 import { SPECIES } from './FaunaModel.js?v=player-notes-13';
@@ -74,11 +75,6 @@ const fragmentShader = /* glsl */`
 			col+=(vNotePhase<0.?vec3(1.,.25,.1):vec3(.7,.4,1.))*pulse*(rim*.4+sweep*.3);
 			alpha *= (0.28 + facing * 0.15 + rim * 0.42) * wave;
 		#endif
-		float contour=1.0-smoothstep(.06,.2,facing);
-  #if KIND == 5
-   contour=1.0-smoothstep(0.0,.014,min(vUv.y,1.0-vUv.y));
-  #endif
-  col+=vec3(.65,.8,.85)*contour*vReply*.9;alpha=max(alpha,contour*vReply*.65*vFade);
   float dist = distance(vWorld, cameraPosition);
 		float extinction = (1.0 - heightFog(vWorld, cameraPosition)) * exp(-pow(dist * uFogDistance, 2.0) * 1.4);
 		alpha *= extinction;
@@ -116,6 +112,7 @@ export class FaunaMeshes {
 			mesh.name = `fauna-${kind}`; mesh.count = 0; mesh.frustumCulled = false; mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
 			// Above-water luminous surfaces render after inland water's scene-colour capture.
 			mesh.renderOrder = light ? 3 : 0; this.root.add(mesh); this.meshes[kind] = mesh;
+			replyOutline(mesh,{expression:'aLife.z*aState.y'});
 		}
 		// The same deformation/material at every distance; only subpixel tessellation changes.
 		this.lumenLods = [this.meshes.lumen];
@@ -127,6 +124,7 @@ export class FaunaMeshes {
 			const mesh = new THREE.InstancedMesh(g, original.material, SPECIES.lumen.cap);
 			mesh.count = 0; mesh.frustumCulled = false; mesh.renderOrder = original.renderOrder;
 			mesh.name = `fauna-lumen-lod-${detail}`; this.root.add(mesh); this.lumenLods.push(mesh);
+			replyOutline(mesh,{expression:'aLife.z*aState.y'});
 		}
 		const glowGeometry=new THREE.PlaneGeometry(2,2);
 		glowGeometry.setAttribute('aRadiance',this.radiance);glowGeometry.setAttribute('aPlacement',this.placement);glowGeometry.setAttribute('aLife',this.life.lumen);glowGeometry.setAttribute('aState',this.state.lumen);
@@ -187,6 +185,7 @@ export class FaunaMeshes {
 				this.dummy.position.set(0,0,0);this.dummy.scale.setScalar(1);
 			}
 			this.dummy.updateMatrix(); mesh.setMatrixAt(i, this.dummy.matrix);
+			writeReplyEcho(this.meshes[kind],i,c);
 			this.life[kind].setXYZW(i, c.phase, c.energy, c.replyGlow||0, c.bend);
 			this.motion[kind].setXYZW(i, (c.prevStroke ?? c.stroke) + (c.stroke - (c.prevStroke ?? c.stroke)) * alpha, c.effort, c.compression, c.breath);
 			const far = Math.max(0, Math.min(1, ((kind === 'lumen' ? 4500 : 650) - Math.hypot(p.x - model.listener.x, p.z - model.listener.z)) / (kind === 'lumen' ? 1000 : 130)));

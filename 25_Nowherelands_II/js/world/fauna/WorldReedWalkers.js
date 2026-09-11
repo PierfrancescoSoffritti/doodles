@@ -1,4 +1,4 @@
-import {replyOutline} from './ReplyOutline.js?v=player-notes-13';
+import {replyOutline} from './ReplyOutline.js?v=outline-2';
 import { noteGlow } from './NoteGlow.js?v=player-notes-13';
 import * as THREE from 'three';
 import { reedSites } from './ReedWalkerHabitat.js?v=graze-1';
@@ -26,7 +26,7 @@ export class WorldReedWalkers {
    const rig=new ReedWalkerRig(m.traits);
    rig.noteUniforms={uNoteGlow:{value:0},uNotePhase:{value:0},uNoteAlarm:{value:0},uNoteFloor:{value:0},uNoteHeight:{value:m.traits.legs*m.scale}};
    const materials=new Set();rig.root.traverse(o=>{if(o.material)materials.add(o.material);});for(const material of materials)noteGlow(material,rig.noteUniforms);rig.root.scale.setScalar(m.scale);
-   rig.replySignal={value:0};const parts=[];rig.root.traverse(o=>{if(o.isMesh)parts.push(o);});for(const part of parts)replyOutline(part,{signal:rig.replySignal});
+   rig.replySignal={value:0};rig.replyEcho={value:new THREE.Vector2()};const parts=[];rig.root.traverse(o=>{if(o.isMesh)parts.push(o);});for(const part of parts)replyOutline(part,{signal:rig.replySignal,echo:rig.replyEcho});
    this.root.add(rig.root);this.rigs.set(m,rig);
   }
  }
@@ -46,7 +46,7 @@ export class WorldReedWalkers {
    rig.root.visible=Math.hypot(m.origin.x-p.x,m.origin.z-p.z)<320;
    if(!rig.root.visible){rig.spray?.update(0,false);continue;}
    rig.root.position.set(m.draw.origin.x,m.draw.origin.y,m.draw.origin.z);rig.root.rotation.y=m.draw.yaw;
-   rig.replySignal.value=m.replyGlow||0;
+   rig.replySignal.value=m.replyGlow||0;rig.replyEcho.value.set(m.replyProgress||0,m.replyCharged?1:0);
    rig.noteUniforms.uNoteGlow.value=m.noteGlow||0;rig.noteUniforms.uNotePhase.value=m.notePhase||0;rig.noteUniforms.uNoteAlarm.value=m.noteAlarm?1:0;rig.noteUniforms.uNoteFloor.value=m.origin.y;
    rig.update(m.release?.time??m.clock,m.state,0,m.draw.pose);
    const nearby=Math.hypot(m.origin.x-p.x,m.origin.z-p.z)<140;

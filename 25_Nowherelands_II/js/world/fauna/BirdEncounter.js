@@ -58,7 +58,7 @@ export class BirdEncounter {
   const previous=this.pose?.position,wasActive=this.journey.active;this.journey.update(dt);this.pose=this.sample();
   if(wasActive&&!this.journey.active&&this.pose.state==='ground'&&this.forage){this.forage.yaw=this.pose.yaw;this.forage.facing=this.pose.yaw;}
   if(!this.journey.active)this.restTime+=dt;
-  this.pose.variant=this.variant ?? 0;this.pose.replyGlow=this.replyGlow||0;
+  this.pose.variant=this.variant ?? 0;this.pose.replyGlow=this.replyGlow||0;this.pose.replyProgress=this.replyProgress||0;this.pose.replyCharged=this.replyCharged;
   if(ground&&this.forage)this.forage.pose(this.pose);
   if(previous&&dt>0&&['takeoff','flight','glide'].includes(this.pose.state)){
    const q=this.pose.position,vertical=q.y-previous.y,horizontal=Math.hypot(q.x-previous.x,q.z-previous.z);

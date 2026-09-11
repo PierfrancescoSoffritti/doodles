@@ -6,7 +6,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { LanternMiteStudy } from './world/fauna/LanternMiteStudy.js?v=player-notes-13';
 import { Random } from './core/Random.js';
-import { LanternMiteMeshes } from './world/fauna/LanternMiteMeshes.js?v=player-notes-13';
+import { LanternMiteMeshes } from './world/fauna/LanternMiteMeshes.js?v=outline-2';
 import { mountLanternListening } from './atelier/LanternMiteListening.js';
 
 const $ = id => document.getElementById(id);

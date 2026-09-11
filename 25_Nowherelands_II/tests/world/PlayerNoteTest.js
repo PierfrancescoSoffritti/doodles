@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {receiveNote,updateNote} from '../../js/world/fauna/NoteResponse.js?v=player-notes-13';
 import {FaunaModel} from '../../js/world/fauna/FaunaModel.js?v=player-notes-13';
 import {ReedWalkerWorldModel} from '../../js/world/fauna/ReedWalkerWorldModel.js?v=player-notes-13';
-import {BirdEncounter} from '../../js/world/fauna/BirdEncounter.js?v=player-notes-13';
+import {BirdEncounter} from '../../js/world/fauna/BirdEncounter.js?v=outline-2';
 import {LanternMiteStudy} from '../../js/world/fauna/LanternMiteStudy.js?v=player-notes-13';
 import {rayHabitatSite} from '../../js/world/fauna/VeilRayHabitat.js';
 const note=(position={x:0,y:10,z:20},velocity=.35)=>({layer:'player-note',position,velocity});

@@ -1,4 +1,4 @@
-import {replyOutline} from './ReplyOutline.js?v=player-notes-13';
+import {replyOutline,writeReplyEcho} from './ReplyOutline.js?v=outline-2';
 import { pebbleLighting, setPebbleLight } from './PebbleLighting.js';
 import * as THREE from 'three';
 import { createRockMaterial, noiseGlsl } from '../TerrainMaterial.js?v=player-notes-13';
@@ -89,7 +89,7 @@ export class PebbleMeshes {
     p.y = Math.max(p.y, floor.ground + 0.55 * size, (floor.cave ? (floor.water ?? -Infinity) : -Infinity) - .8 * size);
    }
 			setPebbleLight(this.bodies, bodies, floor);
-			this.place(this.bodies, bodies, p, yaw, pitch, bank, size, c.phase);this.bodies.geometry.attributes.aLife.setY(bodies++,c.replyGlow||0);
+			this.place(this.bodies, bodies, p, yaw, pitch, bank, size, c.phase);writeReplyEcho(this.bodies,bodies,c);this.bodies.geometry.attributes.aLife.setY(bodies++,c.replyGlow||0);
 			this.eyes.update(c, this.pose.matrix, alpha, size, model.time - (1 - alpha) / 30, model.eyeTarget || model.listener, floor);
 			const stand = lerp(b.prevStand, b.stand);
 			this.shadow(shadows++, p, c.ground, b.restPitch, b.restBank, yaw, size, stand);

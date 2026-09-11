@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {BirdHabitats} from '../../js/world/fauna/BirdHabitats.js';
 import {BIRD_SPECIES} from '../../js/world/fauna/BirdSpecies.js';
-import {BirdEncounter} from '../../js/world/fauna/BirdEncounter.js?v=player-notes-13';
+import {BirdEncounter} from '../../js/world/fauna/BirdEncounter.js?v=outline-2';
 import {BIRD_JOURNEY_TIME} from '../../js/world/fauna/BirdJourney.js';
 
 const sites=[];

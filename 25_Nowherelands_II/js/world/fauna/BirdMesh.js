@@ -1,4 +1,4 @@
-import {replyOutline} from './ReplyOutline.js?v=player-notes-13';
+import {replyOutline,writeReplyEcho} from './ReplyOutline.js?v=outline-2';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
@@ -151,6 +151,7 @@ export class BirdMesh {
   this.mesh.count=poses.length;
   poses.forEach((p,i)=>{
    this.transform.position.set(p.position.x,p.position.y,p.position.z); this.transform.rotation.set(0,p.yaw,0); this.transform.scale.setScalar(p.size ?? 1); this.transform.updateMatrix(); this.mesh.setMatrixAt(i,this.transform.matrix);
+   writeReplyEcho(this.mesh,i,p);
    this.geometry.attributes.aAppearance.setXYZW(i,p.species??0,p.variant??i%3,p.replyGlow||0,p.noteAlarm?-(p.notePhase+.001):(p.notePhase||0));
    this.geometry.attributes.aWing.setXYZW(i,p.shoulder,p.wrist,p.fold,p.tail);
    this.geometry.attributes.aPose.setXYZW(i,p.pitch,p.bank,p.headYaw,p.headPitch);

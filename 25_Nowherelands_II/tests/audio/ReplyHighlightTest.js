@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {replyHighlight} from '../../js/world/fauna/ReplyHighlight.js?v=player-notes-13';
 import {CreatureReplyAudio} from '../../js/audio/CreatureReplyAudio.js?v=player-notes-13';
-import {PlayerNotes} from '../../js/player/PlayerNotes.js?v=player-notes-13';
+import {PlayerNotes} from '../../js/player/PlayerNotes.js?v=outline-2';
 const node=()=>({gain:{value:0},connect(){},disconnect(){},start(){},stop(){}});
 const engine=()=>({now:0,master:node(),reverb:node(),duck(){},makePanner:()=>node(),ctx:{state:'running',sampleRate:22050,createGain:node,createBufferSource:node,createBuffer:(n,length,rate)=>({duration:length/rate,copyToChannel(){}})}});
 test('reply audio reports actual playback starts separately from queued or muted replies',()=>{
@@ -33,4 +33,18 @@ test('every blip highlights all six nearby species even during cooldowns or mute
  shared.audio.now=1.2;player.highlightNearby(blip);
  for(const c of player.highlights){assert.equal(c.replyStart,1.2);assert.equal(c.replyEnd,2);assert.equal(replyHighlight(1.3,c.replyStart,c.replyEnd),1);}
  player.highlightNearby({...blip,velocity:.95,radius:165});assert.ok(player.highlights.has(far));assert.equal(far.replyEnd,2.3);
+});
+
+test('echo animation tracks each creature’s blip progress and charge independently',()=>{
+ const saved=globalThis.document;globalThis.document={hidden:false};
+ try{
+  const shared={audio:{now:10},fauna:{audio:{muted:true}}};
+  const player=Object.assign(Object.create(PlayerNotes.prototype),{shared,highlights:new Set(),button:{dataset:{}},inspectAt:Infinity});
+  const soft={},charged={};player.highlight(soft,.8);shared.audio.now=10.2;player.highlight(charged,1.1);
+  shared.audio.now=10.4;player.update();
+  assert.ok(Math.abs(soft.replyProgress-.5)<1e-8);assert.ok(Math.abs(charged.replyProgress-2/11)<1e-8);
+  assert.equal(soft.replyCharged,false);assert.equal(charged.replyCharged,true);
+  assert.equal(soft.replyGlow,1);assert.equal(charged.replyGlow,1);
+  shared.audio.now=11.4;player.update();assert.equal(player.highlights.size,0);assert.equal(soft.replyGlow,0);assert.equal(charged.replyGlow,0);
+ }finally{if(saved===undefined)delete globalThis.document;else globalThis.document=saved;}
 });

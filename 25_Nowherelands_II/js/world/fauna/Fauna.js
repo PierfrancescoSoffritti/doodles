@@ -5,7 +5,7 @@ import { FaunaProfile } from './FaunaProfile.js';
 import { Random } from '../../core/Random.js';
 import { bus, Events } from '../../core/EventBus.js';
 import { FaunaModel, SPECIES } from './FaunaModel.js?v=player-notes-13';
-import { FaunaMeshes } from './FaunaMeshes.js?v=player-notes-13';
+import { FaunaMeshes } from './FaunaMeshes.js?v=outline-2';
 import { FaunaAudio } from '../../audio/FaunaAudio.js?v=pebble-audio-10';
 import { pebbleHabitatSites } from './PebbleHabitats.js?v=pebble-audio-10';
 import { PebbleColonyTour } from './PebbleColonyTour.js?v=2';
