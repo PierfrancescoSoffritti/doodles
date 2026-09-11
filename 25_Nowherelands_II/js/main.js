@@ -1,5 +1,5 @@
 import { ReplyOutlinePass } from './fx/ReplyOutlinePass.js?v=outline-2';
-import { PlayerNotes } from './player/PlayerNotes.js?v=pebble-full-1';
+import { PlayerNotes } from './player/PlayerNotes.js?v=pebble-voice-4b';
 import * as THREE from 'three';
 import { FramePacer } from './core/FramePacer.js';
 import { EnvironmentProbe } from './fx/EnvironmentProbe.js';
@@ -40,14 +40,14 @@ import { EventDirector } from './events/Events.js';
 import { PostProcessing } from './fx/PostProcessing.js';
 import { AudioEngine } from './audio/AudioEngine.js?v=pebble-audio-10';
 import { Conductor } from './audio/Conductor.js?v=pebble-audio-10';
-import { Fauna } from './world/fauna/Fauna.js?v=pebble-full-1';
-import { WorldReedWalkers } from './world/fauna/WorldReedWalkers.js?v=outline-2';
+import { Fauna } from './world/fauna/Fauna.js?v=pebble-voice-4b';
+import { WorldReedWalkers } from './world/fauna/WorldReedWalkers.js?v=pebble-voice-4b';
 import { ReedSurvey } from './ui/ReedSurvey.js?v=world-spray-1';
-import { WorldLanternMites } from './world/fauna/WorldLanternMites.js?v=outline-2';
+import { WorldLanternMites } from './world/fauna/WorldLanternMites.js?v=pebble-voice-4b';
 import { LanternMiteSurvey } from './ui/LanternMiteSurvey.js';
-import { WorldBirds } from './world/fauna/WorldBirds.js?v=outline-2';
+import { WorldBirds } from './world/fauna/WorldBirds.js?v=pebble-voice-4b';
 import { BirdSurvey } from './ui/BirdSurvey.js?v=birds-10';
-import { FaunaSurvey } from './ui/FaunaSurvey.js?v=player-notes-13';
+import { FaunaSurvey } from './ui/FaunaSurvey.js?v=pebble-voice-4b';
 
 const canvas = document.getElementById('canvas');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });

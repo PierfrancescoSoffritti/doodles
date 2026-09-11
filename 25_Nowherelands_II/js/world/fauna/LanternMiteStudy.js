@@ -1,4 +1,4 @@
-import { receiveNote, updateNote } from './NoteResponse.js?v=player-notes-13';
+import { receiveNote, updateNote } from './NoteResponse.js?v=pebble-voice-4b';
 import { Random } from '../../core/Random.js';
 import { lanternLight } from '../../audio/LanternMiteVoice.js';
 

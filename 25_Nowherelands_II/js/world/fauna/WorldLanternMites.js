@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { lanternAngles, lanternBarkSite, lanternHabitat, lanternHollowSite } from './LanternMiteHabitat.js';
-import { LanternMiteColony } from './LanternMiteWorldModel.js?v=player-notes-13';
+import { LanternMiteColony } from './LanternMiteWorldModel.js?v=pebble-voice-4b';
 import { LanternMiteMeshes } from './LanternMiteMeshes.js?v=outline-2';
 import { LanternMiteHomeMeshes } from './LanternMiteHomeMeshes.js';
 import { LanternMitePaths } from './LanternMitePaths.js';

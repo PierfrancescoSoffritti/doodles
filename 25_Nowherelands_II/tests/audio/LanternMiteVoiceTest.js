@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { lanternSamples, lanternNotes, lanternLight } from '../../js/audio/LanternMiteVoice.js';
-import { LanternMiteStudy } from '../../js/world/fauna/LanternMiteStudy.js?v=player-notes-13';
+import { LanternMiteStudy } from '../../js/world/fauna/LanternMiteStudy.js?v=pebble-voice-4b';
 
 test('all individual calls and replies are repeatable, finite, tapered and below clipping', () => {
  for (const sampleRate of [44100, 48000]) for (const mite of new LanternMiteStudy().mites) for (const reply of [false, true]) {

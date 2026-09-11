@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { reedFamily } from '../../js/world/fauna/ReedWalkerTraits.js';
 import { reedPoseFits } from '../../js/world/fauna/ReedWalkerMotion.js';
-import { createReedSocialStudy } from '../../js/world/fauna/ReedWalkerSocialStudy.js?v=player-notes-13';
-import { ReedWalkerWorldModel } from '../../js/world/fauna/ReedWalkerWorldModel.js?v=player-notes-13';
+import { createReedSocialStudy } from '../../js/world/fauna/ReedWalkerSocialStudy.js?v=pebble-voice-4b';
+import { ReedWalkerWorldModel } from '../../js/world/fauna/ReedWalkerWorldModel.js?v=pebble-voice-4b';
 import { socialDistance } from '../../js/world/fauna/ReedWalkerSocial.js';
 
 for(const kind of ['catchup','lean'])test(`${kind}: families complete the interaction with planted contacts and reachable legs`,()=>{

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { pebbleSamples, PEBBLE_SOUNDS } from '../../js/audio/PebbleSoundBank.js?v=pebble-audio-10';
-import { FaunaModel } from '../../js/world/fauna/FaunaModel.js?v=player-notes-13';
+import { FaunaModel } from '../../js/world/fauna/FaunaModel.js?v=pebble-voice-4b';
 const sample=()=>({ground:2,water:-4,slope:0,hardness:1,forest:0,wet:0});
 
 test('all foley samples are finite, deterministic, tapered and have usable headroom',()=>{

@@ -1,4 +1,4 @@
-import { CreatureReplyAudio } from '../audio/CreatureReplyAudio.js?v=player-notes-13';
+import { CreatureReplyAudio } from '../audio/CreatureReplyAudio.js?v=pebble-voice-4b';
 import {playerNoteRadius} from '../world/RippleWave.js?v=player-notes-13';
 import {replyHighlight} from '../world/fauna/ReplyHighlight.js?v=player-notes-13';
 export class PlayerNotes {

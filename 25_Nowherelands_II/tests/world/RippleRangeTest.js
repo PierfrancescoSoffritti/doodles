@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {playerNoteRadius,rippleRadius,RIPPLE_LIFETIME} from '../../js/world/RippleWave.js?v=player-notes-13';
-import {receiveNote,updateNote} from '../../js/world/fauna/NoteResponse.js?v=player-notes-13';
-import {PlayerNotes} from '../../js/player/PlayerNotes.js?v=pebble-full-1';
-import {FaunaModel} from '../../js/world/fauna/FaunaModel.js?v=player-notes-13';
-import {BirdEncounter} from '../../js/world/fauna/BirdEncounter.js?v=outline-2';
+import {receiveNote,updateNote} from '../../js/world/fauna/NoteResponse.js?v=pebble-voice-4b';
+import {PlayerNotes} from '../../js/player/PlayerNotes.js?v=pebble-voice-4b';
+import {FaunaModel} from '../../js/world/fauna/FaunaModel.js?v=pebble-voice-4b';
+import {BirdEncounter} from '../../js/world/fauna/BirdEncounter.js?v=pebble-voice-4b';
 const source={x:0,y:10,z:0};
 const note=(velocity=.35)=>({position:source,layer:'player-note',velocity,radius:playerNoteRadius(velocity)});
 

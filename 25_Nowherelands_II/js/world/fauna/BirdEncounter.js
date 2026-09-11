@@ -1,4 +1,4 @@
-import { receiveNote, updateNote } from './NoteResponse.js?v=player-notes-13';
+import { receiveNote, updateNote } from './NoteResponse.js?v=pebble-voice-4b';
 import {BIRD_SPECIES} from './BirdSpecies.js?v=birds-10';
 import {BirdJourney} from './BirdJourney.js?v=birds-10';
 import {BirdForage} from './BirdForage.js?v=player-notes-13';

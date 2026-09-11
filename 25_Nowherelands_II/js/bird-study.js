@@ -1,5 +1,5 @@
 import {BIRD_SPECIES} from './world/fauna/BirdSpecies.js?v=birds-10';
-import {BirdEncounter} from './world/fauna/BirdEncounter.js?v=outline-2';
+import {BirdEncounter} from './world/fauna/BirdEncounter.js?v=pebble-voice-4b';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { BirdJourney, BIRD_GROUND, BIRD_JOURNEY_TIME } from './world/fauna/BirdJourney.js?v=birds-10';

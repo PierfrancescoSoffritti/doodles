@@ -1,4 +1,4 @@
-import { receiveNote, updateNote } from './NoteResponse.js?v=player-notes-13';
+import { receiveNote, updateNote } from './NoteResponse.js?v=pebble-voice-4b';
 import { rayEnvelope } from '../../audio/VeilRayVoice.js';
 import { motor, damp, clamp, angleDelta } from './Locomotion.js';
 

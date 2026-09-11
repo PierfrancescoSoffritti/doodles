@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { lanternHabitat, lanternBarkSite } from '../../js/world/fauna/LanternMiteHabitat.js';
-import { LanternMiteColony } from '../../js/world/fauna/LanternMiteWorldModel.js?v=player-notes-13';
+import { LanternMiteColony } from '../../js/world/fauna/LanternMiteWorldModel.js?v=pebble-voice-4b';
 
 const sample = () => ({ ground: 0, water: -5, slope: 0.1, forest: 0.7, wet: 0.5, coast: 0, roof: false });
 const host = { id: 'tree-a', x: 0, y: 0, z: 0, radius: 10 };

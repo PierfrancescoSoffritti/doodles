@@ -6,7 +6,7 @@ import { ReedWalkerRig } from './world/fauna/ReedWalkerRig.js?v=spray-1';
 import { createReedAudioScene } from './audio/ReedWalkerAudioScene.js?v=reed-7';
 import { checkReedMix } from '../tests/ReedWalkerMixChecks.js?v=reed-7';
 
-import { createReedSocialStudy } from './world/fauna/ReedWalkerSocialStudy.js?v=player-notes-13';
+import { createReedSocialStudy } from './world/fauna/ReedWalkerSocialStudy.js?v=pebble-voice-4b';
 import { socialCaption } from './world/fauna/ReedWalkerSocial.js?v=graze-1';
 
 import { reedDrinkPose } from './world/fauna/ReedWalkerDrink.js?v=world-spray-1';

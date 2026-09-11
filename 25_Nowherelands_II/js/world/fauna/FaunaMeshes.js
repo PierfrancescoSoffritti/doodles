@@ -1,8 +1,8 @@
 import {replyOutline,writeReplyEcho} from './ReplyOutline.js?v=outline-2';
-import { PebbleMeshes } from './PebbleMeshes.js?v=pebble-full-1';
+import { PebbleMeshes } from './PebbleMeshes.js?v=pebble-voice-4b';
 import { lumenAppearance } from './LumenAppearance.js';
 import * as THREE from 'three';
-import { SPECIES } from './FaunaModel.js?v=player-notes-13';
+import { SPECIES } from './FaunaModel.js?v=pebble-voice-4b';
 import { fogGlsl } from '../FogGlsl.js';
 import { faunaGeometry } from './FaunaGeometry.js';
 import { faunaDeformation } from './FaunaDeformation.js';

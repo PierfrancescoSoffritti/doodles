@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { FaunaModel, habitatScore } from '../../js/world/fauna/FaunaModel.js?v=player-notes-13';
-import { pebbleGround } from '../../js/world/fauna/PebbleHoppers.js?v=player-notes-13';
+import { FaunaModel, habitatScore } from '../../js/world/fauna/FaunaModel.js?v=pebble-voice-4b';
+import { pebbleGround } from '../../js/world/fauna/PebbleHoppers.js?v=pebble-voice-4b';
 
 const flat = () => ({ ground: 2, water: -4, slope: 0.08, forest: 0.1, wet: 0.2, hardness: 0.8, foam: 0 });
 function setup(seed = 'pebbles', sample = flat) {

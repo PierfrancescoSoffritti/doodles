@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ReedWalkerWorldModel } from '../../js/world/fauna/ReedWalkerWorldModel.js?v=player-notes-13';
+import { ReedWalkerWorldModel } from '../../js/world/fauna/ReedWalkerWorldModel.js?v=pebble-voice-4b';
 import { createReedFamily, reedHabitat, reedLocalPoint, REED_FAMILY_CAP, REED_FAMILY_SEPARATION, REED_WORLD_STEP_SECONDS, reedWorldTraits, reedShallowFooting } from '../../js/world/fauna/ReedWalkerHabitat.js';
 import { reedIndividual } from '../../js/world/fauna/ReedWalkerTraits.js';
 import { reedJoint } from '../../js/world/fauna/ReedWalkerMotion.js';

@@ -2,7 +2,7 @@ import {replyOutline} from './ReplyOutline.js?v=outline-2';
 import { noteGlow } from './NoteGlow.js?v=player-notes-13';
 import * as THREE from 'three';
 import { reedSites } from './ReedWalkerHabitat.js?v=graze-1';
-import { ReedWalkerWorldModel } from './ReedWalkerWorldModel.js?v=player-notes-13';
+import { ReedWalkerWorldModel } from './ReedWalkerWorldModel.js?v=pebble-voice-4b';
 import { ReedWalkerRig } from './ReedWalkerRig.js?v=spray-1';
 import { ReedWalkerSpray } from './ReedWalkerSpray.js?v=world-spray-1';
 import { reedWorldSprayPose } from './ReedWalkerReservoir.js?v=1';

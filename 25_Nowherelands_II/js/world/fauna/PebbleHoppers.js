@@ -221,7 +221,7 @@ export function answerPebble(c, model, response) {
  if(!['rest','notice','wait'].includes(b.state))return;
  b.answerHeights=[c.rnd.range(1.3,2.3),c.rnd.range(2.2,3.5)];
  b.answerDurations=[c.rnd.range(.5,.7),c.rnd.range(.6,.85)];
- const first=c.rnd.range(.55,1.4);b.answerTimes=[first,first+b.answerDurations[0]+c.rnd.range(.25,.5)];b.answerAt=model.time;b.answerSource=response.source;b.answerFrom=b.stand;
+ const first=c.rnd.range(.06,.30);b.answerTimes=[first,first+b.answerDurations[0]+c.rnd.range(.25,.5)];b.answerAt=model.time;b.answerSource=response.source;b.answerFrom=b.stand;
  b.alarmAt=Infinity;b.idleTime=-1;change(c,'answer');
 }
 
@@ -386,7 +386,7 @@ function advancePebble(c, model, dt, t) {
 
 	if(b.state==='answer'){
   const age=t-b.answerAt;
-  b.stand=mix(b.answerFrom,1,smooth(clamp(age/.6,0,1)))*(1-smooth(clamp((age-3.5)/1.2,0,1)));
+  b.stand=mix(b.answerFrom,1,smooth(clamp(age/.22,0,1)))*(1-smooth(clamp((age-3.5)/1.2,0,1)));
   const heading=Math.atan2(-(b.answerSource.z-c.pos.z),b.answerSource.x-c.pos.x);c.yaw+=clamp(angleDelta(heading,c.yaw),-3*dt,3*dt);
   if(age>=4.8){b.stand=0;c.feet=null;change(c,'rest');b.retryAt=t+.5;}
  }

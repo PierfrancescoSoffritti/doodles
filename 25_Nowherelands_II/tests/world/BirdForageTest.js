@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {BirdEncounter} from '../../js/world/fauna/BirdEncounter.js?v=outline-2';
+import {BirdEncounter} from '../../js/world/fauna/BirdEncounter.js?v=pebble-voice-4b';
 import {BirdForage} from '../../js/world/fauna/BirdForage.js?v=player-notes-13';
 import {BirdJourney} from '../../js/world/fauna/BirdJourney.js';
 

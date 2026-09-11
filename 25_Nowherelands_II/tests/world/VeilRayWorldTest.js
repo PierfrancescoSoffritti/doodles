@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { FaunaModel } from '../../js/world/fauna/FaunaModel.js?v=player-notes-13';
+import { FaunaModel } from '../../js/world/fauna/FaunaModel.js?v=pebble-voice-4b';
 import { rayHabitatSite } from '../../js/world/fauna/VeilRayHabitat.js';
 
 const lake={id:3,y:20,shore:[{x:0,z:7,y:20,nx:0,nz:1,tx:-1,tz:0}]};

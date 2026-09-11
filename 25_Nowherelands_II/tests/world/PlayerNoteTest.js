@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {receiveNote,updateNote} from '../../js/world/fauna/NoteResponse.js?v=player-notes-13';
-import {FaunaModel} from '../../js/world/fauna/FaunaModel.js?v=player-notes-13';
-import {ReedWalkerWorldModel} from '../../js/world/fauna/ReedWalkerWorldModel.js?v=player-notes-13';
-import {BirdEncounter} from '../../js/world/fauna/BirdEncounter.js?v=outline-2';
-import {LanternMiteStudy} from '../../js/world/fauna/LanternMiteStudy.js?v=player-notes-13';
+import {receiveNote,updateNote} from '../../js/world/fauna/NoteResponse.js?v=pebble-voice-4b';
+import {FaunaModel} from '../../js/world/fauna/FaunaModel.js?v=pebble-voice-4b';
+import {ReedWalkerWorldModel} from '../../js/world/fauna/ReedWalkerWorldModel.js?v=pebble-voice-4b';
+import {BirdEncounter} from '../../js/world/fauna/BirdEncounter.js?v=pebble-voice-4b';
+import {LanternMiteStudy} from '../../js/world/fauna/LanternMiteStudy.js?v=pebble-voice-4b';
 import {rayHabitatSite} from '../../js/world/fauna/VeilRayHabitat.js';
 const note=(position={x:0,y:10,z:20},velocity=.35)=>({layer:'player-note',position,velocity});
 const sample=(x,z)=>({ground:0,water:0,slope:0,hardness:1,forest:0,wet:0,foam:0});
@@ -20,10 +20,10 @@ test('only local player notes react; spam queues one finite alarm after the gest
 });
 test('pebble colony answers in sequence with a raised double hop, sound and glow, then folds',()=>{
  const m=new FaunaModel('notes',{sample:(x,z)=>({...sample(x,z),ground:5})});const g=m.addGroup('stones','hopper',0,0,30);assert.ok(g);m.listener={x:g.home.x+35,y:11,z:g.home.z};m.observing=true;
- let sounds=0,maxStand=0,maxHop=0,lit=0;const peaks=new Map();const launches=new Map();m.onNoteReply=()=>sounds++;
- m.hear({...note(m.listener),strength:.35});
+ let sounds=0,firstSound=Infinity,maxStand=0,maxHop=0,lit=0;const peaks=new Map();const launches=new Map();m.onNoteReply=()=>{sounds++;firstSound=Math.min(firstSound,m.time);};
+ m.hear({...note(m.listener),strength:.35,radius:82.5});
  for(let i=0;i<210;i++){m.step(1/30);for(const c of g.members){if(c.pebble.answerHop>.1&&!launches.has(c.id))launches.set(c.id,m.time);maxStand=Math.max(maxStand,c.pebble.stand);maxHop=Math.max(maxHop,c.pebble.answerHop||0);peaks.set(c.id,Math.max(peaks.get(c.id)||0,(c.pebble.answerHop||0)/c.size));lit+=c.noteGlow>.5?1:0;}}
- assert.ok(maxStand>.95&&maxHop>2&&lit>20);assert.ok(Math.max(...launches.values())-Math.min(...launches.values())>.25);assert.ok(Math.max(...peaks.values())-Math.min(...peaks.values())>.15);assert.equal(sounds,g.members.length);assert.ok(g.members.every(c=>c.pebble.stand===0&&c.noteGlow===0));
+ assert.ok(maxStand>.95&&maxHop>2&&lit>20);assert.ok(Math.max(...launches.values())-Math.min(...launches.values())>.08);assert.ok(Math.max(...peaks.values())-Math.min(...peaks.values())>.15);assert.ok(firstSound<=.17);assert.ok(Math.max(...launches.values())<=.4);assert.equal(sounds,g.members.length);assert.ok(g.members.every(c=>c.pebble.stand===0&&c.noteGlow===0));
 });
 test('lumen notes change the actual flight path and produce bounded group replies',()=>{
  const make=()=>{const m=new FaunaModel('lights',{sample:(x,z)=>({...sample(x,z),ground:-5,water:0})});m.addGroup('school','lumen',0,0,4);m.listener={x:0,y:12,z:30};m.observing=true;return m;};
@@ -74,7 +74,7 @@ test('soft notes have a shorter reach while charged notes keep the original reac
 test('higher answering hops preserve cave headroom and settle back onto the floor',()=>{
  const cave=()=>({ground:5,water:0,slope:0,hardness:1,forest:0,wet:0,foam:0,cave:true,clearance:7});
  const m=new FaunaModel('ceiling',{sample:cave}),g=m.addGroup('stones','hopper',0,0,30,{sample:cave});assert.ok(g);
- m.listener={x:g.home.x+30,y:11,z:g.home.z};m.observing=true;m.hear({...note(m.listener),strength:.35});
+ m.listener={x:g.home.x+30,y:11,z:g.home.z};m.observing=true;m.hear({...note(m.listener),strength:.35,radius:82.5});
  let jumped=false;
  for(let i=0;i<210;i++){m.step(1/30);for(const c of g.members){
   jumped ||= c.pebble.answerHop>.2;

@@ -1,6 +1,6 @@
-import { receiveNote, updateNote, isPlayerNote } from './NoteResponse.js?v=player-notes-13';
-import { initializeWorldRays, updateWorldRays, hearWorldRays, worldRayCall } from './VeilRayWorld.js?v=player-notes-13';
-import { initializePebbles, pebbleHabitat, updatePebble, answerPebble } from './PebbleHoppers.js?v=player-notes-13';
+import { receiveNote, updateNote, isPlayerNote } from './NoteResponse.js?v=pebble-voice-4b';
+import { initializeWorldRays, updateWorldRays, hearWorldRays, worldRayCall } from './VeilRayWorld.js?v=pebble-voice-4b';
+import { initializePebbles, pebbleHabitat, updatePebble, answerPebble } from './PebbleHoppers.js?v=pebble-voice-4b';
 import { buildLumenGrid } from './LumenFlow.js';
 import { Random } from '../../core/Random.js';
 import { motor, steer, damp } from './Locomotion.js';
@@ -212,7 +212,7 @@ export class FaunaModel {
 		}
 		for (const c of this.creatures) {
 			if(c.group.raySite) continue;
-			updateNote(c,this.time,r=>{if(c.kind==='hopper')answerPebble(c,this,r);},r=>{if(c.noteSpeak)this.onNoteReply?.(c.kind,c,r.alarm);});
+			updateNote(c,this.time,r=>{if(c.kind==='hopper')answerPebble(c,this,r);},r=>{if(c.noteSpeak)this.onNoteReply?.(c.kind,c,r.alarm);},c.kind==='hopper'?.1:undefined);
 			const def = SPECIES[c.kind], t = this.time, p = c.pos, home = c.group.home;
 			c.energy *= Math.exp(-dt * (c.kind === 'ray' ? 0.6 : 1.5));
 			if (t >= c.responseAt) { c.energy = Math.max(c.energy, c.responseStrength); c.responseAt = Infinity; }

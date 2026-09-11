@@ -4,7 +4,7 @@
 <script type="module">
 import { createReedAudioScene } from '../js/audio/ReedWalkerAudioScene.js';
 import { LanternMiteAudio, lanternAmbientDip } from '../js/audio/LanternMiteVoice.js';
-import { LanternMiteStudy } from '../js/world/fauna/LanternMiteStudy.js';
+import { LanternMiteStudy } from '../js/world/fauna/LanternMiteStudy.js?v=pebble-voice-4b';
 const mites = new LanternMiteStudy().mites;
 const rms = (buffer, from, to) => { let sum=0,count=0;for(let c=0;c<buffer.numberOfChannels;c++){const d=buffer.getChannelData(c);for(let i=Math.floor(from*buffer.sampleRate);i<Math.floor(to*buffer.sampleRate);i++){sum+=d[i]*d[i];count++;}}return Math.sqrt(sum/count); };
 const peak = buffer => { let value=0;for(let c=0;c<buffer.numberOfChannels;c++)for(const v of buffer.getChannelData(c)){if(!Number.isFinite(v))throw Error('Non-finite audio');value=Math.max(value,Math.abs(v));}return value; };

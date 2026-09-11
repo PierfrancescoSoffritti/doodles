@@ -5,7 +5,7 @@ import { createRockMaterial, noiseGlsl } from '../TerrainMaterial.js?v=player-no
 import { fogGlsl } from '../FogGlsl.js';
 import { faunaGeometry } from './FaunaGeometry.js';
 import { faunaDeformation } from './FaunaDeformation.js';
-import { solveLeg, SPECIES, PEBBLE_DRAW_DISTANCE } from './FaunaModel.js?v=player-notes-13';
+import { solveLeg, SPECIES, PEBBLE_DRAW_DISTANCE } from './FaunaModel.js?v=pebble-voice-4b';
 import { PebbleEyeMeshes } from './PebbleEyeMeshes.js?v=pebble-full-1';
 import { clamp, smooth } from './Locomotion.js';
 

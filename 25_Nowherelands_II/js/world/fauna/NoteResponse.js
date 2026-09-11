@@ -28,10 +28,10 @@ export function responseAt(owner,time) {
  const age=time-r.start,phase=clamp(age/r.duration),light=smooth(age/.5)*smooth((r.duration-age)/1.2);
  return {r,age,phase,light};
 }
-export function updateNote(owner,time,act,sound) {
+export function updateNote(owner,time,act,sound,soundDelay=.65) {
  const state=responseAt(owner,time);owner.noteGlow=state?.light||0;owner.notePhase=state?.phase||0;owner.noteAlarm=!!state?.r.alarm;
  if(!state)return null;
  if(!state.r.acted){state.r.acted=true;act?.(state.r);}
- if(!state.r.sounded&&state.age>=.65){state.r.sounded=true;sound?.(state.r);}
+ if(!state.r.sounded&&state.age>=soundDelay){state.r.sounded=true;sound?.(state.r);}
  return state;
 }

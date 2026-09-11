@@ -1,14 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {replyHighlight} from '../../js/world/fauna/ReplyHighlight.js?v=player-notes-13';
-import {CreatureReplyAudio} from '../../js/audio/CreatureReplyAudio.js?v=player-notes-13';
-import {PlayerNotes} from '../../js/player/PlayerNotes.js?v=pebble-full-1';
-const node=()=>({gain:{value:0},connect(){},disconnect(){},start(){},stop(){}});
+import {CreatureReplyAudio} from '../../js/audio/CreatureReplyAudio.js?v=pebble-voice-4b';
+import {PlayerNotes} from '../../js/player/PlayerNotes.js?v=pebble-voice-4b';
+const node=()=>({gain:{value:0},playbackRate:{value:1},connect(){},disconnect(){},start(){},stop(){}});
 const engine=()=>({now:0,master:node(),reverb:node(),duck(){},makePanner:()=>node(),ctx:{state:'running',sampleRate:22050,createGain:node,createBufferSource:node,createBuffer:(n,length,rate)=>({duration:length/rate,copyToChannel(){}})}});
 test('reply audio reports actual playback starts separately from queued or muted replies',()=>{
  const e=engine(),a=new CreatureReplyAudio(e),starts=[];a.onStart=(c,d,t)=>starts.push({c,d,t});
  for(let i=0;i<5;i++)a.play('hopper',{pos:{x:i,y:0,z:0}});
- let ended=0;a.onEnd=()=>ended++;a.voices[0].source.onended();assert.equal(ended,1);assert.equal(starts.length,4);assert.equal(a.pending.length,1);assert.equal(starts[0].t,.015);
+ let ended=0;a.onEnd=()=>ended++;a.voices[0].source.onended();assert.equal(ended,1);assert.equal(starts.length,4);assert.equal(a.pending.length,1);assert.ok(starts[0].t>=.015&&starts[0].t<=.07);
  a.muted=true;a.play('bird',{pos:{x:0,y:0,z:0}});assert.equal(starts.length,4);
  const {t,d}=starts[0];assert.equal(replyHighlight(t-.01,t,t+d),0);assert.equal(replyHighlight(t+.2,t,t+d),1);assert.equal(replyHighlight(t+d,t,t+d),0);
 });
@@ -47,4 +47,26 @@ test('echo animation tracks each creature’s blip progress and charge independe
   assert.equal(soft.replyGlow,1);assert.equal(charged.replyGlow,1);
   shared.audio.now=11.4;player.update();assert.equal(player.highlights.size,0);assert.equal(soft.replyGlow,0);assert.equal(charged.replyGlow,0);
  }finally{if(saved===undefined)delete globalThis.document;else globalThis.document=saved;}
+});
+
+test('pebbles retain distinct voices across reply order, movement and buffer eviction',()=>{
+ const e=engine(),audio=new CreatureReplyAudio(e),starts=[];audio.onStart=(c,d,t)=>starts.push({d,t});
+ const pebbles=Array.from({length:4},(_,i)=>({id:`colony:${i}`,size:.8+i*.25,pos:{x:i,y:0,z:0}}));
+ for(const c of pebbles)audio.play('hopper',c);
+ const buffers=audio.voices.map(v=>v.source.buffer);
+ assert.equal(new Set(buffers).size,4);assert.equal(new Set(starts.map(s=>s.t)).size,4);
+ for(let i=0;i<4;i++){
+  assert.ok(starts[i].t>=.015&&starts[i].t<=.07);
+  assert.ok(Math.abs(audio.voices[i].end-(starts[i].t+buffers[i].duration+.005))<1e-8);
+ }
+ for(const v of [...audio.voices])v.source.onended();
+ for(const c of pebbles.toReversed()){c.pos.x+=100;audio.play('hopper',c);}
+ assert.deepEqual(audio.voices.map(v=>v.source.buffer),buffers.toReversed());
+ assert.deepEqual(starts.slice(4),starts.slice(0,4).toReversed());
+ const profile=audio.pebbleProfiles.get(pebbles[0]);
+ for(let i=0;i<80;i++){
+  e.now+=2;audio.play('hopper',{id:`other:${i}`,pos:{x:0,y:0,z:0}});
+ }
+ assert.equal(audio.buffers.size,64);
+ e.now+=2;audio.play('hopper',pebbles[0]);assert.deepEqual(audio.pebbleProfiles.get(pebbles[0]),profile);
 });

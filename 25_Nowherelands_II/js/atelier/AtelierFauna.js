@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import { FaunaModel } from '../world/fauna/FaunaModel.js?v=player-notes-13';
-import { FaunaMeshes } from '../world/fauna/FaunaMeshes.js?v=pebble-full-1';
-import { PebbleMeshes } from '../world/fauna/PebbleMeshes.js?v=pebble-full-1';
+import { FaunaModel } from '../world/fauna/FaunaModel.js?v=pebble-voice-4b';
+import { FaunaMeshes } from '../world/fauna/FaunaMeshes.js?v=pebble-voice-4b';
+import { PebbleMeshes } from '../world/fauna/PebbleMeshes.js?v=pebble-voice-4b';
 import { BirdMesh } from '../world/fauna/BirdMesh.js?v=outline-2';
-import { BirdEncounter } from '../world/fauna/BirdEncounter.js?v=outline-2';
+import { BirdEncounter } from '../world/fauna/BirdEncounter.js?v=pebble-voice-4b';
 import { BIRD_SPECIES } from '../world/fauna/BirdSpecies.js';
 import { Fireflies } from '../world/Fireflies.js';
 import { createFogUniforms } from '../world/FogGlsl.js';

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { FaunaModel, SPECIES, habitatScore, solveLeg } from '../../js/world/fauna/FaunaModel.js?v=player-notes-13';
+import { FaunaModel, SPECIES, habitatScore, solveLeg } from '../../js/world/fauna/FaunaModel.js?v=pebble-voice-4b';
 
 const sample = (x, z) => ({ ground: Math.sin(x / 70) * 3 - 0.5, water: 0, slope: 0.05, forest: 0.4, wet: 0.8, foam: 0 });
 const make = () => new FaunaModel('fauna-test', { sample });
