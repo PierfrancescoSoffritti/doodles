@@ -4,16 +4,11 @@ import {replyHighlight} from '../world/fauna/ReplyHighlight.js?v=player-notes-13
 export class PlayerNotes {
  constructor(shared){
   this.shared=shared;this.highlights=new Set();this.serial=0;this.last=-100;
-  this.button=document.createElement('button');this.button.id='player-note';this.button.textContent='Send a note · N';this.button.title='Tap for a soft note; hold for a stronger call';
-  this.button.style.cssText='position:fixed;right:24px;bottom:62px;z-index:30;padding:12px 18px;border:1px solid #b9d9db66;border-radius:22px;color:#e4f4ef;background:#131d2ddd;cursor:pointer;touch-action:none';
-  const down=()=>{this.pressed=performance.now();this.button.textContent='Listening… release to sing';};
-  const up=()=>{if(this.pressed===null||this.pressed===undefined)return;const duration=(performance.now()-this.pressed)/1000;this.pressed=null;this.button.textContent='Send a note · N';this.send(Math.max(0,(duration-.28)/1.1));};
-  this.button.onpointerdown=e=>{e.stopPropagation();this.button.setPointerCapture(e.pointerId);down();};this.button.onpointerup=up;
-  this.button.onpointercancel=()=>{this.pressed=null;this.button.textContent='Send a note · N';};
-  this.button.onclick=e=>{if(e.detail===0)this.send();};
+  const down=()=>{this.pressed=performance.now();};
+  const up=()=>{if(this.pressed===null||this.pressed===undefined)return;const duration=(performance.now()-this.pressed)/1000;this.pressed=null;this.send(Math.max(0,(duration-.28)/1.1));};
   this.keyDown=e=>{if(e.code==='KeyN'&&!e.repeat&&!/INPUT|TEXTAREA|SELECT/.test(e.target?.tagName)){e.preventDefault();down();}};
-  this.keyUp=e=>{if(e.code==='KeyN')up();};document.addEventListener('keydown',this.keyDown);document.addEventListener('keyup',this.keyUp);document.body.append(this.button);
-  this.cancel=()=>{this.pressed=null;this.button.textContent='Send a note · N';};window.addEventListener('blur',this.cancel);
+  this.keyUp=e=>{if(e.code==='KeyN')up();};document.addEventListener('keydown',this.keyDown);document.addEventListener('keyup',this.keyUp);
+  this.cancel=()=>{this.pressed=null;};window.addEventListener('blur',this.cancel);
   this.visibility=()=>{if(document.hidden){this.cancel();this.replies?.silence();for(const c of [...this.highlights])this.clearHighlight(c);}};document.addEventListener('visibilitychange',this.visibility);
  }
  async send(charge=0){
@@ -22,7 +17,7 @@ export class PlayerNotes {
   if(e.now-this.last<.16)return false;this.last=e.now;
   const degree=[0,2,4,2][this.serial++%4],loaded=charge>2/3;
   e.playTone({freq:s.conductor.scale.freq(degree,loaded?1:2),position:{x:s.player.position.x,y:s.player.position.y,z:s.player.position.z},velocity:.35+Math.min(1,charge)*.6,type:loaded?'triangle':'sine',voices:loaded?3:1,detune:loaded?7:0,octaveLayer:loaded?.35:0,attack:loaded?.055:.035,duration:loaded?.48:.22,release:loaded?.75:.4,cutoff:loaded?1300:2200,reverb:.2,dest:e.playerBus,layer:'player-note'});
-  e.duck(.35,1.2);this.button.dataset.notes=String(this.serial);return true;
+  e.duck(.35,1.2);return true;
  }
  hear(note){
   const s=this.shared,size=.6+note.velocity*2,radius=playerNoteRadius(note.velocity);
@@ -46,14 +41,14 @@ export class PlayerNotes {
   const owner=creature.replyOwner||creature;owner.replyStart=start;owner.replyEnd=start+duration;owner.replyProgress=0;owner.replyCharged=duration>1;this.highlights.add(owner);
  }
  reply(kind,creature,alarm=false){const s=this.shared;if(!s.audio||document.hidden||s.fauna?.audio?.muted)return false;if(!this.replies)this.replies=new CreatureReplyAudio(s.audio);return this.replies.play(kind,creature,alarm);}
- update(){const now=this.shared.audio?.now||0,quiet=document.hidden;for(const c of this.highlights){c.replyProgress=Math.max(0,Math.min(1,(now-c.replyStart)/(c.replyEnd-c.replyStart)));c.replyGlow=quiet?0:replyHighlight(now,c.replyStart,c.replyEnd);if(now>=c.replyEnd||quiet){c.replyGlow=0;this.highlights.delete(c);}}if(this.replies){this.replies.muted=!!this.shared.fauna?.audio?.muted;this.replies.update();}this.button.dataset.replies=JSON.stringify(this.replies?.history||[]);
+ update(){const now=this.shared.audio?.now||0,quiet=document.hidden;for(const c of this.highlights){c.replyProgress=Math.max(0,Math.min(1,(now-c.replyStart)/(c.replyEnd-c.replyStart)));c.replyGlow=quiet?0:replyHighlight(now,c.replyStart,c.replyEnd);if(now>=c.replyEnd||quiet){c.replyGlow=0;this.highlights.delete(c);}}if(this.replies){this.replies.muted=!!this.shared.fauna?.audio?.muted;this.replies.update();}
   if(performance.now()>(this.inspectAt||0)){this.inspectAt=performance.now()+200;const s=this.shared,groups={};
    const add=(kind,c,state)=>{const g=groups[kind]??={active:0,glow:0,states:[]};if(c.noteGlow>0){g.active++;g.glow=Math.max(g.glow,c.noteGlow);if(!g.states.includes(state))g.states.push(state);}};
    for(const c of s.fauna.model.creatures)add(c.kind,c,c.state||c.pebble?.state||c.navigation?.state);
    for(const g of s.walkers?.model.groups.values()||[])for(const c of g.members)add('reed',c,c.state);
    for(const c of s.birds?.encounters||[])add('bird',c,c.pose.state);
    for(const g of s.mites?.colonies.values()||[])for(const c of g.model.mites)add('mite',c,c.state);
-   this.button.dataset.responses=JSON.stringify(groups);
+   this.responses=groups;
   }}
- dispose(){for(const c of this.highlights)c.replyGlow=0;this.highlights.clear();this.replies?.dispose();window.removeEventListener('blur',this.cancel);this.button.remove();document.removeEventListener('keydown',this.keyDown);document.removeEventListener('keyup',this.keyUp);document.removeEventListener('visibilitychange',this.visibility);}
+ dispose(){for(const c of this.highlights)c.replyGlow=0;this.highlights.clear();this.replies?.dispose();window.removeEventListener('blur',this.cancel);document.removeEventListener('keydown',this.keyDown);document.removeEventListener('keyup',this.keyUp);document.removeEventListener('visibilitychange',this.visibility);}
 }

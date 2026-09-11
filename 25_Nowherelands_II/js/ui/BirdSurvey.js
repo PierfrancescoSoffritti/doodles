@@ -1,6 +1,6 @@
 // Optional field notes for evaluating the actual world population (?birds=1).
 export class BirdSurvey {
- constructor(shared,birds){
+ constructor(shared,birds, { mount = true } = {}){
   this.shared=shared;this.birds=birds;this.mode=null;this.visitedAreas=new Set();
   const panel=this.panel=document.createElement('aside');panel.className='fauna-guide';
   panel.innerHTML='<div class="fauna-guide-kicker">NOWHERELANDS · FIELD NOTES</div><h2>Birds in the wild</h2><p>Passing silhouettes above.<br>Colorful feeding groups among the trees.</p>';
@@ -32,7 +32,7 @@ export class BirdSurvey {
   this.readout=document.createElement('output');panel.append(this.readout);
   const help=document.createElement('small');help.textContent='WASD to walk · mouse to look · Esc releases the mouse · F to fly';panel.append(help);
   const study=document.createElement('a');study.href='./bird-study.html';study.textContent='Motion studies ↗';study.style.cssText='display:block;margin-top:12px;color:#afcdcf';panel.append(study);
-  document.body.append(panel);
+  if (mount) document.body.append(panel);
   document.addEventListener('pointerlockchange',()=>{panel.classList.toggle('playing',shared.player.locked);if(document.pointerLockElement)this.mode=null;});
  }
  watch(mode,subject){

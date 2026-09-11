@@ -1,5 +1,5 @@
 import { ReplyOutlinePass } from './fx/ReplyOutlinePass.js?v=outline-2';
-import { PlayerNotes } from './player/PlayerNotes.js?v=pebble-voice-4b';
+import { PlayerNotes } from './player/PlayerNotes.js?v=fauna-menu-2';
 import * as THREE from 'three';
 import { FramePacer } from './core/FramePacer.js';
 import { EnvironmentProbe } from './fx/EnvironmentProbe.js';
@@ -30,7 +30,7 @@ import { Fireflies } from './world/Fireflies.js';
 import { Sprouts } from './world/Sprouts.js';
 import { Landmarks } from './landmarks/Landmarks.js';
 import { Player } from './player/Player.js';
-import { HUD } from './ui/HUD.js?v=atelier-1';
+import { HUD } from './ui/HUD.js?v=fauna-menu-2';
 import { Caves } from './world/caves/Caves.js?v=player-notes-13';
 import { WeatherSurvey } from './ui/WeatherSurvey.js';
 import { CaveSurvey } from './ui/CaveSurvey.js';
@@ -42,17 +42,15 @@ import { AudioEngine } from './audio/AudioEngine.js?v=pebble-audio-10';
 import { Conductor } from './audio/Conductor.js?v=pebble-audio-10';
 import { Fauna } from './world/fauna/Fauna.js?v=pebble-voice-4b';
 import { WorldReedWalkers } from './world/fauna/WorldReedWalkers.js?v=pebble-voice-4b';
-import { ReedSurvey } from './ui/ReedSurvey.js?v=world-spray-1';
 import { WorldLanternMites } from './world/fauna/WorldLanternMites.js?v=pebble-voice-4b';
-import { LanternMiteSurvey } from './ui/LanternMiteSurvey.js';
 import { WorldBirds } from './world/fauna/WorldBirds.js?v=pebble-voice-4b';
-import { BirdSurvey } from './ui/BirdSurvey.js?v=birds-10';
-import { FaunaSurvey } from './ui/FaunaSurvey.js?v=pebble-voice-4b';
+
+import { FaunaMenu } from './ui/FaunaMenu.js?v=fauna-menu-2';
 
 const canvas = document.getElementById('canvas');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(devicePixelRatio, config.isTouch ? 1.25 : 1.75));
-renderer.setSize(innerWidth, innerHeight);
+renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
 
@@ -178,17 +176,11 @@ function start(world,caveMeshes) {
 	const caveSurvey=!weatherSurvey && new URLSearchParams(location.search).has('caves') ? new CaveSurvey(shared) : null;
 	const survey = !weatherSurvey && !caveSurvey && new URLSearchParams(location.search).has('rivers') ? new RiverSurvey(shared, terrain) : null;
 	const profile = survey && new URLSearchParams(location.search).has('profile') ? new MovementProfile(shared, survey, { terrain, inland, shoreMap, pmrem, watersideLife, post }) : null;
-	const birdSurvey = new URLSearchParams(location.search).has('birds') ? new BirdSurvey(shared,birds) : null;
-	const reedSurvey = new URLSearchParams(location.search).has('reeds') ? new ReedSurvey(shared,walkers) : null;
-	const miteSurvey = new URLSearchParams(location.search).has('mites') ? new LanternMiteSurvey(shared, mites) : null;
-	const faunaSurvey = !reedSurvey && !birdSurvey && !miteSurvey && new URLSearchParams(location.search).has('fauna') ? new FaunaSurvey(shared, fauna) : null;
-
-	const initialFauna = new URLSearchParams(location.search).get('fauna');
-	if (faunaSurvey && ['lumen', 'hopper', 'ray'].includes(initialFauna)) faunaSurvey.visit(initialFauna);
+	const faunaMenu = !weatherSurvey && !caveSurvey && !survey ? new FaunaMenu(shared) : null;
 
 	// ---- enter ----
 	let started = false;
-	hud.onEnter(async () => {
+	hud.onEnter(async ({ capture = true } = {}) => {
 		if (started) return;
 		started = true;
 		const engine = new AudioEngine();
@@ -200,16 +192,19 @@ function start(world,caveMeshes) {
 		conductor.start();
 		hud.enter();
 		player.enabled = true;
-		if (!config.isTouch) { try { const r = canvas.requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (e) { /* unsupported */ } }
+		if (capture && !config.isTouch) { try { const r = canvas.requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (e) { /* unsupported */ } }
 	});
 
-	// ---- resize ----
-	addEventListener('resize', () => {
-		renderer.setSize(innerWidth, innerHeight);
-		camera.aspect = innerWidth / innerHeight;
+	// Reconcile sizes after world generation, including resizes during loading.
+	const resize = () => {
+		const width = canvas.clientWidth, height = canvas.clientHeight;
+		renderer.setSize(width, height, false);
+		camera.aspect = width / height;
 		camera.updateProjectionMatrix();
-		post.setSize(innerWidth, innerHeight);
-	});
+		post.setSize(width, height);
+	};
+	new ResizeObserver(resize).observe(canvas);
+	resize();
 
 	// ---- loop ----
 	let lastFrame = performance.now();
@@ -234,10 +229,7 @@ function start(world,caveMeshes) {
 
 		profile?.begin(now, now - previousFrame);
 		caveSurvey?.guide(now);
-		faunaSurvey?.guide(dt);
-		reedSurvey?.guide(dt);
-		birdSurvey?.guide(dt);
-		miteSurvey?.guide(dt);
+		faunaMenu?.guide(dt);
 		player.update(dt, t);
 		caves.update(t,player.position);
 		atmosphere.update(worldDt, dt, camera.position);
@@ -338,12 +330,9 @@ function start(world,caveMeshes) {
 		caveSurvey?.update(now-previousFrame);
 		weatherSurvey?.update(now-previousFrame);
 		if (survey) survey.update(now - previousFrame);
-		faunaSurvey?.update(now - previousFrame);
-		reedSurvey?.update();
-		birdSurvey?.update();
-		miteSurvey?.update();
+		faunaMenu?.update(now - previousFrame);
 		profile?.end();
 	}
-	window.__debug = { environment, pacer, hud, atmosphere, sky, snow, rain, hail, scene, renderer, camera, shared, post, terrain, player, landmarksList: landmarks.list, director, shoreMap, water, inland, waterfalls, drift, heightmap, world, coastalSpray, fauna, faunaSurvey, birds, birdSurvey, walkers, reedSurvey, mites, miteSurvey };
+	window.__debug = { environment, pacer, hud, atmosphere, sky, snow, rain, hail, scene, renderer, camera, shared, post, terrain, player, landmarksList: landmarks.list, director, shoreMap, water, inland, waterfalls, drift, heightmap, world, coastalSpray, fauna, faunaMenu, birds, walkers, mites };
 	frame();
 }

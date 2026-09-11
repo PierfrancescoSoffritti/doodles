@@ -37,7 +37,7 @@ export class HUD {
 		label.append(select); document.getElementById('corner').append(label);
 
 		const atelierURL = './fauna-atelier.html?species=reed&seed=' + encodeURIComponent(config.seed);
-		for (const parent of [document.getElementById('corner'), this.intro.querySelector('.intro-inner')]) {
+		for (const parent of [this.intro.querySelector('.intro-inner')]) {
 			const link = document.createElement('a'); link.href = atelierURL; link.textContent = 'fauna atelier ↗'; link.className = 'atelier-link';
 			link.addEventListener('click', e => e.stopPropagation()); parent.append(link);
 		}
@@ -65,12 +65,14 @@ export class HUD {
 
 	onEnter(fn) {
 		const go = (e) => { e.preventDefault(); e.stopPropagation(); if (this.isReady) fn(); };
+		this.start = (options) => { if (this.isReady) return fn(options); };
 		this.enterBtn.addEventListener('click', go);
 		this.intro.addEventListener('click', go);
 	}
 
 	enter() {
 		this.intro.classList.add('hidden');
+		this.intro.inert = true;
 		this.el.classList.add('visible');
 		setTimeout(() => this.showHint(config.isTouch ? 'walk toward the sound' : 'walk toward the sound · click to enter the world'), 2500);
 		setTimeout(() => this.showHint(''), 12000);

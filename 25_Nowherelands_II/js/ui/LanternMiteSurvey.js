@@ -1,5 +1,5 @@
 export class LanternMiteSurvey {
- constructor(shared, mites) {
+ constructor(shared, mites, { mount = true } = {}) {
   this.shared = shared; this.mites = mites; this.tracking = false; this.target = null; this.autoAt = 0; this.autoTries = 0;
   const panel = this.panel = document.createElement('aside'); panel.className = 'fauna-guide';
   panel.innerHTML = '<div class="fauna-guide-kicker">NOWHERELANDS · FIELD NOTES</div><h2>Lantern mites</h2><p>Small conversations in the old forest.</p>';
@@ -14,7 +14,7 @@ export class LanternMiteSurvey {
   this.detail = document.createElement('p'); panel.append(this.detail);
   const hint=document.createElement('p');hint.textContent='In the world: click nearby to play a note. Pause to hear their answer; rapid or strongly charged notes send them into shelter.';panel.append(hint);
   const link = document.createElement('a'); link.href = './lantern-study.html'; link.textContent = 'Character & voice study ↗'; link.style.color = 'inherit'; panel.append(link);
-  document.body.append(panel);
+  if (mount) document.body.append(panel);
   document.addEventListener('pointerlockchange', () => {
    panel.classList.toggle('playing', shared.player.locked);
    if (shared.player.locked) { this.tracking = false; mites.guided = false; mites.observing = false; }

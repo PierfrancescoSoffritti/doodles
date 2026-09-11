@@ -3,7 +3,7 @@ import { SPECIES } from '../world/fauna/FaunaModel.js?v=pebble-voice-4b';
 
 // Optional in-world field guide. Only visits real members of the current population.
 export class FaunaSurvey {
-	constructor(shared, fauna) {
+	constructor(shared, fauna, { mount = true } = {}) {
 		this.shared = shared; this.fauna = fauna; this.kind = 'lumen'; this.tracking = false; this.frames = [];
 		this.panel = document.createElement('aside'); this.panel.className = 'fauna-guide';
 		this.panel.innerHTML = '<div class="fauna-guide-kicker">NOWHERELANDS · FIELD NOTES</div><h2>Living echoes</h2><p>Living lights, watchful stones, and drifting veils.<br>Choose a creature to meet it.</p>';
@@ -59,7 +59,7 @@ export class FaunaSurvey {
 		this.readout = document.createElement('output'); this.panel.append(this.readout);
 		const help = document.createElement('small'); help.textContent = 'Esc releases the mouse · F toggles flight'; this.panel.append(help);
 		const study = document.createElement('a'); study.href = './fauna-motion.html'; study.textContent = 'Close-up motion studies ↗'; study.style.cssText = 'display:block;margin-top:12px;font-size:11px;color:#afcdcf'; this.panel.append(study);
-		document.body.append(this.panel);
+		if (mount) document.body.append(this.panel);
 		document.addEventListener('pointerlockchange', () => {
 			const locked = document.pointerLockElement === shared.renderer.domElement;
 			this.panel.classList.toggle('playing', locked);

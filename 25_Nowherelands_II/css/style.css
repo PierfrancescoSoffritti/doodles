@@ -202,3 +202,42 @@ body.touch .controls:not(.touch-only) { display: none; }
 
 .atelier-link { display: block; margin-top: 14px; font-size: 11px; letter-spacing: .12em; color: #cfddce; pointer-events: auto; }
 #corner .atelier-link:hover { text-decoration: underline; }
+
+/* The scene fills the viewport; controls float over it without a footer strip. */
+html, body { width: 100%; height: 100%; }
+#canvas { width: 100%; height: 100dvh; }
+#corner {
+	align-items: center;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	max-width: calc(100vw - 2.4rem);
+	gap: .65rem 1.2rem;
+	line-height: 1.5;
+	background: transparent;
+	text-shadow: 0 1px 5px #05030c;
+}
+#corner .frame-rate { display: flex; align-items: center; gap: .5rem; margin: 0; }
+#corner .atelier-link { margin: 0; }
+.fauna-menu { top: 70px; width: 288px; padding: 22px; max-height: calc(100dvh - 94px); touch-action: pan-y; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #645670 transparent; }
+.fauna-menu[hidden] { display: none; }
+.fauna-menu header p { margin: 8px 0 20px; font-size: 12px; }
+.fauna-menu-list { display: grid; gap: 7px; }
+.fauna-menu-list button { position: relative; display: grid; gap: 3px; width: 100%; min-height: 58px; padding: 10px 30px 10px 12px; }
+.fauna-menu-name { font-size: 13px; font-weight: 500; line-height: 1.4; }
+.fauna-menu-habitat { color: #aaa0bc; font-size: 11px; line-height: 1.4; }
+.fauna-menu-arrow { position: absolute; top: 50%; right: 12px; transform: translateY(-50%); color: #b9deda; }
+.fauna-menu-list button[aria-pressed="true"] { box-shadow: inset 3px 0 #b1e2da; }
+.fauna-menu-list button[aria-pressed="true"] .fauna-menu-arrow { font-size: 0; }
+.fauna-menu-list button[aria-pressed="true"] .fauna-menu-arrow::after { content: '✓'; font-size: 13px; }
+.fauna-menu .fauna-menu-detail { border-top: 1px solid #b8a6d824; padding-top: 16px; margin: 18px 0 14px; min-height: 36px; font-size: 12px; }
+.fauna-menu-actions { display: grid; gap: 8px; }
+.fauna-menu-actions button { min-height: 42px; text-align: center; font-size: 12px; }
+.fauna-menu-actions .fauna-menu-explore { color: #d5f6ed; border-color: #a3e2d954; background: #92d3d014; }
+.fauna-menu small { font-size: 10px; line-height: 1.7; }
+.fauna-menu-toggle { position: fixed; top: 24px; left: 24px; z-index: 21; min-height: 36px; padding: 8px 15px; border: 1px solid #b8a6d844; border-radius: 999px; background: #100e1ddd; color: #e1d9ee; font: 12px/1.4 system-ui, sans-serif; cursor: pointer; backdrop-filter: blur(18px); }
+.fauna-menu-toggle:focus-visible, .fauna-menu button:focus-visible { outline: 2px solid #c0f0ed; outline-offset: 3px; }
+@media (max-width: 600px) {
+	.fauna-menu-toggle { top: 12px; left: 12px; }
+	.fauna-menu { top: 58px; left: 12px; width: min(288px, calc(100vw - 24px)); padding: 18px; max-height: calc(100dvh - 116px); }
+	#corner { right: 12px; bottom: max(12px, env(safe-area-inset-bottom)); font-size: 9px; gap: 6px 12px; }
+}

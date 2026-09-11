@@ -1,6 +1,6 @@
 import { socialCaption } from '../world/fauna/ReedWalkerSocial.js?v=graze-1';
 export class ReedSurvey {
- constructor(shared, walkers) {
+ constructor(shared, walkers, { mount = true } = {}) {
   this.shared=shared;this.walkers=walkers;this.tracking=false;
   const panel=this.panel=document.createElement('aside');panel.className='fauna-guide';
   panel.innerHTML='<div class="fauna-guide-kicker">NOWHERELANDS · FIELD NOTES</div><h2>Reed walker families</h2><p>Old river grazers, in their own time.</p>';
@@ -11,7 +11,7 @@ export class ReedSurvey {
   button('Explore here ↗',()=>{this.tracking=false;shared.player.fly=false;try{shared.renderer.domElement.requestPointerLock?.()?.catch(()=>{});}catch{}});
   panel.append(actions);this.detail=document.createElement('p');panel.append(this.detail);
   this.link=document.createElement('a');this.link.href='./reed-study.html?seed='+encodeURIComponent(walkers.model.seed);this.link.textContent='Reed walker study ↗';this.link.style.cssText='display:block;margin-top:12px;color:#afcdcf';panel.append(this.link);
-  document.body.append(panel);
+  if (mount) document.body.append(panel);
   document.addEventListener('pointerlockchange',()=>{panel.classList.toggle('playing',shared.player.locked);if(shared.player.locked)this.tracking=false;});
  }
  audio(){if(!this.shared.audio)this.shared.hud.enterBtn.click();this.shared.audio?.resume();}
