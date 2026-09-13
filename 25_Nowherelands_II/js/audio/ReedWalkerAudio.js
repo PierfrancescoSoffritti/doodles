@@ -1,4 +1,4 @@
-import { playReedVoice } from './ReedWalkerVoice.js?v=reed-5';
+import { playReedVoice } from './ReedWalkerVoice.js?v=stable-30-3';
 
 export const REED_AUDIO = { levels: { rumble: 8, breath: 15 }, refDistance: 30, rolloff: 1.1, range: 180, gain: 10 ** (1 / 20), duck: .58, maxVoices: 3 };
 

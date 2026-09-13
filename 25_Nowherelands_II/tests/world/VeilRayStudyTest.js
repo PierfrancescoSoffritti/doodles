@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { VeilRayStudy, RAY_LAKE } from '../../js/world/fauna/VeilRayStudy.js?v=pebble-voice-4b';
+import { VeilRayStudy, RAY_LAKE } from '../../js/world/fauna/VeilRayStudy.js?v=stable-30-25';
 const advance = (m, seconds, check = () => {}) => { for (let i = 0; i < Math.round(seconds * 60); i++) { m.update(1 / 60); check(m); } };
 const collect = (m, events) => { for (const event of m.events) events.set(event.sequence, event); };
 

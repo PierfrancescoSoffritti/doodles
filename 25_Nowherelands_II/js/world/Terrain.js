@@ -1,8 +1,8 @@
-import { terrainMeshData } from './TerrainMeshData.js';
+import { terrainMeshData } from './TerrainMeshData.js?v=stable-30-23';
 import * as THREE from 'three';
-import { config } from '../core/Config.js';
+import { config } from '../core/Config.js?v=stable-30-3';
 import { createTerrainMaterial } from './TerrainMaterial.js?v=player-notes-13';
-import { Vegetation } from './Vegetation.js?v=player-notes-13';
+import { Vegetation } from './Vegetation.js?v=stable-30-26';
 
 // Quadtree terrain: the whole continent is always on screen, from 3 m cells at the player's feet
 // to 300 m cells on the far horizon. Every node is a 48x48 grid with a skirt hanging off its
@@ -13,6 +13,7 @@ const MAX_DEPTH = 9;                 // 80 m leaves beside rivers/cave mouths; 1
 const RIVER_DEPTH = 8;               // the finest level away from rivers
 const LOD_FACTOR = config.isTouch ? 1.3 : 1.7;
 const BUILD_BUDGET_MS = 3;
+const CATCH_UP_BUDGET_MS = 6;
 const KEEP_FRAMES = 900;
 
 function buildIndex(seg) {
@@ -69,9 +70,17 @@ export class Terrain {
 		return v;
 	}
 
+	needsVegetationCatchUp(pos) {
+		// Reserve extra time only when a pending near chunk is approaching the
+		// fully visible range. Fast machines normally finish these farther away.
+		const size = config.world.chunkSize, reach = size * (config.world.vegetationRadius - 0.5);
+		const near = cell => !cell.far && Math.abs(cell.x * size - pos.x) < reach && Math.abs(cell.z * size - pos.z) < reach;
+		return !!((this.vegJob && this.vegJobCell && near(this.vegJobCell)) || this.vegQueue.some(near));
+	}
+
 	update(playerPos, dt) {
 		this.frame++;
-		const deadline = performance.now() + BUILD_BUDGET_MS;
+		const deadline = performance.now() + (this.needsVegetationCatchUp(playerPos) ? CATCH_UP_BUDGET_MS : BUILD_BUDGET_MS);
 		const drawn = new Set();
 		this.requests.length = 0;
 		this.select(0, 0, 0, playerPos, drawn);
@@ -101,6 +110,15 @@ export class Terrain {
 
 		this.updateVegetation(playerPos, dt, deadline);
 	}
+
+ recordStreamStep(stage, work) {
+  const started=performance.now(), result=work(), ms=performance.now()-started;
+  const stats=this.streamStats ||= {steps:0,ms:0,max:0,byStage:{}};
+  stage ||= this.vegetation.streamStage || 'other';
+  const part=stats.byStage[stage] ||= {steps:0,ms:0,max:0};part.steps++;part.ms+=ms;part.max=Math.max(part.max,ms);
+  stats.steps++;stats.ms+=ms;if(ms>stats.max){stats.max=ms;stats.longestStage=stage;}
+  return result;
+ }
 
 	// Build everything needed for the first view before the player enters.
 	prewarm(playerPos, maxMs = 1500) {
@@ -168,6 +186,7 @@ export class Terrain {
 		geometry.setIndex(this.index);
 		geometry.computeBoundingSphere();
 		const mesh = new THREE.Mesh(geometry, this.material);
+		mesh.updateMatrix();mesh.matrixAutoUpdate = false;
 		mesh.frustumCulled = true;
 		mesh.visible = false;
 		this.scene.add(mesh);
@@ -193,10 +212,14 @@ export class Terrain {
 		const key = cx + ',' + cz;
 		if (key !== this.vegKey) {
 			this.vegKey = key;
-			this.vegJob?.return(); this.vegJob = null;
+			// Crossing a cell must not discard a partly built chunk that is still
+			// needed. Long scans otherwise restart repeatedly during travel.
+			if (this.vegJob && (!this.vegJobCell || Math.abs(this.vegJobCell.x - cx) > r || Math.abs(this.vegJobCell.z - cz) > r)) {
+				this.vegJob.return(); this.vegJob = null; this.vegJobCell = null;
+			}
 			this.vegQueue.length = 0;
 			for (let dz = -r; dz <= r; dz++) for (let dx = -r; dx <= r; dx++) {
-				if (!this.vegetation.chunks.has(this.vegetation.key(cx + dx, cz + dz))) this.vegQueue.push({ x: cx + dx, z: cz + dz, d2: dx * dx + dz * dz });
+				if (!(this.vegJob && this.vegJobCell.x === cx + dx && this.vegJobCell.z === cz + dz) && !this.vegetation.chunks.has(this.vegetation.key(cx + dx, cz + dz))) this.vegQueue.push({ x: cx + dx, z: cz + dz, d2: dx * dx + dz * dz });
 			}
 			// the far layer of giants: blocks of two by two chunks, out to the giant radius
 			const fr = config.world.giantRadius, fcx = Math.floor(cx / 2), fcz = Math.floor(cz / 2);
@@ -213,10 +236,11 @@ export class Terrain {
 		while (performance.now() < deadline && (this.vegJob || this.vegQueue.length)) {
 			if (!this.vegJob) {
 				const e = this.vegQueue.shift();
-				if (e.far) { this.vegetation.addFarChunk(this.vegetation.farKey(e.x, e.z), e.x, e.z); continue; }
+				if (e.far) { this.recordStreamStep('far', () => this.vegetation.addFarChunk(this.vegetation.farKey(e.x, e.z), e.x, e.z)); continue; }
+				this.vegJobCell = e;
 				this.vegJob = this.vegetation.buildChunk(this.vegetation.key(e.x, e.z), e.x, e.z);
 			}
-			if (this.vegJob.next().done) this.vegJob = null;
+			if (this.recordStreamStep(null, () => this.vegJob.next()).done) { this.vegJob = null; this.vegJobCell = null; }
 		}
 		this.vegetation.update(dt, cx, cz);
 	}

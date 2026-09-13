@@ -1,5 +1,5 @@
 import { receiveNote, updateNote } from './NoteResponse.js?v=pebble-voice-4b';
-import { rayEnvelope } from '../../audio/VeilRayVoice.js';
+import { rayEnvelope } from '../../audio/VeilRayVoice.js?v=stable-30-3';
 import { motor, damp, clamp, angleDelta } from './Locomotion.js';
 
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
@@ -37,10 +37,13 @@ export function initializeWorldRays(g,m,site) {
 }
 export function worldRayCall(c,m,phrase='contact') {
  const g=c.group;
- if(m.raysHidden || m.time<g.avoidUntil || m.time-c.voiceAt<7 || m.time<(m.rayVoiceUntil||0))return false;
+ if(c.pendingVoice || m.raysHidden || m.time<g.avoidUntil || m.time-c.voiceAt<7 || m.time<(m.rayVoiceUntil||0))return false;
  // Light and social reply follow only an accepted sound, never a muted attempt.
- if(m.onCall(c,false,phrase)!==true)return false;
- c.voiceAt=m.time;c.callPhrase=phrase;c.calls++;m.rayVoiceUntil=m.time+7;return true;
+ const accepted=m.onCall(c,false,phrase);
+ const started=()=>{c.voiceAt=m.time;c.callPhrase=phrase;c.calls++;m.rayVoiceUntil=m.time+7;};
+ if(accepted?.then){c.pendingVoice=true;accepted.then(played=>{c.pendingVoice=false;if(played)started();},()=>{c.pendingVoice=false;});return true;}
+ if(accepted!==true)return false;
+ started();return true;
 }
 function retreat(g,m,members=g.members) {
  g.quiet=0;g.reply=null;g.avoidUntil=m.time+18;

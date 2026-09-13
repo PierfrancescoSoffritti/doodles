@@ -79,11 +79,13 @@ export class CaveField {
 		for (const s of list) { const q=this.section(s,x,z); value=Math.max(value,Math.min(q.wall,y-q.floor,q.ceiling-y)); }
 		return value;
 	}
-	column(x,z,eyeY,eyeHeight=11) {
+	column(x,z,eyeY,eyeHeight=11,sections=null) {
 		// Merge the vertical air intervals before selecting support. At a junction an upper
 		// passage's nominal floor may have been dissolved by the lower chamber.
 		const intervals=[];
-		for(const s of this.candidates(x,z)) {const q=this.section(s,x,z);if(q.wall>1.8 && q.ceiling>q.floor)intervals.push(q);}
+		// Merging extends intervals. Preserve supplied sections for other anchors.
+		if(sections){for(const q of sections)if(q.wall>1.8 && q.ceiling>q.floor)intervals.push({...q});}
+		else for(const s of this.candidates(x,z)) {const q=this.section(s,x,z);if(q.wall>1.8 && q.ceiling>q.floor)intervals.push(q);}
 		intervals.sort((a,b)=>a.floor-b.floor);
 		const merged=[];
 		for(const q of intervals) {

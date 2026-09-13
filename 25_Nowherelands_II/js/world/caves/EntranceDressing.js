@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {plantGeometry} from '../RiverEcology.js';
+import {plantGeometry} from '../RiverEcology.js?v=stable-30-3';
 
 export class EntranceDressing {
 	constructor(shared) {

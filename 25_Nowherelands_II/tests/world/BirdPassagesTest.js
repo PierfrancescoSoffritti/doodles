@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {BirdPassages,passagePoint,SKY_LANE_SPACING} from '../../js/world/fauna/BirdPassages.js';
+import {BirdPassages,passagePoint,SKY_LANE_SPACING} from '../../js/world/fauna/BirdPassages.js?v=stable-30-3';
 
 test('slower wingbeats and appearance remain distinct and stable through glides',()=>{
  const m=new BirdPassages({seed:192}),looks=new Map(),types=new Set();let min=10,max=0;
@@ -50,4 +50,19 @@ test('occasional flocks complete a real turn, exit tangentially and depart',()=>
   assert.ok(Math.hypot(a.x-b.x,a.z-b.z)<.003);assert.ok(Math.abs(a.z-b.z)<1e-6);
  }
  assert.ok(m.departures>100);
+});
+
+test('staged flock preparation samples the complete route and retains identical initial birds',()=>{
+ const samples=[[],[]],models=samples.map(log=>new BirdPassages({seed:71,ground:(x,z)=>{log.push([x,z]);return Math.sin(x*.02)*20+Math.cos(z*.01)*30;}}));
+ models[0].spawn(true);
+ const work=models[1].buildSpawn(true);let previous=0,result,slices=0;
+ do{result=work.next();assert.ok(samples[1].length-previous<=8);previous=samples[1].length;slices++;if(!result.done)assert.equal(models[1].birds.length,0);}while(!result.done);
+ assert.ok(slices>10);assert.deepEqual(samples[1],samples[0]);assert.deepEqual(models[1].birds,models[0].birds);assert.equal(models[1].seed,models[0].seed);
+});
+
+test('staging a new sky flock continues existing motion and reset cancels pending preparation',()=>{
+ const m=new BirdPassages({seed:71,spawnBudget:.000001});m.spawn(true);m.nextArrival=0;
+ m.update(1/30);assert.ok(m.spawnWork);const x=m.birds[0].p.x;
+ m.update(1/30);assert.notEqual(m.birds[0].p.x,x);assert.ok(m.spawnWork);
+ m.reset();assert.equal(m.spawnWork,null);assert.equal(m.birds.length,0);
 });

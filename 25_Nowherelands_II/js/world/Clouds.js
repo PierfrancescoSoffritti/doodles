@@ -100,7 +100,7 @@ export class Clouds {
 		this.mesh.renderOrder = -6; this.mesh.frustumCulled = false; parent.add(this.mesh);
 	}
 
-	update(time, dt, shared, dim) {
+	update(time, dt, shared, dim, renderFrame = true) {
 		this.mesh.visible = !this.disabled;
 		if (this.disabled) return;
 		const u = this.uniforms;
@@ -115,6 +115,9 @@ export class Clouds {
 		u.uDark.value.set('#12091f').lerp(this.sunDark, sun);
 		const renderer=shared.renderer,camera=shared.camera;
 		camera.updateMatrixWorld();
+		// Weather, lighting and camera state still advance on every callback. Only
+		// the main-view texture is presentation work; reflection views shade directly.
+		if (!renderFrame) return;
 		u.uViewInverse.value.copy(camera.matrixWorld); u.uProjectionInverse.value.copy(camera.projectionMatrixInverse); u.uEye.value.copy(camera.position);
 		renderer.getDrawingBufferSize(this.size); u.uResolution.value.copy(this.size);
 		const scale=Math.min(0.6,960/this.size.x),width=Math.max(1,Math.round(this.size.x*scale)),height=Math.max(1,Math.round(this.size.y*scale));

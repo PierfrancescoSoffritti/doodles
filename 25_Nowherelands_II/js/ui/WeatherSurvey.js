@@ -1,4 +1,4 @@
-import { weatherPresets } from '../world/weather/WeatherModel.js';
+import { weatherPresets } from '../world/weather/WeatherModel.js?v=stable-30-10';
 // Repeatable visual QA (?weather=1). No weather controls are added to normal exploration.
 export class WeatherSurvey {
 	constructor(shared, sky) {

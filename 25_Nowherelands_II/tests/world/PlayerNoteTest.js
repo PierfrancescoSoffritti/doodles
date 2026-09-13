@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {receiveNote,updateNote} from '../../js/world/fauna/NoteResponse.js?v=pebble-voice-4b';
-import {FaunaModel} from '../../js/world/fauna/FaunaModel.js?v=pebble-voice-4b';
+import {FaunaModel} from '../../js/world/fauna/FaunaModel.js?v=stable-30-25';
 import {ReedWalkerWorldModel} from '../../js/world/fauna/ReedWalkerWorldModel.js?v=pebble-voice-4b';
 import {BirdEncounter} from '../../js/world/fauna/BirdEncounter.js?v=pebble-voice-4b';
-import {LanternMiteStudy} from '../../js/world/fauna/LanternMiteStudy.js?v=pebble-voice-4b';
+import {LanternMiteStudy} from '../../js/world/fauna/LanternMiteStudy.js?v=stable-30-3';
 import {rayHabitatSite} from '../../js/world/fauna/VeilRayHabitat.js';
 const note=(position={x:0,y:10,z:20},velocity=.35)=>({layer:'player-note',position,velocity});
 const sample=(x,z)=>({ground:0,water:0,slope:0,hardness:1,forest:0,wet:0,foam:0});

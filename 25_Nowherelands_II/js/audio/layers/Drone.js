@@ -83,6 +83,7 @@ export class Drone extends Layer {
 			const old = voice.osc, oldGain = voice.oscGain;
 			oldGain.gain.setValueAtTime(1, time);
 			oldGain.gain.exponentialRampToValueAtTime(0.0001, time + fade);
+			old.onended=()=>{this.wobbleGain.disconnect(old.detune);old.disconnect();oldGain.disconnect();};
 			old.stop(time + fade + 0.1);
 		}
 		voice.osc = osc;

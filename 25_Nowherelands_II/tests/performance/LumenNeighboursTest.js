@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildLumenGrid, nearestLumen } from '../../js/world/fauna/LumenFlow.js';
+import { buildLumenGrid, nearestLumen } from '../../js/world/fauna/LumenFlow.js?v=stable-30-20';
 
 test('neighbours cross negative cells and branch boundaries without attracting distant animals', () => {
 	const c={id:'listener',prev:{x:-40.1,y:-.1,z:-40.1},branch:0};

@@ -1,18 +1,19 @@
-import {BirdHabitats,birdHash} from './BirdHabitats.js?v=birds-10';
+import { mobileDetail } from '../../core/MobileDetail.js?v=stable-30-3';
+import {BirdHabitats,birdHash} from './BirdHabitats.js?v=stable-30-3';
 import {BIRD_SPECIES} from './BirdSpecies.js?v=birds-10';
 import * as THREE from 'three';
-import {BirdPassages,SKY_BIRD_CAPACITY} from './BirdPassages.js?v=birds-10';
+import {BirdPassages,SKY_BIRD_CAPACITY} from './BirdPassages.js?v=stable-30-3';
 import {BirdSprites} from './BirdSprites.js?v=birds-10';
 import {BirdMesh} from './BirdMesh.js?v=outline-2';
 import {BirdEncounter} from './BirdEncounter.js?v=pebble-voice-4b';
-import {BIRD_JOURNEY_TIME} from './BirdJourney.js?v=birds-10';
+import {BIRD_JOURNEY_TIME} from './BirdJourney.js?v=stable-30-3';
 
 const SCALE=4,MAX_ENCOUNTERS=28;
 export class WorldBirds {
  constructor(scene,heightmap,shared,vegetation,seed){
-  this.shared=shared;this.hm=heightmap;this.vegetation=vegetation;this.time=0;this.nextStream=0;
+  this.shared=shared;this.hm=heightmap;this.vegetation=vegetation;this.time=0;this.nextStream=0;this.streamBudget=mobileDetail?1:0;this.streamWork=null;
   this.root=new THREE.Group();this.root.name='Birds';scene.add(this.root);
-  this.sky=new BirdPassages({seed,ground:(x,z)=>Math.max(0,heightmap.height(x*SCALE,z*SCALE))/SCALE});
+  this.sky=new BirdPassages({seed,spawnBudget:mobileDetail?1:0,ground:(x,z)=>Math.max(0,heightmap.height(x*SCALE,z*SCALE))/SCALE});
   this.sprites=new BirdSprites(this.root,SKY_BIRD_CAPACITY,{size:5.3,fogNear:800,fogFar:2400,nearFade:100,farFade:2200});this.sprites.mesh.scale.setScalar(SCALE);
   this.mesh=new BirdMesh(this.root,MAX_ENCOUNTERS);
   // A little diffuse lift keeps charcoal plumage readable in this moonlit world.
@@ -21,6 +22,8 @@ export class WorldBirds {
  }
  prime(){this.stream();this.update(0);}
  stream(){
+  this.streamWork?.return();this.streamWork=null;
+  this.streamChunks=[...this.vegetation.chunks];
   const p=this.shared.player.position,v=this.vegetation,hm=this.hm;
   const liveChunks=new Set(v.chunks.values());
   this.encounters=this.encounters.filter(e=>liveChunks.has(e.site.chunk)&&Math.hypot(e.ground.x-p.x,e.ground.z-p.z)<850);
@@ -30,12 +33,23 @@ export class WorldBirds {
   const groups=this.habitats.groups(this.sites,p);
   this.habitatStats.candidates=groups.reduce((n,g)=>n+g.sites.length,0);this.habitatStats.areas=groups.length;
   // Give every territory its first bird before filling companions in any one.
-  this.habitats.populate(groups,this.encounters,MAX_ENCOUNTERS,(site,area)=>{
+  this.streamWork=this.habitats.populateSteps(groups,this.encounters,MAX_ENCOUNTERS,(site,area)=>{
    if(used.has(site)||this.rejectedSites.has(site))return null;
    if(this.encounters.filter(e=>e.site.treeId===site.treeId).length>=3)return null;
    if(this.encounters.some(e=>Math.hypot(e.perch.x-site.position.x,e.perch.y-site.position.y,e.perch.z-site.position.z)<3.5))return null;
    const encounter=this.spawnAt(site,area);if(encounter)used.add(site);return encounter;
   });
+  if(!this.streamBudget)this.drainStream();
+ }
+ drainStream(){
+  if(!this.streamWork)return;
+  // Never publish a bird whose tree was unloaded while preparing another site.
+  if(this.streamChunks.some(([key,chunk])=>this.vegetation.chunks.get(key)!==chunk)){
+   this.streamWork.return();this.streamWork=null;this.nextStream=this.time;return;
+  }
+  const start=performance.now();
+  do{if(this.streamWork.next().done){this.streamWork=null;break;}}while(!this.streamBudget||performance.now()-start<this.streamBudget);
+  this.maxStreamSlice=Math.max(this.maxStreamSlice||0,performance.now()-start);
  }
 
  spawnAt(site,area){
@@ -114,6 +128,7 @@ export class WorldBirds {
   // Stay below bloom; this is plumage contrast, not a luminous creature.
   this.sprites.material.uniforms.uInk.value.setRGB(.13,.15,.20);
   if(this.time>=this.nextStream){this.nextStream=this.time+2;this.stream();}
+  this.drainStream();
   for(const e of this.encounters){
    e.perch=this.vegetation.birdPerchPosition(e.site);
    if(e.leg){
@@ -144,5 +159,5 @@ export class WorldBirds {
   this.mesh.update(this.encounters.map(e=>e.pose));
  }
  nearest(){const p=this.shared.player.position;return [...this.encounters].sort((a,b)=>Math.hypot(a.ground.x-p.x,a.ground.z-p.z)-Math.hypot(b.ground.x-p.x,b.ground.z-p.z))[0];}
- dispose(){this.sprites.dispose();this.mesh.dispose();this.root.removeFromParent();}
+ dispose(){this.streamWork?.return();this.streamWork=null;this.sprites.dispose();this.mesh.dispose();this.root.removeFromParent();}
 }

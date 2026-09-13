@@ -9,7 +9,7 @@ import { entranceHabitat } from '../../js/world/caves/EntranceHabitat.js';
 import { buildCaveMeshes } from '../../js/world/caves/CaveMeshData.js';
 
 globalThis.location={search:'?seed=umbra'};
-const {Heightmap}=await import('../../js/world/Heightmap.js');
+const {Heightmap}=await import('../../js/world/Heightmap.js?v=stable-30-6');
 for(const seed of ['umbra','halcyon']) test(`${seed}: connected deep caves have dry levels and downhill spring drainage`,()=>{
 	const world=generateWorld(seed,null,{res:512}),hm=new Heightmap(seed,world),caves=generateCaves(hm,seed);
 	assert.ok(caves.length>=3);assert.ok(caves.some(c=>!c.wet));assert.ok(caves.some(c=>c.wet));

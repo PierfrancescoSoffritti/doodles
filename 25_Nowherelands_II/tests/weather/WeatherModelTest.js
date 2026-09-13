@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { WeatherModel, snowFraction, condense, stormEnvelope } from '../../js/world/weather/WeatherModel.js';
+import { WeatherModel, snowFraction, condense, stormEnvelope } from '../../js/world/weather/WeatherModel.js?v=stable-30-10';
 
 const make = (seed = 'weather-test', options = {}) => new WeatherModel(seed, { res: 20, size: 10000, originX: -5000, originZ: -5000, height: (x, z) => Math.max(0, 1300 - Math.hypot(x, z) * .35), ...options });
 
@@ -113,7 +113,7 @@ test('fair-weather climate retains clear, scattered and wet columns across seeds
 });
 
 test('storm gusts vary continuously, bend vegetation strongly, and can be made calm', async () => {
- const {weatherPresets,vegetationWind}=await import('../../js/world/weather/WeatherModel.js');
+ const {weatherPresets,vegetationWind}=await import('../../js/world/weather/WeatherModel.js?v=stable-30-10');
  const m=make();m.setControls(weatherPresets.storm);m.update(15);
  let min=Infinity,max=0,previous=m.sample(0,20,0,{},true).windSpeed;
  for(let i=0;i<600;i++){
@@ -147,4 +147,15 @@ test('snow and hail overrides activate outdoor particles without depending on li
  assert.equal(m.hasPrecipitation(0,0),true,'nearby mountain flakes must still reach the shader');
  Object.assign(m.controlState,{snow:0,hail:.5});assert.equal(m.hasPrecipitation(0,0),true);
  Object.assign(m.controlState,{hail:0});assert.equal(m.hasPrecipitation(0,0),false);
+});
+
+test('deferred weather steps publish complete maps and preserve fixed-step weather and RNG state',()=>{
+ const a=make(),b=make();b.deferSteps=true;b.update(0);
+ for(let i=0;i<120;i++){
+  a.update(1/30);const version=b.version;b.update(1/30);
+  assert.equal(b.version,version,'queuing elapsed time cannot partially mutate a map');
+  b.advancePending();b.update(0);
+  assert.deepEqual(b.weatherData,a.weatherData);assert.deepEqual(b.surfaceData,a.surfaceData);
+  assert.equal(b.time,a.time);assert.equal(b.random.state,a.random.state);
+ }
 });

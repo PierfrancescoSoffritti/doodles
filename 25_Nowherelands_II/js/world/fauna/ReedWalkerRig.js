@@ -6,9 +6,14 @@ import { reedWalkerLighting } from './ReedWalkerLighting.js?v=1';
 const up = new THREE.Vector3(0, 1, 0);
 
 export class ReedWalkerRig {
- constructor(traits) {
+ constructor(traits, deferred = false) {
   this.visibility = { value: 1 };
   this.traits = traits; this.root = new THREE.Group(); this.root.scale.setScalar(traits.scale);
+  this.work=this.build();
+  if(!deferred)for(const _ of this.work) { /* synchronous study/loading path */ }
+ }
+ *build() {
+  const traits=this.traits;
   this.shell = new THREE.Group(); this.root.add(this.shell);
   const color = new THREE.Color(traits.color).offsetHSL(traits.hue, 0, 0);
   const material = new THREE.MeshStandardMaterial({ color, roughness: .94, flatShading: true });
@@ -21,6 +26,7 @@ export class ReedWalkerRig {
   const bodyMaterial = material.clone();
   const body = new THREE.Mesh(geometry, bodyMaterial);
   body.scale.set(traits.length, .87, traits.width); body.castShadow = true; this.shell.add(body); this.body = body;
+  yield;
   // A shallow dorsal seam and a single recessed vent preserve the headless silhouette.
   const surface = new THREE.Mesh(body.geometry, material); surface.scale.copy(body.scale); surface.updateMatrixWorld();
   const ray = new THREE.Raycaster(), seamPoints = [];
@@ -28,25 +34,33 @@ export class ReedWalkerRig {
    ray.set(new THREE.Vector3((i / 12 - .5) * traits.length * 1.3, 3, 0), new THREE.Vector3(0, -1, 0));
    const hit = ray.intersectObject(surface)[0];
    seamPoints.push(hit.point.clone().add(new THREE.Vector3(0, .014, 0)));
+   yield;
   }
   const seam = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(seamPoints), 36, .018, 4, false), rimMaterial);
   this.shell.add(seam); this.seam=seam; this.sprayAnchor=seamPoints[6].clone();
+  yield;
   this.eyes = new ReedWalkerEyes(traits, bodyMaterial);
+  yield;
   this.tusks = reedTusks(traits, surface); this.shell.add(this.tusks);
+  yield;
   for (let i = 0; i < traits.marks; i++) {
    const mark = new THREE.Mesh(new THREE.BoxGeometry(.025, .15 + i % 3 * .035, .018), rimMaterial);
    mark.position.set(-traits.length * .6 + i * traits.length * .18, .18, traits.width * .9); mark.rotation.z = -.3; this.shell.add(mark);
+   yield;
   }
   const mouth = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 6), legMaterial);
   mouth.scale.set(.65, .14, .45); mouth.position.set(.2, -.72, 0); this.shell.add(mouth); this.mouth = mouth;
-  this.legs = Array.from({ length: 4 }, (_, i) => {
+  yield;
+  this.legs = [];
+  for(let i=0;i<4;i++) {
    const side = i % 2 ? 1 : -1, fore = i < 2 ? 1 : -1;
    const hip = new THREE.Vector3(fore * traits.length * .65, 0, side * traits.width * .64);
    const foot = new THREE.Vector3(fore * traits.length * .94, .04, side * (traits.width + .65));
    const segments = [0, 1].map(() => { const m = new THREE.Mesh(new THREE.CylinderGeometry(.085, .12, 1, 6), legMaterial); m.castShadow = true; this.root.add(m); return m; });
    const pad = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 0), legMaterial); pad.scale.set(traits.foot * 1.3, .09, traits.foot); this.root.add(pad);
-   return { hip, foot, side, fore, segments, pad };
-  });
+   this.legs.push({ hip, foot, side, fore, segments, pad });
+   yield;
+  }
   const materials=new Set();this.root.traverse(o=>{if(o.material)materials.add(o.material);});
   for(const material of materials)reedWalkerLighting(material,this.visibility,material===legMaterial);
  }

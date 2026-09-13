@@ -1,5 +1,6 @@
+import { lowMemoryMobile } from '../core/MobileDetail.js?v=stable-30-3';
 import { bus, Events } from '../core/EventBus.js';
-import { config } from '../core/Config.js';
+import { config } from '../core/Config.js?v=stable-30-3';
 
 export class HUD {
 	constructor() {
@@ -23,7 +24,7 @@ export class HUD {
 		let saved;
 		try { saved = localStorage.getItem('nowherelands-frame-rate'); } catch { /* optional preference */ }
 		const requested = new URLSearchParams(location.search).get('fps') ?? saved;
-		this.frameRate = ['0', '30', '60'].includes(requested) ? Number(requested) : 60;
+		this.frameRate = ['0', '30', '60'].includes(requested) ? Number(requested) : lowMemoryMobile ? 30 : 60;
 		const label = document.createElement('label'); label.className = 'frame-rate'; label.textContent = 'motion · ';
 		const select = document.createElement('select'); select.setAttribute('aria-label', 'Frame rate');
 		for (const [value, text] of [[30, '30 · quiet'], [60, '60 · balanced'], [0, 'display rate']]) {
@@ -101,7 +102,10 @@ export class HUD {
 	setHover(on) { this.ring.setAttribute('r', on ? 9 : 4); this.ring.setAttribute('stroke', on ? '#ff6ad5' : '#fff'); }
 
 	setCharge(c) {
-		this.charge.setAttribute('r', (c * 22).toFixed(1));
+		const radius = (c * 22).toFixed(1), visible = c > 0;
+		if (radius === this.chargeRadius && visible === this.chargeVisible) return;
+		this.chargeRadius = radius; this.chargeVisible = visible;
+		this.charge.setAttribute('r', radius);
 		this.charge.setAttribute('opacity', c > 0 ? 0.8 : 0);
 	}
 

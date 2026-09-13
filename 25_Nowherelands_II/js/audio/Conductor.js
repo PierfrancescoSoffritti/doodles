@@ -1,8 +1,8 @@
 import { bus, Events } from '../core/EventBus.js';
-import { config } from '../core/Config.js';
+import { config } from '../core/Config.js?v=stable-30-3';
 import { Scale } from './Scale.js';
 import { Scheduler } from './Scheduler.js';
-import { Drone } from './layers/Drone.js?v=pebble-audio-10';
+import { Drone } from './layers/Drone.js?v=stable-30-3';
 import { Arpeggio } from './layers/Arpeggio.js';
 import { Bells } from './layers/Bells.js';
 import { Bass } from './layers/Bass.js';

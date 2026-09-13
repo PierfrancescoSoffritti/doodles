@@ -3,14 +3,19 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { lanternHomeMaterial, lanternBrambleMaterial } from './LanternMiteHomeMaterials.js';
 
 export class LanternMiteHomeMeshes {
- constructor(parent,site,mites,materials={}) {
+ constructor(parent,site,mites,materials={},defer=false) {
   this.site=site; this.root=new THREE.Group(); this.root.name=`Lantern home · ${site.home.family}`; parent.add(this.root);
   this.masks=new Map(); this.colliders=[];
+  this.work=this.build(site,mites,materials);
+  if(!defer)while(!this.work.next().done){}
+ }
+ *build(site,mites,materials) {
   const origin=site.point({x:0,y:0,z:0});
   this.lightUniforms={uHomeOrigin:{value:new THREE.Vector3(origin.x,origin.y,origin.z)},
    uHomeNormal:{value:new THREE.Vector2(site.normal.x,site.normal.z)},uHomeTangent:{value:new THREE.Vector2(site.tangent.x,site.tangent.z)},
    uHomeScale:{value:site.scale},uHomeGlow:{value:1}};
   const h=site.home, parts=Array.from({length:5},()=>[]);
+  try {
   const add=(source,kind)=>{ const g=source.index?source.toNonIndexed():source;
    if(g!==source)source.dispose();const p=g.attributes.position;
    for(let i=0;i<p.count;i++){const at=site.point({x:p.getX(i),y:p.getY(i),z:p.getZ(i)});p.setXYZ(i,at.x,at.y,at.z);}
@@ -29,7 +34,7 @@ export class LanternMiteHomeMeshes {
      p.setXYZ(i,c.x+(p.getX(i)-c.x)*taper,c.y+(p.getY(i)-c.y)*taper,c.z+(p.getZ(i)-c.z)*taper);
     }
    }
-   add(g,root.dark?1:0);
+   add(g,root.dark?1:0); yield;
    for(const p of points.filter(p=>!root.ground&&p.y<0.5)) {
     const at=site.point({x:p.x,y:p.y,z:p.z});
     this.colliders.push({position:new THREE.Vector3(at.x,at.y,at.z),radius:root.radius*site.scale*0.8});
@@ -43,14 +48,14 @@ export class LanternMiteHomeMeshes {
   for(const s of h.stones){
    const ground=site.groundLocal(s.x,s.z),cy=ground+s.ry*0.52;
    stone(s.x,cy,s.z,s.rx,s.ry,s.rz,s.turn,2);
-   stone(s.x+s.rx*0.16,cy+s.ry*0.72,s.z-s.rz*0.12,s.rx*0.52,s.ry*0.24,s.rz*0.57,s.turn,3);
+   stone(s.x+s.rx*0.16,cy+s.ry*0.72,s.z-s.rz*0.12,s.rx*0.52,s.ry*0.24,s.rz*0.57,s.turn,3); yield;
    const at=site.point({x:s.x,y:cy,z:s.z});
    this.colliders.push({position:new THREE.Vector3(at.x,at.y,at.z),radius:Math.max(s.rx,s.rz)*site.scale});
   }
   for(const m of mites){const p=m.perch,top=p.y-m.size;
    stone(p.x,-0.025,p.z,0.34,top+0.025,0.3,0,3);
   }
-  for(const p of h.moss) if(site.canGrow(p.x,p.z))stone(p.x,site.groundLocal(p.x,p.z)+0.025,p.z,p.size*1.5,p.size*0.2,p.size,0,3);
+  for(const p of h.moss) { if(site.canGrow(p.x,p.z))stone(p.x,site.groundLocal(p.x,p.z)+0.025,p.z,p.size*1.5,p.size*0.2,p.size,0,3); yield; }
   // An irregular, low earth apron meets the terrain at its rim; no display base.
   const vertices=[],n=28;
   for(let i=0;i<n;i++){
@@ -61,7 +66,7 @@ export class LanternMiteHomeMeshes {
    };
    const a=ring(i),b=ring(i+1),ai={x:Math.cos(i/n*Math.PI*2)*2.8,z:Math.sin(i/n*Math.PI*2)*1.8},bi={x:Math.cos((i+1)/n*Math.PI*2)*2.8,z:Math.sin((i+1)/n*Math.PI*2)*1.8};
    const v=p=>[p.x,site.groundLocal(p.x,p.z)-0.025,p.z], inner=p=>[p.x,-0.04,p.z];
-   vertices.push(0,-0.04,0,...inner(ai),...inner(bi),...inner(ai),...v(a),...v(b),...inner(ai),...v(b),...inner(bi));
+   vertices.push(0,-0.04,0,...inner(ai),...inner(bi),...inner(ai),...v(a),...v(b),...inner(ai),...v(b),...inner(bi)); yield;
   }
   const earth=new THREE.BufferGeometry();earth.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));earth.computeVertexNormals();
   // All pieces share a position/normal/uv schema before merging.
@@ -69,13 +74,13 @@ export class LanternMiteHomeMeshes {
   earth.setIndex(Array.from({length:vertices.length/3},(_,i)=>i));add(earth,4);
   for(let kind=0;kind<parts.length;kind++)if(parts[kind].length){
    // Icosahedra do not have the tube's optional attributes beyond these three.
-   const geometry=mergeGeometries(parts[kind]);parts[kind].forEach(g=>g.dispose());
+   const geometry=mergeGeometries(parts[kind]);parts[kind].forEach(g=>g.dispose()); parts[kind]=[];
    if(kind>=3){const count=geometry.attributes.position.count;
     geometry.setAttribute('aCave',new THREE.Float32BufferAttribute(new Float32Array(count).fill(-100),1));
     geometry.setAttribute('aApron',new THREE.Float32BufferAttribute(new Float32Array(count),1));
    }
    const material=lanternHomeMaterial(kind,materials,this.lightUniforms);
-   this.root.add(new THREE.Mesh(geometry,material));
+   this.root.add(new THREE.Mesh(geometry,material)); yield;
   }
   // Open, angular thorn stems echo the world's wire grasses and move in its wind.
   const lines=[],bases=[],info=[];
@@ -98,12 +103,14 @@ export class LanternMiteHomeMeshes {
     }
    }
   }
+  yield;
   if(lines.length){const g=new THREE.BufferGeometry();
    g.setAttribute('position',new THREE.Float32BufferAttribute(lines,3));g.setAttribute('aBase',new THREE.Float32BufferAttribute(bases,3));
    g.setAttribute('aInfo',new THREE.Float32BufferAttribute(info,4));g.setAttribute('aBorn',new THREE.Float32BufferAttribute(new Float32Array(lines.length/3).fill(-1e6),1));
    g.computeBoundingSphere();g.boundingSphere.radius+=4;
    this.root.add(new THREE.LineSegments(g,lanternBrambleMaterial(materials.bramble)));
   }
+  } finally { for(const list of parts)for(const geometry of list)geometry.dispose(); }
  }
  update(dt,model) {
   const brightness=Math.max(...model.mites.map(m=>m.brightness));
@@ -116,7 +123,7 @@ export class LanternMiteHomeMeshes {
    if(this.masks.has(chunk))continue;
    const saves=[];this.masks.set(chunk,saves);
    for(const group of chunk.groups){
-    if(!group.ranges||!group.names)continue;
+    if(!(group.rangeData||group.ranges)||!group.names)continue;
     const mesh=chunk.meshes.find(m=>m.geometry?.getAttribute('aBorn')===group.attr),p=mesh?.geometry.attributes.position,base=mesh?.geometry.attributes.aBase;
     if(!p||!base)continue;
     for(let i=0;i<group.count;i++){
@@ -124,7 +131,7 @@ export class LanternMiteHomeMeshes {
      const dx=group.pos[i*2]-this.site.center.x,dz=group.pos[i*2+1]-this.site.center.z;
      const x=(dx*this.site.tangent.x+dz*this.site.tangent.z)/this.site.scale,z=(dx*this.site.normal.x+dz*this.site.normal.z)/this.site.scale;
      if((x/3.3)**2+(z/2.5)**2>1)continue;
-     const [start,end]=group.ranges[i],saved=p.array.slice(start*3,end*3);saves.push({p,start,saved});
+     const start=group.rangeData?group.rangeData[i*2]:group.ranges[i][0],end=group.rangeData?group.rangeData[i*2+1]:group.ranges[i][1],saved=p.array.slice(start*3,end*3);saves.push({p,start,saved});
      for(let k=start;k<end;k++)p.setXYZ(k,base.getX(start),base.getY(start),base.getZ(start));
      p.needsUpdate=true;
     }
@@ -133,6 +140,7 @@ export class LanternMiteHomeMeshes {
   for(const chunk of this.masks.keys())if(![...vegetation.chunks.values()].includes(chunk))this.masks.delete(chunk);
  }
  dispose() {
+  this.work.return();
   for(const saves of this.masks.values())for(const {p,start,saved}of saves){p.array.set(saved,start*3);p.needsUpdate=true;}
   this.masks.clear();this.root.traverse(o=>{o.geometry?.dispose();o.material?.dispose();});this.root.removeFromParent();
  }

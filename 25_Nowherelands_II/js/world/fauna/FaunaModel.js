@@ -1,10 +1,12 @@
+import { hypot2, hypot3 } from '../../core/NumericDistance.js?v=stable-30-6';
+import { selectLumenDetail, swimDistantLumen } from './LumenDetail.js?v=stable-30-20';
 import { receiveNote, updateNote, isPlayerNote } from './NoteResponse.js?v=pebble-voice-4b';
-import { initializeWorldRays, updateWorldRays, hearWorldRays, worldRayCall } from './VeilRayWorld.js?v=pebble-voice-4b';
-import { initializePebbles, pebbleHabitat, updatePebble, answerPebble } from './PebbleHoppers.js?v=pebble-voice-4b';
-import { buildLumenGrid } from './LumenFlow.js';
+import { initializeWorldRays, updateWorldRays, hearWorldRays, worldRayCall } from './VeilRayWorld.js?v=stable-30-3';
+import { initializePebblesSteps, pebbleHabitat, updatePebble, answerPebble } from './PebbleHoppers.js?v=stable-30-25';
+import { buildLumenGrid } from './LumenFlow.js?v=stable-30-20';
 import { Random } from '../../core/Random.js';
 import { motor, steer, damp } from './Locomotion.js';
-import { initializeSchool, updateSchool, swimLumen } from './LumenSchool.js?v=player-notes-13';
+import { initializeSchool, updateSchool, swimLumen } from './LumenSchool.js?v=stable-30-20';
 
 export const SPECIES = {
 	lumen: { name: 'Lumen shoal', count: 640, cap: 640, speed: 6, height: 13, radius: 42, voice: 'liquid whistles', interval: 12 },
@@ -14,12 +16,12 @@ export const SPECIES = {
 export const PEBBLE_DRAW_DISTANCE = 650;
 // Habitat stones stay at home, but a fleeing animal may travel far beyond it.
 function groupDistance(group, position) {
- let nearest = Math.hypot(group.home.x - position.x, group.home.z - position.z);
- for (const c of group.members) nearest = Math.min(nearest, Math.hypot(c.pos.x - position.x, c.pos.z - position.z));
+ let nearest = hypot2(group.home.x - position.x, group.home.z - position.z);
+ for (const c of group.members) nearest = Math.min(nearest, hypot2(c.pos.x - position.x, c.pos.z - position.z));
  return nearest;
 }
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
-const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+const distance = (a, b) => hypot3(a.x - b.x, a.y - b.y, a.z - b.z);
 
 export function habitatScore(kind, s) {
 	if (!Number.isFinite(s.ground) || !Number.isFinite(s.water) || s.roof) return -Infinity;
@@ -42,7 +44,11 @@ export class FaunaModel {
 		this.serial = 0;
 	}
 
-	addGroup(id, kind, x, z, searchRadius = 110, options = {}) {
+	addGroup(...args) {
+		const work = this.addGroupSteps(...args);
+		for (;;) { const step = work.next(); if (step.done) return step.value; }
+	}
+	*addGroupSteps(id, kind, x, z, searchRadius = 110, options = {}) {
 		if (!SPECIES[kind]) return null;
 		if (kind === 'ray' && this.environment.raySites && !options.raySite) return null;
 		const sampleAt = options.sample || this.environment.sample;
@@ -53,6 +59,7 @@ export class FaunaModel {
 		const rnd = new Random(`${this.seed}:fauna:${id}`);
 		let best = null, score = -Infinity;
 		for (let i = 0; i < 70; i++) {
+			if (kind === 'hopper') yield;
 			const angle = rnd.range(0, Math.PI * 2), r = Math.sqrt(rnd.next()) * searchRadius;
 			const px = x + Math.cos(angle) * r, pz = z + Math.sin(angle) * r;
 			const s = sampleAt(px, pz), value = habitatScore(kind, s) - r / searchRadius * 0.15;
@@ -88,7 +95,7 @@ export class FaunaModel {
 		}
 		if (options.raySite) initializeWorldRays(group, this, options.raySite);
 		if (kind === 'lumen') initializeSchool(group, this.environment, this.time);
-		if (kind === 'hopper') { initializePebbles(group, this); if (!group.members.length) return null; }
+		if (kind === 'hopper') { yield* initializePebblesSteps(group, this); if (!group.members.length) return null; }
 		this.groups.set(id, group); return group;
 	}
 
@@ -123,9 +130,10 @@ export class FaunaModel {
 		if (layer.startsWith('fauna:')) return;
 		const source = position || this.listener;
 		for (const group of this.groups.values()) {
+			if (this.externalLumen && group.kind === 'lumen') continue;
 			if (group.raySite) { hearWorldRays(group,this,{position:source,strength,layer,radius}); continue; }
 			if(isPlayerNote({layer})){
-				const near=group.members.filter(c=>(radius!==undefined?Math.hypot(c.pos.x-source.x,c.pos.z-source.z):distance(c.pos,source))<=(radius??(strength>.75?165:110))).sort((a,b)=>distance(a.pos,source)-distance(b.pos,source));
+				const near=group.members.filter(c=>(radius!==undefined?hypot2(c.pos.x-source.x,c.pos.z-source.z):distance(c.pos,source))<=(radius??(strength>.75?165:110))).sort((a,b)=>distance(a.pos,source)-distance(b.pos,source));
 				near.forEach((c,i)=>{if(receiveNote(c,this.time,{layer,position:source,velocity:strength,radius},{delay:Math.min(1.3,i*.075),duration:5,range:110}))c.noteSpeak=group.kind==='hopper'||i<3;});
 				continue;
 			}
@@ -190,11 +198,12 @@ export class FaunaModel {
 		this.time += dt;
 		const oldListener = this.previousListener || this.listener;
 		const dx = this.listener.x - oldListener.x, dz = this.listener.z - oldListener.z;
-		const teleported = Math.hypot(dx, dz) > 60;
+		const teleported = hypot2(dx, dz) > 60;
 		this.listenerVelocity = { x: teleported ? 0 : dx / dt, z: teleported ? 0 : dz / dt };
 		this.previousListener = { ...this.listener };
 		for (const group of this.groups.values()) {
-			if (group.kind === 'lumen') updateSchool(group, this, dt);
+			if (this.externalLumen && group.kind === 'lumen') continue;
+			if (group.kind === 'lumen') { selectLumenDetail(group, this.listener, this.distantLumen); updateSchool(group, this, dt); }
 			if (!group.raySite && group.kind !== 'hopper' && this.time >= group.nextCall && (group.kind==='lumen'?group.members.some(c=>distance(c.pos,this.listener)<160):distance(group.center || group.home, this.listener)<230)) {
 				const audible=group.kind==='lumen'?group.members.filter(c=>distance(c.pos,this.listener)<160):group.members;
 			audible[group.rnd.int(0,audible.length-1)].callAt=this.time;
@@ -203,48 +212,53 @@ export class FaunaModel {
 		}
 		// All neighbours are read from one snapshot, so ordering cannot create a leader.
 		for (const c of this.creatures) {
-			Object.assign(c.prev, c.pos); Object.assign(c, { oldVX: c.vel.x, oldVY: c.vel.y, oldVZ: c.vel.z });
+			if (this.externalLumen && c.kind === 'lumen') continue;
+			c.prev.x=c.pos.x; c.prev.y=c.pos.y; c.prev.z=c.pos.z;
+			c.oldVX=c.vel.x; c.oldVY=c.vel.y; c.oldVZ=c.vel.z;
 			c.prevStroke = c.stroke; c.prevYaw = c.yaw; c.prevPitch = c.pitch; c.prevBank = c.bank;
 		}
 		for(const group of this.groups.values()) {
+			if (this.externalLumen && group.kind === 'lumen') continue;
 			if(group.kind==='lumen')buildLumenGrid(group);
 			if(group.raySite)updateWorldRays(group,this,dt);
 		}
 		for (const c of this.creatures) {
+			if (this.externalLumen && c.kind === 'lumen') continue;
 			if(c.group.raySite) continue;
 			updateNote(c,this.time,r=>{if(c.kind==='hopper')answerPebble(c,this,r);},r=>{if(c.noteSpeak)this.onNoteReply?.(c.kind,c,r.alarm);},c.kind==='hopper'?.1:undefined);
 			const def = SPECIES[c.kind], t = this.time, p = c.pos, home = c.group.home;
 			c.energy *= Math.exp(-dt * (c.kind === 'ray' ? 0.6 : 1.5));
 			if (t >= c.responseAt) { c.energy = Math.max(c.energy, c.responseStrength); c.responseAt = Infinity; }
 			if (t >= c.callAt) { c.callAt = Infinity; this.call(c); }
+			if (c.kind === 'lumen' && c.navigation.coarse) { swimDistantLumen(c, this, dt); continue; }
 			c.floorTimer -= dt;
 			if (c.floorTimer <= 0) {
-				const s = (c.group.sample || this.environment.sample)(p.x, p.z); c.ground = s.ground; c.water = s.water;
+				const s = (c.group.sample || this.environment.sample)(p.x, p.z, c.kind === 'lumen'); c.ground = s.ground; c.water = s.water;
 				c.floorTimer = 0.18 + c.temperament * 0.1;
 			}
 			if (c.kind === 'lumen') { swimLumen(c, this, dt); continue; }
 			if (c.kind === 'hopper') { updatePebble(c, this, dt); continue; }
 			const playerDistance = distance(p, this.listener), fleeing = playerDistance < 10;
 			motor(c, dt, fleeing);
-			if (t > c.targetUntil || Math.hypot(p.x - c.target.x, p.z - c.target.z) < 2.5) {
+			if (t > c.targetUntil || hypot2(p.x - c.target.x, p.z - c.target.z) < 2.5) {
 				this.chooseTarget(c, c.kind, def.radius);
 			}
 			const target = c.target;
 			let dx = target.x - p.x, dz = target.z - p.z;
-			const length = Math.hypot(dx, dz) || 1; dx /= length; dz /= length;
+			const length = hypot2(dx, dz) || 1; dx /= length; dz /= length;
 			// Correlated wander changes slowly; it never snaps to a new random heading.
 			c.wander = damp(c.wander, c.rnd.range(-1, 1), 0.7, dt);
 			dx += Math.sin(c.yaw) * c.wander * 1.5; dz += Math.cos(c.yaw) * c.wander * 1.5;
 			const listening = c.attention && t < c.attentionUntil;
 			if (listening && !fleeing) {
-				const ax = c.attention.x - p.x, az = c.attention.z - p.z, al = Math.hypot(ax, az) || 1;
+				const ax = c.attention.x - p.x, az = c.attention.z - p.z, al = hypot2(ax, az) || 1;
 				dx += ax / al * 0.55; dz += az / al * 0.55;
 			}
 			if (fleeing) {
 				dx += (p.x - this.listener.x) / Math.max(playerDistance, 0.1) * 4;
 				dz += (p.z - this.listener.z) / Math.max(playerDistance, 0.1) * 4;
 			}
-			const homeDistance = Math.hypot(p.x - home.x, p.z - home.z);
+			const homeDistance = hypot2(p.x - home.x, p.z - home.z);
 			if (homeDistance > def.radius + 14) { dx += (home.x - p.x) / homeDistance * 3; dz += (home.z - p.z) / homeDistance * 3; }
 			const avoid = this.environment.avoid?.({ x: p.x + c.vel.x * 1.4, y: p.y, z: p.z + c.vel.z * 1.4 }, c.kind);
 			if (avoid) { dx += avoid.x; dz += avoid.z; }
@@ -258,7 +272,7 @@ export class FaunaModel {
 			if (habitatScore(c.kind, s) === -Infinity) { nx = p.x; nz = p.z; c.speed *= 0.5; c.targetUntil = 0; }
 			else { c.ground = s.ground; c.water = s.water; }
 			p.x = nx; p.z = nz;
-			c.gait += Math.hypot(p.x - c.prev.x, p.z - c.prev.z) / 4;
+			c.gait += hypot2(p.x - c.prev.x, p.z - c.prev.z) / 4;
 			const floor = Math.max(c.ground, c.water);
 			// Altitude follows a slowly varying goal and lift, not a global sine bob.
 			const targetY = floor + def.height;
@@ -275,13 +289,13 @@ export class FaunaModel {
 // distance, including a zero-distance guard, so uneven ground never creates NaNs.
 export function solveLeg(hip, target, length, bendDirection) {
 	let dx = target.x - hip.x, dy = target.y - hip.y, dz = target.z - hip.z;
-	const actual = Math.hypot(dx, dy, dz);
+	const actual = hypot3(dx, dy, dz);
 	if (actual < 1e-5) { dx = 0; dy = -1; dz = 0; } else { dx /= actual; dy /= actual; dz /= actual; }
 	const d = Math.min(Math.max(actual, 0.001), length * 2 * 0.999);
 	const dot = bendDirection.x * dx + bendDirection.y * dy + bendDirection.z * dz;
 	let bx = bendDirection.x - dx * dot, by = bendDirection.y - dy * dot, bz = bendDirection.z - dz * dot;
-	let bl = Math.hypot(bx, by, bz);
-	if (bl < 1e-5) { bx = -dy; by = dx; bz = 0; bl = Math.hypot(bx, by); if (bl < 1e-5) { bx = 1; bl = 1; } }
+	let bl = hypot3(bx, by, bz);
+	if (bl < 1e-5) { bx = -dy; by = dx; bz = 0; bl = hypot2(bx, by); if (bl < 1e-5) { bx = 1; bl = 1; } }
 	const h = Math.sqrt(Math.max(0, length * length - d * d * 0.25));
 	return { knee: { x: hip.x + dx * d * 0.5 + bx / bl * h, y: hip.y + dy * d * 0.5 + by / bl * h, z: hip.z + dz * d * 0.5 + bz / bl * h },
 		foot: { x: hip.x + dx * d, y: hip.y + dy * d, z: hip.z + dz * d } };

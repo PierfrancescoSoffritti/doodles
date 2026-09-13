@@ -1,3 +1,6 @@
+import { mobileOption } from '../core/MobileDetail.js?v=stable-30-3';
+import {CopyShader} from 'three/addons/shaders/CopyShader.js';
+import {FilmOutputPass} from './FilmOutputPass.js?v=stable-30-3';
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
@@ -12,7 +15,7 @@ const SanitizeShader = {
 	fragmentShader: `uniform sampler2D tDiffuse; varying vec2 vUv; void main(){ vec4 c = texture2D(tDiffuse, vUv); if (any(isnan(c)) || any(isinf(c))) c = vec4(0.0, 0.0, 0.0, 1.0); gl_FragColor = clamp(c, 0.0, 64.0); }`,
 };
 
-const FilmShader = {
+export const FilmShader = {
 	uniforms: { tDiffuse: { value: null }, uTime: { value: 0 }, uGrain: { value: 0.022 }, uVignette: { value: 0.5 }, uAberration: { value: 0.00045 }, uPulse: { value: 0 }, uSunScreen: { value: new THREE.Vector2(0.5, 0.5) }, uGlare: { value: 0 }, uAspect: { value: 1.78 } },
 	vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
 	fragmentShader: /* glsl */`
@@ -54,16 +57,30 @@ const FilmShader = {
 
 export class PostProcessing {
 	constructor(renderer, scene, camera) {
-		this.composer = new EffectComposer(renderer);
+		this.renderer=renderer;
+  this.buffered=mobileOption('bufferFrames');
+  this.display=new ShaderPass(CopyShader);this.display.renderToScreen=true;
+  this.display.material.depthTest=false;this.display.material.depthWrite=false;
+  this.frameStats={produced:0,presented:0,repeated:0};this.lastPresented=0;
+  this.composer = new EffectComposer(renderer);
+  this.composer.renderToScreen=!this.buffered;
 		this.composer.addPass(new RenderPass(scene, camera));
 		this.composer.addPass(new ShaderPass(SanitizeShader));
 		this.bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.45, 0.45, 0.78);
 		this.composer.addPass(this.bloom);
-		this.film = new ShaderPass(FilmShader);
+		this.fused = new URLSearchParams(globalThis.location?.search||'').get('postFuse')!=='0';
+		this.film = this.fused ? new FilmOutputPass(FilmShader) : new ShaderPass(FilmShader);
 		this.composer.addPass(this.film);
-		this.composer.addPass(new OutputPass());
+		if(!this.fused)this.composer.addPass(new OutputPass());
 	}
-	setSize(w, h) { this.composer.setSize(w, h); this.bloom.setSize(w, h); }
+	setSize(w, h) { this.composer.setSize(w, h); this.bloom.setSize(w, h);this.hasFrame=false; }
+ present(){
+  if(!this.hasFrame)return false;
+  this.display.render(this.renderer,null,this.composer.readBuffer);
+  if(this.lastPresented===this.frameStats.produced)this.frameStats.repeated++;
+  this.lastPresented=this.frameStats.produced;this.frameStats.presented++;
+  return true;
+ }
 	render(time, shared) {
 		this.film.uniforms.uTime.value = time % 100;
 		this.film.uniforms.uAspect.value = innerWidth / innerHeight;
@@ -72,5 +89,6 @@ export class PostProcessing {
 		this.film.uniforms.uPulse.value = shared.audio ? shared.audio.analysis.bass * 0.6 : 0;
 		this.bloom.strength = shared.debugNoBloom ? 0 : 0.42 + (shared.audio ? shared.audio.analysis.attack * 0.15 : 0) + shared.state.eclipse * 0.12;
 		this.composer.render();
+  this.hasFrame=true;this.frameStats.produced++;
 	}
 }

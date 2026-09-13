@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { synthesizeVeilRay, rayEnvelope, RAY_PHRASES } from '../../js/audio/VeilRayVoice.js';
+import { synthesizeVeilRay, rayEnvelope, RAY_PHRASES } from '../../js/audio/VeilRayVoice.js?v=stable-30-3';
 
 test('ray phrases have a sustained body, quiet boundaries, bounded peaks and repeatable samples', () => {
  for (const phrase of Object.keys(RAY_PHRASES)) for (const sampleRate of [22050, 48000]) {

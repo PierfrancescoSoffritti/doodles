@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { LakeSurface, clipShore } from '../../js/world/LakeSurface.js';
+import { LakeSurface, clipShore } from '../../js/world/LakeSurface.js?v=stable-30-3';
 import { reconnectLakeBasins } from '../../js/world/gen/WorldGen.js';
 import { RIVER_STRIDE as S, RV } from '../../js/world/gen/Rivers.js';
 

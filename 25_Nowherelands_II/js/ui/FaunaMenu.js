@@ -1,8 +1,8 @@
-import { FaunaSurvey } from './FaunaSurvey.js?v=fauna-menu-2';
+import { FaunaSurvey } from './FaunaSurvey.js?v=stable-30-25';
 import { ReedSurvey } from './ReedSurvey.js?v=fauna-menu-2';
 import { BirdSurvey } from './BirdSurvey.js?v=fauna-menu-2';
 import { LanternMiteSurvey } from './LanternMiteSurvey.js?v=fauna-menu-2';
-import { config } from '../core/Config.js';
+import { config } from '../core/Config.js?v=stable-30-3';
 
 const FAUNA = [
 	{ id: 'lumen', name: 'Lumen shoal', habitat: 'Living lights along the shores', next: 'Visit another flock' },
@@ -169,16 +169,24 @@ export class FaunaMenu {
 		for (const colony of this.shared.mites.colonies.values()) this.homes.mite.set(colony.id, { ...colony.site.arrival });
 	}
 
-	findForest(kind, exclude) {
-		this.rememberHomes();
-		const p = this.shared.player, hm = this.shared.heightmap;
-		const known = [...this.homes[kind]].filter(([id]) => id !== exclude).map(([, position]) => position);
+	prepareForest() {
+  if (this.forestCandidates) return this.forestCandidates;
+  const hm = this.shared.heightmap;
 		const candidates = [];
 		// Only use suitable terrain; the world systems still select actual trees and residents.
 		for (let x = -5000; x <= 5000; x += 250) for (let z = -5000; z <= 5000; z += 250) {
 			const ground = hm.sample(x, z), habitat = hm.habitat(x, z);
 			if (ground > hm._water + 4 && hm._slope < .3 && habitat.forest > .15 && habitat.wet > .1 && habitat.coast < .5 && !hm.caves.hasOpening(x, z)) candidates.push({ x, y: ground + 11, z });
 		}
+  this.forestCandidates = candidates;
+  return candidates;
+ }
+
+	findForest(kind, exclude) {
+		this.rememberHomes();
+		const p = this.shared.player;
+		const known = [...this.homes[kind]].filter(([id]) => id !== exclude).map(([, position]) => position);
+		const candidates = this.prepareForest().slice();
 		candidates.sort((a, b) => Math.hypot(a.x - p.position.x, a.z - p.position.z) - Math.hypot(b.x - p.position.x, b.z - p.position.z));
 		known.sort((a, b) => Math.hypot(a.x - p.position.x, a.z - p.position.z) - Math.hypot(b.x - p.position.x, b.z - p.position.z));
 		const destinations = known.slice(0, 4);

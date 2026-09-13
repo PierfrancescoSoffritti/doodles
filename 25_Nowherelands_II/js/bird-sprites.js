@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {BirdPassages,SKY_BIRD_CAPACITY} from './world/fauna/BirdPassages.js?v=birds-10';
+import {BirdPassages,SKY_BIRD_CAPACITY} from './world/fauna/BirdPassages.js?v=stable-30-3';
 import {BirdSprites} from './world/fauna/BirdSprites.js?v=birds-10';
 const $=id=>document.getElementById(id);
 const renderer=new THREE.WebGLRenderer({canvas:$('canvas'),antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;

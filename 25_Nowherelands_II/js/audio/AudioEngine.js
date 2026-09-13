@@ -1,13 +1,20 @@
+import { ensureReedMixHeadroom } from './ReedWalkerAudio.js?v=reed-7';
+import { warmReedVoice } from './ReedWalkerVoice.js?v=stable-30-3';
 import { bus, Events } from '../core/EventBus.js';
 import { clamp01, damp } from '../core/Utils.js';
 
 // Web Audio graph: voices -> layer gains -> master -> compressor -> analyser -> out.
 // Every voice also sends to a shared convolution reverb built from procedurally generated noise.
 export class AudioEngine {
-	constructor(context = null, random = Math.random) {
+	constructor(context = null, random = Math.random, { latencyHint = 'interactive', sampleRate, blockSpatial = false } = {}) {
   this.random = random;
-		this.ctx = context || new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
+		this.ctx = context || new (window.AudioContext || window.webkitAudioContext)({ latencyHint, ...(sampleRate?{sampleRate}:{}) });
 		const ctx = this.ctx;
+  this.blockSpatial = blockSpatial;
+  if (blockSpatial) for (const name of ['positionX','positionY','positionZ','forwardX','forwardY','forwardZ','upX','upY','upZ']) {
+   const param = ctx.listener[name];
+   if (param && 'automationRate' in param) param.automationRate = 'k-rate';
+  }
 
 		this.master = ctx.createGain();
 		this.master.gain.value = 0.0001;
@@ -51,6 +58,8 @@ export class AudioEngine {
 		this.delayFilter.connect(this.master);
 
 		this.noiseBuffer = this.buildNoise(2);
+		warmReedVoice(ctx);
+		ensureReedMixHeadroom(this);
 		this.freq = new Uint8Array(this.analyser.frequencyBinCount);
 		this.analysis = { bass: 0, mid: 0, high: 0, level: 0, attack: 0 };
 		this._raw = { bass: 0, mid: 0, high: 0, level: 0 };
@@ -113,6 +122,10 @@ export class AudioEngine {
 	makePanner(position) {
 		const p = this.ctx.createPanner();
 		p.panningModel = 'HRTF';
+  if (this.blockSpatial) for (const name of ['positionX','positionY','positionZ','orientationX','orientationY','orientationZ']) {
+   const param = p[name];
+   if (param && 'automationRate' in param) param.automationRate = 'k-rate';
+  }
 		p.distanceModel = 'inverse';
 		p.refDistance = 65;
 		p.maxDistance = 3000;
@@ -147,26 +160,37 @@ export class AudioEngine {
 
 	// Route a voice output to destination, reverb send, delay send and optional panner.
 	route(node, { dest, position = null, reverb = 0.5, delay = 0 }) {
-		let out = node;
+		let out = node;const nodes=[];
 		if (position) {
 			const panner = this.makePanner(position);
-			node.connect(panner);
+			node.connect(panner);nodes.push(panner);
 			out = panner;
 		}
 		out.connect(dest || this.master);
 		if (reverb > 0) {
 			const send = this.ctx.createGain();
-			send.gain.value = reverb;
+			nodes.push(send);send.gain.value = reverb;
 			out.connect(send);
 			send.connect(this.reverb);
 		}
 		if (delay > 0) {
 			const send = this.ctx.createGain();
-			send.gain.value = delay;
+			nodes.push(send);send.gain.value = delay;
 			out.connect(send);
 			send.connect(this.delay);
 		}
+		return nodes;
 	}
+
+	finishVoice(sources,nodes) {
+  const stats=this.voiceStats ||= {active:0,peak:0,retired:0};stats.active++;stats.peak=Math.max(stats.peak,stats.active);
+  let remaining=sources.length;
+  for(const source of sources)source.onended=()=>{if(--remaining)return;
+   // Let the local filter/HRTF tail settle. Shared reverb and delay retain
+   // their own history; disconnecting this silent input does not cut them off.
+   setTimeout(()=>{for(const node of nodes)node.disconnect();stats.active--;stats.retired++;},100);
+  };
+ }
 
 	// A detuned multi-oscillator pad/pluck voice with ADSR and filter envelope.
 	playTone({ freq, time = this.now, duration = 1, velocity = 0.4, type = 'triangle', detune = 7, voices = 3,
@@ -186,13 +210,13 @@ export class AudioEngine {
 
 		filter.connect(env);
 		const end = time + attack + duration + release + 0.1;
-		const count = Math.max(1, voices);
+		const count = Math.max(1, voices),sources=[],nodes=[filter,env];
 		for (let i = 0; i < count; i++) {
 			const osc = ctx.createOscillator();
 			osc.type = type;
 			osc.frequency.value = freq;
 			osc.detune.value = count === 1 ? 0 : (i - (count - 1) / 2) * detune;
-			osc.connect(filter);
+			osc.connect(filter);sources.push(osc);nodes.push(osc);
 			osc.start(time);
 			osc.stop(end);
 		}
@@ -202,10 +226,11 @@ export class AudioEngine {
 			sub.frequency.value = freq * 2;
 			const g = ctx.createGain();
 			g.gain.value = octaveLayer;
-			sub.connect(g); g.connect(filter);
+			sub.connect(g); g.connect(filter);sources.push(sub);nodes.push(sub,g);
 			sub.start(time); sub.stop(end);
 		}
-		this.route(env, { dest, position, reverb, delay });
+		nodes.push(...this.route(env, { dest, position, reverb, delay }));
+		this.finishVoice(sources,nodes);
 		this.emitNote(freq, position, velocity, layer, time);
 	}
 
@@ -231,7 +256,7 @@ export class AudioEngine {
 		carrier.connect(env);
 		mod.start(time); carrier.start(time);
 		mod.stop(time + decay + 0.1); carrier.stop(time + decay + 0.1);
-		this.route(env, { dest, position, reverb, delay });
+		this.finishVoice([carrier,mod],[carrier,mod,modGain,env,...this.route(env,{dest,position,reverb,delay})]);
 		this.emitNote(freq, position, velocity, layer, time);
 	}
 
@@ -248,7 +273,7 @@ export class AudioEngine {
 		env.gain.exponentialRampToValueAtTime(0.0001, time + decay);
 		osc.connect(env);
 		osc.start(time); osc.stop(time + decay + 0.05);
-		this.route(env, { dest, reverb: 0.15 });
+		this.finishVoice([osc],[osc,env,...this.route(env,{dest,reverb:.15})]);
 	}
 
 	// One-shot filtered noise tick.
@@ -265,7 +290,7 @@ export class AudioEngine {
 		env.gain.exponentialRampToValueAtTime(0.0001, time + duration);
 		src.connect(filter); filter.connect(env);
 		src.start(time, Math.random()); src.stop(time + duration + 0.02);
-		this.route(env, { dest, reverb: 0.25 });
+		this.finishVoice([src],[src,filter,env,...this.route(env,{dest,reverb:.25})]);
 	}
 
 	// Looping filtered noise source; returns handles for live control.

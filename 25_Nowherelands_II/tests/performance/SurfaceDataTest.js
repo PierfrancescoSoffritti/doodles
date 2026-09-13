@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { terrainMeshData } from '../../js/world/TerrainMeshData.js';
-import { shoreTileData, fillShoreRows } from '../../js/world/ShoreTileData.js';
-import { shoreDistance, riverReach } from '../../js/world/ShoreMapData.js';
+import { terrainMeshData } from '../../js/world/TerrainMeshData.js?v=stable-30-23';
+import { shoreTileData, fillShoreRows } from '../../js/world/ShoreTileData.js?v=stable-30-23';
+import { shoreDistance, riverReach } from '../../js/world/ShoreMapData.js?v=stable-30-23';
 
 const hm = {
 	height(x,z) { return Math.sin(x/27)*8 + Math.cos(z/41)*4; },

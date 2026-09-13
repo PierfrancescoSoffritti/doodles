@@ -1,9 +1,11 @@
+import { spatialWaterMesh } from './SpatialWaterMesh.js?v=stable-30-5';
+import { mobileDetail, mobileOption } from '../core/MobileDetail.js?v=stable-30-3';
 import * as THREE from 'three';
 import { WaterOptics } from './WaterOptics.js';
-import { WaterMeshData, NEAR_RADIUS, NEAR_REBUILD, nearCoverageRadius } from './WaterMeshData.js';
-import { config } from '../core/Config.js';
-export { NEAR_RADIUS } from './WaterMeshData.js';
-import { createWaterUniforms, waterVertexShader, waterFragmentShader, updateWaterUniforms } from './WaterShader.js?v=player-notes-13';
+import { WaterMeshData, NEAR_RADIUS, NEAR_REBUILD, nearCoverageRadius } from './WaterMeshData.js?v=stable-30-23';
+import { config } from '../core/Config.js?v=stable-30-3';
+export { NEAR_RADIUS } from './WaterMeshData.js?v=stable-30-23';
+import { createWaterUniforms, waterVertexShader, waterFragmentShader, updateWaterUniforms } from './WaterShader.js?v=stable-30-10';
 
 // Lakes and rivers: flat lake sheets at each lake's own level, and river ribbons that follow the
 // water surface sample by sample: sloping runs, short steep riffle ramps, and gaps where a
@@ -52,6 +54,7 @@ export class InlandWater {
 		this.mesh.frustumCulled = false;
 		this.mesh.onBeforeRender = (...args) => this.optics.capture(...args);
 		this.mesh.renderOrder = 1;          // over the sea, so a river mouth shows the river until it fades
+		if(mobileDetail)this.mesh=spatialWaterMesh(this.mesh,1024,4);
 		scene.add(this.mesh);
 		shared.mirrorHide.add(this.mesh);   // reads the sea's mirror, so it cannot be drawn into it
 		this.shared = shared;
@@ -60,23 +63,45 @@ export class InlandWater {
 		this.near = null;
 		this.nearCentre = new THREE.Vector2(1e9, 1e9);
 		this.pending = false; this.completed = null; this.requestId = 0; this.workerReady = false;
-		this.worker = new Worker(new URL('./WaterMeshWorker.js', import.meta.url), { type: 'module' });
-		this.worker.onmessage = ({ data }) => {
-			if (data.type === 'ready') this.workerReady = true;
-			else if (data.type === 'near' && data.id === this.requestId) { this.pending = false; this.completed = data; }
-		};
-		this.worker.onerror = () => {
-			this.workerReady = false; this.pending = false; this.worker.terminate();
-			console.warn('Detailed water streaming stopped; retaining the static water surface.');
-		};
-		// One startup clone; all later geometry buffers return by transfer, not by copying.
-		this.worker.postMessage({ type: 'init', seed: config.seed, world });
+		this.surfaceWork = mobileOption('waterSurfaceWorker') ? shared.surfaceWork : null;
+		if (!this.surfaceWork || this.surfaceWork.failed) this.startWorker();
+	}
+
+	startWorker() {
+		this.surfaceWork = null; this.pending = false;
+		try {
+			this.worker = new Worker(new URL('./WaterMeshWorker.js?v=stable-30-23', import.meta.url), { type: 'module' });
+			this.worker.onmessage = ({ data }) => {
+				if (data.type === 'ready') this.workerReady = true;
+				else if (data.type === 'near' && data.id === this.requestId) { this.pending = false; this.completed = data; }
+			};
+			this.worker.onerror = event => {
+				event.preventDefault(); this.workerReady = false; this.pending = false; this.worker.terminate();
+				console.warn('Detailed water streaming stopped; retaining the static water surface.');
+			};
+			this.worker.postMessage({ type: 'init', seed: config.seed, world: this.world });
+		} catch {
+			this.workerReady = false;
+			console.warn('Detailed water worker unavailable; retaining the static water surface.');
+		}
 	}
 
 	rebuildNear(px, pz) {
-		if (!this.workerReady || this.pending) return;
-		this.pending = true;
-		this.worker.postMessage({ type: 'near', id: ++this.requestId, x: px, z: pz });
+		if (this.surfaceWork?.failed) this.startWorker();
+		if (this.pending) return;
+		if (this.surfaceWork) {
+			if (!this.surfaceWork.ready) return;
+			this.pending = true;
+			const id = ++this.requestId;
+			this.surfaceWork.request('water:near', { type: 'water', x: px, z: pz }, -3, data => {
+				if (id !== this.requestId) return;
+				this.pending = false; this.completed = { id, x: px, z: pz, data };
+			});
+			this.surfaceWork.dispatch();
+		} else if (this.workerReady) {
+			this.pending = true;
+			this.worker.postMessage({ type: 'near', id: ++this.requestId, x: px, z: pz });
+		}
 	}
 
 	installNear(result) {

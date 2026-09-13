@@ -1,6 +1,6 @@
-import { fillShoreRows } from './ShoreTileData.js';
+import { fillShoreRows } from './ShoreTileData.js?v=stable-30-23';
 import * as THREE from 'three';
-import { shoreDistance, riverReach, buildCoastOverview } from './ShoreMapData.js';
+import { shoreDistance, riverReach, buildCoastOverview } from './ShoreMapData.js?v=stable-30-23';
 
 // Textures of the terrain around the player that the water and terrain shaders read:
 //   R = ground height, G = the local water surface (sea, lake or river),

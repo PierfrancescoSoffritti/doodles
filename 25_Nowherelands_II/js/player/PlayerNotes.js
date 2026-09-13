@@ -1,4 +1,5 @@
-import { CreatureReplyAudio } from '../audio/CreatureReplyAudio.js?v=pebble-voice-4b';
+import { mobileDetail } from '../core/MobileDetail.js?v=stable-30-3';
+import { CreatureReplyAudio } from '../audio/CreatureReplyAudio.js?v=stable-30-3';
 import {playerNoteRadius} from '../world/RippleWave.js?v=player-notes-13';
 import {replyHighlight} from '../world/fauna/ReplyHighlight.js?v=player-notes-13';
 export class PlayerNotes {
@@ -40,7 +41,8 @@ export class PlayerNotes {
  highlight(creature,duration,start=this.shared.audio?.now||0){
   const owner=creature.replyOwner||creature;owner.replyStart=start;owner.replyEnd=start+duration;owner.replyProgress=0;owner.replyCharged=duration>1;this.highlights.add(owner);
  }
- reply(kind,creature,alarm=false){const s=this.shared;if(!s.audio||document.hidden||s.fauna?.audio?.muted)return false;if(!this.replies)this.replies=new CreatureReplyAudio(s.audio);return this.replies.play(kind,creature,alarm);}
+ prepareAudio(){this.replies ||= new CreatureReplyAudio(this.shared.audio,{asyncSamples:mobileDetail});}
+ reply(kind,creature,alarm=false){const s=this.shared;if(!s.audio||document.hidden||s.fauna?.audio?.muted)return false;if(!this.replies)this.prepareAudio();return this.replies.play(kind,creature,alarm);}
  update(){const now=this.shared.audio?.now||0,quiet=document.hidden;for(const c of this.highlights){c.replyProgress=Math.max(0,Math.min(1,(now-c.replyStart)/(c.replyEnd-c.replyStart)));c.replyGlow=quiet?0:replyHighlight(now,c.replyStart,c.replyEnd);if(now>=c.replyEnd||quiet){c.replyGlow=0;this.highlights.delete(c);}}if(this.replies){this.replies.muted=!!this.shared.fauna?.audio?.muted;this.replies.update();}
   if(performance.now()>(this.inspectAt||0)){this.inspectAt=performance.now()+200;const s=this.shared,groups={};
    const add=(kind,c,state)=>{const g=groups[kind]??={active:0,glow:0,states:[]};if(c.noteGlow>0){g.active++;g.glow=Math.max(g.glow,c.noteGlow);if(!g.states.includes(state))g.states.push(state);}};

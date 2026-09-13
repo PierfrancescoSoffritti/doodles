@@ -1,4 +1,4 @@
-import { LanternMiteStudy } from './LanternMiteStudy.js?v=pebble-voice-4b';
+import { LanternMiteStudy } from './LanternMiteStudy.js?v=stable-30-3';
 import { lanternRestingFloor } from './LanternMiteHome.js';
 
 export class LanternMiteColony {

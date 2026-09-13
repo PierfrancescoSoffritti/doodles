@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {BirdPassages,SKY_BIRD_CAPACITY,SKY_LANE_SPACING} from '../../js/world/fauna/BirdPassages.js';
+import {BirdPassages,SKY_BIRD_CAPACITY,SKY_LANE_SPACING} from '../../js/world/fauna/BirdPassages.js?v=stable-30-3';
 import {BirdEncounter} from '../../js/world/fauna/BirdEncounter.js?v=pebble-voice-4b';
-import {BIRD_JOURNEY_TIME} from '../../js/world/fauna/BirdJourney.js';
+import {BIRD_JOURNEY_TIME} from '../../js/world/fauna/BirdJourney.js?v=stable-30-3';
 
 test('separate flocks arrive, circle occasionally, depart, and remain bounded for ten minutes',()=>{
  const m=new BirdPassages({seed:421,ground:(x,z)=>20+Math.sin(x*.01)*10});

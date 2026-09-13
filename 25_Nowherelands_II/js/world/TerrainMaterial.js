@@ -1,4 +1,4 @@
-import { lumenLightUniforms, lumenLightGlsl } from './fauna/LumenLight.js';
+import { lumenLightUniforms, lumenLightGlsl } from './fauna/LumenLight.js?v=stable-30-3';
 import { weatherGlsl } from './weather/WeatherGlsl.js';
 import * as THREE from 'three';
 import { Ripples } from './Ripples.js?v=player-notes-13';

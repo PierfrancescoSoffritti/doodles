@@ -1,9 +1,10 @@
+import {hypot2,hypot3} from '../core/NumericDistance.js?v=stable-30-6';
 import { EntranceTerrain } from './caves/EntranceTerrain.js';
-import { CaveField } from './caves/CaveField.js';
+import { CaveField } from './caves/CaveField.js?v=stable-30-28';
 import { crestShape, crestOffset } from './RiverGeometry.js';
-import { LakeSurface } from './LakeSurface.js';
+import { LakeSurface } from './LakeSurface.js?v=stable-30-3';
 import { Random, Simplex2D } from '../core/Random.js';
-import { config } from '../core/Config.js';
+import { config } from '../core/Config.js?v=stable-30-3';
 import { smoothstep, clamp } from '../core/Utils.js';
 import { NO_WATER } from './gen/WorldGen.js';
 import { RIVER_STRIDE, RV, RIVER_KIND, bedProfile, bankWidth, bankSpread, EDGE_DEPTH } from './gen/Rivers.js';
@@ -120,6 +121,10 @@ export class Heightmap {
 		this.cell = world.cell;
 		this.size = world.size;
 		this.grid = world.height;
+  // The baked grid is immutable during play. Retain exact per-cell slopes in
+  // a bounded direct-mapped cache, avoiding repeated numeric call arguments.
+  this.slopeKeys = new Uint32Array(8192);
+  this.slopeValues = new Float64Array(8192);
 		this.lakeLevel = world.lakeLevel;
 		this.rock = world.rock;
 		this.ox = world.spawn.x;
@@ -180,6 +185,16 @@ export class Heightmap {
 		return h;
 	}
 
+ gridSlope(k) {
+  const slot=k&8191;
+  if(this.slopeKeys[slot]!==k+1){
+   const g=this.grid,N=this.N;
+   this.slopeValues[slot]=hypot2(g[k+1]-g[k-1],g[k+N]-g[k-N])/(2*this.cell);
+   this.slopeKeys[slot]=k+1;
+  }
+  return this.slopeValues[slot];
+ }
+
 	// Full sample: carved height, plus side results in _water/_bank/_foam.
 	sample(x, z) {
 		const fx = this.gx(x), fz = this.gz(z);
@@ -190,7 +205,7 @@ export class Heightmap {
 
 		const i = clamp(Math.round(fx), 1, N - 2), j = clamp(Math.round(fz), 1, N - 2);
 		const k = j * N + i;
-		const slope = Math.hypot(g[k + 1] - g[k - 1], g[k + N] - g[k - N]) / (2 * this.cell);
+		const slope = this.gridSlope(k);
 		const hardness = this.rock[k] / 255;
 		let water = Math.max(this.waterLevel, this.lakes.levelAt(x, z));
 		const shoreId = this.lakes.shoreId, shoreDistance = this.lakes.shoreDistance;
@@ -224,7 +239,7 @@ export class Heightmap {
 						shift = a + (b - a) * t;
 					}
 				}
-				const dist = Math.hypot(across, along - t * len - shift);
+				const dist = hypot2(across, along - t * len - shift);
 				const w = seg[o + 6] + (seg[o + 7] - seg[o + 6]) * t;
 				const bk = seg[o + 12] + (seg[o + 13] - seg[o + 12]) * t;
 				const d = seg[o + 8] + (seg[o + 9] - seg[o + 8]) * t;
@@ -251,7 +266,7 @@ export class Heightmap {
 				const carve = wl < this.waterLevel ? clamp(1 + (wl - this.waterLevel) / 0.5, 0, 1) : 1;
 				const bar = this.waterLevel - 1.5;
 				{
-					const ax = seg[o], az = seg[o + 1], dx = seg[o + 2] - ax, dz = seg[o + 3] - az, l = Math.hypot(dx, dz) || 1;
+					const ax = seg[o], az = seg[o + 1], dx = seg[o + 2] - ax, dz = seg[o + 3] - az, l = hypot2(dx, dz) || 1;
 					rAlong = seg[o + 15] + t * l;
 					rAcross = ((x - ax) * (-dz) + (z - az) * dx) / l;
 				}
@@ -383,7 +398,7 @@ export class Heightmap {
 		const e = 2;
 		const dx = (this.height(x + e, z) - this.height(x - e, z)) / (2 * e);
 		const dz = (this.height(x, z + e) - this.height(x, z - e)) / (2 * e);
-		return Math.hypot(dx, dz);
+		return hypot2(dx, dz);
 	}
 
 	// The baked habitat (see gen/Habitat.js), bilinear, into the scratch _hab: forest, wet, coast, alt in 0..1.
@@ -404,7 +419,7 @@ export class Heightmap {
 		const e = this.cell * 2;
 		const dx = this.habitat(x + e, z).coast - this.habitat(x - e, z).coast;
 		const dz = this.habitat(x, z + e).coast - this.habitat(x, z - e).coast;
-		const l = Math.hypot(dx, dz);
+		const l = hypot2(dx, dz);
 		if (l < 1e-4) { out.x = 0; out.z = 0; return out; }
 		out.x = -dx / l; out.z = -dz / l;
 		return out;

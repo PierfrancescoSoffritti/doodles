@@ -4,7 +4,7 @@ import { RIVER_STRIDE as S, RV } from '../../js/world/gen/Rivers.js';
 
 globalThis.location = { search: '?seed=geometry-test' };
 globalThis.matchMedia = () => ({ matches: false });
-const { Heightmap } = await import('../../js/world/Heightmap.js');
+const { Heightmap } = await import('../../js/world/Heightmap.js?v=stable-30-6');
 
 function fixture(bend) {
 	const data = new Float32Array(3 * S);

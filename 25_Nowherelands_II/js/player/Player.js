@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { sweepFlight, sweepWalk } from '../world/caves/CaveCollision.js';
 import { bus, Events } from '../core/EventBus.js';
-import { config } from '../core/Config.js';
+import { config } from '../core/Config.js?v=stable-30-3';
 import { clamp, clamp01, damp } from '../core/Utils.js';
 
 const WALK = 42, SPRINT = 80;

@@ -1,5 +1,5 @@
 import { birdDeformation } from '../js/world/fauna/BirdMesh.js?v=outline-2';
-import { BirdJourney, BIRD_ANTICIPATION, BIRD_FLIGHT_TIME, BIRD_JOURNEY_TIME } from '../js/world/fauna/BirdJourney.js';
+import { BirdJourney, BIRD_ANTICIPATION, BIRD_FLIGHT_TIME, BIRD_JOURNEY_TIME } from '../js/world/fauna/BirdJourney.js?v=stable-30-3';
 
 // Run only with ?check=1. Capture the production vertex deformation on the GPU:
 // simulation contact targets alone cannot establish that rendered feet stay put.

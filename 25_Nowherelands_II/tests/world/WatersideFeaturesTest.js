@@ -7,7 +7,7 @@ import { riverHabitat } from '../../js/world/gen/ChannelMorphology.js';
 
 globalThis.location = { search: '?seed=umbra' };
 globalThis.matchMedia = () => ({ matches: false });
-const { Heightmap } = await import('../../js/world/Heightmap.js');
+const { Heightmap } = await import('../../js/world/Heightmap.js?v=stable-30-6');
 
 test('a gravel island leaves two wet channels and reduces the flowing section area', () => {
 	assert.ok(bedProfile(0, 0, 1) < 0);

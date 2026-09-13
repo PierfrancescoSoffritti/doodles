@@ -1,9 +1,10 @@
-import { flightSwirl } from './LumenFlight.js';
-import { initializeFlow, updateFlow, nearestLumen, recordTrail, trailPoint } from './LumenFlow.js';
+import { hypot2, hypot3 } from '../../core/NumericDistance.js?v=stable-30-6';
+import { flightSwirl } from './LumenFlight.js?v=stable-30-20';
+import { initializeFlow, updateFlow, nearestLumen, recordTrail, trailPoint } from './LumenFlow.js?v=stable-30-20';
 import { clamp, damp } from './Locomotion.js';
 
-const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
-const horizontal = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
+const distance = (a, b) => hypot3(a.x - b.x, a.y - b.y, a.z - b.z);
+const horizontal = (a, b) => hypot2(a.x - b.x, a.z - b.z);
 const copy = p => ({ x: p.x, y: p.y, z: p.z });
 
 // Boundary cells locate the bank even for concave basins and islands. Refine the
@@ -152,7 +153,8 @@ function travelSchool(group, environment, time, threat = null, chosen = null) {
 	const reach=clamp(length*0.32,80,500);
 	const c1={x:from.x+ax*reach-dz*bend,z:from.z+az*reach+dx*bend};
 	const c2={x:to.x-dx*reach+dz*bend,z:to.z-dz*reach-dx*bend};
-	const count=Math.max(32,Math.ceil((length+Math.abs(bend)*3)/18));
+	// Distant journeys retain the curve but need fewer terrain control points.
+	const count=group.coarse?Math.min(192,Math.max(32,Math.ceil((length+Math.abs(bend)*3)/72))):Math.max(32,Math.ceil((length+Math.abs(bend)*3)/18));
 	const launchSurface=environment.sample(from.x,from.z);
 	for (let i=0;i<=count;i++) {
 		const u=i/count,v=1-u, sweep=Math.sin(u*Math.PI*4)*Math.sin(u*Math.PI)*Math.min(120,length*0.14);
@@ -182,7 +184,7 @@ export function departSchool(group, environment, time, threat = null, chosen = n
 	group.threat=threat?copy(threat):null;group.alarmUntil=time+5;
 	group.playStart=time;group.playUntil=time+group.rnd.range(24,40);group.playOrigin=copy(group.guide);
 	group.pendingDestination=chosen;group.destination=null;group.cruiseSpeed=group.rnd.range(48,68);
-	const a=group.rnd.range(0,Math.PI*2),dx=threat?group.center.x-threat.x:Math.cos(a),dz=threat?group.center.z-threat.z:Math.sin(a),d=Math.hypot(dx,dz)||1;
+	const a=group.rnd.range(0,Math.PI*2),dx=threat?group.center.x-threat.x:Math.cos(a),dz=threat?group.center.z-threat.z:Math.sin(a),d=hypot2(dx,dz)||1;
 	group.playDirection={x:dx/d,z:dz/d};group.playRadius=group.rnd.range(95,175);
 	for(const c of group.members) {
 		c.landed=false;
@@ -190,7 +192,7 @@ export function departSchool(group, environment, time, threat = null, chosen = n
 		// even a wide shore flock in under 180 ms, with individual timing.
 		c.startleAt=time+(threat?clamp((distance(c.pos,threat)-25)/900,0,0.15)+c.temperament*0.025:0);
 		if(threat) {
-			const dx=c.pos.x-threat.x,dz=c.pos.z-threat.z,d=Math.hypot(dx,dz)||1;
+			const dx=c.pos.x-threat.x,dz=c.pos.z-threat.z,d=hypot2(dx,dz)||1;
 			c.escapeDirection={x:dx/d,z:dz/d};
 		}
 	}
@@ -215,7 +217,7 @@ function updateJourney(group, model, dt) {
 		const e=group.weave,age=t-e.start;
 		const side=group.weaveSide*(e.stage==='merged'?Math.sin((t-e.mergedAt)*0.7)*9:18*Math.exp(-age*0.18));
 		target={x:e.center.x-e.direction.z*side,y:e.center.y+Math.sin(age*0.5+group.phase)*10,z:e.center.z+e.direction.x*side};speed=e.stage==='merged'?72:95;
-		const surface=env.sample(target.x,target.z);target.y=Math.max(surface.ground,surface.water)+45+Math.sin(age*0.5+group.phase)*8;
+		const surface=env.sample(target.x,target.z,true);target.y=Math.max(surface.ground,surface.water)+45+Math.sin(age*0.5+group.phase)*8;
 	} else if(group.state==='resting') {target=shorePoint(group,t);speed=5;}
 	else if(group.state==='playing' || group.state==='startled') {
 		const age=t-group.playStart,a=age*0.37,fade=1-Math.exp(-age*0.65),r=group.playRadius;
@@ -223,7 +225,7 @@ function updateJourney(group, model, dt) {
 		const launchHeight=(group.highland?180:95)-(group.highland?85:0)*clamp((age-6)/10,0,1);
 		const forward=fade*120+Math.sin(a)*r,side=(1-Math.cos(a*0.79))*r*0.8+Math.sin(a*1.63)*r*0.35;
 		target={x:o.x+d.x*forward-d.z*side,z:o.z+d.z*forward+d.x*side,y:o.y+fade*launchHeight+Math.sin(a*0.91)*35};
-		const surface=env.sample(target.x,target.z);target.y=Math.max(target.y,Math.max(surface.ground,surface.water)+35);
+		const surface=env.sample(target.x,target.z,true);target.y=Math.max(target.y,Math.max(surface.ground,surface.water)+35);
 		speed=group.state==='startled'?95:70;
 	} else if(group.state==='settling') {
 		target={...group.destinationBank,y:group.destinationBank.y+6};speed=60;
@@ -242,7 +244,7 @@ function updateJourney(group, model, dt) {
 		const blend=clamp((end-group.routeDistance)/180,0,1);
 		const tangentLength=horizontal(a,b)||1,side=Math.sin(t*0.55+group.phase)*28+Math.sin(t*0.23+group.phase*2)*18;
 		target.x-=(b.z-a.z)/tangentLength*side*blend;target.z+=(b.x-a.x)/tangentLength*side*blend;
-		const terrain=env.sample(target.x,target.z);target.y=Math.max(target.y,Math.max(terrain.ground,terrain.water)+20*blend);
+		const terrain=env.sample(target.x,target.z,true);target.y=Math.max(target.y,Math.max(terrain.ground,terrain.water)+20*blend);
 		if(end-group.routeDistance<100 && horizontal(group.guide,group.destinationBank)<150 && Math.abs(group.guide.y-group.destinationBank.y)<85) {
 			group.state='settling';group.stateSince=t;
 			for(const c of group.members) {
@@ -291,7 +293,7 @@ export function swimLumen(c, model, dt) {
 	} else {
 		// Follow the take-off arc, then keep individual overtaking
 		// and cross-flight active through play, migration and shared encounters.
-		const speed=Math.hypot(trail.vx,trail.vz),dx=trail.vx/Math.max(speed,1),dz=trail.vz/Math.max(speed,1);
+		const speed=hypot2(trail.vx,trail.vz),dx=trail.vx/Math.max(speed,1),dz=trail.vz/Math.max(speed,1);
 		const oldWidth=c.lateral+Math.sin(t*0.65*c.pace+phase)*12+Math.sin(t*0.21+phase*2)*7;
 		const swirl=flightSwirl(c,trail,t,active);
 		tx+=swirl.x-dz*oldWidth*(1-active);tz+=swirl.z+dx*oldWidth*(1-active);
@@ -307,7 +309,7 @@ export function swimLumen(c, model, dt) {
 	}
 
 	if(c.noteGlow>0 && c.noteResponse){
-  const n=c.noteResponse,source=n.source,dx=p.x-source.x,dz=p.z-source.z,d=Math.hypot(dx,dz)||1,age=t-n.start;
+  const n=c.noteResponse,source=n.source,dx=p.x-source.x,dz=p.z-source.z,d=hypot2(dx,dz)||1,age=t-n.start;
   const theta=Math.atan2(dz,dx)+age*(n.alarm?-.75:.8)+c.phase*.12;
   const radius=n.alarm?Math.min(90,d+40):20+8*Math.sin(c.phase);
   const weight=c.noteGlow;tx+=(source.x+Math.cos(theta)*radius-tx)*weight;tz+=(source.z+Math.sin(theta)*radius-tz)*weight;ty+=(source.y+8+Math.sin(theta)*8-ty)*weight;
@@ -322,7 +324,7 @@ export function swimLumen(c, model, dt) {
 		c.neighbourTimer=0.18+c.temperament*0.04;
 	}
 	for(const other of c.neighbours) {
-		const x=c.prev.x-other.prev.x,y=c.prev.y-other.prev.y,z=c.prev.z-other.prev.z,d=Math.hypot(x,y,z)||0.01;
+		const x=c.prev.x-other.prev.x,y=c.prev.y-other.prev.y,z=c.prev.z-other.prev.z,d=hypot3(x,y,z)||0.01;
 		const separation=resting?5:5+c.size+other.size;
 		if(d<separation) {const f=(1-d/separation)*18;sx+=x/d*f;sy+=y/d*f*(resting?0.3:1);sz+=z/d*f;}
 		if(d>90)continue;
@@ -338,42 +340,59 @@ export function swimLumen(c, model, dt) {
 	const avoid = model.environment.avoid?.(lookAhead, 'lumen');
 	if (avoid) { sx += avoid.x; sz += avoid.z; }
 	const floor = Math.max(c.ground, c.water);
-	const ahead=model.environment.sample(p.x+c.vel.x*0.8,p.z+c.vel.z*0.8);
+	const ahead=model.environment.sample(p.x+c.vel.x*0.8,p.z+c.vel.z*0.8,true);
 	ty = Math.max(ty, floor + 3, Math.max(ahead.ground,ahead.water)+(resting?4:12));
 	const dx = tx - p.x, dy = ty - p.y, dz = tz - p.z;
-	const distanceToGuide = Math.hypot(dx, dy, dz);
+	const distanceToGuide = hypot3(dx, dy, dz);
 	const follow = resting ? 0.9*c.pace : settling ? 1.0 : 1.1*c.pace;
-	let wanted = { x: dx * follow + (resting?g.guideVelocity.x:feedX) + sx, y: dy * follow + (resting?g.guideVelocity.y:feedY) + sy, z: dz * follow + (resting?g.guideVelocity.z:feedZ) + sz };
+	let wx = dx * follow + (resting?g.guideVelocity.x:feedX) + sx;
+	let wy = dy * follow + (resting?g.guideVelocity.y:feedY) + sy;
+	let wz = dz * follow + (resting?g.guideVelocity.z:feedZ) + sz;
 	const alignment=0.18-active*0.1,cohesion=0.018-active*0.009;
-	if(n && !resting) for(const [axis,sum,center] of [['x',vx,cx],['y',vy,cy],['z',vz,cz]]) wanted[axis]=wanted[axis]*(1-alignment)+sum/n*alignment+(center/n-p[axis])*cohesion;
+	if(n && !resting) {
+		wx=wx*(1-alignment)+vx/n*alignment+(cx/n-p.x)*cohesion;
+		wy=wy*(1-alignment)+vy/n*alignment+(cy/n-p.y)*cohesion;
+		wz=wz*(1-alignment)+vz/n*alignment+(cz/n-p.z)*cohesion;
+	}
 	if(launch>0 && c.escapeDirection) {
 		const d=c.escapeDirection,turn=Math.sin(escapeAge*4+phase)*0.24;
 		// A quick, curved outward fan, not a shared impulse or a vertical jump.
-		const burst={x:(d.x-d.z*turn)*90*c.pace,y:(28+8*Math.sin(phase+escapeAge*3))*c.pace,z:(d.z+d.x*turn)*90*c.pace};
-		for(const axis of ['x','y','z'])wanted[axis]=wanted[axis]*(1-launch)+burst[axis]*launch;
+		wx=wx*(1-launch)+(d.x-d.z*turn)*90*c.pace*launch;
+		wy=wy*(1-launch)+(28+8*Math.sin(phase+escapeAge*3))*c.pace*launch;
+		wz=wz*(1-launch)+(d.z+d.x*turn)*90*c.pace*launch;
 	}
 	const maxSpeed = (resting ? 8 : settling ? clamp(shoreDistance*0.85,8,95) : startled ? 100 : (g.cruiseSpeed + 30 + active*15))*c.pace;
-	const length = Math.hypot(wanted.x, wanted.y, wanted.z) || 1;
+	const length = hypot3(wx, wy, wz) || 1;
 	const minimum=resting?0:34*active*(settling?clamp((shoreDistance-25)/55,0,1):1);
 	const velocityScale=clamp(length,minimum,maxSpeed)/length;
-	for (const axis of ['x', 'y', 'z']) {
-		wanted[axis] *= velocityScale;
-		const old=c.vel[axis];
-		const limit=(resting?18:85+launch*215)*c.pace;
-		const acceleration=clamp((wanted[axis]-old)*(resting?1.6:1.9+launch*8)*c.agility,-limit,limit);
-		c.acceleration[axis]=damp(c.acceleration[axis],acceleration,5+launch*15,dt);
-		c.vel[axis]+=c.acceleration[axis]*dt;
-		c.elastic[axis]=damp(c.elastic[axis],clamp(c.acceleration[axis]/65,-1,1),7,dt);
-		p[axis] += c.vel[axis] * dt;
-	}
+	// Scalar components avoid per-animal arrays and dynamic property lookups in
+	// the fixed-step hot loop. Keep the original arithmetic order on each axis.
+	const limit=(resting?18:85+launch*215)*c.pace;
+	const rate=resting?1.6:1.9+launch*8;
+	const accelerationBlend=1-Math.exp(-(5+launch*15)*dt), elasticBlend=1-Math.exp(-7*dt);
+	const ax=clamp((wx*velocityScale-c.vel.x)*rate*c.agility,-limit,limit);
+	c.acceleration.x += (ax-c.acceleration.x)*accelerationBlend;
+	c.vel.x += c.acceleration.x*dt;
+	c.elastic.x += (clamp(c.acceleration.x/65,-1,1)-c.elastic.x)*elasticBlend;
+	p.x += c.vel.x*dt;
+	const ay=clamp((wy*velocityScale-c.vel.y)*rate*c.agility,-limit,limit);
+	c.acceleration.y += (ay-c.acceleration.y)*accelerationBlend;
+	c.vel.y += c.acceleration.y*dt;
+	c.elastic.y += (clamp(c.acceleration.y/65,-1,1)-c.elastic.y)*elasticBlend;
+	p.y += c.vel.y*dt;
+	const az=clamp((wz*velocityScale-c.vel.z)*rate*c.agility,-limit,limit);
+	c.acceleration.z += (az-c.acceleration.z)*accelerationBlend;
+	c.vel.z += c.acceleration.z*dt;
+	c.elastic.z += (clamp(c.acceleration.z/65,-1,1)-c.elastic.z)*elasticBlend;
+	p.z += c.vel.z*dt;
 	// The wide flock can cross a ridge beside the guide's cleared path. Check
 	// the actual new position every step, not the slower ambient habitat cache.
-	const surface=model.environment.sample(p.x,p.z);
+	const surface=model.environment.sample(p.x,p.z,true);
 	c.ground=surface.ground;c.water=surface.water;
 	const clearance=Math.max(surface.ground,surface.water)+2.2;
 	if(p.y<clearance) {p.y=clearance;c.vel.y=Math.max(0,c.vel.y);}
 
-	c.speed = Math.hypot(c.vel.x, c.vel.y, c.vel.z);
+	c.speed = hypot3(c.vel.x, c.vel.y, c.vel.z);
 	// A lumen has no heading, roll or pitch. Motion changes the volume itself.
 	c.yaw=c.pitch=c.bank=c.bend=c.turnRate=0;
 	c.effort = damp(c.effort, clamp(c.speed / 26 + c.energy * 0.12, 0.04, 1), 3, dt);

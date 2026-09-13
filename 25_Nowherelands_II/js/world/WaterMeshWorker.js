@@ -1,5 +1,5 @@
-import { Heightmap } from './Heightmap.js';
-import { WaterMeshData } from './WaterMeshData.js';
+import { Heightmap } from './Heightmap.js?v=stable-30-6';
+import { WaterMeshData } from './WaterMeshData.js?v=stable-30-23';
 
 let mesh;
 self.onmessage = ({ data }) => {

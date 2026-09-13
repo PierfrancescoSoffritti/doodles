@@ -26,17 +26,33 @@ export function passagePoint(r,travel,offset=0){
 }
 
 export class BirdPassages extends SpriteBirds {
- constructor({seed=7831,ground=()=>0,corridorOffset=45}={}){
+ constructor({seed=7831,ground=()=>0,corridorOffset=45,spawnBudget=0}={}){
   super();this.seed=seed;this.initialSeed=seed;this.ground=ground;this.corridorOffset=corridorOffset;
+  this.spawnBudget=spawnBudget;
   this.heading=-.12-(seed%17)*.007;
  }
  reset(){
   super.reset();this.seed=this.initialSeed ?? 7831;this.birds=[];this.serial=0;
   this.arrivals=0;this.departures=0;this.nextArrival=0;this.laneOrigin=null;
-  this.observer={x:0,y:0,z:0};
+  this.observer={x:0,y:0,z:0};this.spawnWork=null;
  }
  setObserver(p){this.observer={x:p.x,y:p.y,z:p.z};}
+ // Prepare the same clearance samples over several frames; existing flocks
+ // continue flying while a new, initially transparent flock is being prepared.
  spawn(first=false){
+  const work=this.buildSpawn(first);let result;
+  do{result=work.next();}while(!result.done);return result.value;
+ }
+ update(dt){
+  if(this.spawnWork){
+   const start=performance.now();let result;
+   do{result=this.spawnWork.next();}while(!result.done&&performance.now()-start<this.spawnBudget);
+   const ms=performance.now()-start;this.maxSpawnSlice=Math.max(this.maxSpawnSlice||0,ms);
+   if(result.done)this.spawnWork=null;
+  }
+  return super.update(dt);
+ }
+ *buildSpawn(first=false){
   const dx=Math.cos(this.heading),dz=Math.sin(this.heading),p=this.observer;
   const across=-dz*p.x+dx*p.z,along=dx*p.x+dz*p.z;
   this.laneOrigin ??= across-this.corridorOffset;
@@ -50,9 +66,10 @@ export class BirdPassages extends SpriteBirds {
   const circle=lane<nearest&&this.arrivals%3===1,radius=38;
   const orbitLength=circle?TAU*radius*(this.arrivals%2?1:2):0;
   const route={lane,heading:this.heading,dx,dz,start:{x:dx*(along-300)-dz*cross,z:dz*(along-300)+dx*cross},circle,radius,enter:260,orbitLength,length:600+orbitLength};
-  let base=-Infinity;
+  let base=-Infinity,samples=0;
   for(let s=0;s<=route.length+12;s+=12)for(const width of [-30,0,30]){
    const q=passagePoint(route,Math.min(s,route.length),width);base=Math.max(base,this.ground(q.x,q.z));
+   if(++samples%8===0)yield;
   }
   route.base=base+58+this.random()*14;
   const templates=new SpriteBirds().birds,count=10+Math.floor(this.random()*6),type=this.arrivals%3;
@@ -69,11 +86,14 @@ export class BirdPassages extends SpriteBirds {
  direction(b,snapshot){
   const q=passagePoint(b.route,b.travel+12,b.offset);
   let tx=q.x-b.p.x,tz=q.z-b.p.z;
-  for(const o of snapshot){if(o.id===b.id)continue;const x=b.p.x-o.x,z=b.p.z-o.z,d=Math.hypot(x,z);if(d<5&&d>.001){tx+=x/d*(5-d)*.8;tz+=z/d*(5-d)*.8;}}
+  for(const o of snapshot){if(o.id===b.id)continue;const x=b.p.x-o.x,z=b.p.z-o.z,d2=x*x+z*z;if(d2<25&&d2>1e-6){const d=Math.hypot(x,z);tx+=x/d*(5-d)*.8;tz+=z/d*(5-d)*.8;}}
   return Math.atan2(tz,tx)+b.wander*.15;
  }
  step(dt){
-  if(this.time>=this.nextArrival&&this.birds.length<=SKY_BIRD_CAPACITY-15)this.spawn(this.arrivals===0);
+  if(!this.spawnWork&&this.time>=this.nextArrival&&this.birds.length<=SKY_BIRD_CAPACITY-15){
+   if(this.spawnBudget)this.spawnWork=this.buildSpawn(this.arrivals===0);
+   else this.spawn(this.arrivals===0);
+  }
   super.step(dt);
   this.birds=this.birds.filter(b=>{
    const r=b.route;b.travel+=b.speed*dt;

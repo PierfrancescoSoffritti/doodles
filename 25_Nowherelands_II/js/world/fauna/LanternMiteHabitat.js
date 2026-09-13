@@ -1,6 +1,8 @@
 import { Random } from '../../core/Random.js';
 import { lanternHome } from './LanternMiteHome.js';
 
+const complete = work => { let result; do { result=work.next(); } while(!result.done); return result.value; };
+
 export function lanternHabitat(sample) {
  return Number.isFinite(sample.ground) && Number.isFinite(sample.water) && sample.ground > sample.water + 2
   && sample.slope < 0.4 && sample.forest > 0.08 && sample.wet > 0.1 && sample.coast < 0.5 && !sample.roof;
@@ -8,7 +10,8 @@ export function lanternHabitat(sample) {
 
 // Every flight is bounded to this small patch. A sampled bark surface keeps
 // resting bodies outside the real tree, rather than against a generic cylinder.
-export function lanternBarkSite(host, sample, barkDepth, seed, angle) {
+export const lanternBarkSite = (...args) => complete(buildLanternBarkSite(...args));
+export function* buildLanternBarkSite(host, sample, barkDepth, seed, angle) {
  if (!lanternHabitat(sample(host.x, host.z))) return null;
  const scale = Math.min(4, Math.max(1.5, host.radius * 0.35));
  const normal = { x: Math.cos(angle), z: Math.sin(angle) }, tangent = { x: -normal.z, z: normal.x };
@@ -17,7 +20,7 @@ export function lanternBarkSite(host, sample, barkDepth, seed, angle) {
   const x = -2.5 + i * 0.5, y = 0.1 + j * 0.4;
   const depth = barkDepth(x * scale, base + y * scale, normal, tangent);
   if (!Number.isFinite(depth)) return null;
-  depths.push(depth);
+  depths.push(depth); yield;
  }
  function surface(x, y) {
   const u = Math.max(0, Math.min(nx - 1.000001, (x + 2.5) / 0.5));
@@ -38,6 +41,7 @@ export function lanternBarkSite(host, sample, barkDepth, seed, angle) {
   const p = site.point({ x: -2.5 + i * 0.5, y: 0.1, z }, 0.16 * scale);
   const s = sample(p.x, p.z);
   if (!lanternHabitat(s) || p.y < s.ground + 0.3 * scale) return null;
+  yield;
  }
  site.center = site.point({ x: 0, y: 0.75, z: 0.7 });
  const visitor = site.point({ x: 0, y: 0.8, z: 7 });
@@ -53,7 +57,8 @@ export function lanternAngles(seed, host) {
  return [first, first + Math.PI / 2, first + Math.PI, first + 1.5 * Math.PI];
 }
 
-export function lanternHollowSite(barkSite, sample) {
+export const lanternHollowSite = (...args) => complete(buildLanternHollowSite(...args));
+export function* buildLanternHollowSite(barkSite, sample) {
  const { host, scale, normal, tangent } = barkSite;
  const origin = barkSite.point({x:0,y:0.75,z:3.1});
  const horizontal = (x,z) => ({ x:origin.x+(tangent.x*x+normal.x*z)*scale,
@@ -62,7 +67,7 @@ export function lanternHollowSite(barkSite, sample) {
  for (let x=-5.5;x<=5.5;x+=0.5) for (let z=-2.6;z<=3.4;z+=0.5) {
   const p=horizontal(x,z), s=sample(p.x,p.z);
   if (!lanternHabitat(s)) return null;
-  heights.push(s.ground);
+  heights.push(s.ground); yield;
  }
  const low=Math.min(...heights), high=Math.max(...heights);
  // A low, irregular earth bed can meet a gentle slope without becoming a plinth.

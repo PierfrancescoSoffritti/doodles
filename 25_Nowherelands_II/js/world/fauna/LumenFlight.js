@@ -1,8 +1,9 @@
+import { hypot2, hypot3 } from '../../core/NumericDistance.js?v=stable-30-6';
 // Travelling animals continually pass, cross and roll around one another.
 // These are individual trajectories with velocity feed-forward, rather than
 // fixed offsets translated along with the flock. The launch blends into them.
 export function flightSwirl(c, trail, time, amount) {
-	const speed=Math.hypot(trail.vx,trail.vz);
+	const speed=hypot2(trail.vx,trail.vz);
 	const dx=speed>1?trail.vx/speed:Math.cos(c.phase),dz=speed>1?trail.vz/speed:Math.sin(c.phase);
 	const a=time*0.75*c.pace+c.phase,b=time*0.92*c.pace+c.phase,cross=time*0.43+c.phase*1.71;
 	const lead=Math.sin(a)*34+Math.sin(time*0.31+c.phase*2)*15;

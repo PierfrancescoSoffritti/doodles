@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { WaterMeshData, nearCoverageRadius, NEAR_RADIUS, NEAR_BUILD } from '../../js/world/WaterMeshData.js';
+import { WaterMeshData, nearCoverageRadius, NEAR_RADIUS, NEAR_BUILD } from '../../js/world/WaterMeshData.js?v=stable-30-23';
 
 function lakeFixture() {
 	const N = 16, cell = 16, size = 240, cells = [];
@@ -49,7 +49,7 @@ test('water keeps complete coverage while detail streams or the camera teleports
 test('a worker-style world clone preserves terrain, lake coverage and large-wood wakes', async () => {
 	globalThis.location = { search: '?seed=umbra' }; // Workers have location, but no window/matchMedia.
 	const [{ generateWorld }, { Heightmap }, { WatersideFeatures }] = await Promise.all([
-		import('../../js/world/gen/WorldGen.js'), import('../../js/world/Heightmap.js'), import('../../js/world/WatersideFeatures.js')
+		import('../../js/world/gen/WorldGen.js'), import('../../js/world/Heightmap.js?v=stable-30-6'), import('../../js/world/WatersideFeatures.js')
 	]);
 	const world = generateWorld('umbra', null, { res: 256 });
 	const heightmap = new Heightmap('umbra', world);

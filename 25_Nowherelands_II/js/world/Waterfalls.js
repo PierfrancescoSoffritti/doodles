@@ -1,3 +1,5 @@
+import { spatialWaterMesh } from './SpatialWaterMesh.js?v=stable-30-5';
+import { mobileDetail } from '../core/MobileDetail.js?v=stable-30-3';
 import * as THREE from 'three';
 import { Random } from '../core/Random.js';
 import { crestOffset } from './RiverGeometry.js';
@@ -132,6 +134,7 @@ export class Waterfalls {
 		}));
 		this.sheet.frustumCulled = true;
 		this.sheet.renderOrder = 1;
+		if(mobileDetail)this.sheet=spatialWaterMesh(this.sheet,1024,1);
 		if (this.count) scene.add(this.sheet);
 	}
 
@@ -196,6 +199,7 @@ export class Waterfalls {
 		}));
 		this.plunge.frustumCulled = true;
 		this.plunge.renderOrder = 2;
+		if(mobileDetail)this.plunge=spatialWaterMesh(this.plunge,1024,1);
 		if (this.count) scene.add(this.plunge);
 	}
 
@@ -302,12 +306,20 @@ export class Waterfalls {
 		}));
 		this.points.frustumCulled = false;
 		this.points.renderOrder = 3;
+		if(mobileDetail){
+			// Bound ballistic displacement, mist drift and the largest sprite. The
+			// generous global maximum is computed once from the actual particle data.
+			let padding=0;
+			for(let i=0;i<base.length/3;i++){const life=info[i*4+1],size=info[i*4+2];padding=Math.max(padding,Math.hypot(...vel.slice(i*3,i*3+3))*life+2.94*life*life+size*4);}
+			this.points=spatialWaterMesh(this.points,512,padding);
+		}
 		if (base.length) scene.add(this.points);
 	}
 
 	update(time, cameraPos) {
 		const u = this.uniforms, s = this.shared;
 		u.uTime.value = time;
+		if(mobileDetail)for(const mesh of this.points.children)mesh.visible=mesh.geometry.boundingBox.distanceToPoint(cameraPos)<480;
 		u.uCameraPos.value.copy(cameraPos);
 		u.uMoonDir.value.copy(s.moon.dir);
 		u.uMoonIntensity.value = s.moon.intensity;

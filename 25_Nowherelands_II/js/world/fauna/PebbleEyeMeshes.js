@@ -48,7 +48,7 @@ export class PebbleEyeMeshes {
 		this.motion = new Map(); this.stemUp = new THREE.Vector3(); this.goal = new THREE.Vector3();
 	}
 	begin() { this.count = 0; this.segments = 0; this.active = new Set(); }
-	update(c, matrix, alpha, size, time, viewer, floor) {
+	update(c, matrix, alpha, size, time, viewer, floor, draw = true) {
 		const lerp = (a, b) => a + (b - a) * alpha;
 		this.active.add(c);
 		let motion = this.motion.get(c);
@@ -96,6 +96,7 @@ export class PebbleEyeMeshes {
 			}
 			spring.head.y = Math.max(spring.head.y, waterEye);
 			spring.time = time;
+   if(!draw)continue;
 			this.curve.v3.copy(spring.head);
 			this.stemUp.set(0, 1, 0).transformDirection(matrix);
 			this.curve.v1.copy(this.curve.v0).addScaledVector(this.stemUp, height * size * 0.36);

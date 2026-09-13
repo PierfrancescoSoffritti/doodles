@@ -1,4 +1,4 @@
-import { AudioEngine } from '../js/audio/AudioEngine.js?v=pebble-audio-10';
+import { AudioEngine } from '../js/audio/AudioEngine.js?v=stable-30-3';
 import { Conductor } from '../js/audio/Conductor.js?v=pebble-audio-10';
 
 // Locked layers are still constructed by the game. Their wet sends must be silent too.

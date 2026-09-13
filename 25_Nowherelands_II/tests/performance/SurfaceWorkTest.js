@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { SurfaceWork } from '../../js/world/SurfaceWork.js';
+import { SurfaceWork } from '../../js/world/SurfaceWork.js?v=stable-30-25';
 
 class WorkerStub {
 	constructor() { this.messages=[]; }

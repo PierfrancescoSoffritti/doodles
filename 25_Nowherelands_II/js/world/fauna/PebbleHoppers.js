@@ -1,6 +1,14 @@
+import {hypot2,hypot3} from '../../core/NumericDistance.js?v=stable-30-6';
 import { updatePebbleSoundEvents } from './PebbleSoundEvents.js';
 import { initializePebbleEyes, updatePebbleEyes } from './PebbleEyes.js?v=pebble-audio-10';
 import { angleDelta, clamp, damp, smooth } from './Locomotion.js';
+
+const RESTING_STATES = ['rest', 'notice'];
+const RETURN_STATES = ['regroup', 'wait', 'brake', 'settle'];
+const REGROUP_STATES = ['regroup', 'wait'];
+const BRAKING_STATES = ['settle', 'brake'];
+const MOVING_STATES = ['flee', 'regroup', 'brake'];
+const STEERING_STATES = ['rise', 'flee', 'regroup', 'brake'];
 
 // World units are roughly five times human scale. The eye is eleven units up;
 // proximity must be measured on the ground, with a separate height gate.
@@ -8,7 +16,7 @@ export const PEBBLE_REST_HEIGHT = 0.55;
 const TAU = Math.PI * 2;
 const CAVE_STEP_HEIGHT = 1.5, OUTDOOR_STEP_HEIGHT = 1.3;
 const mix = (a, b, t) => a + (b - a) * t;
-const flatDistance = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
+const flatDistance = (a, b) => hypot2(a.x - b.x, a.z - b.z);
 
 export function pebbleHabitat(s) {
 	const height = s.ground - s.water, hard = s.hardness ?? 0.65;
@@ -54,11 +62,12 @@ export function pebbleSlope(sample, x, z, yaw, size, previous = {}) {
 	return { pitch: Number.isFinite(pitch) ? pitch : 0, bank: Number.isFinite(bank) ? bank : 0 };
 }
 
-function hasRunway(model, x, z, size) {
+function* hasRunwaySteps(model, x, z, size) {
 	for (let j = 0; j < 12; j++) {
 		const angle = j * TAU / 12; let ground = model.environment.sample(x, z).ground, clear = true;
 		const reach = model.environment.sample(x,z).cave ? 8 : 24;
 		for (let i = 1; i <= reach; i++) {
+			yield;
 			const s = pebbleGround(model, x + Math.cos(angle) * i, z + Math.sin(angle) * i, size, ground);
 			if (!s) { clear = false; break; } ground = s.ground;
 		}
@@ -67,17 +76,19 @@ function hasRunway(model, x, z, size) {
 	return false;
 }
 
-export function initializePebbles(group, model) {
+export function initializePebbles(...args) { for (const step of initializePebblesSteps(...args)) {} }
+export function* initializePebblesSteps(group, model) {
 	const owner = model;
 	if (group.sample) model = { ...model, environment: { ...model.environment, sample: group.sample } };
 	const r = group.rnd, placed = [];
 	for (const c of group.members) {
 		let spot = null;
 		for (let i = 0; i < 60; i++) {
+			yield;
 			const a = r.range(0, TAU), reach = r.range(0, 13);
 			const x = group.home.x + Math.cos(a) * reach, z = group.home.z + Math.sin(a) * reach;
 			const s = pebbleGround(model, x, z, c.size);
-			if (!s || pebbleHabitat(s) <= 0 || !hasRunway(model, x, z, c.size) || placed.some(o => Math.hypot(x - o.pos.x, z - o.pos.z) < (c.size + o.size) * 1.8)) continue;
+			if (!s || pebbleHabitat(s) <= 0 || !(yield* hasRunwaySteps(model, x, z, c.size)) || placed.some(o => hypot2(x - o.pos.x, z - o.pos.z) < (c.size + o.size) * 1.8)) continue;
 			spot = { x, z, y: s.ground + PEBBLE_REST_HEIGHT * c.size }; c.ground = s.ground; c.water = s.water; break;
 		}
 		if (!spot) continue;
@@ -98,13 +109,16 @@ export function initializePebbles(group, model) {
 	// Caves already contain baked rubble. Adding another ring of scenery rocks
 	// would close the narrow dry shelves that these small animals use to escape.
 	if (group.sample) {
-		group.members = group.members.filter(c => caveShelfExit(c, model, c.pos));
+		const sheltered = [];
+		for (const c of group.members) { if (yield* caveShelfExitSteps(c, model)) sheltered.push(c); }
+		group.members = sheltered;
 		owner.creatures = owner.creatures.filter(c => c.group !== group || group.members.includes(c));
 		return;
 	}
 	// Ordinary stones share the animals' geometry and rock material. They remain
 	// at home when the animals flee, so the illusion survives the reveal.
 	for (let i = 0; i < 90 && group.stones.length < Math.min(16, placed.length * 4); i++) {
+		yield;
 		const a = r.range(0, TAU), radius = Math.sqrt(r.next()) * 21, size = r.range(0.45, 1.45);
 		const x = group.home.x + Math.cos(a) * radius, z = group.home.z + Math.sin(a) * radius;
 		const s = pebbleGround(model, x, z, size);
@@ -156,8 +170,9 @@ function chooseRefuge(c, model, source) {
  return best || {x:c.pos.x+Math.cos(away)*60,z:c.pos.z+Math.sin(away)*60};
 }
 
-function caveShelfExit(c, model) {
+function* caveShelfExitSteps(c, model) {
  for(let i=0;i<12;i++) {
+		yield;
   const a=i*TAU/12,p={x:c.pos.x+Math.cos(a)*4,z:c.pos.z+Math.sin(a)*4};
   if(clearRoute(c,model,p))return p;
  }
@@ -229,7 +244,7 @@ function startle(c, model, source) {
 	const b = c.pebble;
 	// Resuming an escape while upright is silent; the cue belongs to waking
 	// from the folded stone pose (including its watchful "notice" state).
-	const wakingFromRest = ['rest', 'notice'].includes(b.state) && b.stand < 0.025;
+	const wakingFromRest = RESTING_STATES.includes(b.state) && b.stand < 0.025;
 	// One alarm wakes the entire colony, including shy or distant members.
 	// Broadcast before route planning so a temporarily blocked animal still
 	// warns its neighbors. A single encounter cannot re-alarm them after hiding.
@@ -300,7 +315,7 @@ function feet(c, model, dt) {
 }
 
 function advancePebble(c, model, dt, t) {
-	const b = c.pebble, sample = model.environment.sample, before = { ...c.pos };
+	const b = c.pebble, sample = model.environment.sample, beforeX = c.pos.x, beforeY = c.pos.y, beforeZ = c.pos.z;
 	b.prevStand = b.stand; b.timer += dt;
 	const player = model.listener, dist = flatDistance(c.pos, player);
 	const nearby = !model.observing && Math.abs(player.y - c.ground) < 23;
@@ -311,7 +326,7 @@ function advancePebble(c, model, dt, t) {
 	// Once exposed, a closing player remains a threat beyond the startle radius.
 	const pursued = nearby && dist < 42;
 	const chased = pursued && closing > 0.5;
-	if (['rest', 'notice'].includes(b.state)) {
+	if (RESTING_STATES.includes(b.state)) {
 		if (notice && b.state === 'rest') { change(c, 'notice'); b.idleTime = -1; }
 		if (!notice && b.state === 'notice') change(c, 'rest');
 		if (danger && t >= b.retryAt && b.alarmAt === Infinity) {
@@ -320,7 +335,7 @@ function advancePebble(c, model, dt, t) {
 		if (t >= b.alarmAt && !model.observing) startle(c, model, b.alarmSource || player);
 		if (model.observing) b.alarmAt = Infinity;
 	}
-	if (['regroup', 'wait', 'brake', 'settle'].includes(b.state) && (((danger && ['regroup', 'wait'].includes(b.state) || chased) && t > b.retryAt) || (!model.observing && t >= b.alarmAt))) startle(c, model, b.alarmSource && t >= b.alarmAt ? b.alarmSource : player);
+	if (RETURN_STATES.includes(b.state) && (((danger && REGROUP_STATES.includes(b.state) || chased) && t > b.retryAt) || (!model.observing && t >= b.alarmAt))) startle(c, model, b.alarmSource && t >= b.alarmAt ? b.alarmSource : player);
 	if (b.state === 'wait' && !notice && b.alarmAt === Infinity && c.group.reunionAt && t >= c.group.reunionAt && t >= (b.regroupAt || 0) && !b.reunited) beginRegroup(c, model, t);
 	if (b.state === 'rise') {
 		b.stand = mix(b.riseFrom, 1, smooth(clamp(b.timer / b.riseTime, 0, 1)));
@@ -369,7 +384,7 @@ function advancePebble(c, model, dt, t) {
 	if (b.state === 'wait' && b.reunited && c.group.members.every(o => o.pebble.reunited)) {
 		b.settleFrom = b.stand; change(c, 'settle');
 	}
-	if (['settle', 'brake'].includes(b.state) && danger && (closing > 0.5 || dist < 3) && t > b.planAt) startle(c, model, player);
+	if (BRAKING_STATES.includes(b.state) && danger && (closing > 0.5 || dist < 3) && t > b.planAt) startle(c, model, player);
 	if (b.state === 'settle') {
 		// First pause upright, then lower the weight; toes withdraw only once the
 		// stone is supported by the ground. The rigid body never squashes.
@@ -390,8 +405,8 @@ function advancePebble(c, model, dt, t) {
   const heading=Math.atan2(-(b.answerSource.z-c.pos.z),b.answerSource.x-c.pos.x);c.yaw+=clamp(angleDelta(heading,c.yaw),-3*dt,3*dt);
   if(age>=4.8){b.stand=0;c.feet=null;change(c,'rest');b.retryAt=t+.5;}
  }
-	const previousSpeed = c.speed, moving = ['flee', 'regroup', 'brake'].includes(b.state);
-	if (b.refuge && ['rise', 'flee', 'regroup', 'brake'].includes(b.state)) {
+	const previousSpeed = c.speed, moving = MOVING_STATES.includes(b.state);
+	if (b.refuge && STEERING_STATES.includes(b.state)) {
 		const goal = b.refuge;
 		const heading = -steering(c, model, t);
 		const error = angleDelta(heading, c.yaw), maxTurn = b.state === 'rise' || c.speed < 2 ? 24 : 7;
@@ -414,8 +429,8 @@ function advancePebble(c, model, dt, t) {
    b.pathBlocked=true;b.blockedHeading=-c.yaw;b.blockedUntil=t+.8;
   }
 	}
-	c.vel.x = (c.pos.x - before.x) / dt; c.vel.z = (c.pos.z - before.z) / dt;
-	c.gait += Math.hypot(c.vel.x, c.vel.z) * dt / (3.7 * c.size);
+	c.vel.x = (c.pos.x - beforeX) / dt; c.vel.z = (c.pos.z - beforeZ) / dt;
+	c.gait += hypot2(c.vel.x, c.vel.z) * dt / (3.7 * c.size);
  b.runCycle=(b.runCycle || 0)+dt*(5+Math.min(c.speed/20,3));
 	if (b.stand > 0) feet(c, model, dt);
 
@@ -428,8 +443,11 @@ function advancePebble(c, model, dt, t) {
 			if (u === 1) b.idleTime = -1;
 		}
 	}
-	const slope = b.stand > 0 ? pebbleSlope(sample, c.pos.x, c.pos.z, c.yaw, c.size, { pitch: b.restPitch, bank: b.restBank }) : { pitch: b.restPitch, bank: b.restBank };
-	if (b.stand > 0) { b.restPitch = slope.pitch; b.restBank = slope.bank; }
+	let slopePitch = b.restPitch, slopeBank = b.restBank;
+ if (b.stand > 0) {
+  const slope = pebbleSlope(sample, c.pos.x, c.pos.z, c.yaw, c.size, { pitch: slopePitch, bank: slopeBank });
+  slopePitch = b.restPitch = slope.pitch; slopeBank = b.restBank = slope.bank;
+ }
 	const run = clamp(c.speed / 6, 0, 1);
 	b.impact = (b.impact || 0) * Math.exp(-dt * 18);
 	const swingIndex = c.feet?.findIndex(f => f.swing >= 0) ?? -1;
@@ -437,8 +455,8 @@ function advancePebble(c, model, dt, t) {
 	const supportLean = (swingIndex === 0 ? 1 : -1) * transfer * 0.065;
 	const acceleration = (c.speed - previousSpeed) / dt;
 	const settle = b.state === 'settle' ? Math.sin(b.timer * 19) * Math.exp(-b.timer * 4) * 0.045 : 0;
-	c.pitch = damp(c.pitch, slope.pitch + b.stand * (-0.06 * run - clamp(acceleration * 0.006, -0.12, 0.12)) + idle * 0.02 + settle, 13, dt);
-	c.bank = damp(c.bank, slope.bank + supportLean * run + clamp(c.turnRate * c.speed * 0.009, -0.12, 0.12) + idle * 0.035, 12, dt);
+	c.pitch = damp(c.pitch, slopePitch + b.stand * (-0.06 * run - clamp(acceleration * 0.006, -0.12, 0.12)) + idle * 0.02 + settle, 13, dt);
+	c.bank = damp(c.bank, slopeBank + supportLean * run + clamp(c.turnRate * c.speed * 0.009, -0.12, 0.12) + idle * 0.035, 12, dt);
 	const lift = b.stand * (0.83 + (transfer * 0.06 - b.impact * 0.035) * run) + Math.abs(idle) * 0.035;
 	const answerAge=t-(b.answerAt??-100), secondHop=answerAge>=(b.answerTimes?.[1]??2.05);
  const hopTime=answerAge-(b.answerTimes?.[secondHop?1:0]??1),hopDuration=b.answerDurations?.[secondHop?1:0]??.7,previousHop=b.answerHop||0;
@@ -456,7 +474,7 @@ function advancePebble(c, model, dt, t) {
  b.yVelocity += ((goalY - supportedY) * 190 - b.yVelocity * 27) * dt;
 	c.pos.y = Math.max(bodyFloor, Math.min(bodyCeiling, supportedY + b.yVelocity * dt + b.answerHop));
 	if (b.stand === 0 && Math.abs(goalY - c.pos.y) < 0.0001 && Math.abs(b.yVelocity) < 0.002) { c.pos.y = goalY; b.yVelocity = 0; }
-	c.vel.y = (c.pos.y - before.y) / dt;
+	c.vel.y = (c.pos.y - beforeY) / dt;
 	c.compression = 0; c.hop = 0; c.hopState = b.state;
 }
 

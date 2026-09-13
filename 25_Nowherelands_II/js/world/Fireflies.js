@@ -72,6 +72,8 @@ export class Fireflies {
 		this.frame++;
 		const hm = this.heightmap, pos = this.positions;
 		const half = RANGE / 2;
+		const waterChanged = this.sampledWaterLevel !== hm.waterLevel;
+		this.sampledWaterLevel = hm.waterLevel;
 		for (let i = 0; i < this.items.length; i++) {
 			const f = this.items[i];
 			if (f.ambient) {
@@ -82,7 +84,9 @@ export class Fireflies {
 				if (dx > half) f.x -= RANGE; else if (dx < -half) f.x += RANGE;
 				if (dz > half) f.z -= RANGE; else if (dz < -half) f.z += RANGE;
 			}
-			if ((i + this.frame) % 4 === 0 || f.y === 0) { f.groundY = hm.height(f.x, f.z); f.waterY = hm._water; }
+			// Landmark clusters have fixed coordinates on the completed terrain.
+			// Resample moving ambient motes at their existing staggered cadence.
+			if (f.groundY === undefined || waterChanged || (f.ambient && (i + this.frame) % 4 === 0)) { f.groundY = hm.height(f.x, f.z); f.waterY = hm._water; }
 			const g = Math.max(f.groundY, f.waterY || hm.waterLevel);
 			f.y = g + 2.5 + f.size * 2 + Math.sin(time * 0.9 + f.phase) * 1.8;
 			pos[i * 3] = f.x; pos[i * 3 + 1] = f.y; pos[i * 3 + 2] = f.z;

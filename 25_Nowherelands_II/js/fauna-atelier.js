@@ -5,9 +5,9 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ATELIER_SPECIES, atelierURL, mountAtelierNavigation } from './atelier/AtelierCatalog.js?v=1';
-import { AtelierFauna } from './atelier/AtelierFauna.js?v=pebble-voice-4b';
+import { AtelierFauna } from './atelier/AtelierFauna.js?v=stable-30-25';
 import { createReedAudioScene } from './audio/ReedWalkerAudioScene.js?v=reed-7';
-import { FaunaAudio } from './audio/FaunaAudio.js';
+import { FaunaAudio } from './audio/FaunaAudio.js?v=stable-30-3';
 
 const $=id=>document.getElementById(id),params=new URLSearchParams(location.search);
 const species=ATELIER_SPECIES.find(s=>s.id===params.get('species'))||ATELIER_SPECIES[0];

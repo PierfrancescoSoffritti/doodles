@@ -1,7 +1,8 @@
+import { hypot2, hypot3 } from '../../core/NumericDistance.js?v=stable-30-6';
 import { Random } from '../../core/Random.js';
 
 const copy = p => ({ x:p.x, y:p.y, z:p.z });
-const distance = (a,b) => Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
+const distance = (a,b) => hypot3(a.x-b.x,a.y-b.y,a.z-b.z);
 
 // One population and one neighbour field. Branches only hold journey state;
 // individuals are never copied into separate models or recreated on arrival.
@@ -42,8 +43,7 @@ export function trailPoint(b, time) {
 	let i=points.length-1;
 	while(i>0 && points[i].time>time)i--;
 	const a=points[i],next=points[Math.min(i+1,points.length-1)],u=Math.max(0,Math.min(1,(time-a.time)/(next.time-a.time||1)));
-	const p={};for(const key of ['x','y','z','vx','vy','vz'])p[key]=a[key]+(next[key]-a[key])*u;
-	return p;
+	return { x:a.x+(next.x-a.x)*u, y:a.y+(next.y-a.y)*u, z:a.z+(next.z-a.z)*u, vx:a.vx+(next.vx-a.vx)*u, vy:a.vy+(next.vy-a.vy)*u, vz:a.vz+(next.vz-a.vz)*u };
 }
 
 function finishEncounter(e,time) {
@@ -92,9 +92,9 @@ export function updateFlow(group,time,dt) {
 		if(pair) {
 			const [a,b]=pair;
 			let vx=a.guideVelocity.x+b.guideVelocity.x,vz=a.guideVelocity.z+b.guideVelocity.z;
-			if(Math.hypot(vx,vz)<20){vx=a.guideVelocity.x;vz=a.guideVelocity.z;}
-			if(Math.hypot(vx,vz)<1){vx=Math.cos(a.phase);vz=Math.sin(a.phase);}
-			const speed=Math.hypot(vx,vz),direction={x:vx/speed,z:vz/speed};
+			if(hypot2(vx,vz)<20){vx=a.guideVelocity.x;vz=a.guideVelocity.z;}
+			if(hypot2(vx,vz)<1){vx=Math.cos(a.phase);vz=Math.sin(a.phase);}
+			const speed=hypot2(vx,vz),direction={x:vx/speed,z:vz/speed};
 			const e={branches:pair,stage:'approaching',center:{x:(a.center.x+b.center.x)/2,y:(a.center.y+b.center.y)/2,z:(a.center.z+b.center.z)/2},
 				velocity:{y:(a.guideVelocity.y+b.guideVelocity.y)*0.2},direction,start:time};
 			a.weave=b.weave=e;a.weaveSide=-1;b.weaveSide=1;

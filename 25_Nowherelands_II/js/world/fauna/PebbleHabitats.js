@@ -1,14 +1,20 @@
+import { hypot2, hypot3 } from '../../core/NumericDistance.js?v=stable-30-6';
+
 // Cave colonies own a floor sampler. A two-dimensional surface height cannot
 // distinguish a gallery from the mountain directly above it.
 export function pebbleCaveSampler(hm, surfaceSample, cave, anchorY) {
-	const cache = new Map(), entrances = cave.entrances || [cave.entrance];
+	const cache = new Map(), keys = [], entrances = cave.entrances || [cave.entrance];
+	let nextKey=0;
 	const floor = (x, z) => {
 		const surface = surfaceSample(x, z);
-		const sections = hm.caves.candidates(x, z).filter(s => s.cave.id === cave.id)
-			.map(s => hm.caves.section(s, x, z)).filter(q => q.wall > 1.8 && Math.abs(q.floor - anchorY) < 100)
+		// Column unions need all passages, but each section is evaluated once.
+		const candidates=hm.caves.candidates(x,z),sampled=new Array(candidates.length),own=[];
+		for(let i=0;i<candidates.length;i++)if(candidates[i].cave.id===cave.id)own.push(sampled[i]=hm.caves.section(candidates[i],x,z));
+		const sections = own.filter(q => q.wall > 1.8 && Math.abs(q.floor - anchorY) < 100)
 			.sort((a, b) => Math.abs(a.floor - anchorY) - Math.abs(b.floor - anchorY));
+		if(sections.length)for(let i=0;i<candidates.length;i++)if(!sampled[i])sampled[i]=hm.caves.section(candidates[i],x,z);
 		for (const q of sections) {
-			const column = hm.caves.column(x, z, q.floor + 3, 2);
+			const column = hm.caves.column(x, z, q.floor + 3, 2, sampled);
 			if (!column || column.floor >= surface.ground) continue;
 			return { ground: column.floor, water: column.water, cave: true,
 				clearance: Math.min(column.ceiling - column.floor, hm.caves.rockClearance(x, column.floor + 1.5, z) * 2) };
@@ -18,29 +24,41 @@ export function pebbleCaveSampler(hm, surfaceSample, cave, anchorY) {
 		return { ground: NaN, water: 0, clearance: 0 };
 	};
 	const grid = (x, z) => {
-		const key = `${x},${z}`;
-		if (!cache.has(key)) { if (cache.size > 16384) cache.clear(); cache.set(key, floor(x, z)); }
-		return cache.get(key);
+		// Pack the signed 16-bit coordinates without offsetting x. Ordinary
+		// world keys remain small integers; coordinates outside this range use
+		// the original string key. Both representations are collision-free.
+		const key = x >= -32768 && x < 32768 && z >= -32768 && z < 32768 ? (x << 16) | (z & 65535) : `${x},${z}`;
+		let value = cache.get(key);
+		if (!value) {
+			// Evict one old query instead of forcing every nearby animal to refill
+			// its entire floor cache. Allocate the key ring only as sites are used.
+			if (cache.size === 16384) cache.delete(keys[nextKey]);
+			value = floor(x, z); cache.set(key, value);
+			keys[nextKey] = key; nextKey = (nextKey + 1) & 16383;
+		}
+		return value;
 	};
 	return (x, z) => {
 		// Smooth support on a one-unit grid, finer than the 3.2-unit cave mesh.
 		// Cave interval unions are cached, so fast feet do not repeat them each substep.
 		const ix = Math.floor(x), iz = Math.floor(z), u = x - ix, v = z - iz;
 		const a = grid(ix, iz), b = grid(ix + 1, iz), c = grid(ix, iz + 1), d = grid(ix + 1, iz + 1);
-		const points = [a, b, c, d];
-		if (points.some(p => !Number.isFinite(p.ground)) || Math.max(...points.map(p => p.ground)) - Math.min(...points.map(p => p.ground)) > 3) return { ground: NaN, water: 0, clearance: 0 };
+		if (!Number.isFinite(a.ground) || !Number.isFinite(b.ground) || !Number.isFinite(c.ground) || !Number.isFinite(d.ground) || Math.max(a.ground,b.ground,c.ground,d.ground) - Math.min(a.ground,b.ground,c.ground,d.ground) > 3) return { ground: NaN, water: 0, clearance: 0 };
 		let ground = (a.ground * (1 - u) + b.ground * u) * (1 - v) + (c.ground * (1 - u) + d.ground * u) * v;
-		const water = Math.max(...points.map(p => p.water)), caveFloor = points.some(p => p.cave);
-		let slope = Math.hypot((b.ground - a.ground) * (1 - v) + (d.ground - c.ground) * v, (c.ground - a.ground) * (1 - u) + (d.ground - b.ground) * u);
-		let clearance=Math.min(...points.map(p=>p.clearance ?? Infinity));
+		const water = Math.max(a.water,b.water,c.water,d.water), caveFloor = !!(a.cave || b.cave || c.cave || d.cave);
+		let slope = hypot2((b.ground - a.ground) * (1 - v) + (d.ground - c.ground) * v, (c.ground - a.ground) * (1 - u) + (d.ground - b.ground) * u);
+		let clearance=Math.min(a.clearance??Infinity,b.clearance??Infinity,c.clearance??Infinity,d.clearance??Infinity);
 		if(caveFloor && hm.caveFloorSurface) {
 			const support=hm.caveFloorSurface.sample(cave.id,x,z,ground,ground+clearance);
 			if(!support)return {ground:NaN,water:0,clearance:0};
 			clearance-=Math.max(0,support.ground-ground);ground=support.ground;slope=support.slope;
 		}
-		const s = { ...a, ground, water, slope, clearance };
-		if (caveFloor) Object.assign(s, { cave: true, daylight: Math.exp(-Math.min(...entrances.map(e => Math.hypot(x - e.x, ground - e.y, z - e.z))) * 0.024), forest: 0, wet: ground - water < 1.5 ? 0.65 : 0.12, hardness: 0.95, foam: 0, roof: false, coast: 0 });
-		return s;
+		if (caveFloor) {
+			let entranceDistance=Infinity;
+			for(const e of entrances)entranceDistance=Math.min(entranceDistance,hypot3(x-e.x,ground-e.y,z-e.z));
+			return { ...a, ground, water, slope, clearance, cave: true, daylight: Math.exp(-entranceDistance * 0.024), forest: 0, wet: ground - water < 1.5 ? 0.65 : 0.12, hardness: 0.95, foam: 0, roof: false, coast: 0 };
+		}
+		return { ...a, ground, water, slope, clearance };
 	};
 }
 

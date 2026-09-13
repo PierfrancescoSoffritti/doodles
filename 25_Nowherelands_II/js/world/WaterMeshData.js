@@ -1,6 +1,6 @@
 import { crestShape, crestOffset } from './RiverGeometry.js';
-import { clipShore } from './LakeSurface.js';
-import { riverWakes } from './RiverFlow.js';
+import { clipShore } from './LakeSurface.js?v=stable-30-3';
+import { writeRiverWakes } from './RiverFlow.js?v=stable-30-10';
 import { RIVER_STRIDE, RV, RIVER_KIND, surfaceHalfWidth } from './gen/Rivers.js';
 
 // CPU-only geometry synthesis, shared by startup and the streaming worker.
@@ -15,6 +15,7 @@ export function nearCoverageRadius(cx, cz, px, pz) {
 export class WaterMeshData {
 	constructor(heightmap) {
 		this.heightmap = heightmap; this.world = heightmap.world;
+		this.wakes = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
 		this.sections = this.world.rivers.map(r => this.riverSections(r));
 		this.lakeGrids = this.prepareLakes();
 	}
@@ -42,10 +43,13 @@ export class WaterMeshData {
 		for (let ri = 0; ri < this.world.rivers.length; ri++) this.buildRiver(b, ri, null, 0);
 		return b.pack();
 	}
+	buildLakes(...args){for(const step of this.buildLakesSteps(...args)){} }
+	buildRiver(...args){for(const step of this.buildRiverSteps(...args)){} }
+	buildNear(...args){const work=this.buildNearSteps(...args);for(;;){const step=work.next();if(step.done)return step.value;}}
 	// ---------- lakes ----------
 	// One quad per half grid cell, or `sub` x `sub` quads per half cell for the near mesh, kept
 	// where `keep(x, z)` says so.
-	buildLakes(b, sub, keep, bounds = null) {
+	*buildLakesSteps(b, sub, keep, bounds = null) {
 		const world = this.world, heightmap = this.heightmap;
 		const N = world.res, cell = world.cell, half = cell / 2;
 		const wx = (i) => -world.size / 2 + i * cell - heightmap.ox;
@@ -83,6 +87,7 @@ export class WaterMeshData {
 					const a = [x, z], c = [x, z + q], d = [x + q, z + q], e = [x + q, z];
 					if (((si * 7 + sj * 13 + u * 3 + v * 5 + u * v) & 3) < 2) { triangle([a, c, e]); triangle([e, c, d]); }
 					else { triangle([a, c, d]); triangle([a, d, e]); }
+                    if((u&3)===3)yield;
 				}
 			}
 		}
@@ -121,7 +126,7 @@ export class WaterMeshData {
 	// Quads between consecutive samples of one river, subdivided `subAlong` times along the flow
 	// and `subAcross` times across it. `keep(i)` selects the sample pairs (i, i+1) to build.
 	// `quad` is the target quad size in metres for the near mesh (0 for the static mesh's one quad per sample).
-	buildRiver(b, ri, keep, quad) {
+	*buildRiverSteps(b, ri, keep, quad) {
 		const r = this.world.rivers[ri], secs = this.sections[ri], lakeId = this.heightmap.lakes.receivingLake[ri];
 		const count = r.count;
 		for (let i = 0; i < count - 1; i++) {
@@ -132,7 +137,7 @@ export class WaterMeshData {
 			const barDetail = Math.max(r.data[i * RIVER_STRIDE + RV.BAR], r.data[(i + 1) * RIVER_STRIDE + RV.BAR]) > 0.2 ? 12 : 4;
 			const subAcross = quad ? Math.min(Math.max(Math.round(a.hw * 2 / quad), barDetail), 32) : barDetail;
 			const subAlong = quad ? Math.min(Math.max(Math.round(Math.hypot(c.x - a.x, c.z - a.z) / quad), 1), 8) : 1;
-			const wk = riverWakes(r, i, RIVER_STRIDE, RV.ALONG);
+			const wk = writeRiverWakes(r, i, RIVER_STRIDE, RV.ALONG, this.wakes);
 			// a riffle ramp is exactly one quad: the step height belongs to the quad, never interpolated into its neighbours
 			const stepH = a.kind === RIVER_KIND.STEP_TOP && c.kind === RIVER_KIND.STEP_BOTTOM ? a.stepH : 0;
 			// rows of vertices from section a to section c
@@ -152,7 +157,7 @@ export class WaterMeshData {
 					const join = coverage > 0 && s.y <= this.world.lakes[lakeId].level + 0.02 ? Math.min(1, coverage / 3) : 0;
 					row.push(b.river(x, s.y, z, [s.foam, s.dep, across / (s.w * 0.5), s.w], [s.along, s.speed, stepH, s.travel], wk, s.fd, [s.bend, bed, s.tx, s.tz], join, wave));
 				}
-				rows.push(row);
+				rows.push(row);yield;
 			}
 			// two triangles across the diagonal, counter-clockwise seen from above; the diagonal
 			// alternates so the facets do not all lean the same way
@@ -163,7 +168,7 @@ export class WaterMeshData {
 		}
 	}
 
-	buildNear(px, pz) {
+	*buildNearSteps(px, pz) {
 		const hm = this.heightmap;
 		const segs = hm.rivers.segmentsIn(px - NEAR_BUILD, pz - NEAR_BUILD, px + NEAR_BUILD, pz + NEAR_BUILD);
 		const perRiver = new Map();
@@ -175,12 +180,12 @@ export class WaterMeshData {
 		}
 		const b = new Builder();
 		const r2 = NEAR_BUILD * NEAR_BUILD;
-		this.buildLakes(b, NEAR_LAKE_SUB, (x, z) => { const dx = x - px, dz = z - pz; return dx * dx + dz * dz < r2; }, { x0: px - NEAR_BUILD, z0: pz - NEAR_BUILD, x1: px + NEAR_BUILD, z1: pz + NEAR_BUILD });
+		yield* this.buildLakesSteps(b, NEAR_LAKE_SUB, (x, z) => { const dx = x - px, dz = z - pz; return dx * dx + dz * dz < r2; }, { x0: px - NEAR_BUILD, z0: pz - NEAR_BUILD, x1: px + NEAR_BUILD, z1: pz + NEAR_BUILD });
 		for (const [ri, set] of perRiver) {
 			const secs = this.sections[ri];
-			this.buildRiver(b, ri, (i) => { if (!set.has(i)) return false; const s = secs[i], c = secs[i + 1]; const dx = s.x - px, dz = s.z - pz; const reach = NEAR_BUILD + Math.max(s.hw, c.hw) * 1.5 + Math.hypot(c.x - s.x, c.z - s.z); return dx * dx + dz * dz < reach * reach; }, NEAR_QUAD);
+			yield* this.buildRiverSteps(b, ri, (i) => { if (!set.has(i)) return false; const s = secs[i], c = secs[i + 1]; const dx = s.x - px, dz = s.z - pz; const reach = NEAR_BUILD + Math.max(s.hw, c.hw) * 1.5 + Math.hypot(c.x - s.x, c.z - s.z); return dx * dx + dz * dz < reach * reach; }, NEAR_QUAD);
 		}
-		return b.pack();
+		return yield* b.packSteps();
 	}
 }
 
@@ -222,4 +227,16 @@ class Builder {
 		const attributes = Object.fromEntries(Object.entries(fields).map(([key, [values, size]]) => [key, { array: Float32Array.from(values), size }]));
 		return { attributes, index: Uint32Array.from(this.idx) };
 	}
+ *packSteps() {
+  const fields={position:[this.pos,3],aInfo0:[this.info0,4],aInfo1:[this.info1,4],aWave:[this.wave,1],aJoin:[this.join,1],aChannel:[this.channel,4],aFade:[this.fade,1],aWake0:[this.wake0,3],aWake1:[this.wake1,3],aWake2:[this.wake2,3]},attributes={};
+  for(const[key,[values,size]]of Object.entries(fields)){
+   const array=new Float32Array(values.length);yield;
+   for(let i=0;i<values.length;i++){array[i]=values[i];if((i&2047)===2047)yield;}
+   attributes[key]={array,size};
+  }
+  const index=new Uint32Array(this.idx.length);yield;
+  for(let i=0;i<index.length;i++){index[i]=this.idx[i];if((i&2047)===2047)yield;}
+  return {attributes,index};
+ }
+
 }

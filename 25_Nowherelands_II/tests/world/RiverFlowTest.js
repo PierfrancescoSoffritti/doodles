@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { riverCurrent } from '../../js/world/RiverFlow.js';
+import { riverCurrent } from '../../js/world/RiverFlow.js?v=stable-30-10';
 const empty = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
 
 test('banks slow the current and a bend shifts the fast channel to the outside', () => {

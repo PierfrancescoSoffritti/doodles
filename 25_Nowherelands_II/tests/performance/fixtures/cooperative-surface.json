@@ -1,0 +1,89 @@
+[
+  {
+    "kind": "terrain",
+    "args": [
+      4,
+      6,
+      6
+    ],
+    "hash": "98cb09d30269508eee99bcae9a2351f2979cf1e4aa93dee0219d2ba51a118b99"
+  },
+  {
+    "kind": "water",
+    "args": [
+      -3479.0234375,
+      3637.97607421875
+    ],
+    "hash": "1ee66491e94b5587d9483214ab9559eb3121f324fd3ffdca8ba3ad12eec6e488"
+  },
+  {
+    "kind": "shore",
+    "args": [
+      {
+        "res": 64,
+        "size": 512,
+        "ox": -3479.0234375,
+        "oz": 3637.97607421875
+      }
+    ],
+    "hash": "39243e212b4a34cfcafd5961c59a0e983e8836535264e8ada7965c44c257780f"
+  },
+  {
+    "kind": "terrain",
+    "args": [
+      4,
+      7,
+      6
+    ],
+    "hash": "be383e19b08f081a262a56234cdbb9a65ac44f814cf1a4dc20cdd059545efdd1"
+  },
+  {
+    "kind": "water",
+    "args": [
+      -3429.0234375,
+      3637.97607421875
+    ],
+    "hash": "e7976c33f562f6b2b19508303b29bbac039f8169da9a50158b44666103834025"
+  },
+  {
+    "kind": "shore",
+    "args": [
+      {
+        "res": 64,
+        "size": 512,
+        "ox": -3429.0234375,
+        "oz": 3637.97607421875
+      }
+    ],
+    "hash": "cfd7d8135fc2ead7ac8b72ef4748ac1560659c29abfd706ee5369f05cac32b81"
+  },
+  {
+    "kind": "terrain",
+    "args": [
+      4,
+      8,
+      6
+    ],
+    "hash": "10bc5bf651da11b2277e950943fdbeba63bfb89fd71c77179ce124cb5d09b2ce"
+  },
+  {
+    "kind": "water",
+    "args": [
+      -3379.0234375,
+      3637.97607421875
+    ],
+    "hash": "7130cf175c43029196bdebd4438e13c620a07b5e19fd9ddc925bc5a2de35f5f8"
+  },
+  {
+    "kind": "shore",
+    "args": [
+      {
+        "res": 64,
+        "size": 512,
+        "ox": -3379.0234375,
+        "oz": 3637.97607421875
+      }
+    ],
+    "hash": "9e08570151a5701524b54353aa5a4b818cf09d894a7f451a6ddcc74d77554869"
+  }
+]

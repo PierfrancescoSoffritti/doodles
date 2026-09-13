@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildCoastOverview, shoreDistance, riverReach } from '../../js/world/ShoreMapData.js';
+import { buildCoastOverview, shoreDistance, riverReach } from '../../js/world/ShoreMapData.js?v=stable-30-23';
 
 test('overview preserves coast position, sea depth and elevated lake exclusion', () => {
 	const res = 9, height = new Float32Array(res * res), lakeLevel = new Float32Array(res * res).fill(-10000);

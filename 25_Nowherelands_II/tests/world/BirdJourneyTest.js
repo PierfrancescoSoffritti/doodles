@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { BirdJourney, BIRD_GROUND, BIRD_PERCH, BIRD_JOURNEY_TIME, BIRD_FLIGHT_TIME, BIRD_ANTICIPATION } from '../../js/world/fauna/BirdJourney.js';
+import { BirdJourney, BIRD_GROUND, BIRD_PERCH, BIRD_JOURNEY_TIME, BIRD_FLIGHT_TIME, BIRD_ANTICIPATION } from '../../js/world/fauna/BirdJourney.js?v=stable-30-3';
 
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
 test('bird stays on its feet until startled, completes the perch journey and can return',()=>{
@@ -68,4 +68,19 @@ test('ground idle pecks and shifts with planted feet; perching has no ground pec
  assert.ok(pecks>50&&shifts>20&&lowest<.33);
  j.reset();j.update(1.52);const before=j.sample();assert.equal(before.activity,'peck');j.start();const after=j.sample();assert.equal(after.position.y,before.position.y);assert.equal(after.headPitch,before.headPitch);
  j.seek(BIRD_JOURNEY_TIME);for(let i=0;i<1000;i++)assert.notEqual(j.update(.01).activity,'peck');
+});
+
+test('cached settled poses match full flight evaluation and remain independent snapshots',()=>{
+ const a=new BirdJourney(),b=new BirdJourney();
+ for(let trip=0;trip<3;trip++){
+  a.start();b.start();
+  for(let i=0;i<450;i++){
+   b.settledPose=null;
+   assert.deepEqual(a.update(1/30),b.update(1/30));
+  }
+  const previous=a.sample();previous.position.x=999;previous.fold=-1;
+  assert.deepEqual(a.sample(),b.sample());
+ }
+ a.seek(.7);b.seek(.7);assert.deepEqual(a.sample(),b.sample());
+ a.reset();b.reset();assert.deepEqual(a.sample(),b.sample());
 });

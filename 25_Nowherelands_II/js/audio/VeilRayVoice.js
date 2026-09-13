@@ -13,7 +13,7 @@ export function rayEnvelope(time, phrase = 'contact') {
  return smooth(time / spec.attack) * smooth((spec.duration - time) / spec.release) * body * breath;
 }
 
-export function synthesizeVeilRay({ sampleRate = 44100, frequency = 180, phrase = 'contact', size = 1, identity = 0 } = {}) {
+export function* buildVeilRay({ sampleRate = 44100, frequency = 180, phrase = 'contact', size = 1, identity = 0 } = {}) {
  const spec = RAY_PHRASES[phrase] || RAY_PHRASES.contact;
  const samples = new Float32Array(Math.ceil(spec.duration * sampleRate));
  const hz = Math.max(120, Math.min(420, frequency / Math.max(0.7, size) ** 0.22));
@@ -35,8 +35,13 @@ export function synthesizeVeilRay({ sampleRate = 44100, frequency = 180, phrase 
   noise += ((random / 2147483648 - 1) - noise) * 0.12;
   const value = (tone + noise * 0.018) * rayEnvelope(t, phrase);
   samples[i] = value; peak = Math.max(peak, Math.abs(value));
+  if(i%1024===1023)yield;
  }
  const gain = 0.82 / Math.max(peak, 0.001);
- for (let i = 0; i < samples.length; i++) samples[i] *= gain;
+ for (let i = 0; i < samples.length; i++) {samples[i] *= gain;if(i%8192===8191)yield;}
  return samples;
+}
+
+export function synthesizeVeilRay(options) {
+ const work=buildVeilRay(options);let result;do{result=work.next();}while(!result.done);return result.value;
 }

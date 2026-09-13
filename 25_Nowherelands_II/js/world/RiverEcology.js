@@ -94,7 +94,8 @@ export class RiverEcology {
 		};
 		fadeSmallPlantMaterial(this.material, shared);
 	}
-	build(hm, chunk, cx, cz, size, seed) {
+	build(...args) { for (const _ of this.buildSteps(...args)) { /* synchronous loading path */ } }
+	*buildSteps(hm, chunk, cx, cz, size, seed) {
 		const rnd = new Random(seed + ':riparian:' + cx + ':' + cz);
 		const x0 = cx * size - size / 2, z0 = cz * size - size / 2, x1 = x0 + size, z1 = z0 + size;
 		const plants = Object.fromEntries(Object.keys(this.geometries).map(type => [type, []]));
@@ -114,6 +115,7 @@ export class RiverEcology {
 			plants[type].push({ x, y: type === 'lily' ? surface + 0.03 : y - 0.025, z, scale, yaw: type === 'aquatic' ? yaw : rnd.range(0, 6.28) }); total++;
 		};
 		for (const index of hm.rivers.segmentsIn(x0 - 30, z0 - 30, x1 + 30, z1 + 30)) {
+			yield;
 			const a = hm.rivers.at(index, 0.5);
 			if (a.kind !== 0 || a.wl < 1) continue;
 			const river = hm.world.rivers[hm.rivers.segRiver[index]], sample = hm.rivers.segIndex[index] * RIVER_STRIDE;
@@ -131,12 +133,14 @@ export class RiverEcology {
 			}
 		}
 		for (const shore of this.features.query(this.features.shoreCells, x0 - 14, z0 - 14, x1 + 14, z1 + 14)) {
+			yield;
 			const patch = 0.5 + Math.sin(shore.x * 0.027 + shore.z * 0.019) * 0.5;
 			for (let k = 0; k < 14; k++) recruit(shore.x + rnd.range(-14, 14), shore.z + rnd.range(-14, 14), shore.level, shore.fetch * 0.35, 0, 0, patch, shore.fetch);
 		}
 
 		const matrix = new THREE.Matrix4(), q = new THREE.Quaternion(), position = new THREE.Vector3(), scale = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
 		for (const [type, list] of Object.entries(plants)) {
+			yield;
 			if (!list.length) continue;
 			const mesh = new THREE.InstancedMesh(this.geometries[type].clone(), this.material, list.length);
 			list.forEach((it, i) => {

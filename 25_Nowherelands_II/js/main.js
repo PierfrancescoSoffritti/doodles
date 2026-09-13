@@ -1,60 +1,71 @@
-import { ReplyOutlinePass } from './fx/ReplyOutlinePass.js?v=outline-2';
-import { PlayerNotes } from './player/PlayerNotes.js?v=fauna-menu-2';
+import { compactStaticWater } from './world/StaticWaterCopy.js?v=stable-30-21';
+import { HeightSampleCache } from './world/HeightSampleCache.js?v=stable-30-3';
+import { PlantBatches } from './world/PlantBatches.js?v=stable-30-27';
+import { mobileDetail, lowMemoryMobile, mobileOption } from './core/MobileDetail.js?v=stable-30-3';
+import { MobilePointLights } from './fx/MobilePointLights.js?v=stable-30-3';
+import { ReplyOutlinePass } from './fx/ReplyOutlinePass.js?v=stable-30-3';
+import { PlayerNotes } from './player/PlayerNotes.js?v=stable-30-3';
 import * as THREE from 'three';
 import { FramePacer } from './core/FramePacer.js';
-import { EnvironmentProbe } from './fx/EnvironmentProbe.js';
-import { config } from './core/Config.js';
+import { EnvironmentProbe } from './fx/EnvironmentProbe.js?v=stable-30-3';
+import { config } from './core/Config.js?v=stable-30-3';
 import { bus, Events } from './core/EventBus.js';
 import { damp } from './core/Utils.js';
-import { Heightmap } from './world/Heightmap.js';
+import { Heightmap } from './world/Heightmap.js?v=stable-30-28';
 import { Ripples } from './world/Ripples.js?v=player-notes-13';
-import { SurfaceWork } from './world/SurfaceWork.js';
-import { ShoreMap } from './world/ShoreMap.js';
-import { Terrain } from './world/Terrain.js?v=player-notes-13';
-import { Water } from './world/Water.js?v=player-notes-13';
+import { SurfaceWork } from './world/SurfaceWork.js?v=stable-30-25';
+import { ShoreMap } from './world/ShoreMap.js?v=stable-30-23';
+import { Terrain } from './world/Terrain.js?v=stable-30-26';
+import { Water } from './world/Water.js?v=stable-30-3';
 import { CoastalSpray } from './world/CoastalSpray.js?v=player-notes-13';
-import { InlandWater } from './world/InlandWater.js?v=player-notes-13';
-import { Waterfalls } from './world/Waterfalls.js?v=player-notes-13';
+import { InlandWater } from './world/InlandWater.js?v=stable-30-23';
+import { Waterfalls } from './world/Waterfalls.js?v=stable-30-5';
 import { WatersideLife } from './world/WatersideLife.js';
 import { WatersideAmbience } from './audio/WatersideAmbience.js';
 import { WatersideFeatures } from './world/WatersideFeatures.js';
-import { RiverDrift } from './world/RiverDrift.js?v=player-notes-13';
+import { RiverDrift } from './world/RiverDrift.js?v=stable-30-10';
 import { createFogUniforms } from './world/FogGlsl.js';
-import { Sky } from './world/Sky.js';
+import { Sky } from './world/Sky.js?v=stable-30-3';
 import { RainCurtains } from './world/weather/RainCurtains.js';
-import { Weather } from './world/weather/Weather.js';
+import { Weather } from './world/weather/Weather.js?v=stable-30-10';
 import { Precipitation } from './world/weather/Precipitation.js';
 import { Snow } from './world/Snow.js';
 import { Rain } from './world/Rain.js';
-import { Fireflies } from './world/Fireflies.js';
+import { Fireflies } from './world/Fireflies.js?v=stable-30-3';
 import { Sprouts } from './world/Sprouts.js';
 import { Landmarks } from './landmarks/Landmarks.js';
 import { Player } from './player/Player.js';
-import { HUD } from './ui/HUD.js?v=fauna-menu-2';
-import { Caves } from './world/caves/Caves.js?v=player-notes-13';
-import { WeatherSurvey } from './ui/WeatherSurvey.js';
+import { HUD } from './ui/HUD.js?v=stable-30-3';
+import { Caves } from './world/caves/Caves.js?v=stable-30-28';
+import { WeatherSurvey } from './ui/WeatherSurvey.js?v=stable-30-10';
 import { CaveSurvey } from './ui/CaveSurvey.js';
 import { MovementProfile } from './ui/MovementProfile.js';
 import { RiverSurvey } from './ui/RiverSurvey.js';
 import { EventDirector } from './events/Events.js';
-import { PostProcessing } from './fx/PostProcessing.js';
-import { AudioEngine } from './audio/AudioEngine.js?v=pebble-audio-10';
+import { PostProcessing } from './fx/PostProcessing.js?v=stable-30-3';
+import { FoliageDepthPrepass } from './fx/FoliageDepthPrepass.js?v=stable-30-3';
+import { installBoundedPointLights } from './fx/BoundedPointLights.js?v=stable-30-3';
+import { AudioEngine } from './audio/AudioEngine.js?v=stable-30-3';
 import { Conductor } from './audio/Conductor.js?v=pebble-audio-10';
-import { Fauna } from './world/fauna/Fauna.js?v=pebble-voice-4b';
-import { WorldReedWalkers } from './world/fauna/WorldReedWalkers.js?v=pebble-voice-4b';
-import { WorldLanternMites } from './world/fauna/WorldLanternMites.js?v=pebble-voice-4b';
-import { WorldBirds } from './world/fauna/WorldBirds.js?v=pebble-voice-4b';
+import { Fauna } from './world/fauna/Fauna.js?v=stable-30-30';
+import { WorldReedWalkers } from './world/fauna/WorldReedWalkers.js?v=stable-30-3';
+import { WorldLanternMites } from './world/fauna/WorldLanternMites.js?v=stable-30-22';
+import { WorldBirds } from './world/fauna/WorldBirds.js?v=stable-30-3';
 
-import { FaunaMenu } from './ui/FaunaMenu.js?v=fauna-menu-2';
+import { FaunaMenu } from './ui/FaunaMenu.js?v=stable-30-25';
 
 const canvas = document.getElementById('canvas');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(devicePixelRatio, config.isTouch ? 1.25 : 1.75));
+const maliGraphics = config.isTouch && FoliageDepthPrepass.supported(renderer);
+if (maliGraphics) installBoundedPointLights();
+renderer.setPixelRatio(Math.min(devicePixelRatio, lowMemoryMobile ? .875 : config.isTouch ? 1.25 : 1.75));
 renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
 
 const scene = new THREE.Scene();
+scene.updateMatrix();
+scene.matrixAutoUpdate = false;
 // built-in materials (trees, snow) only ever render close by; the terrain and water carry their own height fog
 const FOG_NEAR = 0.00045;
 scene.fog = new THREE.FogExp2('#2a1046', FOG_NEAR);
@@ -81,17 +92,20 @@ shared.hud = hud;
 
 // ---- bake the world off-thread, then build everything on top of it ----
 hud.setLoading('shaping the land', 0);
-const worker = new Worker(new URL('./world/gen/WorldGenWorker.js', import.meta.url), { type: 'module' });
+const worker = new Worker(new URL('./world/gen/WorldGenWorker.js?v=stable-30-8', import.meta.url), { type: 'module' });
 worker.postMessage({ seed: config.seed, opts: config.isTouch ? { res: 512 } : {} });
 worker.onmessage = (e) => {
 	if (e.data.type === 'progress') { hud.setLoading(e.data.label, e.data.p); return; }
 	worker.terminate();
 	hud.setLoading('growing the forests', 1);
-	// let the label paint before the synchronous build work
-	requestAnimationFrame(() => requestAnimationFrame(() => start(e.data.world,e.data.caveMeshes)));
+	// Chrome can leave the deserialized world on a deprecated object layout.
+ // Reads then repeatedly deoptimize terrain queries and river updates. A
+ // dictionary record keeps those reads stable; every value/typed array is shared.
+ // Let the label paint before the synchronous build work.
+	requestAnimationFrame(() => requestAnimationFrame(() => start(Object.assign(Object.create(null), e.data.world),e.data.caveMeshes)));
 };
 
-function start(world,caveMeshes) {
+async function start(world,caveMeshes) {
 	const heightmap = new Heightmap(config.seed, world);
 	shared.heightmap = heightmap;
 	shared.waterside = new WatersideFeatures(heightmap, config.seed);
@@ -105,10 +119,13 @@ function start(world,caveMeshes) {
 	shared.shoreMap = shoreMap;
 	const atmosphere = new Weather(scene, heightmap, shared);
 	const terrain = new Terrain(scene, heightmap, shared);
+	const foliageDepth = maliGraphics ? new FoliageDepthPrepass(renderer, scene, terrain.vegetation.leafMaterial) : null;
+	const plantBatches = mobileOption('plantBatches') ? new PlantBatches(renderer, scene, {cullInstances:!mobileOption('plantChunkCulling')}) : null;
 	const water = new Water(scene, shared, heightmap.waterLevel);
 	const coastalSpray = new CoastalSpray(scene, shared);
 	const inland = new InlandWater(scene, heightmap, shared);
 	const waterfalls = new Waterfalls(scene, world, shared);
+	const staticWaterCopies = mobileOption('staticWaterCopies') ? compactStaticWater([inland.mesh, waterfalls.sheet, waterfalls.plunge, waterfalls.points]) : null;
 	const drift = new RiverDrift(scene, heightmap, shared);
 	const caves=new Caves(scene,heightmap,shared,caveMeshes);
 	const watersideLife = new WatersideLife(scene, heightmap, shared);
@@ -130,6 +147,8 @@ function start(world,caveMeshes) {
 	const mites = new WorldLanternMites(scene,heightmap,shared,terrain.vegetation,config.seed,terrain.material); shared.mites=mites;
 	const landmarks = new Landmarks(scene, heightmap, shared, camera);
 	landmarks.addFireflies(fireflies);
+	const localLights = mobileDetail ? new MobilePointLights(scene) : null;
+	shared.localLights = localLights;
 	const director = new EventDirector(shared);
 	const post = new PostProcessing(renderer, scene, camera);
 	const replyOutlines = new ReplyOutlinePass();
@@ -168,27 +187,49 @@ function start(world,caveMeshes) {
 	shoreMap.prime(player.position);
 	terrain.prewarm(player.position);
 	fauna.prime(player.position, config.seed);
+	await fauna.startSimulationWorker();
 	birds.prime();
 	walkers.update(0);
 	mites.update(0);
-	hud.ready();
+	// Finish the first environment and streamed-material driver setup while the
+	// loading screen is still visible, before entering starts music and movement.
+	hud.setLoading('lighting the forest', 1);
+	sky.update(0, 0, camera.position, renderer, true);
+	localLights?.update(camera, 0);
+	await environment.prewarm();
+	await mites.prewarm();
+	await walkers.prewarm();
 	const weatherSurvey=new URLSearchParams(location.search).has('weather') ? new WeatherSurvey(shared, sky) : null;
 	const caveSurvey=!weatherSurvey && new URLSearchParams(location.search).has('caves') ? new CaveSurvey(shared) : null;
 	const survey = !weatherSurvey && !caveSurvey && new URLSearchParams(location.search).has('rivers') ? new RiverSurvey(shared, terrain) : null;
 	const profile = survey && new URLSearchParams(location.search).has('profile') ? new MovementProfile(shared, survey, { terrain, inland, shoreMap, pmrem, watersideLife, post }) : null;
 	const faunaMenu = !weatherSurvey && !caveSurvey && !survey ? new FaunaMenu(shared) : null;
+	faunaMenu?.prepareForest();
+	hud.ready();
+ if (staticWaterCopies) setTimeout(() => staticWaterCopies.finishWarmup(), 1000);
 
 	// ---- enter ----
 	let started = false;
 	hud.onEnter(async ({ capture = true } = {}) => {
 		if (started) return;
 		started = true;
-		const engine = new AudioEngine();
+		// A 5 ms callback buffer repeatedly underruns on the Samsung under load.
+		// Give mobile playback headroom without changing the mix or spatial audio.
+		const requestedRate = Number(new URLSearchParams(location.search).get('audioRate'));
+  const sampleRate = [32000, 44100, 48000].includes(requestedRate) ? requestedRate : lowMemoryMobile ? 32000 : undefined;
+  const engine = new AudioEngine(null, Math.random, {
+   latencyHint: config.isTouch ? 0.04 : 'interactive', sampleRate,
+   blockSpatial: mobileOption('audioBlockSpatial'),
+  });
 		await engine.resume();
 		const conductor = new Conductor(engine);
 		shared.audio = engine;
+		shared.playerNotes.prepareAudio();
 		shared.watersideAmbience = new WatersideAmbience(engine, heightmap, shared.waterside);
 		shared.conductor = conductor;
+		fauna.prepareAudio();
+		walkers.prepareAudio();
+		await mites.prepareAudio();
 		conductor.start();
 		hud.enter();
 		player.enabled = true;
@@ -196,12 +237,14 @@ function start(world,caveMeshes) {
 	});
 
 	// Reconcile sizes after world generation, including resizes during loading.
+	let presentation=null;
 	const resize = () => {
 		const width = canvas.clientWidth, height = canvas.clientHeight;
 		renderer.setSize(width, height, false);
 		camera.aspect = width / height;
 		camera.updateProjectionMatrix();
 		post.setSize(width, height);
+  presentation?.resize();
 	};
 	new ResizeObserver(resize).observe(canvas);
 	resize();
@@ -209,17 +252,23 @@ function start(world,caveMeshes) {
 	// ---- loop ----
 	let lastFrame = performance.now();
 	const pacer = new FramePacer();
+ const heightCache = mobileOption('heightCache') ? new HeightSampleCache(heightmap) : null;
 	const listenerUp = new THREE.Vector3(0, 1, 0);
 
-	function frame() {
-		requestAnimationFrame(frame);
-		const now = performance.now();
-		// Preserve the original world/music update cadence. Presentation quality must
-		// not change audio automation, musical timers, or the input that drives them.
-		if (document.hidden) pacer.reset();
-		const renderFrame = !document.hidden && pacer.accept(now, hud.frameRate);
+ const useAux = water.deferReflection, timedAux = useAux && mobileOption('auxTimer');
+ let auxTimer = null;
+ const auxiliary = () => {
+  auxTimer = null;
+  if (!water.deferReflection || document.hidden || pacer.next - performance.now() <= 9) return;
+  if (timedAux && atmosphere.model.advancePending()) return;
+  if (!water.prepareReflection(renderer, scene, camera) && pacer.next-performance.now() > (environment.face===6?14:12)) environment.update(0, true);
+ };
+
+	let advanceTimer = null;
+ function advance(renderFrame,fixedStep=null) {
+   const now=performance.now();
 		const previousFrame = lastFrame;
-		const dt = Math.min((now - lastFrame) / 1000, 0.05);
+		const dt = fixedStep ?? Math.min((now - lastFrame) / 1000, 0.05);
 		lastFrame = now;
 		const worldDt = dt * shared.timeFactor;
 		shared.time += worldDt;
@@ -239,7 +288,7 @@ function start(world,caveMeshes) {
 		shared.surfaceStreaming=surfaceNearby;
 		if(surfaceNearby){shoreMap.update(player.position);terrain.update(player.position,dt);}
 		ripples.update(t);
-		sky.update(t, dt, camera.position, renderer);
+		sky.update(t, dt, camera.position, renderer, renderFrame);
 		rainCurtains.update(camera.position, sky.clouds.uniforms.uCloudBase.value);
 		scene.fog.color.copy(shared.fogColor);
 		water.update(t, camera.position, shared);
@@ -261,11 +310,12 @@ function start(world,caveMeshes) {
 			shared.audio.updateListener(camera.position, player.forward, listenerUp);
 			shared.conductor.update(dt, shared);
 		}
-		fauna.update(dt);
+		fauna.update(dt, renderFrame);
 		shared.playerNotes.update();
 		birds.update(dt);
 		walkers.update(dt);
 		mites.update(dt);
+		localLights?.update(camera, dt);
 
 		// fog: valley haze thickens with weather; far ranges fade to a tone darker than the sky
 		const weather = 1 + 0.9 * (shared.state.rainVisible || 0) + 0.5 * (shared.state.snowVisible || 0) + 0.9 * (shared.state.storm || 0) * atmosphere.exposure;
@@ -297,7 +347,7 @@ function start(world,caveMeshes) {
 		u.uSunIntensity.value = shared.sun.intensity;
 		if (shared.audio) { u.uBass.value = shared.audio.analysis.bass; u.uLevel.value = shared.audio.analysis.attack; }
 
-		environment.update(dt, renderFrame);
+		environment.update(dt, renderFrame && !water.deferReflection);
 
 		// glare: how squarely we are looking at the red dwarf, and whether hills hide it
 		{
@@ -324,15 +374,48 @@ function start(world,caveMeshes) {
 		fireflies.points.visible=shared.caveAmount<=.4;
 		if (renderFrame) {
 			post.render(t, shared);
-			if(shared.playerNotes.highlights.size)replyOutlines.render(renderer,scene,camera);
-			hud.recordFrame(performance.now());
+			if(shared.playerNotes.highlights.size){
+    if(post.buffered)renderer.setRenderTarget(post.composer.readBuffer);
+    replyOutlines.render(renderer,scene,camera);
+    if(post.buffered)renderer.setRenderTarget(null);
+   }
+			if(!post.buffered)hud.recordFrame(performance.now());
 		}
 		caveSurvey?.update(now-previousFrame);
 		weatherSurvey?.update(now-previousFrame);
 		if (survey) survey.update(now - previousFrame);
 		faunaMenu?.update(now - previousFrame);
+  if(timedAux && water.deferReflection && renderFrame && auxTimer===null) auxTimer=setTimeout(auxiliary,0);
 		profile?.end();
+ }
+	function frame(timestamp = performance.now()) {
+		requestAnimationFrame(frame);
+		if (document.hidden) { presentation?.suspend();pacer.reset(); lastFrame=performance.now(); return; }
+		if (advanceTimer !== null) return;
+		water.deferReflection=useAux && hud.frameRate===30;
+		atmosphere.model.deferSteps=timedAux && water.deferReflection;
+  if(presentation&&presentation.healthy()&&hud.frameRate===30){presentation.resume();if(water.deferReflection&&!timedAux)auxiliary();return;}
+  if(presentation?.active){presentation.suspend();pacer.reset();lastFrame=performance.now();}
+		const renderFrame = pacer.accept(timestamp, hud.frameRate);
+		// At the mobile 30 Hz target, advance the world once per presented frame.
+		// Fixed-step fauna and the audio clock still own their timing; skipped
+		// display callbacks no longer repeat world traversal and streaming work.
+		if (mobileDetail && hud.frameRate === 30 && !renderFrame) {
+   if(water.deferReflection && !timedAux) auxiliary();
+   return;
+  }
+
+  if(post.buffered && renderFrame){
+   if(post.present())hud.recordFrame(performance.now());
+   advanceTimer=setTimeout(()=>{advanceTimer=null;if(document.hidden){lastFrame=performance.now();pacer.reset();return;}advance(renderFrame);},0);
+  }else advance(renderFrame);
 	}
-	window.__debug = { environment, pacer, hud, atmosphere, sky, snow, rain, hail, scene, renderer, camera, shared, post, terrain, player, landmarksList: landmarks.list, director, shoreMap, water, inland, waterfalls, drift, heightmap, world, coastalSpray, fauna, faunaMenu, birds, walkers, mites };
+ if(post.buffered&&mobileOption('workerPresent')) {
+  const {BufferedPresentation}=await import('./fx/BufferedPresentation.js?v=stable-30-28');
+  presentation=await BufferedPresentation.create({source:canvas,
+   produce:dt=>{pacer.next=performance.now()+1000/30;advance(true,dt);},
+   present:()=>post.present(),onFrame:at=>hud.recordFrame(at),depth:4});
+ }
+	window.__debug = { presentation, staticWaterCopies, heightCache, fireflies, plantBatches, localLights, foliageDepth, environment, pacer, hud, atmosphere, sky, snow, rain, hail, scene, renderer, camera, shared, post, terrain, player, landmarksList: landmarks.list, director, shoreMap, water, inland, waterfalls, drift, heightmap, world, coastalSpray, fauna, faunaMenu, birds, walkers, mites };
 	frame();
 }

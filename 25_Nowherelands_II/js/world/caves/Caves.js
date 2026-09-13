@@ -1,10 +1,13 @@
-import { CaveFloorSurface } from './CaveFloorSurface.js';
+import { batchCaveChunks } from './BatchCaveChunks.js?v=stable-30-24';
+import { CaveFloorSurface } from './CaveFloorSurface.js?v=stable-30-28';
 import { caveLightingGlsl } from './CaveLighting.js';
 import { EntranceDressing } from './EntranceDressing.js';
 import * as THREE from 'three';
 import { WaterOptics } from '../WaterOptics.js';
 import { Ripples } from '../Ripples.js?v=player-notes-13';
 import { noiseGlsl,terrainLightGlsl } from '../TerrainMaterial.js?v=player-notes-13';
+import { createNoiseLookup, lookupNoiseGlsl } from '../NoiseLookup.js?v=stable-30-16';
+import { mobileOption } from '../../core/MobileDetail.js?v=stable-30-3';
 
 const vertex=/* glsl */`
 varying vec3 vWorldPos;
@@ -20,18 +23,28 @@ vec3 caveLight(vec3 base,vec3 p,vec3 n){
 
 export class Caves {
 	constructor(scene,heightmap,shared,data) {
+		if(mobileOption('caveBatches'))data={...data,chunks:batchCaveChunks(data.chunks)};
 		heightmap.caveFloorSurface=new CaveFloorSurface(data);
 		this.heightmap=heightmap;this.shared=shared;this.groups=[];this.materials=[];this.optics=[];this.waterMeshes=[];
+		this.noiseLookup=mobileOption('caveNoiseLookup')?createNoiseLookup(shared.renderer):null;
 		const dressing=new EntranceDressing(shared);
+		// The identical position program establishes solid rock depth before sky
+		// and shaded scenery. Hidden pixels then avoid their fragment work.
+		const depth = mobileOption('caveDepth') ? new THREE.ShaderMaterial({
+			vertexShader:vertex,fragmentShader:'void main(){gl_FragColor=vec4(0.0);}',
+			colorWrite:false,side:THREE.DoubleSide,
+		}) : null;
+		this.depthMaterial=depth;
 		for(const cave of heightmap.world.caves || []) {
 			const group=new THREE.Group();group.name=`cave-${cave.id}`; scene.add(group);
 			const second=cave.entrances?.[1]||cave.entrance;
 			const uniforms={uSecondEntrance:{value:new THREE.Vector3(second.x,second.y,second.z)},uCamera:{value:new THREE.Vector3()},uEntrance:{value:new THREE.Vector3(cave.entrance.x,cave.entrance.y,cave.entrance.z)},uLamp:{value:0}};
+			if(this.noiseLookup)uniforms.uNoiseLookup={value:this.noiseLookup.texture};
 			for(const k of ['uMoonDir','uMoonColor','uMoonIntensity','uSunDir','uSunColor','uSunIntensity','uSkyColor','uGroundColor'])uniforms[k]=shared.terrainUniforms[k];
 			uniforms.uLightning=shared.weather.uniforms.uLightning;
 			Object.assign(uniforms,shared.ripples.uniforms,{uTime:{value:0}});
 			const rock=new THREE.ShaderMaterial({uniforms,side:THREE.DoubleSide,vertexShader:vertex,fragmentShader:/* glsl */`
-			varying vec3 vWorldPos;${noiseGlsl}${lighting}
+			varying vec3 vWorldPos;${this.noiseLookup?lookupNoiseGlsl:noiseGlsl}${lighting}
 			uniform vec3 uMoonDir,uMoonColor,uSunDir,uSunColor,uSkyColor,uGroundColor;
 			uniform float uMoonIntensity,uSunIntensity,uLightning,uTime;
 			${terrainLightGlsl}
@@ -46,21 +59,25 @@ export class Caves {
 			 vec3 limestone=mix(vec3(.25,.21,.29),vec3(.62,.55,.58),grains);
 			 float floorMask=smoothstep(.45,.8,n.y);
 			 limestone*=1.0-seam*.2*(1.0-floorMask);
+			 if(floorMask>0.0){
 			 vec3 gravel=mix(vec3(.16,.125,.15),vec3(.36,.3,.32),fbm2(p.xz*.65));
 			 float sediment=smoothstep(.25,.7,fbm2(p.xz*.07));
 			 limestone=mix(limestone,gravel,floorMask*(.5+.45*sediment));
+			 }
 			 limestone=mix(limestone,limestone*vec3(.63,.72,.74),smoothstep(.52,.72,wet)*.7);
-			 vec3 color=caveLight(limestone,p,n);
+			 float entranceLight=daylight(p);
+			 vec3 color=caveLighting(limestone,p,n,entranceLight,uLamp,uCamera);
 			 // Daylit rock and sediment share the surface lighting across the threshold.
-			 float exposure=smoothstep(.12,.7,daylight(p));
-			 color=mix(color,terrainLight(limestone*.65,n),exposure);
-			 color+=rippleGlow(p.xz,uTime)*1.4*floorMask;
+			 float exposure=smoothstep(.12,.7,entranceLight);
+			 if(exposure>0.0)color=mix(color,terrainLight(limestone*.65,n),exposure);
+			 if(floorMask>0.0)color+=rippleGlow(p.xz,uTime)*1.4*floorMask;
 			 float sheen=pow(max(dot(reflect(-view,n),view),0.0),24.0)*smoothstep(.55,.75,wet)*uLamp/(1.0+distance(p,uCamera)*.03);
 			 gl_FragColor=vec4(color+sheen*vec3(.06,.055,.07),1.0);
 			}`});
 			dressing.add(group,(heightmap.world.caveHabitat||[]).filter(h=>h.cave===cave.id),rock);
 			for(const chunk of [...data.chunks,...data.decorations].filter(c=>c.cave===cave.id)) {
 				const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(chunk.position,3));geometry.computeBoundingSphere();
+				if(chunk.index)geometry.setIndex(new THREE.BufferAttribute(chunk.index,1));
 				group.add(new THREE.Mesh(geometry,rock));
 			}
 			const water=data.water.find(w=>w.cave===cave.id);
@@ -99,6 +116,12 @@ export class Caves {
 				geometry.computeBoundingSphere();const mesh=new THREE.Mesh(geometry,material);mesh.renderOrder=3;mesh.onBeforeRender=(...args)=>optics.capture(...args);
 				shared.mirrorHide.add(mesh);this.waterMeshes.push(mesh);group.add(mesh);this.materials.push(material);
 			}
+			if(depth){
+				const solids=[];group.traverse(object=>{if(object.isMesh && object.material===rock)solids.push(object);});
+				for(const source of solids){const proxy=new THREE.Mesh(source.geometry,depth);proxy.renderOrder=-20;proxy.name='cave-depth';source.parent.add(proxy);}
+			}
+			// Rock, dressing and water vertices stay fixed; movement is in shaders.
+			group.traverse(object => { object.updateMatrix(); object.matrixAutoUpdate = false; });
 			this.materials.push(rock);this.groups.push({group,cave});
 		}
 	}

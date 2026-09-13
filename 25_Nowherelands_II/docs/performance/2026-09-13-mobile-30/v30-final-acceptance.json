@@ -1,0 +1,2131 @@
+{
+  "build": "stable-30-30",
+  "device": "Samsung SM-A155F",
+  "allPassed": true,
+  "runtimeSourceCount": 235,
+  "runtimeSources": {
+    "js/atelier/AtelierCatalog.js": "081fbd70840e0b9daab36f157afd395ab25c890b59a726d351e2d216cd15f995",
+    "js/atelier/AtelierFauna.js": "a7139dd5281a5d685c7c5651197acd318b505f2f16907a43e7e0669d8a94ccd7",
+    "js/atelier/LanternMiteListening.js": "8adc736e297409711792fbf052d391863adde2db3c98fc012aed06e0af8f6818",
+    "js/atelier/VeilRayListening.js": "369fb6dfeac426828e3c264491ce1f4e3054a062602f4523ecdd79c2f7b9b020",
+    "js/audio/AudioEngine.js": "5711fc80749312f3059abffd7398779870aa657e554c62faf9b23e6d75f506aa",
+    "js/audio/AudioSampleBank.js": "98a5b8e3d2fe5765dac8d780cae3e63a673f020c6cd81960d77e766266f2d2ce",
+    "js/audio/Conductor.js": "d6e159e8bd3449446f3d985cbeb4b2733c2d06675f6308c4db46c524578432d0",
+    "js/audio/CreatureReplyAudio.js": "696f10effcfa2951b60971ae8fd00356ce80d66bfdc8b4b31a9011897f4520d7",
+    "js/audio/CreatureReplyWorker.js": "f08e7d8294605074557c363f1ac6b55140d4c16ceb28a8c9f2d99a740c793d39",
+    "js/audio/FaunaAudio.js": "3a7c0be24933109cdc2caae9cc66f955c05d708666b67c3e8896e75f1d4025a5",
+    "js/audio/LanternMiteBuffers.js": "37153989725483e5b51246c2ec72976e5ecec03befb9aa1feda841a6239c1828",
+    "js/audio/LanternMiteSamples.js": "7f33870dd4e83e929f92ab5873a96423b492f68580415795f8ba4737a54ea59c",
+    "js/audio/LanternMiteVoice.js": "e96ecd802c32b66f14a64b89dd0fe41db2fe50bb8bbd3ea3d862dbe0d72868fe",
+    "js/audio/LanternMiteVoiceWorker.js": "b130751f0c790db9aab2e978b731b65ea81f87d3a90c51ed877802b424494a6d",
+    "js/audio/PebbleAudio.js": "3668275f02c118d3ef27e3a22fb62b58624a93356495db0f2ceea5f99f3a9f19",
+    "js/audio/PebbleAudioScene.js": "28181fe53b65d708b341c50c2e7fd6c72dc49c838f7fdaab98865abc9b85374d",
+    "js/audio/PebbleAudioSettings.js": "e7b54fe0e858b05fc8a25db2a26621e0f0f48bb31a2ca4009b24c76caf0ca45a",
+    "js/audio/PebbleSoundBank.js": "4c09efcc4fb1143cd982dbcf4a44feda00f31f31b2d9bcc6c4f942959d88158a",
+    "js/audio/ReedWalkerAudio.js": "9ae6aa3ae3cd7e5587d2211a8e4e78c8dc833040a81b383106e1cebc8b99273a",
+    "js/audio/ReedWalkerAudioScene.js": "b4327be2a41932eb03d828f37f41003ff5bf2f74cb41c42136364e8219c1ddae",
+    "js/audio/ReedWalkerVoice.js": "cf3e637b8bc23df55c9fb229a162e8b042a9dd672b65e4c1df309b880af605db",
+    "js/audio/Scale.js": "765eb4929d2b164c96b176e77259fb859078a0ae73127c29bf435d524151c5c9",
+    "js/audio/Scheduler.js": "721b94d396b3f3b9e32901673fbe64262950fdefd65a3577ca5470d926f8eaba",
+    "js/audio/VeilRayBuffers.js": "24c03b39af471184a2bf546d668ca7defe026acc0567b73ef5319f704cafcd44",
+    "js/audio/VeilRayVoice.js": "0dadf7decff899d35d42a721c96befc22f3ad7f498945e5fd50f515c5e48182b",
+    "js/audio/VeilRayVoiceWorker.js": "0b572f7616ae080db03c4475695123f03e46425f7e5e1764d815923d8f631291",
+    "js/audio/WatersideAmbience.js": "6e1758c12e61b5d643e1e1a21f286cbaa42a4634201703f669d4c571e7743751",
+    "js/audio/layers/Arpeggio.js": "97b8e24223bd94f410c81af1edca5dba02ca4dba3c133195cd91d65c27aa547e",
+    "js/audio/layers/Bass.js": "c21742a8b8a1425f22e46c4dc7f8dbc821101dbd25aecd078f8f64894ed3ddd3",
+    "js/audio/layers/Bells.js": "f862e12c11515befa2537086d0d7749bc60a36a4b530cda511fe042039d117b1",
+    "js/audio/layers/Drone.js": "31d531c3d8f0e0c17864c969fb9d447b926c6edf248399d938fb1af18ec4cf9e",
+    "js/audio/layers/Layer.js": "36c7d39d1f1cc5fa3bba504f57f77445435c91e21f62f0e5ee647f2d6457a885",
+    "js/audio/layers/Pulse.js": "d462deac580d3bcea3941138550892ac3d7fdea4268fb081d7ec4385c0610ac4",
+    "js/audio/layers/RainLayer.js": "726262ff5639153a1ae17be9bbca7ab4bcc19efadd677e668a164b96fe89fbb7",
+    "js/audio/layers/Shimmer.js": "1ce4eafd84c7dbc14725e157f0310e325ce84857aced0a4815ef50f2d274ed90",
+    "js/audio/layers/Wind.js": "08ed6fcc07ad82c7a90b2412d4db7b69f303b2730fd79b5730e9727c6617a0b0",
+    "js/bird-sprites.js": "e0e26874e327ffabbeea91022e14a3047db88dc572142f61258241fc348e3f23",
+    "js/bird-study.js": "05c01b224fe9f3a94816fd99232e9a4588ebb5ccdf262638cd8393e7bc0a7da6",
+    "js/core/Config.js": "bdadf7604ca9726a433b89e1657c8b069b048e7cf6356cf4ca4a55dd50a0aa64",
+    "js/core/EventBus.js": "184ab4e2f4d580b7aad58e704585fd317eb78c63acd41eb5940694bbeff1e747",
+    "js/core/FramePacer.js": "d3b50472b4f213e49abed14407aff47c5cd116d9db01a2dd357a2a993f5a6959",
+    "js/core/MobileDetail.js": "bf727e717508204d39c8a4e2b767d177cc65e18e3a6735bc0879aa96eac3edb4",
+    "js/core/NumericDistance.js": "246339dec95e8c350fcdc9562ae03ce3ebcd8612788eb7b0519ceff16ab94c41",
+    "js/core/Random.js": "dfaee3aed42fa175e431d4d2619aa11d192ddf0bb10203049f6432e21cf69bf1",
+    "js/core/Utils.js": "74778b583f11c59ca79317356d2d4e32ae353bd4c6b2069cbb6e05e057307b4d",
+    "js/events/Events.js": "465b6d12adcefa10a9529fe8e115232606edb3e0001959c1051275bc0dfde5e5",
+    "js/fauna-atelier.js": "4e0cf3880e24c2ead5ebe0a1b29582589cd1fc36d762e99d05b0786d085b33b0",
+    "js/fx/BoundedPointLights.js": "2ad09e7078a20ed124caf45941ef35eece8008c51406fed86f467c6a3697d9c0",
+    "js/fx/BufferedPresentation.js": "20da3de54e3a77ad3826dfdf1b4f6f07ce567563b0be449b20952fa271ce34f0",
+    "js/fx/EnvironmentProbe.js": "d175b90fece43d1f99bfcb0f3606555e7324fef8dabee47701d51f7b35540d40",
+    "js/fx/FilmOutputPass.js": "e10ea5d0cb7548f59989a935fa08b71ff7891af8ea41519d8850281a2a8454b7",
+    "js/fx/FoliageDepthPrepass.js": "63250e268dac9a0283fd07d4a57f251ac9378533e697af691979c325acc0b77d",
+    "js/fx/FrameMailbox.js": "37bd9002caef59c3dffca3dac09e5273f6968df23650886c31ff248461ce3321",
+    "js/fx/FramePresenterWorker.js": "7eb22322729d96bee62aabb0295f5cd338379510a23a5c8a8cb3084b41cb72cb",
+    "js/fx/MobilePointLights.js": "97dc8e9972fb4c7107d61d9d3a77d828fbf3a2523909ae3eb57799bf5c04bc20",
+    "js/fx/PostProcessing.js": "6040bb4b8e674f2ef1408ba16c0cd39d30fe851dca90347bec3bf7c72fce6e2a",
+    "js/fx/ReplyOutlinePass.js": "295535bfd336aa01c2f043a383ec4fa4aa943828e58c5674a15988a360a86266",
+    "js/landmarks/Landmarks.js": "e45ee29f1b2d73a970439d2221170101319a7fad18e43b3ffc2cd997bf8a1683",
+    "js/landmarks/Mirrors.js": "21c19b59620dbf6731ed0000ae0aed6f5244405650f788c1a7bad6959964e4ca",
+    "js/landmarks/Octahedrons.js": "0254d2d7a71b0fa6d3ea4c261228834c973c7d359baaeabe03897d01d936f684",
+    "js/landmarks/Sequencer.js": "3b0bc87612af84c98e63991811088690e202c7e06c484046e449cbe7dc51109c",
+    "js/landmarks/TimeMonolith.js": "75945a458a9ecea2da848ed55e9b4780af0ff311b92b66cd8e201e1dad740081",
+    "js/landmarks/Wanderer.js": "ceaafcdb1bd92b10c3129b6fc6beec04ed042b8784a01a9897a3cc49f2529f75",
+    "js/lantern-study.js": "5249207d9ee7e45b765f4f1610b0a932548a071221fe0b30c12759fc14ad1551",
+    "js/main.js": "1e34e39441f76aea102bfa58e64daa8ea4ffda45784db55727c2b6309053799c",
+    "js/pebble-sound.js": "065091d7418ec79f64030cce291bc02506ff6382eac841095afde5b7893acc5d",
+    "js/pebble-study.js": "ce0fdce345614f54428531c3b4011b6ad63a5d864985cc52f047c09ca5307232",
+    "js/player/Player.js": "8682ed637544e822ff4805c1b9d00eb208933ee361969fcd58b5f27412f221d9",
+    "js/player/PlayerNotes.js": "e2b87206a76eaec65f0f551814ce33cabf68634d93f5b97205864f4d9322d638",
+    "js/reed-study.js": "f1590baaa3caaa0468a3742b84e70239411ecfaf676ded5e48751373daff6666",
+    "js/ui/BirdSurvey.js": "9a819ec51ab501286908799d916529b963ae1c1ff514135033e0c04644cdd487",
+    "js/ui/CaveSurvey.js": "7933bc94fa14c9053698adcd2fd0feb6addc33a6017f78864c81d6a245bbefa5",
+    "js/ui/FaunaMenu.js": "408a07778965a9a34cbcf7ffb5935ed004cb7f010a56d782666ad3e9300b488b",
+    "js/ui/FaunaSurvey.js": "ef5e088efa99f8be98fc4f64017fe93fc36da97863e231158ad2f622c14a0114",
+    "js/ui/HUD.js": "a742dff773e65b6bc1d5de2af9b8d2d730150dca135b11749f6f30b5a2bd030b",
+    "js/ui/LanternMiteSurvey.js": "54602d3a3c074333d06c43de91c01a363c55e22f44b3648d67ba3b1bbb16f61e",
+    "js/ui/MovementProfile.js": "111b8d5c0e023c49a262b13d278afadfba3362649015932a0b0fbebfae3d21a2",
+    "js/ui/ReedSurvey.js": "309d48df641382c860ceac4b2c39a2aa5663d59f61c30b72ab7fbb386d40c636",
+    "js/ui/RiverSurvey.js": "0aed19b4d269efa0a6bdd8a6ab8fcd4c9b0d154edd1edd2ab4e9e0c1de956267",
+    "js/ui/WeatherSurvey.js": "5c41dc1cbff0b3ce02640068412495ed985ac41edcce390a1cc4348866688e4f",
+    "js/veil-ray-study.js": "fe7f6920fbe1d4fbb75a71978f8cbc86997fcd347dcf53772b29473e39bc0e50",
+    "js/world/Aurora.js": "092499f1f692f4583b27b7131465f9f00fb71cb65f0a10c8fae2b3f5173876c6",
+    "js/world/Clouds.js": "7119dec332c1fd28519cc952a51075df2c10fb79c05428195b6ce418430f0adb",
+    "js/world/CoastalSpray.js": "63edff4e9a26c60a836293d8e277ce3fa962acf24ab2bfd03783386845335c3e",
+    "js/world/CoastalSprayData.js": "080cf27b482301ae30fbb694011c37e0d3cfe3c5e5c2afad09ad893cebbd6520",
+    "js/world/Fireflies.js": "78965e0dceb8ae483201613b0a38025a400005b5cdac7535da5428b592fe719c",
+    "js/world/Float32Builder.js": "b374bdd408d046e2aa88ff7c6653166f1359f5ee7c79acadbca61c3973510ca0",
+    "js/world/FogGlsl.js": "9fae6e9d3f853dd1bda7f2c10ac3705481adc2a6c21a35fcd1a735eb88e269ed",
+    "js/world/HeightSampleCache.js": "70d861f3d5ce6f8cb1aed8b87e9f54537a1bc2ae3ab4e8ae89d7597703b9755f",
+    "js/world/Heightmap.js": "7297825635bd5bdefe3794c10f84c0a605acaf448093dbf2d9c25fac6fa7bd3b",
+    "js/world/IndexLineTemplate.js": "f6288041a533b2ff70ecafd10167f21c336d26e67752021d8c2b2fd22a54b0f7",
+    "js/world/IndexPlantGeometry.js": "b0d5f52f55077dc1884a1cf319476df5cac2f2048d3d079a24727ff01a1e7ae3",
+    "js/world/InlandWater.js": "dbf4471be1a3c9e32b3a142e761194e853d3ae6e946c8cfd8524a8623ddb0803",
+    "js/world/LakeSurface.js": "4308184c4adbd11ebcdec33e1947513d5952f75a44f701c512f48e9e1435dd55",
+    "js/world/NoiseLookup.js": "4d7adc37aaa15d143a17d7c099ffcfd8a7be2fe82fc67c08fdc1d66877448d66",
+    "js/world/PlantBatches.js": "1a810864a0190c5307ec9500f1ce3e2704a5a3c9b66a157f3ec238cde891ffb5",
+    "js/world/PlantLineData.js": "1783d464d36da295da1c81840e67d31927110de20245593e4170268ccb15220c",
+    "js/world/PlantPlacement.js": "958bacb2313bd59100ca984f001f28dc4e2e71f79a6a3ba601d51d5c25f54f2e",
+    "js/world/PlantReveal.js": "7b8419665ced18c1c043589ccbf9fd0a583be20c91e1302684d17e746458ae0f",
+    "js/world/Rain.js": "43de94e4ff6a122c00e8b08367ed24f4470236463d92b68e08d751c8b853c82c",
+    "js/world/RippleWave.js": "aea9cf7a737e47dda884714082db6337294cdc368c49531af3ab9767c1588c1c",
+    "js/world/Ripples.js": "7b87f220379d850509de3e7cd3e7b509f4ef8c149ef44e0009df0de131017f96",
+    "js/world/RiverDrift.js": "f24ec20ba096d56d032507861c5aa3353974220eabf6d71ac5b496496ba36e63",
+    "js/world/RiverEcology.js": "3d83d0425b45b185dbb044e8bc64a6acd945e5dfa0ee6da862b6ea8e015afdad",
+    "js/world/RiverFlow.js": "f19999c1392b75867af1800d693c812918f88977db2080238807d8aab33566b3",
+    "js/world/RiverGeometry.js": "135b1399ef2d38bf35e9d17bc68887e136536a46e7a8d9ed9ea7cabb6eacee0a",
+    "js/world/SeaShader.js": "ffff20948149c494deef2aad8efe12a6e1cc4f03570a191cc71885d3721d2033",
+    "js/world/SharedPlantGeometry.js": "6748299788c80b937952005876706f30be7fe051fd1e457d12971084bce159dc",
+    "js/world/ShootingStars.js": "25d24d5548aec4aac30790c4acd7fd62d0fb3ffc222c251994eef1c60cd4dd52",
+    "js/world/ShoreMap.js": "6d150eabe50a9eee7f5791a9409d43e5540eb82c91fff2911a506dc133be04cd",
+    "js/world/ShoreMapData.js": "b4a5105642a1de73d927d5760bd1bc194d3862086ee47a270907141be5ccee11",
+    "js/world/ShoreTileData.js": "5fc0891f6fb00c5758c2b908298c546be0927f076c5cad1fe7f3c5df8fb670e0",
+    "js/world/ShoreWaves.js": "48d7dbc5ee0b57defaba0ec5b3804b8ec9976b6301dfb986af1fadca41767a8c",
+    "js/world/Sky.js": "ab126727d16e11c448514e20e7aa9a0d75485f4e455e7f160d6902fb47a99be7",
+    "js/world/Snow.js": "a10496cde25891d90df33144b7db2832d9009645adf50a7b23b32c9440ae12d4",
+    "js/world/SpatialWaterMesh.js": "32b4bf9606eeac090b3abb90c5e466d51863dac7069e23c4f88c66f6f3cc99e0",
+    "js/world/Sprouts.js": "a8708a88ec85d0e735cd1142bf98904b22854447330c5b2d2d0cbe2dc1d1cbdd",
+    "js/world/StaticWaterCopy.js": "071b2bd913dbe9f974ed11915b2920560dd0a9d19c8da3a3ef0cc2b00dc07f13",
+    "js/world/StaticWords.js": "f31411af533db07ea149a17c706c9bd7e3917275c9b1c998e6f0d5ff14e46a87",
+    "js/world/SurfaceWork.js": "4135de5be200f534a104562cdfa462932b3eee3532274ca4dc4b8f1290381aa3",
+    "js/world/SurfaceWorker.js": "8d63a50cdd8992d5085957b9186d76b027c6fbfafaa797e974104ee619a74f1c",
+    "js/world/Terrain.js": "6def5073581000dc920111c0d4b2f9e526a59ba1957d690c4d45ac01ac40a331",
+    "js/world/TerrainMaterial.js": "6aa38b0d8a8b4de4ed69460e71b2c9b0a310e5f5ecbc89a3757cf059d0cd397a",
+    "js/world/TerrainMeshData.js": "4a6273a361337995e645e63d12aa43649ed484f71fbed74a28a10356f1e8b277",
+    "js/world/Vegetation.js": "96f85d07fa6e8feba0d1c4c0cffa2d834aa1365fe7475d9ade545e64fba90d8f",
+    "js/world/VegetationFade.js": "38a77c72531178f649d6bb37fe4047353e80037e926b66153bbe2dd0e671639d",
+    "js/world/Water.js": "09f3c2a26d2a2e9b4893a4c6a138cd98f48d3659f5a97817e21a7e061fa20e9d",
+    "js/world/WaterMeshData.js": "473883e7c37a50adb08767ef33d820878ddb7945d872241f7b420201c0d515ea",
+    "js/world/WaterMeshWorker.js": "657fbef94ad00693ec614bbe5742d87a3b556ac42439da87bc7f3681427611a9",
+    "js/world/WaterOptics.js": "10ce0501d176185e7a7ad152d8a9acd20144dad9c3ad7cd0481a069830a4d0dc",
+    "js/world/WaterShader.js": "a67dcfa10713aea9bb7d9b7425cd492b601bf1973455d8dd48c9fbf838521baa",
+    "js/world/Waterfalls.js": "f6e3e0895b31b6a1666362385e25d3d9c2e4a96ce08b60920ec1c862b9b02617",
+    "js/world/WatersideFeatures.js": "271033da2892bcef2553d9313fb8c27d4fc4aae54f56fc5ee936d7d7a8bf547b",
+    "js/world/WatersideLife.js": "8c975f9422b70be3f82e0d857ea0740f3831934890281d2f4dd752515fe9e48c",
+    "js/world/WatersideMeshes.js": "44a09bed3ddfe3025dc4936e11c3c7f91fd52367488901a249e7a317c29b3f9a",
+    "js/world/caves/BatchCaveChunks.js": "311048dac1fcdb17621b057b0a7d0a1bfebb746f102ad35bd370efaabb33b182",
+    "js/world/caves/CaveCollision.js": "7dc2c2e24e01db6cf21237739eb64c98f73fd91e6104ccb883c65610642f51f0",
+    "js/world/caves/CaveField.js": "d06a63052530314356bae1b51e2b34f88721c849bcf5fe34daf4917d6569f5ce",
+    "js/world/caves/CaveFloorSurface.js": "c6d7ed2cad3e4cc71a04fdd1528a6d2cb5c8cc0990439f31e5eb18999c51cb04",
+    "js/world/caves/CaveGen.js": "cfca91a5e2831e261963b08378425e3e113103abd396f3a247c2079913c6b75e",
+    "js/world/caves/CaveLighting.js": "db1c34d377d4ad01d466773dddcc851439a3d6bdc8e224af27ca2d66b1375f85",
+    "js/world/caves/CaveMeshData.js": "6cf50a011a65021952515f81325096116347f2969f2e5f79189577a2be0396b5",
+    "js/world/caves/CaveRelief.js": "931de3bd25d3a039894a45a941259a6283d89a0f845134f3013e5b3572e83d7a",
+    "js/world/caves/Caves.js": "d967bebef4a017b584cb367b17c17da7ab74c41d6aec193f2ce5113e7dbdfb9b",
+    "js/world/caves/EntranceDressing.js": "1724c94a041e5026b0f9f9a849ac3714109926e1974ef391de25f2e00cf06141",
+    "js/world/caves/EntranceHabitat.js": "6473adb7687a61e9a51ee68a271daf9de6356f7962cc5d03168ce461aaaf902b",
+    "js/world/caves/EntranceTerrain.js": "3988886511f747abdcd5992bc4550f7f5fe34a3e65ceeb8bf7182a147b992f67",
+    "js/world/caves/IndexCaveMesh.js": "1f4dcb72dd88bdc3e4b4137ad36edbbb52199d5362619fe3048e2ef19757c60d",
+    "js/world/fauna/BirdEncounter.js": "75593e16f559ed32a384a6c9e2a0c1102afbb1e9574e65fb975daaa530683855",
+    "js/world/fauna/BirdForage.js": "055e58ddc526b16828aa31726a12dcd4955a8b4ff91d308b193e41b6e209049e",
+    "js/world/fauna/BirdHabitats.js": "7888f7cacba5421be6584268c348a7c110c4fdbda4b123dbf170b8c6172fd08b",
+    "js/world/fauna/BirdJourney.js": "1236e6e00eb9788c8a28f47593bdf528603a405c9e72e5d4758f689d9c1b8ad1",
+    "js/world/fauna/BirdMesh.js": "64440605b0f16f8bce9d1993dd5226af13714621adb3f52f84b5973bc1e1904c",
+    "js/world/fauna/BirdPassages.js": "8fa9cab1ceda9d8cc8e1e072b3f23d584828493e37f2c8bf0b018df101b7ed2a",
+    "js/world/fauna/BirdSpecies.js": "281da09f701857d3462d30111e514c5ade131d45b3aaffd6444bedb9e4ae5fa6",
+    "js/world/fauna/BirdSprites.js": "d6cb3421306539dc8c06d4f6549913b5b074f33541cb0f99cd792f1c30849ad5",
+    "js/world/fauna/Fauna.js": "13f14f8d8ba5582f57c63aebb7cff13e34b3aedd25c4d0cf7c063fccb25c5f0c",
+    "js/world/fauna/FaunaDeformation.js": "f6b96ec2d9a6ccd650a82a3ca8e7a0c7713bb7449bd984786e06887ff4f3e40e",
+    "js/world/fauna/FaunaGeometry.js": "97bcfa4390ccb3a70ae5ca3af4cde65ca3ba11bd4a772d67f8c9769556749172",
+    "js/world/fauna/FaunaMeshes.js": "0735f81cbe861cef58d61f983322150218b1275c60003ad2ed72ad300e10c790",
+    "js/world/fauna/FaunaModel.js": "97f363c3fa66ded784f8fd31e86f9321c11a777f48939ac194e4708538f216b5",
+    "js/world/fauna/FaunaProfile.js": "08273ec2032524939143dcf14539d1c09e5e984283655c27627b7a52490eb12b",
+    "js/world/fauna/FaunaSurfaceCache.js": "0b45609980f8fc2a5a7f3f3dc7fdf2acdd57209247c796166bd987265e61a06b",
+    "js/world/fauna/FaunaViews.js": "6476ec06ec5805376658bb67eb5d7deb298369d6814e6ecb95ed2140596b739c",
+    "js/world/fauna/LanternMiteHabitat.js": "cbe1035dd0fdb050ac982e55c4b5d9f84d618af90c7cf85a1350950f7ed444fa",
+    "js/world/fauna/LanternMiteHome.js": "4d2fe635877500552b188ac01712bc5451f3ede0638ae5db0063045cc559e83b",
+    "js/world/fauna/LanternMiteHomeMaterials.js": "e876429f19dba55246a100e7e63396e768d8fba9f2144ed83af167263b55678b",
+    "js/world/fauna/LanternMiteHomeMeshes.js": "1d03185019e9ede43cca60dada441388344c30e3441353c3971d8844e96b318d",
+    "js/world/fauna/LanternMiteMeshes.js": "8804d3fffab5072c74a095d58220114d529a2af00f6cf0a7721aeb4cd51440b2",
+    "js/world/fauna/LanternMitePaths.js": "280b0960298e3be6f96e7c5371579ffa3098783e9a76cf87fcab84a67c76d544",
+    "js/world/fauna/LanternMiteStudy.js": "0e9fe608da903c3ed61834b75cbeeed361acbe92747144a93eaac23c5a864fcb",
+    "js/world/fauna/LanternMiteWarmup.js": "38de532f94f0cb5ac17ac1043ba1d1293b3fc074f5fd4200c65e254597d4d01e",
+    "js/world/fauna/LanternMiteWorldModel.js": "5a1b70a9d7d83b219b365f54f587f8809d17ebf78d73775168cd92896bf83b70",
+    "js/world/fauna/Locomotion.js": "624eadf8ee1fc11e868ecfb84d339787d1254d933eb6d9d64279831bbdd58a0e",
+    "js/world/fauna/LumenAppearance.js": "036a9b3fbe62766c810caf555d0d64f5025522d5f885d6e923e129522e71137e",
+    "js/world/fauna/LumenCheckpoint.js": "388c0295d1dd1b0039c12541501da429ebfa8117fcbd9c768ecd64acb8c130ed",
+    "js/world/fauna/LumenDetail.js": "537d3f274484779e03c28f1cd0c97672717f81d19a91e91282cdb4c23daf07e4",
+    "js/world/fauna/LumenFlight.js": "0e13060f5300c36cf06f2340483c14645fc5e86cbdcde3e4d1b680dbcf098c6c",
+    "js/world/fauna/LumenFlow.js": "1e5ea05604e75c81a1a95b2dd38151cdcf2e0ecf00f3fb22eac0d3d9fde99811",
+    "js/world/fauna/LumenLight.js": "96f3e6759d1bed039aebd541cf637f7eac67bb931a255ce9cd5c9c5e654de5c1",
+    "js/world/fauna/LumenSchool.js": "45431600a4374a8fd10e324ef900d947ef811a0b07bc36a5ec80171415ef0e43",
+    "js/world/fauna/LumenSimulation.js": "9c3b831cc5585c4073b8cffb052475da658aa7f5b645c98dc08e15f99516bc43",
+    "js/world/fauna/LumenTransfer.js": "27420680db81df5b944779df2cc7b490153210c744dc71d5420977f9b739bfda",
+    "js/world/fauna/LumenWorker.js": "f7d6c71e09929281fa38a91ce675694d2ee2257bc025ed54668570edf548ace5",
+    "js/world/fauna/LumenWorkerRuntime.js": "218ac36e355a6617359c510ba856120bdebda3a783f95bc4141514bc2b0a54f1",
+    "js/world/fauna/LumenWorkerState.js": "edbe31540531702a6a1987eecca913391a7c25038038df5537e32539be3a2084",
+    "js/world/fauna/NoteGlow.js": "48377f9a447eb0bdc07aa9d251ed93686c7757bc7fcab667219e881dde28a9d0",
+    "js/world/fauna/NoteResponse.js": "59b116393d22b45bb1415f8bdbb9a1d3c16216dd654a18a1144464d22c826567",
+    "js/world/fauna/ObstacleSnapshot.js": "12e9b39d2e3ce097057752986531916844a5f008ef8b951ec219cededdb26ebd",
+    "js/world/fauna/PackedTriangleBoundsTree.js": "6ff80641ae1ec8036d867dc1932ee1f6ddcdc4d0db73f34c359f9a268f141655",
+    "js/world/fauna/PebbleColonyTour.js": "1acfa1cbd45fa7a6107b79289d95bbe1370bdb1b8e3f9cd9055016da2cf35b56",
+    "js/world/fauna/PebbleEyeMeshes.js": "fec6d07f8f1f9e1f6a806de315c172eb9551c4584b68549bd8a70675a14794a7",
+    "js/world/fauna/PebbleEyes.js": "fc6acd368e9dc3473dbbc008a44516b40fe99e3d4050539c44506a5ae4b9cd62",
+    "js/world/fauna/PebbleHabitats.js": "d317cbc1c55df4a059f8e88af2ca050b0d48c05b20c3fb8533b9c1c8da3896bc",
+    "js/world/fauna/PebbleHoppers.js": "f587daf7182bf753040c15185dca437dd8d77a81f4ccc68d0bcfac887de1b9ed",
+    "js/world/fauna/PebbleLighting.js": "728b028db22d77fbde23165e1eacc54551f6f12dbf44f27579f6b3c600c9c16a",
+    "js/world/fauna/PebbleMeshes.js": "78e40ebcce2c860c85b516dc38971fd3abe71574793f4c98809eb8857acae2f3",
+    "js/world/fauna/PebbleSoundEvents.js": "b3a286657234d2bc229edcf1e8c091bdf7ee2a4044a5a5589ff7d53dbebb04ab",
+    "js/world/fauna/PrepareFaunaGroup.js": "d9e1affb658711845d3a83132c46375d5c7c2679f717c224cce53043c694c6ba",
+    "js/world/fauna/ReedWalkerDrink.js": "ae18b62dff39d43a60ec1cf3c2e976efd333dacb927d4739859c44b37d730ba9",
+    "js/world/fauna/ReedWalkerEyes.js": "a0bc62198797ca85bacbe76c2151d8736627d163d2abaa21543f680b9956959e",
+    "js/world/fauna/ReedWalkerHabitat.js": "bb79553f1967ed7366c2727b5ed1a3e10f6bc67e7609203b44e034fe8db37766",
+    "js/world/fauna/ReedWalkerLighting.js": "361130ef5f01392e0d031615d8dc272c8f21b7e3456d93bbd5919e9399405ce8",
+    "js/world/fauna/ReedWalkerMotion.js": "d378eea325ed9f043516212f766c1b1e40752b4652cc62e41b9f1ae36e114b1f",
+    "js/world/fauna/ReedWalkerReservoir.js": "a65152407bcfbeac7e1244086d73c1e554bf10050b9eca2665cd8ce5de4b1754",
+    "js/world/fauna/ReedWalkerRig.js": "da20e6d8021a1e59b5e780a4254ea410bb74e3b04ffc02983fa159e01026c0ab",
+    "js/world/fauna/ReedWalkerSocial.js": "bfe23d29dbab2fc9b09f4e7987aa5d6da0dc0598dc37bd2ca75f29221bcc7ed6",
+    "js/world/fauna/ReedWalkerSocialStudy.js": "dcb4a4340a35d8f07679d516365a27837f49c9fabed4a25e244772adb67e6781",
+    "js/world/fauna/ReedWalkerSpray.js": "9527164512670ad445293ed006cfed93aaba8599f734ad3ce01fd263db185751",
+    "js/world/fauna/ReedWalkerTraits.js": "bc9552e8e955ce219e39125e87132f3014770a834567fc31306d90e4808f3c8d",
+    "js/world/fauna/ReedWalkerTusks.js": "f2606fc7f3d415bc4e673b811a2122381c4d47b7f94183a3072806673f9bef31",
+    "js/world/fauna/ReedWalkerWorldModel.js": "2cf0d421f2cc8452c3e85de7a95d60eb2f7ec7b1ac8eb98199dc53459624c79c",
+    "js/world/fauna/ReplyHighlight.js": "2429ef4d3b9a6847b881d8e7a1310f9c147116fb994568aea0af7193d9ef6de9",
+    "js/world/fauna/ReplyOutline.js": "e412764d8a5287f69540b673c5a45f209aa948f74eb3d8e4c1e476c7384055eb",
+    "js/world/fauna/SpriteBirds.js": "559d049c4c617533dc4ac105165f68e180d2e41349591ecf129fad7a0c8d8760",
+    "js/world/fauna/StaticMeshSurface.js": "8fae5e0e9efa95f62647529e110ba3822eff9f4afdb02eb2fa979a2037ab72df",
+    "js/world/fauna/TriangleBoundsTree.js": "b62326649b2f846d5c4ae4d421e1a0ee75b5827b64dd4876e3e36ab430f7e493",
+    "js/world/fauna/VeilRayHabitat.js": "08d33273ac06f411804e2f33509a84fef5cd033e7bb2ef876b4c2007b1fe2a15",
+    "js/world/fauna/VeilRayStudy.js": "6d8e1d39ae6df94e82e6237447348496fe870eb5ea35109dd905f2243d4e3b48",
+    "js/world/fauna/VeilRayWorld.js": "006d04cac0ae41f02806c021042e9dcae939596fb18cc30d9a5da648de061ec2",
+    "js/world/fauna/WorldBirds.js": "faf9df1f6a018122127b30cef692c91598974de7d443da14438ffb8492baa337",
+    "js/world/fauna/WorldLanternMites.js": "741e98fc9c8f039da1eb07a69998837c29e7d0074deea311868d71128e645061",
+    "js/world/fauna/WorldReedWalkers.js": "928dca71549853841fb59cd0d62557d2c4463499d0c614a0759b29208a22a75a",
+    "js/world/gen/ChannelMorphology.js": "95de2efe8295916dcbb59741ace552d1dc7867a589341e2f4769b99747d0e012",
+    "js/world/gen/Deltas.js": "c27355c8883a29a60c27b17945c8ecc2c98c950315a6fe4f9659973060d11188",
+    "js/world/gen/Habitat.js": "3820e8edf3edd4363d1a747d656aa6abfa2652d413ae2bba58d7abfad48ba01c",
+    "js/world/gen/LakeMorphology.js": "6cd41a7c1c76096904f2a6519a64a712782dc7e2343341a6628223409ce595ec",
+    "js/world/gen/Rivers.js": "7a9e36eaafa2a0f132ee04c730f38b6ec55a097cbfc0e9e01ab76f7a03d6890e",
+    "js/world/gen/WorldGen.js": "8fc3c9d70db1b4089069efe89bc667c8397d36372ac94d07c58db0aa0a5f0a00",
+    "js/world/gen/WorldGenWorker.js": "a34ab1d89ce6a637423679e69245da3cfb8d1c46cd911039faf5c9efadf1bed5",
+    "js/world/weather/Precipitation.js": "594ea04d4d305876d08198d91cb63dade8e630a1c0505474c597632148a0526f",
+    "js/world/weather/RainCurtains.js": "c319fc068163a9b99a39315709b9da377077610e6df6a735e8ed4bd97ac4d9e2",
+    "js/world/weather/Weather.js": "719fd8fb32763d8cb7fc13ba440a7f6a1859066514f9ecece20d6492f1e1770a",
+    "js/world/weather/WeatherGlsl.js": "6180b556e1a6d71b3a6ad49589e2ae1aed703aafb193ee186badfb3d0df555cc",
+    "js/world/weather/WeatherModel.js": "df4f7f6c5c09bd71fcedbc8f80f99bbf8857b57c6873ff6fc78090e2b3c00877"
+  },
+  "results": [
+    {
+      "scene": "cave",
+      "rawReport": "v30-runs.json.gz#cave",
+      "at": "2026-09-13T16:17:12.722Z",
+      "harness": "717c041064666d939ed1d6407fc311535728cafd4ffa31a4f6f76c51d302d977",
+      "options": {
+        "EXPECT_PRESENT_DEPTH": "4",
+        "CPU_PROFILE": null,
+        "SHARED_SIMULATION": null,
+        "BASELINE_NOISE_LOOKUP": null,
+        "CAVE_WET": null,
+        "MEMORY_AFTER": null,
+        "BASELINE_CAVE_FLOOR": null,
+        "GC_AFTER_SECONDS": null,
+        "STAGE_AFTER_SECONDS": null,
+        "PACER_TRACE": null,
+        "PACER_NOW": null,
+        "PACER_LATE": null,
+        "WORKER_PRESENT": "1",
+        "OVERRIDE_JS_DIR": null,
+        "STAGE_TRACE": null,
+        "LONG_FRAMES": null,
+        "BASELINE_FAUNA_MESH": null,
+        "NO_AUDIO_RENDER": null,
+        "SCREEN_RECORD": null,
+        "NATIVE_SCHED": null,
+        "NATIVE_SCHED_ONLY": null,
+        "CHROME_TRACE": null,
+        "SILENT_SHIMMER": null,
+        "DISPLAY_HZ": null,
+        "GPU_TRACE": null,
+        "NO_BACKDROP": null,
+        "PERFETTO": null,
+        "MITE_SLOW": null,
+        "FRAME_HEIGHT": null,
+        "AUDIO_LATENCY": null,
+        "TIMED_RAF": null,
+        "GL_FLUSH": null,
+        "AUDIO_BLOCK_SPATIAL": null,
+        "AUDIO_RATE": null,
+        "MINIMAL": "1",
+        "AUDIO_TRACE": null,
+        "SCENARIO": "cave",
+        "RUN_SECONDS": "480",
+        "PROFILE_DEFAULTS": "1",
+        "LUMEN_WORKER": null,
+        "TEST_RATIO": null,
+        "PLANT_RADIUS": null,
+        "RAF_CLOCK": null,
+        "AUX_FRAMES": null,
+        "AUX_TIMER": null,
+        "PLANT_BATCHES": null,
+        "BUFFER_FRAMES": null,
+        "HEIGHT_CACHE": null,
+        "SURFACE_FRAMES": null,
+        "GL_SLOW": null,
+        "GC_TRACE": null,
+        "HEAP_PROFILE": null,
+        "START_SKIN": "37.5"
+      },
+      "loadedSourcesVerified": 220,
+      "met": true,
+      "runs": [
+        {
+          "scenario": "cave",
+          "walking": true,
+          "valid": true,
+          "depth": 4,
+          "frames": 14401,
+          "fps": 29.999975006124338,
+          "p99": 35.199951171875,
+          "max": 46.60009765625,
+          "over50": 0,
+          "audioUnderruns": 0,
+          "totalAudioUnderruns": 0,
+          "simulationSeconds": 480.53333333351486,
+          "elapsedSeconds": 480.52719999998806,
+          "sequenceGaps": 0,
+          "dropped": 0,
+          "starvations": 6,
+          "meanFrameAgeAfterProduction": 115.63818081770827,
+          "skin": [
+            36.9,
+            41.9
+          ],
+          "thermalStatus": 1,
+          "met": true
+        }
+      ],
+      "errors": [],
+      "workload": [
+        {
+          "walking": true,
+          "caveWalk": {
+            "frames": 14464,
+            "insideFrames": 14464,
+            "waypoints": 664,
+            "index": 21,
+            "direction": 1
+          },
+          "population": 640,
+          "simulation": {
+            "active": true,
+            "stats": {
+              "received": 14977,
+              "workerMs": 2.600000023841858,
+              "applyMs": 0.4000000059604645,
+              "maxLagSteps": 3,
+              "sharedWorker": true,
+              "maxWorkerMs": 24.80000001192093,
+              "simulationMs": 2.2000000178813934,
+              "steps": 1,
+              "lagSteps": 0,
+              "checkpointBytes": 1048576,
+              "maxCheckpointEncodeMs": 55.20000001788139
+            }
+          },
+          "reflections": {
+            "captures": 4110,
+            "reused": 8861
+          },
+          "terrainStreaming": {
+            "steps": 49201,
+            "ms": 7678.2999984622,
+            "max": 23.200000017881393,
+            "byStage": {
+              "giants": {
+                "steps": 323,
+                "ms": 125.89999970793724,
+                "max": 2.699999988079071
+              },
+              "smallTrees": {
+                "steps": 1292,
+                "ms": 350.19999995827675,
+                "max": 16.19999998807907
+              },
+              "shrubs": {
+                "steps": 5149,
+                "ms": 995.7000001072884,
+                "max": 2.800000011920929
+              },
+              "fallen": {
+                "steps": 321,
+                "ms": 28.300000309944153,
+                "max": 0.9000000059604645
+              },
+              "blades": {
+                "steps": 6708,
+                "ms": 1564.1999989748,
+                "max": 23.200000017881393
+              },
+              "sprouts": {
+                "steps": 320,
+                "ms": 16.500000059604645,
+                "max": 0.5
+              },
+              "crystals": {
+                "steps": 640,
+                "ms": 41.69999980926514,
+                "max": 0.699999988079071
+              },
+              "rocks": {
+                "steps": 1188,
+                "ms": 499.0000001192093,
+                "max": 6
+              },
+              "tufts": {
+                "steps": 10041,
+                "ms": 2559.499999463558,
+                "max": 8
+              },
+              "reeds": {
+                "steps": 2219,
+                "ms": 381.2999996840954,
+                "max": 2.300000011920929
+              },
+              "lineBuffers": {
+                "steps": 317,
+                "ms": 293.8000000715256,
+                "max": 3.5
+              },
+              "riverEcology": {
+                "steps": 13290,
+                "ms": 446.40000009536743,
+                "max": 1.5
+              },
+              "waterside": {
+                "steps": 6872,
+                "ms": 217.30000001192093,
+                "max": 4.5999999940395355
+              },
+              "publish": {
+                "steps": 315,
+                "ms": 25.300000101327896,
+                "max": 0.5
+              },
+              "far": {
+                "steps": 206,
+                "ms": 133.19999998807907,
+                "max": 4.4000000059604645
+              }
+            },
+            "longestStage": "blades"
+          },
+          "plantBatches": {
+            "sources": 388,
+            "visibleSources": 20,
+            "draws": 9,
+            "instances": 1517,
+            "uploads": 30147
+          },
+          "position": [
+            -166.36643367613124,
+            294.87534747019134,
+            6966.258630933383
+          ]
+        }
+      ]
+    },
+    {
+      "scene": "forest",
+      "rawReport": "v30-runs.json.gz#forest",
+      "at": "2026-09-13T16:27:03.081Z",
+      "harness": "717c041064666d939ed1d6407fc311535728cafd4ffa31a4f6f76c51d302d977",
+      "options": {
+        "EXPECT_PRESENT_DEPTH": "4",
+        "CPU_PROFILE": null,
+        "SHARED_SIMULATION": null,
+        "BASELINE_NOISE_LOOKUP": null,
+        "CAVE_WET": null,
+        "MEMORY_AFTER": null,
+        "BASELINE_CAVE_FLOOR": null,
+        "GC_AFTER_SECONDS": null,
+        "STAGE_AFTER_SECONDS": null,
+        "PACER_TRACE": null,
+        "PACER_NOW": null,
+        "PACER_LATE": null,
+        "WORKER_PRESENT": "1",
+        "OVERRIDE_JS_DIR": null,
+        "STAGE_TRACE": null,
+        "LONG_FRAMES": null,
+        "BASELINE_FAUNA_MESH": null,
+        "NO_AUDIO_RENDER": null,
+        "SCREEN_RECORD": null,
+        "NATIVE_SCHED": null,
+        "NATIVE_SCHED_ONLY": null,
+        "CHROME_TRACE": null,
+        "SILENT_SHIMMER": null,
+        "DISPLAY_HZ": null,
+        "GPU_TRACE": null,
+        "NO_BACKDROP": null,
+        "PERFETTO": null,
+        "MITE_SLOW": null,
+        "FRAME_HEIGHT": null,
+        "AUDIO_LATENCY": null,
+        "TIMED_RAF": null,
+        "GL_FLUSH": null,
+        "AUDIO_BLOCK_SPATIAL": null,
+        "AUDIO_RATE": null,
+        "MINIMAL": "1",
+        "AUDIO_TRACE": null,
+        "SCENARIO": "forest",
+        "RUN_SECONDS": "480",
+        "PROFILE_DEFAULTS": "1",
+        "LUMEN_WORKER": null,
+        "TEST_RATIO": null,
+        "PLANT_RADIUS": null,
+        "RAF_CLOCK": null,
+        "AUX_FRAMES": null,
+        "AUX_TIMER": null,
+        "PLANT_BATCHES": null,
+        "BUFFER_FRAMES": null,
+        "HEIGHT_CACHE": null,
+        "SURFACE_FRAMES": null,
+        "GL_SLOW": null,
+        "GC_TRACE": null,
+        "HEAP_PROFILE": null,
+        "START_SKIN": "37.5"
+      },
+      "loadedSourcesVerified": 220,
+      "met": true,
+      "runs": [
+        {
+          "scenario": "forest",
+          "walking": true,
+          "valid": true,
+          "depth": 4,
+          "frames": 14401,
+          "fps": 30.000031250032553,
+          "p99": 35.199951171875,
+          "max": 43.900146484375,
+          "over50": 0,
+          "audioUnderruns": 0,
+          "totalAudioUnderruns": 0,
+          "simulationSeconds": 480.43333333351086,
+          "elapsedSeconds": 480.46709999999405,
+          "sequenceGaps": 0,
+          "dropped": 0,
+          "starvations": 0,
+          "meanFrameAgeAfterProduction": 115.78308726371166,
+          "skin": [
+            38.4,
+            42.8
+          ],
+          "thermalStatus": 2,
+          "met": true
+        }
+      ],
+      "errors": [],
+      "workload": [
+        {
+          "walking": true,
+          "population": 640,
+          "simulation": {
+            "active": true,
+            "stats": {
+              "received": 14820,
+              "workerMs": 7.5,
+              "applyMs": 0.4000000059604645,
+              "maxLagSteps": 4,
+              "sharedWorker": true,
+              "maxWorkerMs": 22.599999994039536,
+              "simulationMs": 7.199999988079071,
+              "steps": 1,
+              "lagSteps": 0,
+              "checkpointBytes": 1048576,
+              "maxCheckpointEncodeMs": 122.7000000178814
+            }
+          },
+          "reflections": {
+            "captures": 4155,
+            "reused": 8920
+          },
+          "terrainStreaming": {
+            "steps": 81404,
+            "ms": 11331.399999171495,
+            "max": 18.5,
+            "byStage": {
+              "giants": {
+                "steps": 464,
+                "ms": 227.4000006020069,
+                "max": 5.4000000059604645
+              },
+              "smallTrees": {
+                "steps": 1856,
+                "ms": 607.4999992549419,
+                "max": 6.700000017881393
+              },
+              "shrubs": {
+                "steps": 7424,
+                "ms": 1308.8999996483326,
+                "max": 17.80000001192093
+              },
+              "fallen": {
+                "steps": 464,
+                "ms": 33.400000154972076,
+                "max": 0.5
+              },
+              "blades": {
+                "steps": 8558,
+                "ms": 2143.4999997913837,
+                "max": 5.5
+              },
+              "sprouts": {
+                "steps": 464,
+                "ms": 24.69999998807907,
+                "max": 0.4000000059604645
+              },
+              "crystals": {
+                "steps": 928,
+                "ms": 49.30000025033951,
+                "max": 1.199999988079071
+              },
+              "rocks": {
+                "steps": 1856,
+                "ms": 593.0999996960163,
+                "max": 4.5
+              },
+              "tufts": {
+                "steps": 14057,
+                "ms": 3788.9999992251396,
+                "max": 18.5
+              },
+              "reeds": {
+                "steps": 3241,
+                "ms": 564.8000005483627,
+                "max": 2.2000000178813934
+              },
+              "lineBuffers": {
+                "steps": 463,
+                "ms": 459.9999996125698,
+                "max": 5.199999988079071
+              },
+              "riverEcology": {
+                "steps": 25261,
+                "ms": 659.300000756979,
+                "max": 2.699999988079071
+              },
+              "waterside": {
+                "steps": 15263,
+                "ms": 522.0999998748302,
+                "max": 4.700000017881393
+              },
+              "publish": {
+                "steps": 462,
+                "ms": 39.499999821186066,
+                "max": 0.4000000059604645
+              },
+              "far": {
+                "steps": 643,
+                "ms": 308.8999999463558,
+                "max": 4.9000000059604645
+              }
+            },
+            "longestStage": "tufts"
+          },
+          "plantBatches": {
+            "sources": 402,
+            "visibleSources": 59,
+            "draws": 21,
+            "instances": 3825,
+            "uploads": 58276
+          },
+          "position": [
+            -1342.0998142849578,
+            132.6919026146024,
+            860.2410779162572
+          ]
+        }
+      ]
+    },
+    {
+      "scene": "lumen",
+      "rawReport": "v30-runs.json.gz#lumen",
+      "at": "2026-09-13T16:38:58.011Z",
+      "harness": "065953ebe7cd6e62def8ca9aeda9a44d03b3760362d5d07504de088d6674b17b",
+      "options": {
+        "NOTE_EVERY_SECONDS": "8",
+        "EXPECT_PRESENT_DEPTH": "4",
+        "CPU_PROFILE": null,
+        "SHARED_SIMULATION": null,
+        "BASELINE_NOISE_LOOKUP": null,
+        "CAVE_WET": null,
+        "MEMORY_AFTER": null,
+        "BASELINE_CAVE_FLOOR": null,
+        "GC_AFTER_SECONDS": null,
+        "STAGE_AFTER_SECONDS": null,
+        "PACER_TRACE": null,
+        "PACER_NOW": null,
+        "PACER_LATE": null,
+        "WORKER_PRESENT": "1",
+        "OVERRIDE_JS_DIR": null,
+        "STAGE_TRACE": null,
+        "LONG_FRAMES": null,
+        "BASELINE_FAUNA_MESH": null,
+        "NO_AUDIO_RENDER": null,
+        "SCREEN_RECORD": null,
+        "NATIVE_SCHED": null,
+        "NATIVE_SCHED_ONLY": null,
+        "CHROME_TRACE": null,
+        "SILENT_SHIMMER": null,
+        "DISPLAY_HZ": null,
+        "GPU_TRACE": null,
+        "NO_BACKDROP": null,
+        "PERFETTO": null,
+        "MITE_SLOW": null,
+        "FRAME_HEIGHT": null,
+        "AUDIO_LATENCY": null,
+        "TIMED_RAF": null,
+        "GL_FLUSH": null,
+        "AUDIO_BLOCK_SPATIAL": null,
+        "AUDIO_RATE": null,
+        "MINIMAL": "1",
+        "AUDIO_TRACE": null,
+        "SCENARIO": "lumen",
+        "RUN_SECONDS": "480",
+        "PROFILE_DEFAULTS": "1",
+        "LUMEN_WORKER": null,
+        "TEST_RATIO": null,
+        "PLANT_RADIUS": null,
+        "RAF_CLOCK": null,
+        "AUX_FRAMES": null,
+        "AUX_TIMER": null,
+        "PLANT_BATCHES": null,
+        "BUFFER_FRAMES": null,
+        "HEIGHT_CACHE": null,
+        "SURFACE_FRAMES": null,
+        "GL_SLOW": null,
+        "GC_TRACE": null,
+        "HEAP_PROFILE": null,
+        "START_SKIN": "37.5"
+      },
+      "loadedSourcesVerified": 220,
+      "met": true,
+      "runs": [
+        {
+          "scenario": "lumen",
+          "walking": false,
+          "valid": true,
+          "depth": 4,
+          "frames": 14403,
+          "fps": 29.999979169574246,
+          "p99": 35,
+          "max": 44.2998046875,
+          "over50": 0,
+          "audioUnderruns": 0,
+          "totalAudioUnderruns": 0,
+          "simulationSeconds": 480.6000000001817,
+          "elapsedSeconds": 480.64659999999407,
+          "sequenceGaps": 0,
+          "dropped": 0,
+          "starvations": 0,
+          "meanFrameAgeAfterProduction": 116.30230666950966,
+          "skin": [
+            38.1,
+            43
+          ],
+          "thermalStatus": 2,
+          "lumenWatch": {
+            "frames": 14467,
+            "coarseFrames": 0,
+            "missingFrames": 0
+          },
+          "scriptedNotes": {
+            "attempts": 60,
+            "sent": 60,
+            "intervalSeconds": 8,
+            "charges": [
+              0.2,
+              0.6,
+              1
+            ]
+          },
+          "met": true
+        }
+      ],
+      "errors": [],
+      "workload": [
+        {
+          "walking": false,
+          "population": 640,
+          "simulation": {
+            "active": true,
+            "stats": {
+              "received": 14940,
+              "workerMs": 29,
+              "applyMs": 0.699999988079071,
+              "maxLagSteps": 6,
+              "sharedWorker": true,
+              "maxWorkerMs": 93.60000002384186,
+              "simulationMs": 22,
+              "steps": 1,
+              "lagSteps": 1.0000000000007958,
+              "checkpointBytes": 1048576,
+              "maxCheckpointEncodeMs": 63.30000001192093,
+              "slowFrames": [
+                {
+                  "at": 320883,
+                  "workMs": 25.100000023841858,
+                  "simulationMs": 23.600000023841858,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 321082.6999999881,
+                  "workMs": 25.099999994039536,
+                  "simulationMs": 23.899999976158142,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 321115.5,
+                  "workMs": 26.099999994039536,
+                  "simulationMs": 24.399999976158142,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 321885.09999999404,
+                  "workMs": 28,
+                  "simulationMs": 26.700000017881393,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 321945.5,
+                  "workMs": 28.599999994039536,
+                  "simulationMs": 27.299999982118607,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 321987.1999999881,
+                  "workMs": 39.599999994039536,
+                  "simulationMs": 36.599999994039536,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 322283,
+                  "workMs": 26,
+                  "simulationMs": 24.400000005960464,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 322685.5,
+                  "workMs": 27,
+                  "simulationMs": 25.799999982118607,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 323115.09999999404,
+                  "workMs": 25.69999998807907,
+                  "simulationMs": 24.099999994039536,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 323318.59999999404,
+                  "workMs": 26.30000001192093,
+                  "simulationMs": 25,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 323518.6999999881,
+                  "workMs": 26.900000005960464,
+                  "simulationMs": 25.600000023841858,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 324353.2999999821,
+                  "workMs": 28.69999998807907,
+                  "simulationMs": 27.5,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 324399.6999999881,
+                  "workMs": 37.80000001192093,
+                  "simulationMs": 36.5,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 324487.09999999404,
+                  "workMs": 29.69999998807907,
+                  "simulationMs": 28.400000005960464,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 324684.2999999821,
+                  "workMs": 27.599999994039536,
+                  "simulationMs": 26,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 325083.09999999404,
+                  "workMs": 25.599999994039536,
+                  "simulationMs": 24.19999998807907,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 325115,
+                  "workMs": 25.400000005960464,
+                  "simulationMs": 24.099999994039536,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 325316.09999999404,
+                  "workMs": 26.69999998807907,
+                  "simulationMs": 25.399999976158142,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 325482.1999999881,
+                  "workMs": 25.299999982118607,
+                  "simulationMs": 23.799999982118607,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 325516.1999999881,
+                  "workMs": 27.099999994039536,
+                  "simulationMs": 25.799999982118607,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 326918.2999999821,
+                  "workMs": 26.099999994039536,
+                  "simulationMs": 24.5,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 328204.59999999404,
+                  "workMs": 46.099999994039536,
+                  "simulationMs": 39.20000001788139,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 329139.5,
+                  "workMs": 27.599999994039536,
+                  "simulationMs": 26.099999994039536,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 330138.09999999404,
+                  "workMs": 25.899999976158142,
+                  "simulationMs": 24.5,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 330967.89999997616,
+                  "workMs": 29,
+                  "simulationMs": 27.599999994039536,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 331045.09999999404,
+                  "workMs": 32.599999994039536,
+                  "simulationMs": 31.200000017881393,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 332699,
+                  "workMs": 25.30000001192093,
+                  "simulationMs": 24,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 333169,
+                  "workMs": 27.30000001192093,
+                  "simulationMs": 25.599999994039536,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 333203.1999999881,
+                  "workMs": 29,
+                  "simulationMs": 27.30000001192093,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 333735.6999999881,
+                  "workMs": 25.5,
+                  "simulationMs": 24.19999998807907,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 335485.89999997616,
+                  "workMs": 26.200000017881393,
+                  "simulationMs": 25,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 335516.59999999404,
+                  "workMs": 26.5,
+                  "simulationMs": 25,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 335750.59999999404,
+                  "workMs": 37.099999994039536,
+                  "simulationMs": 31.19999998807907,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 336117.59999999404,
+                  "workMs": 25.69999998807907,
+                  "simulationMs": 24.400000005960464,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 336916.6999999881,
+                  "workMs": 25.5,
+                  "simulationMs": 24.19999998807907,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 337309.1999999881,
+                  "workMs": 25.900000005960464,
+                  "simulationMs": 24.400000005960464,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 337742.39999997616,
+                  "workMs": 38.80000001192093,
+                  "simulationMs": 32.5,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 338445,
+                  "workMs": 25.400000005960464,
+                  "simulationMs": 21.19999998807907,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 342841.2999999821,
+                  "workMs": 29.200000017881393,
+                  "simulationMs": 21.900000005960464,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 343915.39999997616,
+                  "workMs": 26.5,
+                  "simulationMs": 24.80000001192093,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 347518.2999999821,
+                  "workMs": 27.400000005960464,
+                  "simulationMs": 24.19999998807907,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 355536.6999999881,
+                  "workMs": 27.299999982118607,
+                  "simulationMs": 20.5,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 355640.09999999404,
+                  "workMs": 25.5,
+                  "simulationMs": 23.899999976158142,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 361117.89999997616,
+                  "workMs": 27,
+                  "simulationMs": 25.5,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 367849.09999999404,
+                  "workMs": 28.400000005960464,
+                  "simulationMs": 22.80000001192093,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 367884,
+                  "workMs": 26,
+                  "simulationMs": 19.599999994039536,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 370572,
+                  "workMs": 38,
+                  "simulationMs": 28.700000017881393,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 381566.6999999881,
+                  "workMs": 29.799999982118607,
+                  "simulationMs": 24,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 382349.59999999404,
+                  "workMs": 26.299999982118607,
+                  "simulationMs": 19.19999998807907,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 385160.89999997616,
+                  "workMs": 26.099999994039536,
+                  "simulationMs": 23.900000005960464,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 385424,
+                  "workMs": 28.599999994039536,
+                  "simulationMs": 20.400000005960464,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 385838.09999999404,
+                  "workMs": 29,
+                  "simulationMs": 24.69999998807907,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 386110.7999999821,
+                  "workMs": 26.900000005960464,
+                  "simulationMs": 20.400000005960464,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 386410.5,
+                  "workMs": 26.700000017881393,
+                  "simulationMs": 19.900000005960464,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 387244.89999997616,
+                  "workMs": 26.700000017881393,
+                  "simulationMs": 23.30000001192093,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 387483.2999999821,
+                  "workMs": 27.599999994039536,
+                  "simulationMs": 21.5,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 388378.6999999881,
+                  "workMs": 27.900000005960464,
+                  "simulationMs": 21.30000001192093,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 389341.09999999404,
+                  "workMs": 25.5,
+                  "simulationMs": 20,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 391442.89999997616,
+                  "workMs": 29.5,
+                  "simulationMs": 22.099999994039536,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 395568,
+                  "workMs": 29.700000017881393,
+                  "simulationMs": 23.80000001192093,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 395675.39999997616,
+                  "workMs": 34.19999998807907,
+                  "simulationMs": 27,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 395707.09999999404,
+                  "workMs": 29.900000005960464,
+                  "simulationMs": 23.599999994039536,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 395771.39999997616,
+                  "workMs": 25.30000001192093,
+                  "simulationMs": 19.200000017881393,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 395905.89999997616,
+                  "workMs": 31.19999998807907,
+                  "simulationMs": 25.599999994039536,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 397516.09999999404,
+                  "workMs": 26.69999998807907,
+                  "simulationMs": 24.899999976158142,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 398715.89999997616,
+                  "workMs": 25.599999994039536,
+                  "simulationMs": 24,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 402105.09999999404,
+                  "workMs": 26.099999994039536,
+                  "simulationMs": 18.899999976158142,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 403152.89999997616,
+                  "workMs": 28.299999982118607,
+                  "simulationMs": 21.899999976158142,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 414951.2999999821,
+                  "workMs": 25.5,
+                  "simulationMs": 21.30000001192093,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 415119.2999999821,
+                  "workMs": 25.399999976158142,
+                  "simulationMs": 23.799999982118607,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 415919,
+                  "workMs": 29.30000001192093,
+                  "simulationMs": 25.30000001192093,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 416551.7999999821,
+                  "workMs": 27.900000005960464,
+                  "simulationMs": 26.5,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 418308.7999999821,
+                  "workMs": 31.700000017881393,
+                  "simulationMs": 25.200000017881393,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 422802.2999999821,
+                  "workMs": 31.400000005960464,
+                  "simulationMs": 24.5,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 422872.7999999821,
+                  "workMs": 28.5,
+                  "simulationMs": 22,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 424718.39999997616,
+                  "workMs": 26.299999982118607,
+                  "simulationMs": 23.399999976158142,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 430152,
+                  "workMs": 25.200000017881393,
+                  "simulationMs": 22.900000005960464,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 431381.39999997616,
+                  "workMs": 25.600000023841858,
+                  "simulationMs": 22.400000005960464,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 432540.1999999881,
+                  "workMs": 29.399999976158142,
+                  "simulationMs": 23.399999976158142,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 433116.6999999881,
+                  "workMs": 26.299999982118607,
+                  "simulationMs": 24.899999976158142,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 433519.39999997616,
+                  "workMs": 27.5,
+                  "simulationMs": 25.899999976158142,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 438198.1999999881,
+                  "workMs": 37.599999994039536,
+                  "simulationMs": 34.30000001192093,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 441119.09999999404,
+                  "workMs": 26.099999994039536,
+                  "simulationMs": 24.599999994039536,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 442136.5,
+                  "workMs": 29.69999998807907,
+                  "simulationMs": 24,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 442168,
+                  "workMs": 30.19999998807907,
+                  "simulationMs": 25.69999998807907,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 442551.2999999821,
+                  "workMs": 25.900000005960464,
+                  "simulationMs": 24.5,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 442917.09999999404,
+                  "workMs": 25.30000001192093,
+                  "simulationMs": 23.900000005960464,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 457144.89999997616,
+                  "workMs": 37.80000001192093,
+                  "simulationMs": 30,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 457212.1999999881,
+                  "workMs": 26.099999994039536,
+                  "simulationMs": 24.30000001192093,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 457251.6999999881,
+                  "workMs": 38.19999998807907,
+                  "simulationMs": 36.29999998211861,
+                  "cloneMs": 0,
+                  "steps": 2
+                },
+                {
+                  "at": 458122,
+                  "workMs": 26,
+                  "simulationMs": 24.30000001192093,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 465117.2999999821,
+                  "workMs": 25.5,
+                  "simulationMs": 21.799999982118607,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 474849.59999999404,
+                  "workMs": 32.70000001788139,
+                  "simulationMs": 31,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 477042.2999999821,
+                  "workMs": 30.399999976158142,
+                  "simulationMs": 23.69999998807907,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 477169.2999999821,
+                  "workMs": 30.099999994039536,
+                  "simulationMs": 23.599999994039536,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 481119,
+                  "workMs": 27.80000001192093,
+                  "simulationMs": 26.100000023841858,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 485775.39999997616,
+                  "workMs": 28.400000005960464,
+                  "simulationMs": 26.69999998807907,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 487287.09999999404,
+                  "workMs": 27.099999994039536,
+                  "simulationMs": 20.5,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 487374.2999999821,
+                  "workMs": 33.5,
+                  "simulationMs": 27.19999998807907,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 487411.5,
+                  "workMs": 36,
+                  "simulationMs": 34.5,
+                  "cloneMs": 0,
+                  "steps": 2
+                },
+                {
+                  "at": 488316.1999999881,
+                  "workMs": 26.099999994039536,
+                  "simulationMs": 23.900000005960464,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 489949.6999999881,
+                  "workMs": 25.799999982118607,
+                  "simulationMs": 19.599999994039536,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 498982.7999999821,
+                  "workMs": 28.80000001192093,
+                  "simulationMs": 27,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 503410.6999999881,
+                  "workMs": 32.79999998211861,
+                  "simulationMs": 25.599999994039536,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 504938.59999999404,
+                  "workMs": 25.600000023841858,
+                  "simulationMs": 23.5,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 508647,
+                  "workMs": 35.19999998807907,
+                  "simulationMs": 28.400000005960464,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 525536.2999999821,
+                  "workMs": 29.299999982118607,
+                  "simulationMs": 23.599999994039536,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 525609.8999999762,
+                  "workMs": 27.19999998807907,
+                  "simulationMs": 22.400000005960464,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 525643.2999999821,
+                  "workMs": 29,
+                  "simulationMs": 21.400000005960464,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 525675.3999999762,
+                  "workMs": 28.5,
+                  "simulationMs": 20.299999982118607,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 525721.5,
+                  "workMs": 26.399999976158142,
+                  "simulationMs": 24.899999976158142,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 525752.599999994,
+                  "workMs": 27.900000005960464,
+                  "simulationMs": 20.400000005960464,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 525783.599999994,
+                  "workMs": 28.19999998807907,
+                  "simulationMs": 21.299999982118607,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 525816.1999999881,
+                  "workMs": 29.900000005960464,
+                  "simulationMs": 23.900000005960464,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 526717.099999994,
+                  "workMs": 26.299999982118607,
+                  "simulationMs": 21.5,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 529318.7999999821,
+                  "workMs": 26.5,
+                  "simulationMs": 20.200000017881393,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 529541.6999999881,
+                  "workMs": 26.899999976158142,
+                  "simulationMs": 24,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 530329,
+                  "workMs": 26,
+                  "simulationMs": 20.200000017881393,
+                  "cloneMs": 0,
+                  "steps": 1
+                },
+                {
+                  "at": 530499.3999999762,
+                  "workMs": 35.60000002384186,
+                  "simulationMs": 34.10000002384186,
+                  "cloneMs": 0,
+                  "steps": 2
+                },
+                {
+                  "at": 530640.099999994,
+                  "workMs": 29,
+                  "simulationMs": 22,
+                  "cloneMs": 0,
+                  "steps": 1
+                }
+              ]
+            }
+          },
+          "reflections": {
+            "captures": 4383,
+            "reused": 8702
+          },
+          "terrainStreaming": {
+            "steps": 63181,
+            "ms": 8945.799999952316,
+            "max": 18.399999976158142,
+            "byStage": {
+              "giants": {
+                "steps": 476,
+                "ms": 102.09999990463257,
+                "max": 8.300000011920929
+              },
+              "smallTrees": {
+                "steps": 1904,
+                "ms": 353.8999996185303,
+                "max": 5.0999999940395355
+              },
+              "shrubs": {
+                "steps": 7613,
+                "ms": 1289.2000003755093,
+                "max": 10.100000023841858
+              },
+              "fallen": {
+                "steps": 475,
+                "ms": 39.40000009536743,
+                "max": 2.2999999821186066
+              },
+              "blades": {
+                "steps": 11700,
+                "ms": 1908.8999992907047,
+                "max": 4.5999999940395355
+              },
+              "sprouts": {
+                "steps": 474,
+                "ms": 12.5,
+                "max": 1.2000000178813934
+              },
+              "crystals": {
+                "steps": 948,
+                "ms": 91.70000022649765,
+                "max": 0.800000011920929
+              },
+              "rocks": {
+                "steps": 1766,
+                "ms": 693.0000000596046,
+                "max": 9
+              },
+              "tufts": {
+                "steps": 14232,
+                "ms": 2564.1000007390976,
+                "max": 18.399999976158142
+              },
+              "reeds": {
+                "steps": 3246,
+                "ms": 766.899999409914,
+                "max": 9
+              },
+              "lineBuffers": {
+                "steps": 473,
+                "ms": 229.70000004768372,
+                "max": 4.300000011920929
+              },
+              "riverEcology": {
+                "steps": 13358,
+                "ms": 370.40000000596046,
+                "max": 2.899999976158142
+              },
+              "waterside": {
+                "steps": 5338,
+                "ms": 97.50000014901161,
+                "max": 1.9000000059604645
+              },
+              "publish": {
+                "steps": 473,
+                "ms": 31.00000011920929,
+                "max": 1.300000011920929
+              },
+              "far": {
+                "steps": 705,
+                "ms": 395.49999991059303,
+                "max": 8.5
+              }
+            },
+            "longestStage": "tufts"
+          },
+          "plantBatches": {
+            "sources": 138,
+            "visibleSources": 22,
+            "draws": 5,
+            "instances": 215,
+            "uploads": 20140
+          },
+          "position": [
+            2870.817085622747,
+            1308.6736788812584,
+            5138.673321703572
+          ]
+        }
+      ]
+    },
+    {
+      "scene": "travel",
+      "rawReport": "v30-runs.json.gz#travel",
+      "at": "2026-09-13T17:02:10.331Z",
+      "harness": "308f0eecd2b3dc32b2e63a72f0286b4a8b428265ac4d9e0123a0d491344c4e11",
+      "options": {
+        "TRAVEL_TURN_SECONDS": "90",
+        "NOTE_EVERY_SECONDS": null,
+        "EXPECT_PRESENT_DEPTH": "4",
+        "CPU_PROFILE": null,
+        "SHARED_SIMULATION": null,
+        "BASELINE_NOISE_LOOKUP": null,
+        "CAVE_WET": null,
+        "MEMORY_AFTER": null,
+        "BASELINE_CAVE_FLOOR": null,
+        "GC_AFTER_SECONDS": null,
+        "STAGE_AFTER_SECONDS": null,
+        "PACER_TRACE": null,
+        "PACER_NOW": null,
+        "PACER_LATE": null,
+        "WORKER_PRESENT": "1",
+        "OVERRIDE_JS_DIR": null,
+        "STAGE_TRACE": null,
+        "LONG_FRAMES": null,
+        "BASELINE_FAUNA_MESH": null,
+        "NO_AUDIO_RENDER": null,
+        "SCREEN_RECORD": null,
+        "NATIVE_SCHED": null,
+        "NATIVE_SCHED_ONLY": null,
+        "CHROME_TRACE": null,
+        "SILENT_SHIMMER": null,
+        "DISPLAY_HZ": null,
+        "GPU_TRACE": null,
+        "NO_BACKDROP": null,
+        "PERFETTO": null,
+        "MITE_SLOW": null,
+        "FRAME_HEIGHT": null,
+        "AUDIO_LATENCY": null,
+        "TIMED_RAF": null,
+        "GL_FLUSH": null,
+        "AUDIO_BLOCK_SPATIAL": null,
+        "AUDIO_RATE": null,
+        "MINIMAL": "1",
+        "AUDIO_TRACE": null,
+        "SCENARIO": "walk",
+        "RUN_SECONDS": "480",
+        "PROFILE_DEFAULTS": "1",
+        "LUMEN_WORKER": null,
+        "TEST_RATIO": null,
+        "PLANT_RADIUS": null,
+        "RAF_CLOCK": null,
+        "AUX_FRAMES": null,
+        "AUX_TIMER": null,
+        "PLANT_BATCHES": null,
+        "BUFFER_FRAMES": null,
+        "HEIGHT_CACHE": null,
+        "SURFACE_FRAMES": null,
+        "GL_SLOW": null,
+        "GC_TRACE": null,
+        "HEAP_PROFILE": null,
+        "START_SKIN": "37.5"
+      },
+      "loadedSourcesVerified": 220,
+      "met": true,
+      "runs": [
+        {
+          "scenario": "walk",
+          "walking": false,
+          "valid": true,
+          "depth": 4,
+          "frames": 902,
+          "fps": 30.000233222496693,
+          "p99": 35.400146484375,
+          "max": 39.199951171875,
+          "over50": 0,
+          "audioUnderruns": 0,
+          "totalAudioUnderruns": 0,
+          "simulationSeconds": 30.166666666666774,
+          "elapsedSeconds": 30.166700000017883,
+          "sequenceGaps": 0,
+          "dropped": 0,
+          "starvations": 0,
+          "meanFrameAgeAfterProduction": 117.35014264008757,
+          "skin": [
+            35,
+            36.2
+          ],
+          "thermalStatus": 0,
+          "met": true
+        },
+        {
+          "scenario": "walk",
+          "walking": true,
+          "valid": true,
+          "depth": 4,
+          "frames": 14401,
+          "fps": 29.999949997031585,
+          "p99": 35.10009765625,
+          "max": 41.5,
+          "over50": 0,
+          "audioUnderruns": 0,
+          "totalAudioUnderruns": 0,
+          "simulationSeconds": 480.46666666684547,
+          "elapsedSeconds": 480.471,
+          "sequenceGaps": 0,
+          "dropped": 0,
+          "starvations": 0,
+          "meanFrameAgeAfterProduction": 117.82586775320291,
+          "skin": [
+            35,
+            40.5
+          ],
+          "thermalStatus": 1,
+          "movement": {
+            "frames": 14463,
+            "movingFrames": 14459,
+            "outsideWorldFrames": 0,
+            "distance": 17728.745218180327,
+            "lastX": -1703.6565218563578,
+            "lastZ": -972.6888185298474,
+            "turnSeconds": 52.251730745577404
+          },
+          "met": true
+        }
+      ],
+      "errors": [],
+      "workload": [
+        {
+          "walking": false,
+          "population": 640,
+          "simulation": {
+            "active": true,
+            "stats": {
+              "received": 1317,
+              "workerMs": 9.199999988079071,
+              "applyMs": 0.19999998807907104,
+              "maxLagSteps": 2,
+              "sharedWorker": true,
+              "maxWorkerMs": 26.599999994039536,
+              "simulationMs": 7.800000011920929,
+              "steps": 1,
+              "lagSteps": 0,
+              "slowFrames": [
+                {
+                  "at": 31406.899999976158,
+                  "workMs": 26.599999994039536,
+                  "simulationMs": 19.400000005960464,
+                  "cloneMs": 0,
+                  "steps": 1
+                }
+              ],
+              "checkpointBytes": 1048576,
+              "maxCheckpointEncodeMs": 65.30000001192093
+            }
+          },
+          "reflections": {
+            "captures": 353,
+            "reused": 781
+          },
+          "terrainStreaming": {
+            "steps": 4324,
+            "ms": 823.0999997258186,
+            "max": 13.5,
+            "byStage": {
+              "giants": {
+                "steps": 22,
+                "ms": 14.899999976158142,
+                "max": 2.5
+              },
+              "smallTrees": {
+                "steps": 88,
+                "ms": 48.10000002384186,
+                "max": 4.299999982118607
+              },
+              "shrubs": {
+                "steps": 352,
+                "ms": 97.3999999165535,
+                "max": 5.5
+              },
+              "fallen": {
+                "steps": 22,
+                "ms": 2.5999999940395355,
+                "max": 0.5
+              },
+              "blades": {
+                "steps": 421,
+                "ms": 162.19999986886978,
+                "max": 7.799999982118607
+              },
+              "sprouts": {
+                "steps": 22,
+                "ms": 2.100000023841858,
+                "max": 0.9000000059604645
+              },
+              "crystals": {
+                "steps": 44,
+                "ms": 3.4999999701976776,
+                "max": 0.5
+              },
+              "rocks": {
+                "steps": 88,
+                "ms": 60.70000010728836,
+                "max": 4.200000017881393
+              },
+              "tufts": {
+                "steps": 687,
+                "ms": 253.5999999642372,
+                "max": 4.699999988079071
+              },
+              "reeds": {
+                "steps": 154,
+                "ms": 44.89999997615814,
+                "max": 13.5
+              },
+              "lineBuffers": {
+                "steps": 22,
+                "ms": 24.699999928474426,
+                "max": 3.899999976158142
+              },
+              "riverEcology": {
+                "steps": 1505,
+                "ms": 52.10000002384186,
+                "max": 2.5
+              },
+              "waterside": {
+                "steps": 838,
+                "ms": 25.600000023841858,
+                "max": 3.5999999940395355
+              },
+              "publish": {
+                "steps": 22,
+                "ms": 2.7999999821186066,
+                "max": 0.30000001192092896
+              },
+              "far": {
+                "steps": 37,
+                "ms": 27.89999994635582,
+                "max": 3.699999988079071
+              }
+            },
+            "longestStage": "reeds"
+          },
+          "plantBatches": {
+            "sources": 404,
+            "visibleSources": 62,
+            "draws": 19,
+            "instances": 3276,
+            "uploads": 1314
+          },
+          "position": [
+            -1071.4631,
+            97.74211383200429,
+            414.52882
+          ]
+        },
+        {
+          "walking": true,
+          "population": 640,
+          "simulation": {
+            "active": true,
+            "stats": {
+              "received": 15785,
+              "workerMs": 1.9000000059604645,
+              "applyMs": 0.5,
+              "maxLagSteps": 2,
+              "sharedWorker": true,
+              "maxWorkerMs": 26.599999994039536,
+              "simulationMs": 1.5999999940395355,
+              "steps": 1,
+              "lagSteps": 0,
+              "slowFrames": [
+                {
+                  "at": 31406.899999976158,
+                  "workMs": 26.599999994039536,
+                  "simulationMs": 19.400000005960464,
+                  "cloneMs": 0,
+                  "steps": 1
+                }
+              ],
+              "checkpointBytes": 1048576,
+              "maxCheckpointEncodeMs": 65.30000001192093
+            }
+          },
+          "reflections": {
+            "captures": 4468,
+            "reused": 9986
+          },
+          "terrainStreaming": {
+            "steps": 66357,
+            "ms": 10534.299998730421,
+            "max": 14,
+            "byStage": {
+              "giants": {
+                "steps": 465,
+                "ms": 216.50000032782555,
+                "max": 4
+              },
+              "smallTrees": {
+                "steps": 1860,
+                "ms": 630.5999996066093,
+                "max": 14
+              },
+              "shrubs": {
+                "steps": 7437,
+                "ms": 1261.6999996006489,
+                "max": 5.5
+              },
+              "fallen": {
+                "steps": 464,
+                "ms": 33.400000274181366,
+                "max": 0.5
+              },
+              "blades": {
+                "steps": 8816,
+                "ms": 2097.2999998927116,
+                "max": 7.799999982118607
+              },
+              "sprouts": {
+                "steps": 464,
+                "ms": 34.799999952316284,
+                "max": 0.9000000059604645
+              },
+              "crystals": {
+                "steps": 928,
+                "ms": 48.500000178813934,
+                "max": 0.7999999821186066
+              },
+              "rocks": {
+                "steps": 1854,
+                "ms": 617.899999588728,
+                "max": 5.700000017881393
+              },
+              "tufts": {
+                "steps": 14187,
+                "ms": 3436.999999165535,
+                "max": 4.699999988079071
+              },
+              "reeds": {
+                "steps": 3227,
+                "ms": 610.1999993920326,
+                "max": 13.5
+              },
+              "lineBuffers": {
+                "steps": 461,
+                "ms": 440.6000003218651,
+                "max": 3.9000000059604645
+              },
+              "riverEcology": {
+                "steps": 15890,
+                "ms": 455.400000423193,
+                "max": 2.5
+              },
+              "waterside": {
+                "steps": 9108,
+                "ms": 253.80000001192093,
+                "max": 3.5999999940395355
+              },
+              "publish": {
+                "steps": 461,
+                "ms": 38.49999997019768,
+                "max": 0.5
+              },
+              "far": {
+                "steps": 735,
+                "ms": 358.10000002384186,
+                "max": 5
+              }
+            },
+            "longestStage": "smallTrees"
+          },
+          "plantBatches": {
+            "sources": 321,
+            "visibleSources": 32,
+            "draws": 17,
+            "instances": 2156,
+            "uploads": 70985
+          },
+          "position": [
+            -1703.1995246643362,
+            173.9312061868387,
+            -971.6023428352953
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,9 +1,11 @@
+import { mobileDetail } from '../../core/MobileDetail.js?v=stable-30-3';
+import { reedIndividual } from './ReedWalkerTraits.js';
 import {replyOutline} from './ReplyOutline.js?v=outline-2';
 import { noteGlow } from './NoteGlow.js?v=player-notes-13';
 import * as THREE from 'three';
 import { reedSites } from './ReedWalkerHabitat.js?v=graze-1';
 import { ReedWalkerWorldModel } from './ReedWalkerWorldModel.js?v=pebble-voice-4b';
-import { ReedWalkerRig } from './ReedWalkerRig.js?v=spray-1';
+import { ReedWalkerRig } from './ReedWalkerRig.js?v=stable-30-3';
 import { ReedWalkerSpray } from './ReedWalkerSpray.js?v=world-spray-1';
 import { reedWorldSprayPose } from './ReedWalkerReservoir.js?v=1';
 import { ReedWalkerAudio } from '../../audio/ReedWalkerAudio.js?v=reed-7';
@@ -12,7 +14,7 @@ import { bus, Events } from '../../core/EventBus.js';
 export class WorldReedWalkers {
  constructor(scene, heightmap, shared, fauna, seed) {
   this.shared=shared;this.hm=heightmap;this.root=new THREE.Group();this.root.name='Reed walker families';scene.add(this.root);
-  this.rigs=new Map();this.streamAt=0;
+  this.rigs=new Map();this.pendingRigs=new Map();this.streamAt=0;this.buildBudget=mobileDetail?1.5:Infinity;this.maxBuildStepMs=0;
   const blocked=(x,z,r,y)=>shared.colliders.some(c=>Math.hypot(x-c.position.x,z-c.position.z)<(c.radius||c.r||0)+r&&Math.abs(y-c.position.y)<Math.max(12,(c.radius||c.r||0)*2));
   this.model=new ReedWalkerWorldModel(seed,reedSites(shared.world,fauna.lakes),fauna.sample,blocked);
   this.model.onNoteReply=(m,alarm)=>shared.playerNotes?.reply('reed',m,alarm);
@@ -22,17 +24,61 @@ export class WorldReedWalkers {
  sync() {
   const members=[...this.model.groups.values()].flatMap(g=>g.members),live=new Set(members);
   for(const [m,rig] of this.rigs) if(!live.has(m)){rig.spray?.dispose();rig.root.removeFromParent();rig.dispose();this.rigs.delete(m);}
-  for(const m of members) if(!this.rigs.has(m)) {
-   const rig=new ReedWalkerRig(m.traits);
+  for(const[m,work]of this.pendingRigs)if(!live.has(m)){work.return();this.pendingRigs.delete(m);}
+  for(const m of members)if(!this.rigs.has(m)&&!this.pendingRigs.has(m))this.pendingRigs.set(m,this.buildRig(m));
+  if(this.buildBudget===Infinity)this.drainRigs();
+ }
+ createRig(m) {
+   const rig=new ReedWalkerRig(m.traits);return this.decorateRig(rig,m);
+ }
+ decorateRig(rig,m) {
    rig.noteUniforms={uNoteGlow:{value:0},uNotePhase:{value:0},uNoteAlarm:{value:0},uNoteFloor:{value:0},uNoteHeight:{value:m.traits.legs*m.scale}};
    const materials=new Set();rig.root.traverse(o=>{if(o.material)materials.add(o.material);});for(const material of materials)noteGlow(material,rig.noteUniforms);rig.root.scale.setScalar(m.scale);
    rig.replySignal={value:0};rig.replyEcho={value:new THREE.Vector2()};const parts=[];rig.root.traverse(o=>{if(o.isMesh)parts.push(o);});for(const part of parts)replyOutline(part,{signal:rig.replySignal,echo:rig.replyEcho});
-   this.root.add(rig.root);this.rigs.set(m,rig);
-  }
+  return rig;
  }
+ *buildRig(m) {
+  const rig=new ReedWalkerRig(m.traits,true);let complete=false;
+  try {yield* rig.work;this.decorateRig(rig,m);complete=true;return rig;}
+  finally {if(!complete)rig.dispose();}
+ }
+ drainRigs() {
+  if(!this.pendingRigs.size)return;
+  const deadline=performance.now()+this.buildBudget;
+  for(const[m,work]of this.pendingRigs){
+   do {
+    const start=performance.now(),step=work.next();this.maxBuildStepMs=Math.max(this.maxBuildStepMs,performance.now()-start);
+    if(step.done){this.rigs.set(m,step.value);this.pendingRigs.delete(m);break;}
+   }while(performance.now()<deadline);
+   if(performance.now()>=deadline)break;
+  }
+  // Publish a complete family together; no half-built bodies enter the scene.
+  for(const group of this.model.groups.values())if(group.members.every(m=>this.rigs.has(m)))for(const m of group.members){const rig=this.rigs.get(m);if(rig.root.parent!==this.root)this.root.add(rig.root);}
+ }
+ async prewarm() {
+  const renderer=this.shared.renderer,world=this.shared.scene,scene=new THREE.Scene();
+  scene.environment=world.environment;scene.environmentIntensity=world.environmentIntensity;scene.fog=world.fog;
+  world.updateMatrixWorld(true);
+  world.traverseVisible(light=>{if(!light.isLight||!light.layers.test(this.shared.camera.layers))return;const copy=light.clone();copy.position.setFromMatrixPosition(light.matrixWorld);scene.add(copy);});
+  const rig=this.createRig({traits:reedIndividual('reedbed',1,'adult','male'),scale:1});
+  scene.add(rig.root);rig.update(0);
+  const spray=new ReedWalkerSpray(rig,scene);spray.mesh.visible=true;
+  scene.traverse(o=>{if(o.isMesh)o.frustumCulled=false;});
+  const camera=this.shared.camera.clone();camera.layers.enable(30);
+  const target=new THREE.WebGLRenderTarget(2,2,{type:THREE.HalfFloatType});
+  const previous=renderer.getRenderTarget(),face=renderer.getActiveCubeFace(),mip=renderer.getActiveMipmapLevel();
+  try {
+   let ready;try{renderer.setRenderTarget(target);ready=renderer.compileAsync(scene,camera);}finally{renderer.setRenderTarget(previous,face,mip);}
+   await ready;
+   renderer.setRenderTarget(target);renderer.render(scene,camera);
+  }finally{renderer.setRenderTarget(previous,face,mip);target.dispose();}
+  // Retain these exact program owners when the last streamed family retires.
+  this.warmup={dispose(){spray.dispose();rig.dispose();scene.clear();}};
+ }
+ prepareAudio(){this.audio ||= new ReedWalkerAudio(this.shared.audio);}
  call(m,event='rumble') {
   if(!m||!this.shared.audio||(this.shared.caveAmount||0)>.4)return false;
-  this.audio ||= new ReedWalkerAudio(this.shared.audio);
+  this.prepareAudio();
   return this.audio.play(m.traits,event,{position:m.position,listener:this.shared.player.position});
  }
  hearNote(note){if(this.root.visible&&(this.shared.caveAmount||0)<.4)this.model.hearNote(note);}
@@ -40,9 +86,11 @@ export class WorldReedWalkers {
   const p=this.shared.player.position;this.root.visible=this.shared.surfaceStreaming!==false;
   if(!this.root.visible)return;
   if(this.model.time>=this.streamAt){this.streamAt=this.model.time+2;this.model.stream(p);this.sync();}
+  this.drainRigs();
   this.model.update(Math.min(dt,.05),p);
   if(this.audio)this.audio.muted=!!this.shared.fauna.audio?.muted;
   for(const [m,rig] of this.rigs){
+   if(rig.root.parent!==this.root)continue;
    rig.root.visible=Math.hypot(m.origin.x-p.x,m.origin.z-p.z)<320;
    if(!rig.root.visible){rig.spray?.update(0,false);continue;}
    rig.root.position.set(m.draw.origin.x,m.draw.origin.y,m.draw.origin.z);rig.root.rotation.y=m.draw.yaw;
@@ -62,5 +110,5 @@ export class WorldReedWalkers {
   }
  }
  visit(current) {const g=this.model.findFamily(this.shared.player.position,current);this.sync();return g;}
- dispose(){this.audio?.dispose();for(const rig of this.rigs.values()){rig.spray?.dispose();rig.dispose();}this.rigs.clear();this.root.removeFromParent();}
+ dispose(){for(const work of this.pendingRigs.values())work.return();this.pendingRigs.clear();this.warmup?.dispose();this.audio?.dispose();for(const rig of this.rigs.values()){rig.spray?.dispose();rig.dispose();}this.rigs.clear();this.root.removeFromParent();}
 }

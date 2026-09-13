@@ -62,15 +62,15 @@ function idlePose(pose,time,ground){
 
 export class BirdJourney {
  constructor({fromGround=true,toGround=false,idleTempo=1,flapRate=6.8}={}) { this.fromGround=fromGround;this.toGround=toGround;this.idleTempo=idleTempo;this.flapRate=flapRate;this.reset(); }
- reset() { this.time = 0; this.idleTime = 0; this.startYaw=0; this.startPose=null; this.active = false; this.returning = false; this.completed = false; this.knots = route(BIRD_GROUND, BIRD_PERCH, false); }
+ reset() { this.settledPose=null; this.time = 0; this.idleTime = 0; this.startYaw=0; this.startPose=null; this.active = false; this.returning = false; this.completed = false; this.knots = route(BIRD_GROUND, BIRD_PERCH, false); }
  start() {
   if (this.active) return false;
-  this.startPose=this.sample(); this.startYaw=this.startPose.yaw;
+  this.startPose=this.sample(); this.startYaw=this.startPose.yaw;this.settledPose=null;
   this.returning = this.completed ? !this.returning : false;
   this.knots = route(this.returning ? BIRD_PERCH : BIRD_GROUND, this.returning ? BIRD_GROUND : BIRD_PERCH, this.returning);
   this.time = 0; this.active = true; this.completed = false; return true;
  }
- seek(time) { this.idleTime=0; this.time = clamp(time, 0, BIRD_JOURNEY_TIME); this.active = this.time < BIRD_JOURNEY_TIME; this.completed = !this.active; }
+ seek(time) { this.settledPose=null;this.idleTime=0; this.time = clamp(time, 0, BIRD_JOURNEY_TIME); this.active = this.time < BIRD_JOURNEY_TIME; this.completed = !this.active; }
  update(dt) {
   if(this.active){
    const next=this.time+dt;this.time=Math.min(BIRD_JOURNEY_TIME,next);
@@ -79,6 +79,12 @@ export class BirdJourney {
   return this.sample();
  }
  sample() {
+  // Completed flights have a fixed landing pose. Idle animation changes only
+  // that pose, so avoid evaluating four Hermite samples again on every perch.
+  if(this.settledPose && !this.active && this.completed && this.time===BIRD_JOURNEY_TIME){
+   const pose={...this.settledPose,position:{...this.settledPose.position}};
+   return idlePose(pose,this.idleTime*this.idleTempo,this.returning?this.fromGround:this.toGround);
+  }
   const t = this.time, f = t - ANTICIPATION;
   const from = this.returning ? BIRD_PERCH : BIRD_GROUND, to = this.returning ? BIRD_GROUND : BIRD_PERCH;
   const pose = { position: vec(from.x, from.y + .42, from.z), yaw: this.returning ? Math.PI : 0, pitch: .12, bank: 0,
@@ -138,7 +144,10 @@ export class BirdJourney {
    pose.headPitch = -pose.pitch * .9 * (1-k);
    pose.fold = k; pose.shoulder = mix(.26, .1, k); pose.wrist = 0; pose.tail = 1 - k;
    pose.legs = 1; pose.contact = 1; pose.footY = to.y - pose.position.y;
-   if(settle===1)idlePose(pose,this.idleTime*this.idleTempo,this.returning?this.fromGround:this.toGround);
+   if(settle===1){
+    this.settledPose={...pose,position:{...pose.position}};
+    idlePose(pose,this.idleTime*this.idleTempo,this.returning?this.fromGround:this.toGround);
+   }
   }
   return pose;
  }

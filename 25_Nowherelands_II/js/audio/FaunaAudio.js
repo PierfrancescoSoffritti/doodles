@@ -1,4 +1,5 @@
-import { synthesizeVeilRay, RAY_PHRASES } from './VeilRayVoice.js';
+import { VeilRayBuffers } from './VeilRayBuffers.js?v=stable-30-3';
+import { synthesizeVeilRay, RAY_PHRASES } from './VeilRayVoice.js?v=stable-30-3';
 import { PebbleAudio } from './PebbleAudio.js?v=pebble-audio-10';
 // Keep the alarm foreground level separate from ambient creature calls.
 const ESCAPE_LEVEL = 1.85;
@@ -13,30 +14,39 @@ const VOICES = {
 // sounding and disconnects all nodes on completion. Startles and veil-ray calls
 // have foreground buses so ambient ducking cannot hide the player interaction.
 export class FaunaAudio {
-	constructor(engine, conductor) {
+	constructor(engine, conductor, {asyncRays=false}={}) {
 		this.engine = engine; this.conductor = conductor; this.voices = []; this.history = [];
 		this.out = engine.ctx.createGain(); this.out.gain.value = 0.85; this.out.connect(engine.layerBus);
 		this.escapeOut = engine.ctx.createGain(); this.escapeOut.gain.value = ESCAPE_LEVEL; this.escapeOut.connect(engine.master);
 		this.rayOut = engine.ctx.createGain(); this.rayOut.gain.value = 0.85; this.rayOut.connect(engine.master);
-		this.rayBuffers = new Map();
+		this.rayBuffers = new Map();this.pendingRays=new Set();
+		this.rayBank=asyncRays?new VeilRayBuffers(engine.ctx):null;
 		this.muted = false; this.pebbles = new PebbleAudio(engine);
 	}
 	pebble(creature,event,context) { this.pebbles.muted=this.muted; return this.pebbles.play(creature,event,context); }
 	escape(creature) { return this.call(creature, false, true); }
-	call(creature, landing = false, escape = false, phrase = 'contact') {
+	call(creature, landing = false, escape = false, phrase = 'contact', prepared = null) {
 		if(creature.kind==='hopper')return this.pebble(creature,landing?'settle':'startle');
 		const acknowledgment = creature.kind === 'ray' && phrase === 'acknowledgment';
 		const e = this.engine, ctx = e.ctx, spec = acknowledgment ? { ...VOICES.ray, attack: RAY_PHRASES.acknowledgment.attack, length: RAY_PHRASES.acknowledgment.duration } : escape ? { octave: 2, attack: 0.012, length: 1.6, gain: 0.46 } : VOICES[creature.kind];
-		if (ctx.state !== 'running' || this.muted || this.voices.length >= (escape ? 10 : 8)) return false;
+		if (ctx.state !== 'running' || this.muted || this.voices.length + this.pendingRays.size >= (escape ? 10 : 8)) return false;
 		if (this.voices.some(v => v.creature === creature && (!escape || v.escape))) return false;
-		if (creature.kind === 'ray' && this.voices.some(v => v.creature.kind === 'ray')) return false;
+		if (creature.kind === 'ray' && (this.pendingRays.size||this.voices.some(v => v.creature.kind === 'ray'))) return false;
 		// Give a nearby alarm the same space in the mix as a player gesture.
 		// This happens only after acceptance: muted/rejected calls never duck music.
 		if (escape) e.duck(0.28, 1.8);
 		const chord = this.conductor.scale.chordDegrees();
-		const freq = this.conductor.scale.freq(chord[creature.degree % chord.length], spec.octave) * 2 ** (creature.voice / 1200);
-		let rayBuffer;
-		if (creature.kind === 'ray') {
+		const freq = prepared?.frequency ?? this.conductor.scale.freq(chord[creature.degree % chord.length], spec.octave) * 2 ** (creature.voice / 1200);
+		let rayBuffer=prepared?.buffer;
+  if(creature.kind==='ray'&&this.rayBank&&!rayBuffer){
+   const options={sampleRate:ctx.sampleRate,frequency:freq,phrase,size:creature.size||1,identity:creature.phase||0};
+   rayBuffer=this.rayBank.get(options);
+   if(!rayBuffer){
+    const pending={cancelled:false};this.pendingRays.add(pending);
+    return this.rayBank.request(options).then(buffer=>{this.pendingRays.delete(pending);return buffer&&!pending.cancelled?this.call(creature,landing,escape,phrase,{buffer,frequency:freq}):false;});
+   }
+  }
+		if (creature.kind === 'ray' && !rayBuffer) {
 			const key = [ctx.sampleRate, freq, phrase, creature.size || 1, creature.phase || 0].join(':');
 			rayBuffer = this.rayBuffers.get(key);
 			if (!rayBuffer) {
@@ -115,7 +125,12 @@ export class FaunaAudio {
 		this.history.push({ kind: creature.kind, id: creature.id, event: escape ? 'escape' : creature.kind === 'ray' ? phrase : 'call', time: t, freq }); if (this.history.length > 32) this.history.shift();
 		return true;
 	}
+	prepareRays(creatures) {
+  if(!this.rayBank)return;const scale=this.conductor.scale,chord=scale.chordDegrees();
+  for(const c of creatures)if(c.kind==='ray')for(const phrase of ['contact','acknowledgment'])this.rayBank.request({sampleRate:this.engine.ctx.sampleRate,frequency:scale.freq(chord[c.degree%chord.length],0)*2**(c.voice/1200),phrase,size:c.size||1,identity:c.phase||0});
+ }
 	silenceRays() {
+  for(const pending of this.pendingRays)pending.cancelled=true;this.pendingRays.clear();
 		const t = this.engine.now;
 		for (const voice of this.voices.filter(v => v.creature.kind === 'ray')) {
 			voice.envelope.gain.cancelAndHoldAtTime(t);
@@ -136,7 +151,7 @@ export class FaunaAudio {
 		}
 	}
 	dispose() {
-  this.pebbles.dispose();
+  this.pebbles.dispose();this.rayBank?.dispose();for(const pending of this.pendingRays)pending.cancelled=true;this.pendingRays.clear();
 		for (const voice of this.voices) { for (const source of voice.sources) { try { source.stop(); } catch {} } for (const n of voice.nodes) n.disconnect(); }
 		this.voices = []; this.out.disconnect(); this.escapeOut.disconnect(); this.rayOut.disconnect(); this.rayBuffers.clear();
 	}

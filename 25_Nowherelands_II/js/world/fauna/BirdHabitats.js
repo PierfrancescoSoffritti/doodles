@@ -11,13 +11,19 @@ export class BirdHabitats {
   return {id:`${cx},${cz}`,x:(cx+.5)*BIRD_HABITAT_SIZE+((h>>>8)%61-30),z:(cz+.5)*BIRD_HABITAT_SIZE+((h>>>16)%61-30),count:h%100<14?0:h%100<26?1:2+(h>>>4)%3,species:(h>>>10)%3};
  }
  populate(groups,encounters,capacity,spawn){
+  const work=this.populateSteps(groups,encounters,capacity,spawn);
+  while(!work.next().done){}
+ }
+ *populateSteps(groups,encounters,capacity,spawn){
   const counts=new Map();for(const e of encounters)counts.set(e.habitat.id,(counts.get(e.habitat.id)||0)+1);
   for(let round=0;round<4;round++)for(const area of groups){
    if(encounters.length>=capacity)return;
    if((counts.get(area.id)||0)>round||round>=area.count)continue;
    for(const site of area.sites){
-    const e=spawn(site,area);if(!e)continue;
-    encounters.push(e);counts.set(area.id,(counts.get(area.id)||0)+1);break;
+    const e=spawn(site,area);
+    if(e){encounters.push(e);counts.set(area.id,(counts.get(area.id)||0)+1);}
+    yield;
+    if(e)break;
    }
   }
  }

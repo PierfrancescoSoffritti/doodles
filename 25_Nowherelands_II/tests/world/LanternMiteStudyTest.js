@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { LanternMiteStudy } from '../../js/world/fauna/LanternMiteStudy.js?v=pebble-voice-4b';
+import { LanternMiteStudy } from '../../js/world/fauna/LanternMiteStudy.js?v=stable-30-3';
 
 const advance = (model, seconds, observe = () => {}) => {
  for (let i = 0; i < Math.round(seconds * 60); i++) { model.update(1 / 60); observe(model); }

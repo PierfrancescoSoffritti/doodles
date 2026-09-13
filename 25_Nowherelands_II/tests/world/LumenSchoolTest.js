@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { updateFlow, buildLumenGrid, nearestLumen } from '../../js/world/fauna/LumenFlow.js';
-import { lumenLakes, departSchool } from '../../js/world/fauna/LumenSchool.js?v=player-notes-13';
-import { FaunaModel } from '../../js/world/fauna/FaunaModel.js?v=pebble-voice-4b';
+import { updateFlow, buildLumenGrid, nearestLumen } from '../../js/world/fauna/LumenFlow.js?v=stable-30-20';
+import { lumenLakes, departSchool } from '../../js/world/fauna/LumenSchool.js?v=stable-30-20';
+import { FaunaModel } from '../../js/world/fauna/FaunaModel.js?v=stable-30-25';
 
 const lakes = [{ id: 0, x: 0, y: 0, z: 0, radius: 35 }, { id: 1, x: 600, y: 25, z: 180, radius: 35 }, { id: 2, x: 1800, y: 70, z: -300, radius: 35 }];
 const sample = (x, z) => {
@@ -311,4 +311,26 @@ test('nearby lumen flee within a few frames, including animals with long trail d
 	assert.ok(Math.hypot(nearest.pos.x-threat.x,nearest.pos.z-threat.z)>30);
 	assert.equal(alarms,1,'one alarm per departure, not per frame or animal');
 	assert.ok(nearest.pos.y-origin.y<20,'startle must not launch animals vertically into the sky');
+});
+
+test('clearance-only results preserve every terrain probe and creature trajectory', () => {
+	const a = setup(), b = setup();
+	let fullQueries = [], splitQueries = [], clearanceCount = 0;
+	a.model.environment.sample = (x, z) => { fullQueries.push([x, z]); return sample(x, z); };
+	b.model.environment.sample = (x, z, clearanceOnly) => {
+		splitQueries.push([x, z]); const surface = sample(x, z);
+		if (!clearanceOnly) return surface;
+		clearanceCount++;
+		return { ground: surface.ground, water: surface.water };
+	};
+	const state = m => m.creatures.map(c => [c.pos, c.prev, c.vel, c.ground, c.water, c.energy, c.navigation.state]);
+	for (let step = 0; step < 120; step++) {
+		if (step === 30) for (const { model, group } of [a, b]) model.listener = { ...group.members[0].pos };
+		if (step === 31) for (const { model } of [a, b]) model.listener = { x: -10000, y: 0, z: -10000 };
+		a.model.step(1 / 30); b.model.step(1 / 30);
+		assert.deepEqual(splitQueries, fullQueries, `probe coordinates/order at step ${step}`);
+		assert.deepEqual(state(b.model), state(a.model), `trajectory at step ${step}`);
+		fullQueries = []; splitQueries = [];
+	}
+	assert.ok(clearanceCount >= 120 * 640 * 2, 'every animal keeps both exact probes; floor refreshes and journey targets may also request clearance only');
 });

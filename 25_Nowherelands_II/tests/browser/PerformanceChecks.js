@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { terrainMeshData } from '../../js/world/TerrainMeshData.js';
-import { shoreTileData } from '../../js/world/ShoreTileData.js';
+import { terrainMeshData } from '../../js/world/TerrainMeshData.js?v=stable-30-23';
+import { shoreTileData } from '../../js/world/ShoreTileData.js?v=stable-30-23';
 
 const assert = (condition, message) => { if (!condition) throw new Error(message); };
 const equal = (a,b) => a.length === b.length && a.every((value,i) => value === b[i]);

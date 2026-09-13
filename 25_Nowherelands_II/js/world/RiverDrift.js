@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { RIVER_STRIDE, RV, RIVER_KIND, bedProfile } from './gen/Rivers.js';
-import { riverCurrent, riverWakes } from './RiverFlow.js';
-import { riverWaveGlsl } from './WaterShader.js?v=player-notes-13';
+import { riverCurrentState, writeRiverWakes } from './RiverFlow.js?v=stable-30-10';
+import { riverWaveGlsl } from './WaterShader.js?v=stable-30-10';
 import { fogGlsl } from './FogGlsl.js';
 import { noiseGlsl } from './TerrainMaterial.js?v=player-notes-13';
 
@@ -12,6 +12,8 @@ import { noiseGlsl } from './TerrainMaterial.js?v=player-notes-13';
 
 const COUNT = 480;
 const RADIUS = 240;          // clumps live within this distance of the player
+// Coordinates and river widths are bounded well below Float64 overflow.
+const length2 = (x, z) => Math.sqrt(x * x + z * z);
 const REGATHER = 40;         // re-list the nearby reaches after moving this far
 
 export class RiverDrift {
@@ -31,7 +33,9 @@ export class RiverDrift {
 		this.leaf = new Float32Array(COUNT);
 		this.fade = new Float32Array(COUNT);
 		this.size = new Float32Array(COUNT);
-		this.flow = [0, 0];
+		this.flow = new Float64Array(2);
+		this.flowInput = new Float64Array(5);
+		this.wakes = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
 		g.setAttribute('position', new THREE.BufferAttribute(this.pos, 3));
 		g.setAttribute('aInfo0', new THREE.BufferAttribute(this.info0, 4));
 		g.setAttribute('aInfo1', new THREE.BufferAttribute(this.info1, 4));
@@ -126,7 +130,7 @@ export class RiverDrift {
 		p.river = ri; p.i = i; p.age = 0;
 		p.along = d[o + RV.ALONG] + Math.random() * Math.max(d[o + RIVER_STRIDE + RV.ALONG] - d[o + RV.ALONG], 0);
 		p.across = (Math.random() * 2 - 1) * 0.8;
-		const tx = d[o + RIVER_STRIDE] - d[o], tz = d[o + RIVER_STRIDE + 1] - d[o + 1], len = Math.hypot(tx, tz) || 1;
+		const tx = d[o + RIVER_STRIDE] - d[o], tz = d[o + RIVER_STRIDE + 1] - d[o + 1], len = length2(tx, tz) || 1;
 		const bank = d[o + RV.W] * 0.6 + 24;
 		const canopy = Math.max(this.heightmap.forestDensity(d[o] - tz / len * bank, d[o + 1] + tx / len * bank), this.heightmap.forestDensity(d[o] + tz / len * bank, d[o + 1] - tx / len * bank));
 		p.leaf = p.seed < 0.24 && d[o + RV.WL] < 500 && canopy > 0.15;
@@ -142,7 +146,7 @@ export class RiverDrift {
 		u.uMoonIntensity.value = s.moon.intensity;
 		u.uSunIntensity.value = s.sun.intensity;
 		u.uSunColor.value.copy(s.terrainUniforms.uSunColor.value);
-		if (Math.hypot(this.centre.x - cameraPos.x, this.centre.y - cameraPos.z) > REGATHER) this.gather(cameraPos.x, cameraPos.z);
+		if (length2(this.centre.x - cameraPos.x, this.centre.y - cameraPos.z) > REGATHER) this.gather(cameraPos.x, cameraPos.z);
 
 		const rivers = this.world.rivers;
 		const r2 = (RADIUS + 30) * (RADIUS + 30);
@@ -164,10 +168,12 @@ export class RiverDrift {
 				const w = d[o + RV.W] + (d[next + RV.W] - d[o + RV.W]) * t;
 				const speed = d[o + RV.SPEED] + (d[next + RV.SPEED] - d[o + RV.SPEED]) * t;
 				const bend = d[o + RV.BEND] + (d[next + RV.BEND] - d[o + RV.BEND]) * t;
-				const wakes = riverWakes(r, p.i, S, RV.ALONG);
-				const flow = riverCurrent(p.along, p.across * w * 0.5, w, speed, bend, wakes, this.flow);
+				const wakes = writeRiverWakes(r, p.i, S, RV.ALONG, this.wakes);
+				const input=this.flowInput;input[0]=p.along;input[1]=p.across*w*.5;input[2]=w;input[3]=speed;input[4]=bend;
+				const flow = riverCurrentState(input, wakes, this.flow);
 				const midS = p.along + flow[0] * step * 0.5, midC = p.across * w * 0.5 + flow[1] * step * 0.5;
-				riverCurrent(midS, midC, w, speed, bend, wakes, flow);
+				input[0]=midS;input[1]=midC;
+				riverCurrentState(input, wakes, flow);
 				p.along += flow[0] * step;
 				p.across = Math.max(-0.96, Math.min(0.96, p.across + flow[1] * step / (w * 0.5)));
 			}
@@ -184,7 +190,7 @@ export class RiverDrift {
 			if (bedProfile(p.across, bend, d[oa + RV.BAR] + (d[ob + RV.BAR] - d[oa + RV.BAR]) * t) * depth < 0.12) { p.river = -1; this.size[k] = 0; continue; }
 			let x = d[oa] + (d[ob] - d[oa]) * t, z = d[oa + 1] + (d[ob + 1] - d[oa + 1]) * t;
 			let tx = d[ob] - d[oa], tz = d[ob + 1] - d[oa + 1];
-			const l = Math.hypot(tx, tz) || 1; tx /= l; tz /= l;
+			const l = length2(tx, tz) || 1; tx /= l; tz /= l;
 			const off = p.across * w * 0.5;
 			x += -tz * off; z += tx * off;
 			const dx = x - cameraPos.x, dz = z - cameraPos.z;

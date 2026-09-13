@@ -5,40 +5,40 @@ function smoothstep(a, b, x) { const t = Math.min(Math.max((x - a) / (b - a), 0)
 // Signed Euclidean distance to the shoreline, in place of the water mask in channel B.
 // Felzenszwalb & Huttenlocher's 1D squared-distance transform, run over rows then columns,
 // once for the sea and once for the land.
-export function shoreDistance(data, res, texel) {
+export function* shoreDistanceSteps(data, res, texel) {
 	const INF = 1e12;
 	const sea = new Float64Array(res * res), land = new Float64Array(res * res);
-	for (let k = 0; k < res * res; k++) { const s = data[k * 4 + 2] > 0.5; sea[k] = s ? INF : 0; land[k] = s ? 0 : INF; }
-	edt2d(sea, res); edt2d(land, res);
+	for (let k = 0; k < res * res; k++) { const s = data[k * 4 + 2] > 0.5; sea[k] = s ? INF : 0; land[k] = s ? 0 : INF; if((k&2047)===2047)yield; }
+	yield* edt2dSteps(sea, res); yield* edt2dSteps(land, res);
 	for (let k = 0; k < res * res; k++) {
 		const s = data[k * 4 + 2] > 0.5;
 		// distance from a sea texel to the nearest land texel, minus half a texel so the line sits between them
 		const d = (Math.sqrt(s ? sea[k] : land[k]) - 0.5) * texel;
-		data[k * 4 + 2] = s ? d : -d;
+		data[k * 4 + 2] = s ? d : -d;if((k&2047)===2047)yield;
 	}
 }
 
 // The river-mouth factor: 1 in a channel, falling to 0 forty metres from its edge.
-export function riverReach(data, res, texel) {
+export function* riverReachSteps(data, res, texel) {
 	const INF = 1e12;
 	const f = new Float64Array(res * res);
-	for (let k = 0; k < res * res; k++) f[k] = data[k * 4 + 3] > 0.5 ? 0 : INF;
-	edt2d(f, res);
-	for (let k = 0; k < res * res; k++) data[k * 4 + 3] = 1 - smoothstep(0, 40 / texel, Math.sqrt(f[k]));
+	for (let k = 0; k < res * res; k++){f[k] = data[k * 4 + 3] > 0.5 ? 0 : INF;if((k&2047)===2047)yield;}
+	yield* edt2dSteps(f, res);
+	for (let k = 0; k < res * res; k++){data[k * 4 + 3] = 1 - smoothstep(0, 40 / texel, Math.sqrt(f[k]));if((k&2047)===2047)yield;}
 }
 
-function edt2d(f, res) {
+function* edt2dSteps(f, res) {
 	const line = new Float64Array(res), out = new Float64Array(res);
 	const v = new Int32Array(res), z = new Float64Array(res + 1);
 	for (let j = 0; j < res; j++) {
 		for (let i = 0; i < res; i++) line[i] = f[j * res + i];
 		edt1d(line, out, res, v, z);
-		for (let i = 0; i < res; i++) f[j * res + i] = out[i];
+		for (let i = 0; i < res; i++) f[j * res + i] = out[i];yield;
 	}
 	for (let i = 0; i < res; i++) {
 		for (let j = 0; j < res; j++) line[j] = f[j * res + i];
 		edt1d(line, out, res, v, z);
-		for (let j = 0; j < res; j++) f[j * res + i] = out[j];
+		for (let j = 0; j < res; j++) f[j * res + i] = out[j];yield;
 	}
 }
 
@@ -102,3 +102,6 @@ export function buildCoastOverview(world, seaLevel = 0) {
 	}
 	return { data, res };
 }
+
+export function shoreDistance(...args){for(const step of shoreDistanceSteps(...args)){} }
+export function riverReach(...args){for(const step of riverReachSteps(...args)){} }

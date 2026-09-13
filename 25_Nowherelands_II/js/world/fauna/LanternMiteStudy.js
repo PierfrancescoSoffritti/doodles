@@ -1,8 +1,19 @@
 import { receiveNote, updateNote } from './NoteResponse.js?v=pebble-voice-4b';
 import { Random } from '../../core/Random.js';
-import { lanternLight } from '../../audio/LanternMiteVoice.js';
+import { lanternLight } from '../../audio/LanternMiteVoice.js?v=stable-30-3';
 
-const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+const REST_STATES = ['rest', 'forage'];
+const NOTE_STATES = ['orient','answering','note-rest'];
+const UNAVAILABLE_STATES = ['hidden','retreat','emerge','contact'];
+const SHELTER_STATES = ['retreat', 'hidden', 'emerge'];
+const ATTENTIVE_STATES = ['investigate', 'contact', 'return', 'notice','orient','answering','note-rest','note-orbit'];
+const CURIOUS_STATES = ['notice', 'rest', 'forage'];
+const CONTACT_STATES = ['investigate', 'contact'];
+const EXCHANGE_STATES = ['listen', 'exchange'];
+const ALARM_STATES = ['retreat', 'hidden'];
+const APPROACH_STATES = ['investigate','answering'];
+const SOCIAL_STATES = ['visit', 'listen', 'exchange'];
+const distance = (a, b) => { const x=a.x-b.x,y=a.y-b.y,z=a.z-b.z;return Math.sqrt(x*x+y*y+z*z); };
 const point = (x, y, z) => ({ x, y, z });
 const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
 
@@ -69,7 +80,7 @@ export class LanternMiteStudy {
  }
 
  visitNeighbor() {
-  const available = this.mites.filter(m => ['rest', 'forage'].includes(m.state) && (!m.bold || this.visitorDistance() >= 6));
+  const available = this.mites.filter(m => REST_STATES.includes(m.state) && (!m.bold || this.visitorDistance() >= 6));
   if (available.length < 2) return;
   const caller = available[this.socialTurn % available.length];
   const neighbor = available.filter(m => m !== caller && distance(m.pos, caller.pos) < 2.2)
@@ -114,8 +125,8 @@ export class LanternMiteStudy {
   if(this.sheltered||this.time<this.alarmUntil||Math.hypot(position.x,position.z)>10||position.z<0||this.time-this.lastHeard<0.12)return false;
   this.lastHeard=this.time;this.heardNotes=this.heardNotes.filter(t=>this.time-t<3);this.heardNotes.push(this.time);
   if(velocity>0.82||this.heardNotes.length>=3){this.startle(true);return true;}
-  if(this.mites.some(m=>['orient','answering','note-rest'].includes(m.state)))return false;
-  const choices=this.mites.filter(m=>!['hidden','retreat','emerge','contact'].includes(m.state));
+  if(this.mites.some(m=>NOTE_STATES.includes(m.state)))return false;
+  const choices=this.mites.filter(m=>!UNAVAILABLE_STATES.includes(m.state));
   if(!choices.length)return false;
   const mite=choices[this.noteTurn++%choices.length];mite.replyAt=Infinity;
   mite.noteTarget=point(clamp(position.x*0.4,-1.8,1.8),clamp(position.y*0.45,1.25,2.3),clamp(position.z-1.5,2.3,4));
@@ -184,16 +195,16 @@ export class LanternMiteStudy {
     }
    } else if (mite.state === 'emerge' && arrived) {
     this.rest(mite);
-   } else if (!['retreat', 'hidden', 'emerge'].includes(mite.state)) {
+   } else if (!SHELTER_STATES.includes(mite.state)) {
     if (nearby && (!this.wasNearby || this.visitorSpeed > 0.3)) {
-     if (!['investigate', 'contact', 'return', 'notice','orient','answering','note-rest','note-orbit'].includes(mite.state)) this.transition(mite, 'notice');
+     if (!ATTENTIVE_STATES.includes(mite.state)) this.transition(mite, 'notice');
     }
-    if (nearby && mite.bold && ['notice', 'rest', 'forage'].includes(mite.state) && this.quiet > 3.8 && this.time > mite.nextContact) {
+    if (nearby && mite.bold && CURIOUS_STATES.includes(mite.state) && this.quiet > 3.8 && this.time > mite.nextContact) {
       this.transition(mite, 'investigate', point(clamp(this.visitor.x * 0.6 + 0.3, -2.15, 2.15), 1.05, clamp(this.visitor.z - 1.4, 0.6, 2.3)));
-    } else if (['investigate', 'contact'].includes(mite.state) && (!nearby || this.visitorSpeed > 0.3)) {
+    } else if (CONTACT_STATES.includes(mite.state) && (!nearby || this.visitorSpeed > 0.3)) {
       mite.nextContact = this.time + 6;
       this.transition(mite, 'return', mite.perch);
-    } else if (['orient','answering','note-rest'].includes(mite.state)&&this.visitorDistance()>11) {
+    } else if (NOTE_STATES.includes(mite.state)&&this.visitorDistance()>11) {
       this.transition(mite,'return',mite.perch);
     } else if (mite.state === 'orient' && age>0.65+mite.id*0.1) {
       this.transition(mite,'answering',mite.noteTarget);
@@ -221,7 +232,7 @@ export class LanternMiteStudy {
     } else if (mite.state === 'visit' && arrived) {
       this.pulse(mite, false, 'social', mite.partner);
       this.transition(mite, 'exchange'); mite.until = this.time + 1.1;
-    } else if (['listen', 'exchange'].includes(mite.state) && this.time > mite.until) {
+    } else if (EXCHANGE_STATES.includes(mite.state) && this.time > mite.until) {
       this.forage(mite);
     } else if (mite.state === 'visit' && age > 5) {
       this.transition(mite, 'return', mite.perch);
@@ -230,10 +241,10 @@ export class LanternMiteStudy {
 
    if (this.time >= mite.replyAt) {
     mite.replyAt = Infinity;
-    if (!disturbed && !['retreat', 'hidden'].includes(mite.state)) this.pulse(mite, true, mite.replyKind);
+    if (!disturbed && !ALARM_STATES.includes(mite.state)) this.pulse(mite, true, mite.replyKind);
    }
    const d = distance(mite.pos, mite.target);
-   const speed = mite.state === 'note-orbit' ? 2.4 : mite.state === 'retreat' ? 3.3 + mite.id * 0.18 : ['investigate','answering'].includes(mite.state) ? (this.homeExcursion?1.1:0.7) : (this.homeExcursion?1.5:0.9) + mite.id * 0.07;
+   const speed = mite.state === 'note-orbit' ? 2.4 : mite.state === 'retreat' ? 3.3 + mite.id * 0.18 : APPROACH_STATES.includes(mite.state) ? (this.homeExcursion?1.1:0.7) : (this.homeExcursion?1.5:0.9) + mite.id * 0.07;
    const amount = d > 0 ? Math.min(1, speed * dt / d, mite.waypoints?.length?1:1 - Math.exp(-3 * dt)) : 0;
    for (const key of ['x', 'y', 'z']) mite.pos[key] += (mite.target[key] - mite.pos[key]) * amount;
 
@@ -258,7 +269,7 @@ export class LanternMiteStudy {
   if (this.events.some(e => e.reply && e.kind === 'visitor')) return ['An answer from the roots', 'A delayed pulse. The others keep their distance.'];
   if (this.mites.some(m => m.state === 'contact')) return ['A little attention, freely given', 'The curious mite pauses and sends a soft contact pulse.'];
   if (this.mites.some(m => m.state === 'investigate')) return ['One comes closer', 'The boldest mite leaves its resting place. The colony stays behind.'];
-  if (this.mites.some(m => ['visit', 'listen', 'exchange'].includes(m.state))) return ['A visit to a neighbor', 'Two lights meet briefly. The rest carry on browsing.'];
+  if (this.mites.some(m => SOCIAL_STATES.includes(m.state))) return ['A visit to a neighbor', 'Two lights meet briefly. The rest carry on browsing.'];
   if (this.visitorDistance() < 6) return ['Life goes on around you', this.visitorSpeed > 0.05 ? 'A brief pause as you approach. Stop and let the hollow settle.' : 'They resume their small journeys once you become familiar.'];
   return ['A busy little hollow', 'Drift, browse, greet a neighbor. A brief rest, then off again.'];
  }

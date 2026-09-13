@@ -1,5 +1,5 @@
 import { readPebbleVolume, savePebbleVolume } from '../audio/PebbleAudioSettings.js?v=pebble-audio-10';
-import { SPECIES } from '../world/fauna/FaunaModel.js?v=pebble-voice-4b';
+import { SPECIES } from '../world/fauna/FaunaModel.js?v=stable-30-25';
 
 // Optional in-world field guide. Only visits real members of the current population.
 export class FaunaSurvey {

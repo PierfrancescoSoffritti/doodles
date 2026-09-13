@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {BirdHabitats} from '../../js/world/fauna/BirdHabitats.js';
+import {BirdHabitats} from '../../js/world/fauna/BirdHabitats.js?v=stable-30-3';
 import {BIRD_SPECIES} from '../../js/world/fauna/BirdSpecies.js';
 import {BirdEncounter} from '../../js/world/fauna/BirdEncounter.js?v=pebble-voice-4b';
-import {BIRD_JOURNEY_TIME} from '../../js/world/fauna/BirdJourney.js';
+import {BIRD_JOURNEY_TIME} from '../../js/world/fauna/BirdJourney.js?v=stable-30-3';
 
 const sites=[];
 for(let x=-3;x<=3;x++)for(let z=-3;z<=3;z++)for(let i=0;i<12;i++)sites.push({position:{x:x*300+130+i*3,y:12,z:z*300+140+i*2},id:`${x},${z},${i}`});
@@ -54,4 +54,16 @@ test('each anatomy keeps its identity and temperament through branch transfers',
   assert.equal(e.pose.species,species);assert.equal(e.pose.state,'perched');
   assert.ok(Math.abs(e.pose.position.y+e.pose.footY*e.size-target.y)<1e-8);
  }
+});
+
+test('staged population preserves territory order and yields after each attempted site',()=>{
+ const h=new BirdHabitats(421),groups=h.groups(sites,{x:0,z:0});
+ const run=staged=>{
+  const birds=[],used=new Set();let attempts=0;
+  const spawn=(site,area)=>{attempts++;if(used.has(site)||site.id.endsWith(',0'))return null;used.add(site);return{site,habitat:area};};
+  if(!staged)h.populate(groups,birds,28,spawn);
+  else{const work=h.populateSteps(groups,birds,28,spawn);for(;;){const before=attempts,result=work.next();assert.ok(attempts-before<=1,'one complete candidate at most per slice');if(result.done)break;}}
+  return{birds,attempts};
+ };
+ assert.deepEqual(run(true),run(false));
 });

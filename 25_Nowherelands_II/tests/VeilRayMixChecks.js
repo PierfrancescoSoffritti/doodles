@@ -1,5 +1,5 @@
 import { createReedAudioScene } from '../js/audio/ReedWalkerAudioScene.js';
-import { FaunaAudio } from '../js/audio/FaunaAudio.js';
+import { FaunaAudio } from '../js/audio/FaunaAudio.js?v=stable-30-3';
 
 // Compare independently rendered, identically scheduled dry voice/background
 // stems before compression. Measure the complete nonlinear mix separately.

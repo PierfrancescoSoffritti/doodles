@@ -1,4 +1,4 @@
-import { AudioEngine } from './AudioEngine.js?v=pebble-audio-10';
+import { AudioEngine } from './AudioEngine.js?v=stable-30-3';
 import { Conductor } from './Conductor.js?v=pebble-audio-10';
 import { WatersideAmbience } from './WatersideAmbience.js';
 import { RIVER_STRIDE, RV } from '../world/gen/Rivers.js';

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { config } from '../core/Config.js';
+import { config } from '../core/Config.js?v=stable-30-3';
 
 // The nearest unloaded chunk starts radius * chunkSize from the player. Finish
 // before that boundary, with a quarter-chunk margin for streaming during travel.

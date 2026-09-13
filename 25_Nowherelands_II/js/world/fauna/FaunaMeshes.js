@@ -1,8 +1,10 @@
+import {hypot2,hypot3} from '../../core/NumericDistance.js?v=stable-30-6';
+import { FaunaViews } from './FaunaViews.js?v=stable-30-3';
 import {replyOutline,writeReplyEcho} from './ReplyOutline.js?v=outline-2';
-import { PebbleMeshes } from './PebbleMeshes.js?v=pebble-voice-4b';
-import { lumenAppearance } from './LumenAppearance.js';
+import { PebbleMeshes } from './PebbleMeshes.js?v=stable-30-25';
+import { lumenAppearance } from './LumenAppearance.js?v=stable-30-3';
 import * as THREE from 'three';
-import { SPECIES } from './FaunaModel.js?v=pebble-voice-4b';
+import { SPECIES } from './FaunaModel.js?v=stable-30-25';
 import { fogGlsl } from '../FogGlsl.js';
 import { faunaGeometry } from './FaunaGeometry.js';
 import { faunaDeformation } from './FaunaDeformation.js';
@@ -83,9 +85,15 @@ const fragmentShader = /* glsl */`
 	}
 `;
 
+function appearance(c,time) {
+ const glow=lumenAppearance(c.phase,c.speed,hypot3(c.elastic?.x||0,c.elastic?.y||0,c.elastic?.z||0),c.energy,time,c.radiance);
+				if(c.noteGlow>0){const k=c.noteGlow*.3;glow.r=glow.r*(1-k)+(c.noteAlarm?1:.25)*k;glow.g=glow.g*(1-k)+(c.noteAlarm?.24:1)*k;glow.b=glow.b*(1-k)+(c.noteAlarm?.1:1)*k;glow.brightness+=k*.8;}
+ return glow;
+}
+
 export class FaunaMeshes {
 	constructor(scene, shared) {
-		this.shared = shared; this.root = new THREE.Group(); this.root.name = 'fauna'; scene.add(this.root);
+		this.shared = shared; this.views=new FaunaViews(scene); this.cullLumen=new URLSearchParams(globalThis.location?.search||'').get('faunaCull')!=='0'; this.root = new THREE.Group(); this.root.name = 'fauna'; scene.add(this.root);
 		this.meshes = {}; this.life = {}; this.motion = {}; this.state = {}; this.dummy = new THREE.Object3D();
 		for (const [kind, def] of Object.entries(SPECIES)) {
 			if (kind === 'hopper') continue;
@@ -145,12 +153,23 @@ export class FaunaMeshes {
 		const aboveGround = (this.shared.caveAmount || 0) < 0.4;
 		for (const mesh of [...Object.values(this.meshes), ...this.lumenLods, this.glow]) mesh.visible = aboveGround;
 		const counts = Object.fromEntries(Object.keys(SPECIES).map(k => [k, 0]));
-		const buckets = [[], [], []];
+		const buckets = this.buckets ||= [[], [], [], []];
+		for(const bucket of buckets)bucket.length=0;
 		const camera = this.shared.camera;
+		if(camera&&(this.cullLumen||this.pebbles.cull))this.views.update(camera);
 		const pixels = (this.shared.renderer?.domElement.height || 900) / (2 * Math.tan((camera?.fov || 66) * Math.PI / 360));
 		for (const c of model.creatures) {
 			if (c.kind !== 'lumen') continue;
-			const d = Math.hypot(c.pos.x-model.listener.x, c.pos.y-model.listener.y, c.pos.z-model.listener.z);
+   const blend=model.lumenAlpha??alpha;
+   const point=c.renderPosition ||= {x:0,y:0,z:0};
+   point.x=c.prev.x+(c.pos.x-c.prev.x)*blend;point.y=c.prev.y+(c.pos.y-c.prev.y)*blend;point.z=c.prev.z+(c.pos.z-c.prev.z)*blend;
+   // The halo's billboard corners extend farther than the deformed body.
+   if(camera&&this.cullLumen&&!this.views.contains(point,c.size*4.6+1)){
+    c.renderPosition=point;
+    if((point.x-model.listener.x)**2+(point.y-model.listener.y)**2+(point.z-model.listener.z)**2<220*220)c.radiance=appearance(c,model.lumenTime??model.time);
+    continue;
+   }
+			const d = hypot3(c.pos.x-model.listener.x, c.pos.y-model.listener.y, c.pos.z-model.listener.z);
 			const diameter = c.size * 5 * pixels / Math.max(1, d);
 			let lod = diameter > 24 ? 0 : diameter > 7 ? 1 : 2;
 			// Hysteresis keeps a creature from flickering between meshes on a threshold.
@@ -158,44 +177,49 @@ export class FaunaMeshes {
 			if (c.renderLod === 1 && diameter > 6 && diameter < 28) lod = 1;
 			if (c.renderLod === 2 && diameter < 8) lod = 2;
 			c.renderLod = lod;
-			if (Math.hypot(c.pos.x-model.listener.x,c.pos.z-model.listener.z) <= 4500) buckets[lod].push(c);
+			if ((c.pos.x-model.listener.x)**2+(c.pos.z-model.listener.z)**2 <= 4500*4500) buckets[lod].push(c);
 		}
-		for (const c of [...buckets.flat(), ...model.creatures.filter(c => c.kind === 'ray')]) {
+		for(const c of model.creatures)if(c.kind==='ray')buckets[3].push(c);
+		for(const bucket of buckets)for (const c of bucket) {
 			const kind = c.kind;
 			if (kind === 'hopper') continue;
-			if (kind === 'lumen' && Math.hypot(c.pos.x-model.listener.x,c.pos.z-model.listener.z)>4500) continue;
+			if (kind === 'lumen' && (c.pos.x-model.listener.x)**2+(c.pos.z-model.listener.z)**2>4500*4500) continue;
 			const i = counts[kind]++, mesh = this.meshes[kind];
-			const p = { x: c.prev.x + (c.pos.x - c.prev.x) * alpha, y: c.prev.y + (c.pos.y - c.prev.y) * alpha, z: c.prev.z + (c.pos.z - c.prev.z) * alpha };
+			const blend = kind==='lumen' ? (model.lumenAlpha??alpha) : alpha;
+			const time = kind==='lumen' ? (model.lumenTime??model.time) : model.time;
+			const p = c.renderPosition ||= {x:0,y:0,z:0};
+			p.x=c.prev.x+(c.pos.x-c.prev.x)*blend;p.y=c.prev.y+(c.pos.y-c.prev.y)*blend;p.z=c.prev.z+(c.pos.z-c.prev.z)*blend;
 			c.renderPosition = p;
+			const born = Math.min(1, (time - (c.born || 0)) / 2);
+			if(kind!=='lumen'){
 			this.dummy.position.set(p.x, p.y, p.z);
-			const yaw = (c.prevYaw ?? c.yaw) + (c.yaw - (c.prevYaw ?? c.yaw)) * alpha;
-			const bank = (c.prevBank ?? c.bank) + (c.bank - (c.prevBank ?? c.bank)) * alpha;
-			const pitch = (c.prevPitch ?? c.pitch) + (c.pitch - (c.prevPitch ?? c.pitch)) * alpha;
+			const yaw = (c.prevYaw ?? c.yaw) + (c.yaw - (c.prevYaw ?? c.yaw)) * blend;
+			const bank = (c.prevBank ?? c.bank) + (c.bank - (c.prevBank ?? c.bank)) * blend;
+			const pitch = (c.prevPitch ?? c.pitch) + (c.pitch - (c.prevPitch ?? c.pitch)) * blend;
 			// With +X forwards, X is roll and Z is pitch. Y remains heading.
 			this.dummy.rotation.set(kind === 'lumen' ? 0 : bank, kind === 'lumen' ? 0 : yaw, kind === 'lumen' ? 0 : pitch, 'YZX');
-			const born = Math.min(1, (model.time - (c.born || 0)) / 2);
 			this.dummy.scale.setScalar(c.size * Math.max(0.001, born));
+			}
 			if(kind==='lumen') {
-				const glow=lumenAppearance(c.phase,c.speed,Math.hypot(c.elastic?.x||0,c.elastic?.y||0,c.elastic?.z||0),c.energy,model.time);
-				if(c.noteGlow>0){const k=c.noteGlow*.3;glow.r=glow.r*(1-k)+(c.noteAlarm?1:.25)*k;glow.g=glow.g*(1-k)+(c.noteAlarm?.24:1)*k;glow.b=glow.b*(1-k)+(c.noteAlarm?.1:1)*k;glow.brightness+=k*.8;}
+				const glow=appearance(c,time);
 			c.radiance=glow;this.radiance.setXYZW(i,glow.r,glow.g,glow.b,glow.brightness);
 				this.placement.setXYZW(i,p.x,p.y,p.z,c.size*Math.max(0.001,born));
-				this.velocity.setXYZ(i,(c.oldVX??c.vel.x)+(c.vel.x-(c.oldVX??c.vel.x))*alpha,(c.oldVY??c.vel.y)+(c.vel.y-(c.oldVY??c.vel.y))*alpha,(c.oldVZ??c.vel.z)+(c.vel.z-(c.oldVZ??c.vel.z))*alpha);
+				this.velocity.setXYZ(i,(c.oldVX??c.vel.x)+(c.vel.x-(c.oldVX??c.vel.x))*blend,(c.oldVY??c.vel.y)+(c.vel.y-(c.oldVY??c.vel.y))*blend,(c.oldVZ??c.vel.z)+(c.vel.z-(c.oldVZ??c.vel.z))*blend);
 				this.elastic.setXYZ(i,c.elastic?.x||0,c.elastic?.y||0,c.elastic?.z||0);
-				this.dummy.position.set(0,0,0);this.dummy.scale.setScalar(1);
+				// Lumen placement lives in aPlacement; its instance matrix stays identity.
 			}
-			this.dummy.updateMatrix(); mesh.setMatrixAt(i, this.dummy.matrix);
+			if(kind!=='lumen'){this.dummy.updateMatrix();mesh.setMatrixAt(i,this.dummy.matrix);}
 			writeReplyEcho(this.meshes[kind],i,c);
 			this.life[kind].setXYZW(i, c.phase, c.energy, c.replyGlow||0, c.bend);
-			this.motion[kind].setXYZW(i, (c.prevStroke ?? c.stroke) + (c.stroke - (c.prevStroke ?? c.stroke)) * alpha, c.effort, c.compression, c.breath);
-			const far = Math.max(0, Math.min(1, ((kind === 'lumen' ? 4500 : 650) - Math.hypot(p.x - model.listener.x, p.z - model.listener.z)) / (kind === 'lumen' ? 1000 : 130)));
+			this.motion[kind].setXYZW(i, (c.prevStroke ?? c.stroke) + (c.stroke - (c.prevStroke ?? c.stroke)) * blend, c.effort, c.compression, c.breath);
+			const far = Math.max(0, Math.min(1, ((kind === 'lumen' ? 4500 : 650) - hypot2(p.x - model.listener.x, p.z - model.listener.z)) / (kind === 'lumen' ? 1000 : 130)));
 			this.state[kind].setXY(i, kind==='ray'?(c.noteAlarm?-(c.notePhase+.001):(c.notePhase||0)):c.hop, born * far);
 
 		}
 		for (const [kind, mesh] of Object.entries(this.meshes)) {
-			mesh.count = counts[kind]; mesh.instanceMatrix.needsUpdate = true;
+			mesh.count = counts[kind];if(kind!=='lumen')mesh.instanceMatrix.needsUpdate=true;
 			this.life[kind].needsUpdate = true; this.motion[kind].needsUpdate = true; this.state[kind].needsUpdate = true;
-			const u = mesh.material.uniforms; u.uTime.value = model.time; u.uMoon.value = this.shared.moon.intensity; u.uSun.value = this.shared.sun.intensity;
+			const u = mesh.material.uniforms; u.uTime.value = kind==='lumen'?(model.lumenTime??model.time):model.time; u.uMoon.value = this.shared.moon.intensity; u.uSun.value = this.shared.sun.intensity;
 		}
 		this.glow.count=counts.lumen;this.radiance.needsUpdate=true;this.placement.needsUpdate=true;this.velocity.needsUpdate=true;this.elastic.needsUpdate=true;
 		let offset = 0;
@@ -210,7 +234,7 @@ export class FaunaMeshes {
 			}
 			offset += count;
 		}
-		counts.hopper = this.pebbles.update(model, alpha);
+		counts.hopper = this.pebbles.update(model, alpha, camera?this.views:null);
 		this.root.userData.population = counts;
 	}
 }

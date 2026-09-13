@@ -1,4 +1,4 @@
-import { lumenLightGlsl } from '../js/world/fauna/LumenLight.js';
+import { lumenLightGlsl } from '../js/world/fauna/LumenLight.js?v=stable-30-3';
 import { faunaGeometry } from '../js/world/fauna/FaunaGeometry.js';
 import { faunaDeformation } from '../js/world/fauna/FaunaDeformation.js';
 

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { FaunaSurvey } from '../../js/ui/FaunaSurvey.js?v=pebble-voice-4b';
+import { FaunaSurvey } from '../../js/ui/FaunaSurvey.js?v=stable-30-25';
 
 function setup() {
 	const survey = Object.create(FaunaSurvey.prototype);

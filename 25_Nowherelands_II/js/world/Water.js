@@ -1,13 +1,14 @@
+import { mobileDetail, mobileOption } from '../core/MobileDetail.js?v=stable-30-3';
 import * as THREE from 'three';
 import { Reflector } from 'three/addons/objects/Reflector.js';
-import { config } from '../core/Config.js';
+import { config } from '../core/Config.js?v=stable-30-3';
 import { createSeaUniforms, seaVertexShader, seaFragmentShader, updateSeaUniforms } from './SeaShader.js?v=player-notes-13';
 
-// The sea: a clipmap of concentric square rings around the player, 2 m cells at the feet doubling
-// to 64 m four kilometres out, displaced by the waves in the vertex shader, and beyond it a flat
+// The sea: concentric square rings with 2 m cells (4 m on mobile) at the feet,
+// doubling toward the four-kilometre rim. Waves displace the vertices; beyond is a flat
 // ring to the horizon that is also the mirror rendering the reflection every ring reads.
 // Everything snaps to the coarsest cell so the vertices never swim as the player walks.
-const LEVELS = 6, CELL0 = 2, CELLS = 128;
+const LEVELS = 6, CELL0 = mobileDetail ? 4 : 2, CELLS = mobileDetail ? 64 : 128;
 const SNAP = CELL0 << (LEVELS - 1);
 const RIM = (CELL0 * CELLS << (LEVELS - 1)) / 2;    // 4096 m: half-width of the waved square
 const FAR = 65536;
@@ -27,7 +28,7 @@ export class Water {
 		uniforms.color = { value: new THREE.Color('#ffffff') };   // Reflector expects one
 		const farUniforms = { ...uniforms, uDisplace: { value: 0 } };
 		const shader = { name: 'NowhereSea', uniforms: farUniforms, vertexShader, fragmentShader };
-		this.far = new Reflector(ringGeometry(RIM, FAR / RIM, 2, true), { textureWidth: 768, textureHeight: 768, clipBias: 0.02, shader, multisample: 0 });
+		this.far = new Reflector(ringGeometry(RIM, FAR / RIM, 2, true), { textureWidth: mobileDetail ? 512 : 768, textureHeight: mobileDetail ? 512 : 768, clipBias: 0.02, shader, multisample: 0 });
 		// Reflector clones its uniforms; share the live ones and take its texture and matrix
 		for (const k of Object.keys(uniforms)) if (k !== 'uDisplace' && k !== 'tDiffuse' && k !== 'textureMatrix') this.far.material.uniforms[k] = uniforms[k];
 		// Reflector updates its private matrix object in place. Replacing that
@@ -68,12 +69,12 @@ export class Water {
 		let capturedAt = -Infinity;
 		this.reflectionStats = { captures: 0, reused: 0 };
 		const stats = this.reflectionStats;
-		this.far.onBeforeRender = function (renderer, scene, camera, ...rest) {
+		this.captureReflection = function (renderer, scene, camera, ...rest) {
 			// Other reflectors and the environment probe reuse the previous texture.
 			if (camera !== shared.camera || camera.position.y < far.position.y) return;
 			const now = performance.now(), distance = camera.position.distanceTo(capturePosition);
 			const angle = camera.quaternion.angleTo(captureRotation);
-			const interval = distance > .1 || angle > .002 ? 1000 / 30 : 1000 / 15;
+			const interval = mobileDetail ? 1000 / 10 : (distance > .1 || angle > .002 ? 1000 / 30 : 1000 / 15);
 			if (now - capturedAt < interval - 1 && distance < 6 && angle < .12) { stats.reused++; return; }
 			const hidden = Array.from(shared.mirrorHide, m => [m, m.visible]);
 			try {
@@ -84,6 +85,17 @@ export class Water {
 			inv.copy(far.matrixWorld).invert();
 			uniforms.uReflMatrix.value.copy(far.material.uniforms.textureMatrix.value).multiply(inv);
 		};
+  this.deferReflection = mobileDetail && mobileOption('auxFrames');
+  this.far.onBeforeRender = (...args) => {
+   if (!this.deferReflection || !stats.captures) this.captureReflection(...args);
+  };
+  this.prepareReflection = (renderer, scene, camera) => {
+   if (!this.visible) return false;
+   far.updateWorldMatrix(true, false); camera.updateMatrixWorld();
+   const before = stats.captures;
+   this.captureReflection(renderer, scene, camera);
+   return stats.captures !== before;
+  };
 		this.visible = true;
 	}
 

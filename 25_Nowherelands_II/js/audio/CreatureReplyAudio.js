@@ -1,3 +1,4 @@
+import { AudioSampleBank } from './AudioSampleBank.js?v=stable-30-3';
 import {pebbleSamples} from './PebbleSoundBank.js?v=pebble-audio-10';
 
 export const REPLY_DURATION={reed:2.6,hopper:.85,bird:1.7,mite:1.8,lumen:2.2,ray:1.8};
@@ -13,7 +14,7 @@ export function pebbleReplyProfile(identity='pebble',size=1,phase=0){
 }
 // Answer with the actual walking/settling foley: two light stone contacts and a
 // rounded closing knock. A stronger blip adds one quick contact to the rhythm.
-function pebbleReply(alarm,sampleRate,profile=pebbleReplyProfile()){
+function* pebbleReply(alarm,sampleRate,profile=pebbleReplyProfile()){
  const samples=new Float32Array(Math.ceil(REPLY_DURATION.hopper*sampleRate));
  const notes=alarm?[[0,'step',1],[profile.spacing*.8,'step',profile.weight],
   [profile.spacing*1.6,'step',.8],[profile.closing+.05,'settle',.75]]:
@@ -30,14 +31,15 @@ function pebbleReply(alarm,sampleRate,profile=pebbleReplyProfile()){
    const value=(contact[index]??0)*(1-fraction)+(contact[index+1]??0)*fraction;
    softened+=(value-softened)*smoothing;
    if(offset+j<samples.length)samples[offset+j]+=softened*strength;
+   if(j%1024===1023)yield;
   }
  }
- for(const value of samples)peak=Math.max(peak,Math.abs(value));
- for(let i=0;i<samples.length;i++)samples[i]*=.82/Math.max(.01,peak);
+ for(let i=0;i<samples.length;i++){peak=Math.max(peak,Math.abs(samples[i]));if(i%8192===8191)yield;}
+ for(let i=0;i<samples.length;i++){samples[i]*=.82/Math.max(.01,peak);if(i%8192===8191)yield;}
  return samples;
 }
-export function synthesizeCreatureReply(kind,alarm=false,sampleRate=44100,profile) {
- if(kind==='hopper')return pebbleReply(alarm,sampleRate,profile);
+export function* buildCreatureReply(kind,alarm=false,sampleRate=44100,profile) {
+ if(kind==='hopper')return yield* pebbleReply(alarm,sampleRate,profile);
  const duration=REPLY_DURATION[kind],samples=new Float32Array(Math.ceil(duration*sampleRate));let phase=0,peak=0;
  for(let i=0;i<samples.length;i++){
   const t=i/sampleRate,u=t/duration;
@@ -50,18 +52,23 @@ export function synthesizeCreatureReply(kind,alarm=false,sampleRate=44100,profil
   v=Math.sin(phase)+.24*Math.sin(phase*2.003)+.08*Math.sin(phase*3.01);
   if(kind==='reed')v+=.22*Math.sin(phase*.501);
   samples[i]=v*env*Math.min(1,t/.012,(duration-t)/.04);peak=Math.max(peak,Math.abs(samples[i]));
+  if(i%1024===1023)yield;
  }
- for(let i=0;i<samples.length;i++)samples[i]*=.82/Math.max(.01,peak);
+ for(let i=0;i<samples.length;i++){samples[i]*=.82/Math.max(.01,peak);if(i%8192===8191)yield;}
  return samples;
 }
+export function synthesizeCreatureReply(...args){const work=buildCreatureReply(...args);let result;do{result=work.next();}while(!result.done);return result.value;}
 export class CreatureReplyAudio {
- constructor(engine){this.engine=engine;this.voices=[];this.pending=[];this.buffers=new Map();this.history=[];this.pebbleProfiles=new WeakMap();this.pebbleSerial=0;this.muted=false;this.out=engine.ctx.createGain();this.out.gain.value=.95;this.out.connect(engine.master);}
- play(kind,creature,alarm=false){
+ constructor(engine,{asyncSamples=false}={}){this.engine=engine;this.voices=[];this.pending=[];this.buffers=new Map();this.history=[];this.pebbleProfiles=new WeakMap();this.pebbleSerial=0;this.muted=false;this.out=engine.ctx.createGain();this.out.gain.value=.95;this.out.connect(engine.master);
+  this.sampleBank=asyncSamples?new AudioSampleBank(engine.ctx,{workerFactory:()=>new Worker(new URL('./CreatureReplyWorker.js?v=stable-30-3',import.meta.url),{type:'module'}),build:o=>buildCreatureReply(o.kind,o.alarm,o.sampleRate,o.profile),key:o=>o.kind+o.alarm+(o.profile?JSON.stringify(o.profile):''),limit:64}):null;
+  if(this.sampleBank)for(const kind of Object.keys(REPLY_DURATION))if(kind!=='hopper')for(const alarm of [false,true])this.sampleBank.request({kind,alarm,sampleRate:engine.ctx.sampleRate});
+ }
+ play(kind,creature,alarm=false,expires=this.engine.now+3){
   const e=this.engine,ctx=e.ctx;this.voices=this.voices.filter(v=>v.end>e.now);
   if(this.muted||ctx.state!=='running')return false;
   if(this.voices.length>=4){
    if(this.pending.length>=8||this.pending.filter(v=>v.kind===kind).length>=2)return false;
-   this.pending.push({kind,creature,alarm,expires:e.now+3});return true;
+   this.pending.push({kind,creature,alarm,expires});return true;
   }
   let profile;
   if(kind==='hopper'){
@@ -69,6 +76,10 @@ export class CreatureReplyAudio {
    if(!profile){profile=pebbleReplyProfile(creature.id??`anonymous:${this.pebbleSerial++}`,creature.size,creature.phase);this.pebbleProfiles.set(creature,profile);}
   }
   const key=kind+alarm+(profile?JSON.stringify(profile):'');let buffer=this.buffers.get(key);
+  if(!buffer&&this.sampleBank){
+   const options={kind,alarm,sampleRate:ctx.sampleRate,profile};buffer=this.sampleBank.get(options);
+   if(!buffer){if(this.pending.length>=8||this.pending.filter(v=>v.kind===kind).length>=2)return false;this.sampleBank.request(options);this.pending.push({kind,creature,alarm,expires});return true;}
+  }
   if(!buffer){const samples=synthesizeCreatureReply(kind,alarm,ctx.sampleRate,profile);buffer=ctx.createBuffer(1,samples.length,ctx.sampleRate);buffer.copyToChannel(samples,0);}
   // LRU bounds memory while the player discovers more colonies.
   this.buffers.delete(key);this.buffers.set(key,buffer);
@@ -82,7 +93,7 @@ export class CreatureReplyAudio {
   source.start(start);this.onStart?.(creature,duration,start);e.duck(.3,duration+.3);
   this.history.push({kind,alarm,time:e.now});if(this.history.length>24)this.history.shift();return true;
  }
- update(){this.pending=this.muted?[]:this.pending.filter(v=>v.expires>this.engine.now);while(this.pending.length&&this.voices.length<4){const v=this.pending.shift();this.play(v.kind,v.creature,v.alarm);}this.out.gain.setTargetAtTime(this.muted?0:.95,this.engine.now,.04);for(const v of this.voices){const p=v.creature.pos||v.creature.position;for(const axis of ['x','y','z'])v.pan['position'+axis.toUpperCase()].setTargetAtTime(p[axis],this.engine.now,.04);v.send.gain.setTargetAtTime(this.muted?0:.12,this.engine.now,.04);}}
+ update(){this.pending=this.muted?[]:this.pending.filter(v=>v.expires>this.engine.now);for(let attempts=this.pending.length;attempts>0&&this.pending.length&&this.voices.length<4;attempts--){const v=this.pending.shift();this.play(v.kind,v.creature,v.alarm,v.expires);}this.out.gain.setTargetAtTime(this.muted?0:.95,this.engine.now,.04);for(const v of this.voices){const p=v.creature.pos||v.creature.position;for(const axis of ['x','y','z'])v.pan['position'+axis.toUpperCase()].setTargetAtTime(p[axis],this.engine.now,.04);v.send.gain.setTargetAtTime(this.muted?0:.12,this.engine.now,.04);}}
  silence(){this.pending=[];for(const v of [...this.voices]){try{v.source.stop();}catch{}}}
- dispose(){this.silence();this.out.disconnect();this.buffers.clear();}
+ dispose(){this.sampleBank?.dispose();this.silence();this.out.disconnect();this.buffers.clear();}
 }

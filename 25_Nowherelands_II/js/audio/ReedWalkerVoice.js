@@ -1,5 +1,18 @@
 import { reedVoice } from '../world/fauna/ReedWalkerTraits.js?v=reed-5';
 
+const noiseBanks=new WeakMap();
+export function reedNoiseBuffer(ctx,note) {
+ let bank=noiseBanks.get(ctx);if(!bank){bank=new Map();noiseBanks.set(ctx,bank);}
+ const size=Math.ceil(ctx.sampleRate*note.duration),key=size+':'+note.air;
+ if(bank.has(key))return bank.get(key);
+ const buffer=ctx.createBuffer(1,size,ctx.sampleRate),data=buffer.getChannelData(0);let seed=731;
+ for(let i=0;i<size;i++){seed=(Math.imul(seed,1664525)+1013904223)>>>0;data[i]=(seed/2147483648-1)*note.air;}
+ if(bank.size>=12)bank.delete(bank.keys().next().value);bank.set(key,buffer);return buffer;
+}
+export function warmReedVoice(ctx) {
+ for(const callPace of [1,.76])for(const event of ['rumble','breath'])for(const note of reedVoice({pitch:83,callPace},event))reedNoiseBuffer(ctx,note);
+}
+
 // Quiet, woody attacks inside an airy hollow resonance. Sound is opt-in in the study.
 export function playReedVoice(ctx, destination, traits, event = 'rumble', { at = ctx.currentTime, onended = () => {} } = {}) {
  const start = at + .02;
@@ -18,9 +31,7 @@ export function playReedVoice(ctx, destination, traits, event = 'rumble', { at =
    gain.gain.value = level; oscillator.connect(gain); gain.connect(envelope);
    oscillator.start(t); oscillator.stop(end + .02); nodes.push(oscillator, gain); sources.push(oscillator);
   }
-  const size = Math.ceil(ctx.sampleRate * note.duration), buffer = ctx.createBuffer(1, size, ctx.sampleRate), data = buffer.getChannelData(0);
-  let seed = 731;
-  for (let i = 0; i < size; i++) { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; data[i] = (seed / 2147483648 - 1) * note.air; }
+  const buffer=reedNoiseBuffer(ctx,note);
   const noise = ctx.createBufferSource(), filter = ctx.createBiquadFilter(); noise.buffer = buffer;
   filter.type = 'lowpass'; filter.frequency.value = 470; filter.Q.value = .6;
   noise.connect(filter); filter.connect(envelope); noise.start(t); noise.stop(end + .02); nodes.push(noise, filter); sources.push(noise);

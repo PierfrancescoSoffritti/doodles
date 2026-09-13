@@ -1,5 +1,5 @@
 import { createReedAudioScene } from '../audio/ReedWalkerAudioScene.js';
-import { LanternMiteAudio } from '../audio/LanternMiteVoice.js';
+import { LanternMiteAudio } from '../audio/LanternMiteVoice.js?v=stable-30-3';
 
 export function mountLanternListening(model, normalPlayback) {
  const $ = id => document.getElementById(id);

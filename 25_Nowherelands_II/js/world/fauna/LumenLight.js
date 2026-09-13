@@ -38,16 +38,23 @@ export class LumenLight {
 		this.sources = lumenLightUniforms(shared).uLumenLights.value;
 		this.colors=lumenLightUniforms(shared).uLumenColors.value;
 		this.owners = Array(8).fill(null);
+  this.candidates = []; this.color = new THREE.Vector3();
 	}
 	update(model, dt) {
-		const candidates = model.creatures.filter(c => c.kind === 'lumen' && c.size > 0.6 && Math.hypot(c.pos.x-model.listener.x,c.pos.y-model.listener.y,c.pos.z-model.listener.z)<220);
+		const candidates = this.candidates;
+  candidates.length = 0;
+  for (const c of model.creatures) {
+   if (c.kind !== 'lumen' || !(c.size > .6)) continue;
+   const dx=c.pos.x-model.listener.x, dy=c.pos.y-model.listener.y, dz=c.pos.z-model.listener.z;
+   if (dx*dx+dy*dy+dz*dz<220*220) candidates.push(c);
+  }
 		const active = (this.shared.caveAmount || 0) < 0.4;
 		for (let i=0;i<8;i++) {
 			const source=this.sources[i]; let c=this.owners[i];
 			if (!candidates.includes(c)) {
 				source.w *= Math.exp(-dt*6);
 				if(source.w>0.01) continue;
-				c=candidates.find(candidate=>!this.owners.some(owner=>owner && Math.hypot(owner.pos.x-candidate.pos.x,owner.pos.z-candidate.pos.z)<10));
+				c=candidates.find(candidate=>!this.owners.some(owner=>owner && (owner.pos.x-candidate.pos.x)**2+(owner.pos.z-candidate.pos.z)**2<100));
 				this.owners[i]=c || null;
 			}
 			if(!c) continue;
@@ -55,7 +62,7 @@ export class LumenLight {
 			source.set(p.x,p.y,p.z,source.w);
 			const distance=Math.hypot(p.x-model.listener.x,p.y-model.listener.y,p.z-model.listener.z);
 			const glow=c.radiance || {r:0.33,g:0.82,b:0.96,brightness:0.61};
-			this.colors[i].lerp(new THREE.Vector3(glow.r,glow.g,glow.b),1-Math.exp(-dt*5));
+			this.colors[i].lerp(this.color.set(glow.r,glow.g,glow.b),1-Math.exp(-dt*5));
 			const intensity=active?c.size*(0.32+c.energy*0.12)*glow.brightness*(1-Math.min(1,Math.max(0,distance-150)/70)):0;
 			source.w += (intensity-source.w)*(1-Math.exp(-dt*5));
 		}

@@ -1,7 +1,7 @@
 import {pebbleSamples} from '../../js/audio/PebbleSoundBank.js?v=pebble-audio-10';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {synthesizeCreatureReply,REPLY_DURATION,pebbleReplyProfile} from '../../js/audio/CreatureReplyAudio.js?v=pebble-voice-4b';
+import {synthesizeCreatureReply,REPLY_DURATION,pebbleReplyProfile} from '../../js/audio/CreatureReplyAudio.js?v=stable-30-3';
 
 test('every reply and alarm has finite, audible, bounded samples with quiet endpoints',()=>{
  for(const kind of Object.keys(REPLY_DURATION))for(const alarm of [false,true])for(const rate of [22050,48000]){

@@ -5,8 +5,8 @@ import { createRockMaterial, noiseGlsl } from '../TerrainMaterial.js?v=player-no
 import { fogGlsl } from '../FogGlsl.js';
 import { faunaGeometry } from './FaunaGeometry.js';
 import { faunaDeformation } from './FaunaDeformation.js';
-import { solveLeg, SPECIES, PEBBLE_DRAW_DISTANCE } from './FaunaModel.js?v=pebble-voice-4b';
-import { PebbleEyeMeshes } from './PebbleEyeMeshes.js?v=pebble-full-1';
+import { solveLeg, SPECIES, PEBBLE_DRAW_DISTANCE } from './FaunaModel.js?v=stable-30-25';
+import { PebbleEyeMeshes } from './PebbleEyeMeshes.js?v=stable-30-5';
 import { clamp, smooth } from './Locomotion.js';
 
 // Bodies share the scenery's rock lighting; legs retain their darker palette.
@@ -26,6 +26,7 @@ function stoneMaterial(shared, neutral = false, leg = false) {
 
 export class PebbleMeshes {
 	constructor(root, shared) {
+		this.cull = true;
 		this.eyes = new PebbleEyeMeshes(root, shared, SPECIES.hopper.cap);
 		this.pose = new THREE.Object3D(); this.bone = new THREE.Object3D(); this.up = new THREE.Vector3(0, 1, 0);
 		this.direction = new THREE.Vector3(); this.a = new THREE.Vector3(); this.b = new THREE.Vector3();
@@ -71,7 +72,7 @@ export class PebbleMeshes {
 		this.bone.quaternion.setFromUnitVectors(this.up, this.direction.multiplyScalar(1 / Math.max(length, 0.0001)));
 		this.bone.scale.set(width, length, width); this.bone.updateMatrix(); this.legs.setMatrixAt(index, this.bone.matrix);
 	}
-	update(model, alpha) {
+	update(model, alpha, views) {
 		this.eyes.begin();
 		let bodies = 0, stones = 0, legs = 0, shadows = 0;
 		const lerp = (a, b) => a + (b - a) * alpha;
@@ -90,7 +91,15 @@ export class PebbleMeshes {
     if (floor.cave && floor.water > floor.ground) p.y = Math.min(p.y, Math.max(floor.ground + 1.5 * size, floor.water - .55 * size));
     p.y = Math.max(p.y, floor.ground + 0.55 * size, (floor.cave ? (floor.water ?? -Infinity) : -Infinity) - .8 * size);
    }
-			setPebbleLight(this.bodies, bodies, floor);
+			// Include body, deployed legs, eye cards and the ground shadow. The
+   // shared view set also includes the planar reflection cameras.
+   if(this.cull && views && !views.contains(p,8*size+16)){
+    // Springs retain their continuous motion while only geometry is skipped.
+    this.pose.position.set(p.x,p.y,p.z);this.pose.rotation.set(bank,yaw,pitch,'YZX');this.pose.scale.setScalar(size);this.pose.updateMatrix();
+    this.eyes.update(c,this.pose.matrix,alpha,size,model.time-(1-alpha)/30,model.eyeTarget||model.listener,floor,false);
+    continue;
+   }
+   setPebbleLight(this.bodies, bodies, floor);
 			this.place(this.bodies, bodies, p, yaw, pitch, bank, size, c.phase);writeReplyEcho(this.bodies,bodies,c);this.bodies.geometry.attributes.aLife.setY(bodies++,c.replyGlow||0);
 			this.eyes.update(c, this.pose.matrix, alpha, size, model.time - (1 - alpha) / 30, model.eyeTarget || model.listener, floor);
 			const stand = lerp(b.prevStand, b.stand);
@@ -129,6 +138,7 @@ export class PebbleMeshes {
 			for (const c of group.stones) {
 				const far = clamp((PEBBLE_DRAW_DISTANCE - Math.hypot(c.pos.x - model.listener.x, c.pos.z - model.listener.z)) / 130, 0, 1);
 				if (!far || stones >= this.stones.instanceMatrix.count) continue;
+    if(this.cull && views && !views.contains(c.pos,8*c.size*born*far+4))continue;
 				this.place(this.stones, stones++, c.pos, c.yaw, c.pitch, c.bank, c.size * born * far, c.phase);
 				this.shadow(shadows++, c.pos, c.pos.y - 0.55 * c.size, c.pitch, c.bank, c.yaw, c.size * born * far, 0);
 			}

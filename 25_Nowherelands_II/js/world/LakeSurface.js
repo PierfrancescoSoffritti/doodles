@@ -6,6 +6,9 @@ const NO_LAKES = Object.freeze([]);
 export class LakeSurface {
 	constructor(world, resolve = true) {
 		this.world = world;
+  // The generated world never changes its coordinate system. Keep this hot
+  // projection independent of the large world record's property layout.
+  this.projection = new Float64Array([world.spawn.x, world.spawn.z, world.size, world.cell, world.res]);
 		this.candidateCache = new Map();
 		const N = world.res;
 		this.ids = world.lakeId ? Int32Array.from(world.lakeId) : new Int32Array(N * N).fill(-1);
@@ -109,10 +112,22 @@ export class LakeSurface {
 		if (resolve) this.resolveConnectivity();
 	}
 
+	// A height sample asks several lake questions at the same exact point.
+	// Reuse only the coordinate projection; coverage and water remain live.
+	query(x, z) {
+		let q = this.pointQuery;
+		if (q && q.x === x && q.z === z) return q;
+		const p = this.projection;
+		const fx = (x + p[0] + p[2] / 2) / p[3], fz = (z + p[1] + p[2] / 2) / p[3];
+		const i = Math.floor(fx), j = Math.floor(fz);
+		if (!q) q = this.pointQuery = {};
+		q.x=x; q.z=z; q.i=i; q.j=j; q.k=j*p[4]+i; q.tx=fx-i; q.tz=fz-j;
+		return q;
+	}
+
 	coverage(id, x, z) {
 		const w = this.world, N = w.res, ids = this.ids;
-		const fx = (x + w.spawn.x + w.size / 2) / w.cell, fz = (z + w.spawn.z + w.size / 2) / w.cell;
-		const i = Math.floor(fx), j = Math.floor(fz), tx = fx - i, tz = fz - j;
+		const { i, j, tx, tz } = this.query(x, z);
 		if (i < 0 || j < 0 || i >= N - 1 || j >= N - 1) return -w.cell;
 		const at = (k) => ids[k] === id ? 1 : 0, k = j * N + i;
 		const support = (at(k) * (1 - tx) + at(k + 1) * tx) * (1 - tz) + (at(k + N) * (1 - tx) + at(k + N + 1) * tx) * tz;
@@ -203,10 +218,10 @@ export class LakeSurface {
 	}
 
 	candidates(k) {
-		const n = this.world.res, a = this.ids[k], b = this.ids[k+1], c = this.ids[k+n], d = this.ids[k+n+1], joins = this.joinCells.get(k);
-		if (!(a >= 0 || b >= 0 || c >= 0 || d >= 0 || joins?.size)) return NO_LAKES;
 		let ids = this.candidateCache.get(k);
 		if (ids) return ids;
+		const n = this.world.res, a = this.ids[k], b = this.ids[k+1], c = this.ids[k+n], d = this.ids[k+n+1], joins = this.joinCells.get(k);
+		if (!(a >= 0 || b >= 0 || c >= 0 || d >= 0 || joins?.size)) return NO_LAKES;
 		ids = [...new Set([a, b, c, d, ...(joins || [])])].filter(id => id >= 0);
 		// Bound memory when exploring the whole continent. Clearing affects only speed.
 		if (this.candidateCache.size >= 8192) this.candidateCache.clear();
@@ -216,7 +231,7 @@ export class LakeSurface {
 
 	fillDisconnected(x, z, height) {
 		if (!this.removed?.size) return height;
-		const w = this.world, i = Math.floor((x + w.spawn.x + w.size / 2) / w.cell), j = Math.floor((z + w.spawn.z + w.size / 2) / w.cell);
+		const w = this.world, { i, j } = this.query(x, z);
 		const k = j * w.res + i;
 		const candidates = this.candidates(k);
 		for (const id of candidates) {
@@ -227,7 +242,7 @@ export class LakeSurface {
 	}
 
 	isSpillway(lakeId, x, z) {
-		const w = this.world, i = Math.floor((x + w.spawn.x + w.size / 2) / w.cell), j = Math.floor((z + w.spawn.z + w.size / 2) / w.cell);
+		const w = this.world, { i, j } = this.query(x, z);
 		for (const id of this.joinCells.get(j * w.res + i) || []) for (const outlet of this.outlets.get(id) || []) {
 			if (id !== lakeId) continue;
 			const along = (x - outlet.x) * outlet.dx + (z - outlet.z) * outlet.dz;
@@ -250,7 +265,7 @@ export class LakeSurface {
 
 	// Carve the feeder through the rim, including the full width of the waterfall brow.
 	carveOutlet(x, z, height) {
-		const w = this.world, i = Math.floor((x + w.spawn.x + w.size / 2) / w.cell), j = Math.floor((z + w.spawn.z + w.size / 2) / w.cell);
+		const w = this.world, { i, j } = this.query(x, z);
 		for (const id of this.joinCells.get(j * w.res + i) || []) for (const outlet of this.outlets.get(id) || []) {
 			const along = (x - outlet.x) * outlet.dx + (z - outlet.z) * outlet.dz;
 			if (along > 0.05) continue;
@@ -267,7 +282,7 @@ export class LakeSurface {
 	levelAt(x, z) {
 		this.shoreId = -1; this.shoreDistance = -Infinity;
 		const w = this.world, N = w.res;
-		const i = Math.floor((x + w.spawn.x + w.size / 2) / w.cell), j = Math.floor((z + w.spawn.z + w.size / 2) / w.cell);
+		const { i, j } = this.query(x, z);
 		if (i < 0 || j < 0 || i >= N - 1 || j >= N - 1) return -10000;
 		let level = -10000;
 		const candidates = this.candidates(j * N + i);

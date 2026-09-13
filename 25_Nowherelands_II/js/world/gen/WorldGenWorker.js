@@ -1,9 +1,10 @@
 import { entranceHabitat } from '../caves/EntranceHabitat.js';
 import { generateWorld } from './WorldGen.js';
-import { Heightmap } from '../Heightmap.js';
+import { Heightmap } from '../Heightmap.js?v=stable-30-6';
 import { generateCaves } from '../caves/CaveGen.js';
 import { erodeEntrances, EntranceTerrain } from '../caves/EntranceTerrain.js';
 import { buildCaveMeshes } from '../caves/CaveMeshData.js';
+import { indexCaveMesh } from '../caves/IndexCaveMesh.js?v=stable-30-8';
 
 // Bakes the world off the main thread. One message in (seed, options), progress out, then the
 // finished world with its typed arrays transferred rather than copied.
@@ -23,6 +24,7 @@ self.onmessage = (e) => {
 	heightmap.entranceTerrain=new EntranceTerrain(world.caveTerrain);
 	world.caveHabitat=entranceHabitat(heightmap,world.caves);
 	const caveMeshes=buildCaveMeshes(heightmap,world.caves,p=>self.postMessage({type:'progress',label:'carving caverns',p:.96+p*.035}));
+	for (const chunk of [...caveMeshes.chunks, ...caveMeshes.decorations]) indexCaveMesh(chunk);
 	delete world.area;
 	const transfer = [world.height.buffer, world.lakeLevel.buffer, world.lakeId.buffer, world.rock.buffer, world.habitat.buffer];
 	for(const p of world.caveTerrain)transfer.push(p.delta.buffer,p.mask.buffer);

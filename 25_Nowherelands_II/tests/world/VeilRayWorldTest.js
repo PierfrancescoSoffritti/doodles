@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { FaunaModel } from '../../js/world/fauna/FaunaModel.js?v=pebble-voice-4b';
+import { FaunaModel } from '../../js/world/fauna/FaunaModel.js?v=stable-30-25';
 import { rayHabitatSite } from '../../js/world/fauna/VeilRayHabitat.js';
 
 const lake={id:3,y:20,shore:[{x:0,z:7,y:20,nx:0,nz:1,tx:-1,tz:0}]};
@@ -99,4 +99,13 @@ test('population caps include paired sites and streamed obstacles trigger safe r
   assert.ok(!blocked(c.pos.x,c.pos.z,c.radius+1.9),'full membrane stays outside new collider');
  }
  assert.ok(rerouted);assert.ok(Math.hypot(c.pos.x-before.x,c.pos.z-before.z)>1,'does not remain frozen before the obstacle');
+});
+
+test('a prepared ray voice starts its visual breath when playback is accepted, with no duplicate pending call',async()=>{
+ const {worldRayCall}=await import('../../js/world/fauna/VeilRayWorld.js?v=stable-30-3');
+ const {m,g}=make(),c=g.members[0];let resolve;
+ m.onCall=()=>new Promise(r=>{resolve=r});
+ assert.equal(worldRayCall(c,m),true);assert.equal(c.calls,0);assert.equal(worldRayCall(c,m),false);
+ m.time+=.2;resolve(true);await Promise.resolve();assert.equal(c.calls,1);assert.equal(c.voiceAt,m.time);
+ m.time+=8;assert.equal(worldRayCall(c,m),true);resolve(false);await Promise.resolve();assert.equal(c.calls,1);assert.equal(c.pendingVoice,false);
 });

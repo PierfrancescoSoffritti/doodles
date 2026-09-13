@@ -1,26 +1,49 @@
 // The surface and drifting foam sample the same steady current in channel metres.
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-const NO_WAKE = [0, 0, 0];
 const wakeCache = new WeakMap();
 
 export function riverWakes(river, index, stride, alongField) {
+	return writeRiverWakes(river, index, stride, alongField, [[0, 0, 0], [0, 0, 0], [0, 0, 0]]);
+}
+
+// Cache immutable wake values in one numeric buffer per river. Callers with
+// repeated queries provide reusable output rows instead of retaining thousands
+// of nested arrays through a WeakMap during garbage collection.
+export function writeRiverWakes(river, index, stride, alongField, out) {
 	let segments = wakeCache.get(river);
-	if (!segments) { segments = new Map(); wakeCache.set(river, segments); }
-	if (segments.has(index)) return segments.get(index);
-	const a = river.data[index * stride + alongField], b = river.data[(index + 1) * stride + alongField];
-	const picks = [];
-	for (let i = 0; i < river.wakes.length; i += 3) {
-		const s = river.wakes[i], r = river.wakes[i + 2];
-		if (s > b + r * 3 || s < a - r * 10) continue;
-		picks.push([Math.abs(s - (a + b) * 0.5), [s, river.wakes[i + 1], r]]);
+	if (!segments) {
+		const count = Math.max(0, Math.floor(river.data.length / stride) - 1);
+		segments = { values: new Float64Array(count * 9), ready: new Uint8Array(count) };
+		wakeCache.set(river, segments);
 	}
-	picks.sort((a, b) => a[0] - b[0]);
-	const result = [0, 1, 2].map(i => picks[i]?.[1] || NO_WAKE);
-	segments.set(index, result);
-	return result;
+	const offset = index * 9;
+	if (!segments.ready[index]) {
+		const a = river.data[index * stride + alongField], b = river.data[(index + 1) * stride + alongField];
+		const picks = [];
+		for (let i = 0; i < river.wakes.length; i += 3) {
+			const s = river.wakes[i], r = river.wakes[i + 2];
+			if (s > b + r * 3 || s < a - r * 10) continue;
+			picks.push([Math.abs(s - (a + b) * 0.5), i]);
+		}
+		picks.sort((a, b) => a[0] - b[0]);
+		for (let i = 0; i < 3; i++) if (picks[i]) {
+			const source = picks[i][1];
+			for (let j = 0; j < 3; j++) segments.values[offset + i * 3 + j] = river.wakes[source + j];
+		}
+		segments.ready[index] = 1;
+	}
+	for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) out[i][j] = segments.values[offset + i * 3 + j];
+	return out;
 }
 
 export function riverCurrent(along, across, width, speed, bend, wakes, out = [0, 0]) {
+ return riverCurrentState([along, across, width, speed, bend], wakes, out);
+}
+
+// Reuse numeric storage in particle loops so the call boundary does not box
+// five floating-point arguments for every midpoint integration step.
+export function riverCurrentState(state, wakes, out) {
+ const along=state[0], across=state[1], width=state[2], speed=state[3], bend=state[4];
 	const u = across / Math.max(width * 0.5, 1);
 	const core = clamp(1 - (u - bend * 0.35) ** 2, 0, 1);
 	const edge = clamp((1 - Math.abs(u)) * 5, 0, 1);
@@ -32,7 +55,7 @@ export function riverCurrent(along, across, width, speed, bend, wakes, out = [0,
 		vx -= speed * obstacle * 0.95;
 		vy += speed * y * obstacle * 1.6;
 		// Counter-rotating vortices leave a slow, sometimes reversing pocket downstream.
-		for (const side of [-1, 1]) {
+		for (let side = -1; side <= 1; side += 2) {
 			const dx = (x - 2.5) / 2, dy = y - side * 0.85;
 			const vortex = Math.exp(-dx * dx - dy * dy) * speed * 2.4;
 			vx += side * dy * vortex;

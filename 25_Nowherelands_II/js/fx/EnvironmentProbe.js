@@ -12,7 +12,36 @@ export class EnvironmentProbe {
 		this.lastColor = new THREE.Color();
 		this.stats = { faces: 0, cycles: 0, filters: 0 };
 	}
+	async prewarm() {
+		// Installing the first map changes the Standard/Lambert shader variants.
+		// Warm that complete lighting configuration before play begins as well.
+		for (let cycle = 0; cycle < 2; cycle++) {
+			this.elapsed = Infinity;
+			if (cycle) {
+				const r = this.renderer, target = r.getRenderTarget(), face = r.getActiveCubeFace(), mip = r.getActiveMipmapLevel();
+				let ready;
+				try {
+					r.setRenderTarget(this.cube, 0);
+					ready = r.compileAsync(this.scene, this.capture.children[0]);
+				} finally { r.setRenderTarget(target, face, mip); }
+				await ready;
+			}
+			for (let face = 0; face < 7; face++) {
+				this.update(0, true);
+				await new Promise(requestAnimationFrame);
+			}
+		}
+	}
 	update(dt, renderFrame = true) {
+  const stage=this.face===6?'filter':`face-${Math.max(0,this.face)}`,at=performance.now(),before=this.stats.faces+this.stats.filters;
+  try{return this.advance(dt,renderFrame);}finally{
+   if(this.stats.faces+this.stats.filters!==before){
+    const ms=performance.now()-at,stages=this.stats.stages ||= {},record=stages[stage] ||= {count:0,ms:0,maxMs:0};record.count++;record.ms+=ms;record.maxMs=Math.max(record.maxMs,ms);
+    if(ms>8){const slow=this.stats.slow ||= [];slow.push({at,stage,ms});if(slow.length>32)slow.shift();}
+   }
+  }
+ }
+	advance(dt, renderFrame = true) {
 		this.elapsed += dt;
 		if (!renderFrame || this.shared.caveAmount >= .05) return;
 		if (this.face < 0) {

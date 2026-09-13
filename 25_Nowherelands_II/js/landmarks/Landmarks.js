@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { bus, Events } from '../core/EventBus.js';
 import { Random } from '../core/Random.js';
-import { config } from '../core/Config.js';
+import { config } from '../core/Config.js?v=stable-30-3';
 import { clamp01 } from '../core/Utils.js';
 import { Sequencer } from './Sequencer.js';
 import { Octahedrons } from './Octahedrons.js';

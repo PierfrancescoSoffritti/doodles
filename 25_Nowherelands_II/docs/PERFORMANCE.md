@@ -1,5 +1,9 @@
 # Performance work — 8 September 2026
 
+Current mobile/desktop profiles, retained changes, acceptance criteria and reproduction commands are documented in the [Samsung performance report](performance/2026-09-13-mobile-30/README.md). The final Samsung build passes four eight-minute tests at 30.00 FPS, with maximum measured intervals of 41.5–46.6 ms and zero audio underruns. The phone's four-image presentation queue adds roughly 100 ms of image buffering; desktop does not enable that queue by default.
+
+The results below are the earlier 8 September desktop baseline. Later mobile settings and scheduling supersede its profile-specific defaults; use the current report for the shipped behavior and final Samsung evidence.
+
 Baseline: `3cfc977`, including the latest bird habitats and species changes. This work reduces rendering and streaming cost while retaining the world, vegetation density, creature population, audio, and simulation rate.
 
 ## Changes and checks

@@ -1,14 +1,22 @@
-import { vegetationWind } from './weather/WeatherModel.js';
+import { plantLineData, attachPlantLineDisposal } from './PlantLineData.js?v=stable-30-26';
+import { indexLineTemplate } from './IndexLineTemplate.js';
+import { preparePlantReveal, revealPlants } from './PlantReveal.js?v=stable-30-6';
+import { Float32Builder } from './Float32Builder.js?v=stable-30-3';
+import { mobileDetail, mobileOption } from '../core/MobileDetail.js?v=stable-30-3';
+import { sharedPlantGeometry } from './SharedPlantGeometry.js?v=stable-30-3';
+import { spotCandidates, gridCandidates, finishPlacement } from './PlantPlacement.js?v=stable-30-3';
+import { vegetationWind } from './weather/WeatherModel.js?v=stable-30-10';
 import { weatherGlsl } from './weather/WeatherGlsl.js';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { indexPlantGeometry } from './IndexPlantGeometry.js?v=stable-30-3';
 import { Random, Simplex2D } from '../core/Random.js';
-import { config } from '../core/Config.js';
+import { config } from '../core/Config.js?v=stable-30-3';
 import { hslGlsl, createRockMaterial } from './TerrainMaterial.js?v=player-notes-13';
 import { ROCK_STRIDE } from './gen/Rivers.js';
-import { SEG_KIND } from './Heightmap.js';
-import { WatersideMeshes } from './WatersideMeshes.js';
-import { RiverEcology } from './RiverEcology.js';
+import { SEG_KIND } from './Heightmap.js?v=stable-30-6';
+import { WatersideMeshes } from './WatersideMeshes.js?v=stable-30-3';
+import { RiverEcology } from './RiverEcology.js?v=stable-30-3';
 import { vegetationFadeUniforms, vegetationFadeGlsl, fadeSmallPlantMaterial } from './VegetationFade.js';
 
 const UNBORN = 1e9;
@@ -180,6 +188,7 @@ const G = 3;
 function finish(parts, trunkRadius, hang = []) {
 	const g = mergeGeometries(parts, false);
 	g.scale(G, G, G);
+	indexPlantGeometry(g);
 	g.computeBoundingSphere();
 	return { geometry: g, trunkRadius: trunkRadius * G, hang: hang.map((v) => v.clone().multiplyScalar(G)) };
 }
@@ -388,6 +397,7 @@ export class Vegetation {
 		this.heightmap = heightmap;
 		this.shared = shared;
 		this.chunks = new Map();
+		this.geometryBounds = new WeakMap();
 		this.radius = config.world.vegetationRadius;
 		this.time = 0;
 		this.centerX = 0;
@@ -422,7 +432,7 @@ export class Vegetation {
 		this.riverEcology = new RiverEcology(shared);
 		this.watersideMeshes = new WatersideMeshes(shared);
 
-		this.treeMaterial = instancedMaterial(new THREE.MeshStandardMaterial({ color: '#0a0716', roughness: 0.95, metalness: 0.05, flatShading: true, side: THREE.DoubleSide }), mk('tree', TREE_HEIGHT), 2.5);
+		this.treeMaterial = instancedMaterial(mobileDetail ? new THREE.MeshLambertMaterial({ color: '#0a0716', side: THREE.DoubleSide }) : new THREE.MeshStandardMaterial({ color: '#0a0716', roughness: 0.95, metalness: 0.05, flatShading: true, side: THREE.DoubleSide }), mk('tree', TREE_HEIGHT), 2.5);
 		// the giants: bark and leaf cards in one material; cards are cut out of the atlas, bark (uv v < 0)
 		// skips the lookup; facets catch the moon; snow settles on the upward faces
 		const leafU = mk('giant', 300);
@@ -540,7 +550,7 @@ export class Vegetation {
 					#include <fog_fragment>
 				}`,
 		});
-		this.shrubMaterial = instancedMaterial(new THREE.MeshStandardMaterial({ color: '#0a0716', roughness: 0.95, metalness: 0.05, flatShading: true, side: THREE.DoubleSide }), mk('shrub', 6), 0.8);
+		this.shrubMaterial = instancedMaterial(mobileDetail ? new THREE.MeshLambertMaterial({ color: '#0a0716', side: THREE.DoubleSide }) : new THREE.MeshStandardMaterial({ color: '#0a0716', roughness: 0.95, metalness: 0.05, flatShading: true, side: THREE.DoubleSide }), mk('shrub', 6), 0.8);
 		this.crystalMaterial = instancedMaterial(new THREE.MeshBasicMaterial({ color: '#05030c' }), mk('crystal', 1), 0, 'transformed.y *= 1.0 + uPulse * 0.25;');
 		this.bladeMaterial = instancedMaterial(new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, fog: true }), mk('blade', 1), 0.35,
 			'float keep = mix(1.0, 0.3, smoothstep(50.0, 320.0, distance(ipos.xz, cameraPosition.xz)));\nvec2 hp = fract(ipos.xz * 0.0731) * 97.0;\nfloat rnd = fract(sin(dot(hp, vec2(12.9898, 78.233))) * 43758.5453);\ntransformed *= 1.0 - smoothstep(keep - 0.12, keep + 0.02, rnd);', (fs) => fs
@@ -686,7 +696,7 @@ export class Vegetation {
 		if (this.farChunks.has(fkey)) return;
 		const items = [];
 		for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) items.push(...this.giantSpots(fx * 2 + i, fz * 2 + j));
-		const chunk = { meshes: [], groups: [], far: true };
+		const chunk = { meshes: [], groups: [], far: true, x: fx, z: fz };
 		const rnd = new Random(config.seed + ':far:' + fkey);
 		for (const conifer of [false, true]) {
 			const geoms = conifer ? this.sequoias : this.broadleaves;
@@ -700,7 +710,7 @@ export class Vegetation {
 				chunk.groups[chunk.groups.length - 1].mesh = chunk.meshes[before];
 			});
 		}
-		for (const mesh of chunk.meshes) this.scene.add(mesh);
+		for (const mesh of chunk.meshes) { mesh.updateMatrix();mesh.matrixAutoUpdate=false;this.scene.add(mesh); }
 		this.farChunks.set(fkey, chunk);
 		this.refreshFar(fkey);
 	}
@@ -794,31 +804,17 @@ export class Vegetation {
 	}
 
 	// random candidates, kept when `test` says so (test may read the heightmap scratch fields)
-	spots(rnd, ox, oz, size, count, test) {
-		const out = [];
-		for (let i = 0; i < count * 3 && out.length < count; i++) {
-			const x = ox + rnd.range(-size / 2, size / 2), z = oz + rnd.range(-size / 2, size / 2);
-			if (Math.hypot(x, z) < 14) continue;
-			if (test(x, z)) out.push({ x, z });
-		}
-		return out;
-	}
+	spots(...args) { return finishPlacement(spotCandidates(...args)); }
 
-	// a jittered grid of candidates, one per `spacing` metres: even coverage, no two on top of each other
-	grid(rnd, ox, oz, size, spacing, fn) {
-		const n = Math.max(1, Math.round(size / spacing)), sp = size / n;
-		for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
-			const x = ox - size / 2 + (i + rnd.next()) * sp, z = oz - size / 2 + (j + rnd.next()) * sp;
-			if (Math.hypot(x, z) < 14) continue;
-			fn(x, z);
-		}
-	}
+	// Synchronous placement remains available to far trees and prewarming.
+	grid(...args) { finishPlacement(gridCandidates(...args)); }
 
 	makeInstanced(geometry, material, kind, items, rnd, chunk, place) {
 		items=items.filter(it=>!this.heightmap.caves.hasOpening(it.x,it.z) || this.heightmap.caves.surfaceDensity(it.x,it.y ?? this.heightmap.height(it.x,it.z),it.z)<-2);
 		if (!items.length) return;
-		const geom = geometry.clone();
+		const geom = sharedPlantGeometry(geometry);
 		const mesh = new THREE.InstancedMesh(geom, material, items.length);
+  mesh.plantGeometry = geometry;
 		const born = new Float32Array(items.length);
 		const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), yAxis = new THREE.Vector3(0, 1, 0);
 		const pos = [];
@@ -846,21 +842,31 @@ export class Vegetation {
 			pos.push(it.x, it.z);
 		});
 		geom.setAttribute('aBorn', new THREE.InstancedBufferAttribute(born, 1));
-		geom.computeBoundingBox();
-		const box = geom.boundingBox, growth = material.userData.growthBounds;
-		if (growth) {
-			const bend = 1.44 * Math.min(growth.sway * 8, growth.height * .17);
-			box.expandByPoint(new THREE.Vector3());
-			box.min.x -= bend; box.max.x += bend; box.min.z -= bend; box.max.z += bend;
-			// Back easing overshoots by at most 10%; crystals pulse up to 25%.
-			const stretch = kind === 'crystal' ? 1.4 : 1.11;
-			box.min.y = Math.min(0, box.min.y * stretch) - 2.5;
-			box.max.y = Math.max(0, box.max.y * stretch);
+		let boundsByMaterial = this.geometryBounds.get(geometry);
+		if (!boundsByMaterial) this.geometryBounds.set(geometry, boundsByMaterial = new Map());
+		let bounds = boundsByMaterial.get(material);
+		if (!bounds) {
+			geom.computeBoundingBox();
+			const box = geom.boundingBox, growth = material.userData.growthBounds;
+			if (growth) {
+				const bend = 1.44 * Math.min(growth.sway * 8, growth.height * .17);
+				box.expandByPoint(new THREE.Vector3());
+				box.min.x -= bend; box.max.x += bend; box.min.z -= bend; box.max.z += bend;
+				// Back easing overshoots by at most 10%; crystals pulse up to 25%.
+				const stretch = kind === 'crystal' ? 1.4 : 1.11;
+				box.min.y = Math.min(0, box.min.y * stretch) - 2.5;
+				box.max.y = Math.max(0, box.max.y * stretch);
+			}
+			geom.boundingSphere = box.getBoundingSphere(new THREE.Sphere());
+			bounds = { box: geom.boundingBox, sphere: geom.boundingSphere };
+			boundsByMaterial.set(material, bounds);
+		} else {
+			geom.boundingBox = bounds.box.clone();
+			geom.boundingSphere = bounds.sphere.clone();
 		}
-		geom.boundingSphere = box.getBoundingSphere(new THREE.Sphere());
 		mesh.computeBoundingSphere(); mesh.frustumCulled = true;
 		chunk.meshes.push(mesh);
-		chunk.groups.push({ kind: KINDS[kind], attr: geom.getAttribute('aBorn'), pos, ranges: null, count: items.length, pending: born.reduce((n, b) => n + (b === UNBORN), 0) });
+		chunk.groups.push(preparePlantReveal({ kind: KINDS[kind], attr: geom.getAttribute('aBorn'), pos, ranges: null, count: items.length, pending: born.reduce((n, b) => n + (b === UNBORN), 0) }, UNBORN));
 	}
 
 	// one instanced mesh per geometry variant, so a stand mixes silhouettes
@@ -889,13 +895,14 @@ export class Vegetation {
 		const ox = cx * size, oz = cz * size;
 		const rnd = new Random(config.seed + ':veg:' + key);
 		const hm = this.heightmap;
-		const chunk = { meshes: [], groups: [] };
+		const chunk = { meshes: [], groups: [], x: cx, z: cz };
 		let committed = false;
 		try {
 
 			const pr = this.pr, look = (x, z) => this.look(x, z), downwind = (x, z, coast) => this.downwind(x, z, coast);
 
 			// ---- the giants of this chunk, full detail, solid ----
+			this.streamStage = 'giants';
 			chunk.colliders = [];
 			{
 				const giants = this.giantSpots(cx, cz);
@@ -915,11 +922,12 @@ export class Vegetation {
 			yield;
 			// ---- the smaller trees: bare silhouettes in the open ground and along the edges, dead giants
 			// as snags in the old forest, krummholz streaming downwind in the belt below the tree line ----
+			this.streamStage = 'smallTrees';
 			const bare = [], krumm = [], snags = [];
 			const pick2 = (arr) => [rnd.int(0, arr.length - 1), rnd.int(0, arr.length - 1)];
 			const bareVariants = pick2(this.bareTrees);
 			const krummVariant = rnd.int(0, this.krummholz.length - 1);
-			this.grid(rnd, ox, oz, size, 16, (x, z) => {
+			(yield* gridCandidates(rnd, ox, oz, size, 16, (x, z) => {
 				if (Math.hypot(x, z) < 60) return;
 				look(x, z);
 				if (pr.H < 3.5 || pr.bank > 0.35 || pr.slope > 0.8 || pr.forest < 0.015) return;
@@ -941,7 +949,7 @@ export class Vegetation {
 				if (f > 0.6 && rnd.next() < 0.03) { it.variant = rnd.int(0, 1); it.sc *= 4; snags.push(it); return; }
 				const bareShare = Math.max(f < 0.35 ? 0.4 : 0.06, 0.25 * (1 - ss(25, 220, pr.hSea)));
 				if (rnd.next() < bareShare) { it.variant = bareVariants[rnd.int(0, 1)]; it.sc *= 1.6; bare.push(it); }
-			});
+			}));
 			const placeTree = (it, p, q, s, r, yAxis) => Vegetation.stand(it, p, q, s, r, yAxis, r.range(1.0, 1.4));
 			this.makeVariants(this.bareTrees, this.treeMaterial, 'tree', bare, rnd, chunk, placeTree);
 			this.makeVariants(this.krummholz, this.treeMaterial, 'tree', krumm, rnd, chunk, (it, p, q, s, r, yAxis) => Vegetation.stand(it, p, q, s, r, yAxis, r.range(0.8, 1.1)));
@@ -949,53 +957,61 @@ export class Vegetation {
 
 			yield;
 			// ---- shrubs: dwarf scrub in the belt below the tree line and on the open ground above it ----
+			this.streamStage = 'shrubs';
 			const shrubs = [];
 			const shrubVariants = pick2(this.shrubs);
-			this.grid(rnd, ox, oz, size, 8, (x, z) => {
+			(yield* gridCandidates(rnd, ox, oz, size, 8, (x, z) => {
 				look(x, z);
 				if (pr.H < 3 || pr.bank > 0.35 || pr.slope > 0.85 || pr.hSea > 950 || pr.alt > 0.6) return;
 				const p = 0.3 * (1 - ss(0.05, 0.6, pr.alt)) * (1 - 0.5 * pr.hard) * (0.5 + 0.5 * (1 - pr.forest));
 				if (rnd.next() > p) return;
 				const w = downwind(x, z, pr.coast);
 				shrubs.push({ x, z, y: pr.y, yaw: rnd.range(0, 6.3), sc: rnd.range(0.6, 1.3) * (0.75 + 0.3 * pr.wet), lean: rnd.range(0.05, 0.3), lx: w.x, lz: w.z, mirror: rnd.next() < 0.5, variant: shrubVariants[rnd.int(0, 1)] });
-			});
+			}));
 			this.makeVariants(this.shrubs, this.shrubMaterial, 'shrub', shrubs, rnd, chunk, (it, p, q, s, r, yAxis) => Vegetation.stand(it, p, q, s, r, yAxis, r.range(0.8, 1.2)));
 
 			yield;
 			// ---- fallen trunks in the old forest ----
+			this.streamStage = 'fallen';
 			const fallen = [];
-			this.grid(rnd, ox, oz, size, 64, (x, z) => {
+			(yield* gridCandidates(rnd, ox, oz, size, 64, (x, z) => {
 				look(x, z);
 				if (pr.H < 3.5 || pr.bank > 0.3 || pr.slope > 0.45 || pr.forest < 0.5 || rnd.next() > 0.3 * pr.forest) return;
 				fallen.push({ x, z, y: pr.y, len: rnd.range(50, 110), r: rnd.range(2.5, 4.5), yaw: rnd.range(0, 6.3) });
-			});
+			}));
 
 			yield;
 			// ---- grass: solid blades seen from afar, thinning under the trees, lusher in the wet, sparse on hard ground ----
+			this.streamStage = 'blades';
 			const grassP = (top) => (x, z) => {
 				look(x, z);
 				if (pr.H < 3.5 || pr.hSea > top || pr.bank > 0.35 || pr.slope > 0.9) return false;
 				const g = (1 - 0.6 * pr.forest) * (0.45 + 0.55 * pr.wet) * (1 - 0.45 * pr.hard) * (0.35 + 0.65 * (1 - ss(top - 250, top, pr.hSea)));
 				return rnd.next() < g;
 			};
-			const bladeSpots = this.spots(rnd, ox, oz, size, 520, grassP(640));
-			this.makeInstanced(this.blade, this.bladeMaterial, 'blade', bladeSpots, rnd, chunk, (it, p, q, s, r, yAxis) => { p.set(it.x, hm.height(it.x, it.z) - 0.3, it.z); q.setFromAxisAngle(yAxis, r.range(0, 6.3)); s.set(r.range(0.8, 1.4), r.range(2.5, 6.5), 1); });
+			// Placement already sampled this exact point. Copy the needed values
+			// before another candidate overwrites the shared terrain/habitat scratch.
+			const grassPoint = (x, z) => ({ x, z, y: pr.y, wet: pr.wet });
+			const bladeSpots = (yield* spotCandidates(rnd, ox, oz, size, 520, grassP(640), grassPoint));
+			this.makeInstanced(this.blade, this.bladeMaterial, 'blade', bladeSpots, rnd, chunk, (it, p, q, s, r, yAxis) => { p.set(it.x, it.y - 0.3, it.z); q.setFromAxisAngle(yAxis, r.range(0, 6.3)); s.set(r.range(0.8, 1.4), r.range(2.5, 6.5), 1); });
 
 			yield;
 			// glowing sprouts, rare, in the wet lowland
+			this.streamStage = 'sprouts';
 			const lowland = hm.height(ox, oz) - hm.waterLevel < 80;
 			if (rnd.chance(lowland ? 0.7 : 0.2)) {
-				const sproutSpots = this.spots(rnd, ox, oz, size, rnd.int(2, 7), (x, z) => { look(x, z); return pr.H > 2 && pr.hSea < 25 && pr.bank < 0.35 && pr.slope < 0.5 && rnd.next() < 0.3 + 0.7 * pr.wet; });
+				const sproutSpots = (yield* spotCandidates(rnd, ox, oz, size, rnd.int(2, 7), (x, z) => { look(x, z); return pr.H > 2 && pr.hSea < 25 && pr.bank < 0.35 && pr.slope < 0.5 && rnd.next() < 0.3 + 0.7 * pr.wet; }));
 				this.makeInstanced(this.sprout, this.sproutMaterial, 'sprout', sproutSpots, rnd, chunk, (it, p, q, s, r, yAxis) => { const sc = r.range(0.7, 1.6); p.set(it.x, hm.height(it.x, it.z) - 0.2, it.z); q.setFromAxisAngle(yAxis, r.range(0, 6.3)); s.set(sc, sc, sc); });
 			}
 
 			yield;
 			// crystal columns: clusters of hex prisms on the dry, hard, high ground
+			this.streamStage = 'crystals';
 			const crystals = [];
 			const chunkH = hm.height(ox, oz) - hm.waterLevel;
 			const highland = chunkH > 450;
 			if (rnd.chance(highland ? 0.85 : (lowland ? 0.15 : 0.4))) {
-				const clusters = this.spots(rnd, ox, oz, size, rnd.int(1, highland ? 3 : 2), (x, z) => { look(x, z); return pr.H > 3 && pr.bank < 0.35 && pr.slope < 0.4 && pr.wet < 0.55 && pr.forest < 0.3; });
+				const clusters = (yield* spotCandidates(rnd, ox, oz, size, rnd.int(1, highland ? 3 : 2), (x, z) => { look(x, z); return pr.H > 3 && pr.bank < 0.35 && pr.slope < 0.4 && pr.wet < 0.55 && pr.forest < 0.3; }));
 				for (const { x: cx2, z: cz2 } of clusters) {
 					const n = rnd.int(3, 7);
 					for (let i = 0; i < n; i++) {
@@ -1011,32 +1027,40 @@ export class Vegetation {
 
 			yield;
 			// merged lines: tufts, reeds by the water, crystal edges
-			const verts = [], bases = [], infos = [], ranges = [], pos = [], kinds = [];
+			const packedLines=mobileOption('plantLineData');
+			const verts = new Float32Builder(), heights = packedLines?new Float32Builder():null, bases=packedLines?null:new Float32Builder(), infos=packedLines?null:new Float32Builder(), plantIds = [], metadata = [], lineIndices = [], ranges = [], pos = [], kinds = [];
+			let padding = 12;
 			const pushLines = (arr, x, y, z, rot, sx, sy, sz, dx, dz, h, phase, kind, dur) => {
 				if(hm.caves.surfaceDensity(x,y,z)>-2)return;
-				for (let k = 0; k < arr.length; k += 3) {
-					const lx = arr[k] * sx, ly = arr[k + 1] * sy, lz = arr[k + 2] * sz;
-					const rx = lx * Math.cos(rot) - lz * Math.sin(rot), rz = lx * Math.sin(rot) + lz * Math.cos(rot);
-					verts.push(x + dx + rx, y + ly, z + dz + rz);
-					bases.push(x, y, z);
-					infos.push(ly / h, phase, kind, dur);
+				const template=indexLineTemplate(arr), points=template.positions, offset=verts.length/3, plant=kinds.length-1;
+				if(packedLines){metadata[plant*8]=x;metadata[plant*8+1]=y;metadata[plant*8+2]=z;metadata[plant*8+3]=phase;metadata[plant*8+4]=kind;metadata[plant*8+5]=dur;}
+				const cosine=Math.cos(rot), sine=Math.sin(rot);
+				for (let k = 0; k < points.length; k += 3) {
+					const lx = points[k] * sx, ly = points[k + 1] * sy, lz = points[k + 2] * sz;
+					const rx = lx * cosine - lz * sine, rz = lx * sine + lz * cosine;
+					verts.push3(x + dx + rx, y + ly, z + dz + rz);
+					padding=Math.max(padding,Math.abs((y+ly)-y)*.4+12);
+					if(packedLines){heights.reserve(1);heights.array[heights.length++]=ly/h;plantIds.push(plant);}
+					else{bases.push3(x,y,z);infos.push4(ly/h,phase,kind,dur);}
 				}
+				for(const index of template.indices)lineIndices.push(offset+index);
 			};
-			const beginPlant = (x, z, kind) => { ranges.push([verts.length / 3, 0]); pos.push(x, z); kinds.push(kind); };
-			const endPlant = () => { ranges[ranges.length - 1][1] = verts.length / 3; };
+			const beginPlant = (x, z, kind) => { ranges.push(verts.length / 3, 0); pos.push(x, z); kinds.push(kind); };
+			const endPlant = () => { ranges[ranges.length - 1] = verts.length / 3; };
 
 			yield;
 			// boulders: scree on steep ground and under cliffs, outcrops on hard rock, stones in the rapids
 			{
-				const rocks = [];
-				for (const { x, z } of this.spots(rnd, ox, oz, size, 70, (x, z) => {
+				this.streamStage = 'rocks';
+			const rocks = [];
+				for (const { x, z } of (yield* spotCandidates(rnd, ox, oz, size, 70, (x, z) => {
 					const h = hm.sample(x, z);
 					if (h < hm._water + 0.5 || hm._bank > 0.3) return false;
 					const s = hm._slope;
 					return s > 0.35 && rnd.next() < (s - 0.3) * (0.4 + hm._hardness);
-				})) rocks.push({ x, z, r: rnd.range(0.8, 3.0) * (1 + 1.6 * Math.pow(rnd.next(), 3)), sink: 0.35 });
+				}))) rocks.push({ x, z, r: rnd.range(0.8, 3.0) * (1 + 1.6 * Math.pow(rnd.next(), 3)), sink: 0.35 });
 				if (rnd.chance(0.55)) {
-					for (const { x, z } of this.spots(rnd, ox, oz, size, rnd.int(1, 3), (x, z) => { const h = hm.sample(x, z); return h > hm._water + 3 && hm._hardness > 0.6 && hm._slope > 0.15 && hm._slope < 1.3 && hm._bank < 0.2; }))
+					for (const { x, z } of (yield* spotCandidates(rnd, ox, oz, size, rnd.int(1, 3), (x, z) => { const h = hm.sample(x, z); return h > hm._water + 3 && hm._hardness > 0.6 && hm._slope > 0.15 && hm._slope < 1.3 && hm._bank < 0.2; })))
 						rocks.push({ x, z, r: rnd.range(4.5, 11), sink: 0.4 });
 				}
 				// river rocks are world data: the stones the water pours over, boulders in the chutes and
@@ -1073,7 +1097,7 @@ export class Vegetation {
 					});
 				}
 				// beach cobbles and lakeside stones, sparse
-				for (const { x, z } of this.spots(rnd, ox, oz, size, 8, (x, z) => { const h = hm.sample(x, z) - hm._water; return h > 0.2 && h < 2.5 && hm._slope < 0.4 && hm._hardness > 0.45; })) rocks.push({ x, z, r: rnd.range(0.7, 1.8), sink: 0.4 });
+				for (const { x, z } of (yield* spotCandidates(rnd, ox, oz, size, 8, (x, z) => { const h = hm.sample(x, z) - hm._water; return h > 0.2 && h < 2.5 && hm._slope < 0.4 && hm._hardness > 0.45; }))) rocks.push({ x, z, r: rnd.range(0.7, 1.8), sink: 0.4 });
 				const byVariant = [[], [], [], []];
 				for (const r of rocks) byVariant[rnd.int(0, 3)].push(r);
 				byVariant.forEach((list, v) => {
@@ -1092,10 +1116,11 @@ export class Vegetation {
 
 			yield;
 			// wireframe tufts: the near grass, up into the alpine meadows
+			this.streamStage = 'tufts';
 			let tuftCount = 0;
-			for (const { x, z } of this.spots(rnd, ox, oz, size, 600, grassP(950))) {
+			for (const { x, z, y: ground, wet } of (yield* spotCandidates(rnd, ox, oz, size, 600, grassP(950), grassPoint))) {
 				if (++tuftCount % 64 === 0) yield;
-				const y = hm.height(x, z) - 0.2, h = rnd.range(2.5, 6.5) * (0.8 + 0.4 * hm.habitat(x, z).wet), rot = rnd.range(0, 6.3), phase = rnd.range(0, 6.3);
+				const y = ground - 0.2, h = rnd.range(2.5, 6.5) * (0.8 + 0.4 * wet), rot = rnd.range(0, 6.3), phase = rnd.range(0, 6.3);
 				beginPlant(x, z, 'tuft');
 				for (const [dx, dz, sh] of [[0, 0, h], [rnd.range(-2.5, 2.5), rnd.range(-2.5, 2.5), h * 0.5], [rnd.range(-2.5, 2.5), rnd.range(-2.5, 2.5), h * 0.55]])
 					pushLines(this.tuftEdges, x, y, z, rot, 1, sh, 1, dx, dz, h, phase, 0, KINDS.tuft.dur);
@@ -1104,13 +1129,14 @@ export class Vegetation {
 			// reeds: at the waterline of the sea, the lakes and the rivers, and across the marshy flats
 			// (delta backswamps, wet floodplains) a little above it
 			yield;
+			this.streamStage = 'reeds';
 			const reedP = (x, z) => {
 				look(x, z);
 				if (pr.slope > 0.6 || hm._riverSeg >= 0) return false;
 				if (pr.H > -0.5 && pr.H < 3.5) return true;
 				return pr.wet > 0.8 && pr.H < 5 && pr.slope < 0.3 && rnd.next() < 0.6;
 			};
-			for (const { x, z } of this.spots(rnd, ox, oz, size, 130, reedP)) {
+			for (const { x, z } of (yield* spotCandidates(rnd, ox, oz, size, 130, reedP))) {
 				const y = hm.height(x, z) - 0.2, h = rnd.range(7, 14), phase = rnd.range(0, 6.3);
 				beginPlant(x, z, 'reed');
 				for (let k = 0; k < rnd.int(2, 5); k++) {
@@ -1126,33 +1152,39 @@ export class Vegetation {
 				pushLines(this.crystalEdges, c.x, c.y, c.z, c.rot, c.r, c.h, c.r, 0, 0, c.h, 0, 2, KINDS.crystal.dur);
 				endPlant();
 			}
+			this.streamStage = 'lineBuffers';
 			if (verts.length) {
 				const geometry = new THREE.BufferGeometry();
-				geometry.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
-				geometry.setAttribute('aBase', new THREE.Float32BufferAttribute(bases, 3));
-				geometry.setAttribute('aInfo', new THREE.Float32BufferAttribute(infos, 4));
-				const born = new Float32Array(verts.length / 3);
-				ranges.forEach(([s, e], i) => { const b = rnd.next() < KINDS[kinds[i]].preborn ? this.time + rnd.range(0, 0.8) : UNBORN; for (let k = s; k < e; k++) born[k] = b; });
-				geometry.setAttribute('aBorn', new THREE.BufferAttribute(born, 1));
-				const lines = new THREE.LineSegments(geometry, this.lineMaterial);
+				geometry.setAttribute('position', new THREE.BufferAttribute(verts.finish(), 3));
+				if(packedLines){geometry.setAttribute('aPlant', new THREE.BufferAttribute(kinds.length<=65536?new Uint16Array(plantIds):new Uint32Array(plantIds), 1));geometry.setAttribute('aHeight', new THREE.BufferAttribute(heights.finish(), 1));}
+				else{geometry.setAttribute('aBase',new THREE.BufferAttribute(bases.finish(),3));geometry.setAttribute('aInfo',new THREE.BufferAttribute(infos.finish(),4));}
+				geometry.setIndex(lineIndices);
+				const born = new Float32Array(packedLines?kinds.length:verts.length/3), birthRanges=new Uint32Array(ranges);
+				let pending = 0;
+				for (let i = 0; i < kinds.length; i++) { const s = ranges[i * 2], e = ranges[i * 2 + 1], b = rnd.next() < KINDS[kinds[i]].preborn ? this.time + rnd.range(0, 0.8) : UNBORN; if(packedLines){born[i]=b;birthRanges[i*2]=i;birthRanges[i*2+1]=e>s?i+1:i;}else for(let k=s;k<e;k++)born[k]=b;if(e>s&&born[packedLines?i:s]===UNBORN)pending++; }
+				const table=packedLines?plantLineData(this.lineMaterial,metadata,born):{material:this.lineMaterial,attr:new THREE.BufferAttribute(born,1)};
+				if(!packedLines)geometry.setAttribute('aBorn',table.attr);
+				const lines = new THREE.LineSegments(geometry, table.material);
+				if(packedLines)attachPlantLineDisposal(geometry, table);
 				geometry.computeBoundingBox();
 				// World-space lines bend about aBase, including during growth and crystal pulses.
-				let padding = 12;
-				for (let i = 0; i < verts.length; i += 3) padding = Math.max(padding, Math.abs(verts[i + 1] - bases[i + 1]) * .4 + 12);
 				geometry.boundingBox.expandByScalar(padding);
 				geometry.boundingSphere = geometry.boundingBox.getBoundingSphere(new THREE.Sphere());
 				lines.frustumCulled = true;
 				chunk.meshes.push(lines);
-				chunk.groups.push({ kind: null, names: kinds, kinds: kinds.map((k) => KINDS[k]), attr: geometry.getAttribute('aBorn'), pos, ranges, count: ranges.length, pending: ranges.reduce((n, [s, e]) => n + (e > s && born[s] === UNBORN), 0) });
+				chunk.groups.push(preparePlantReveal({ kind: null, names: kinds, kinds: kinds.map((k) => KINDS[k]), attr: table.attr, pos: new Float64Array(pos), rangeData: birthRanges, count: kinds.length, pending }, UNBORN));
 			}
 
 			yield;
-			this.riverEcology.build(hm, chunk, cx, cz, size, config.seed);
+			this.streamStage = 'riverEcology';
+			yield* this.riverEcology.buildSteps(hm, chunk, cx, cz, size, config.seed);
 			yield;
-			this.watersideMeshes.build(hm, chunk, cx, cz, size, config.seed);
+			this.streamStage = 'waterside';
+			yield* this.watersideMeshes.buildSteps(hm, chunk, cx, cz, size, config.seed);
 			yield;
+			this.streamStage = 'publish';
 			chunk.detailMeshes = chunk.meshes.filter(mesh => mesh.material.userData.distanceFaded);
-			for (const mesh of chunk.meshes) this.scene.add(mesh);
+			for (const mesh of chunk.meshes) { mesh.updateMatrix();mesh.matrixAutoUpdate=false;this.scene.add(mesh); }
 			this.shared.colliders.push(...chunk.colliders);
 			committed = true;
 			this.chunks.set(key, chunk);
@@ -1186,24 +1218,7 @@ export class Vegetation {
 
 	// Plants grow out of the ground as the player approaches.
 	reveal(chunk, px, pz) {
-		const t = this.time;
-		for (const g of chunk.groups) {
-			if (g.pending <= 0) continue;
-			const a = g.attr.array;
-			let changed = false;
-			for (let i = 0; i < g.count; i++) {
-				const s = g.ranges ? g.ranges[i][0] : i;
-				if (a[s] !== UNBORN || (g.ranges && g.ranges[i][1] === s)) continue;
-				const kind = g.kind || g.kinds[i];
-				const dx = g.pos[i * 2] - px, dz = g.pos[i * 2 + 1] - pz;
-				if (dx * dx + dz * dz < kind.reveal * kind.reveal) {
-					const born = t + Math.random() * 0.4;
-					if (g.ranges) { const [s0, e] = g.ranges[i]; for (let k = s0; k < e; k++) a[k] = born; } else a[i] = born;
-					g.pending--; changed = true;
-				}
-			}
-			if (changed) g.attr.needsUpdate = true;
-		}
+		for (const group of chunk.groups) revealPlants(group, this.time, px, pz);
 	}
 
 	update(dt, cx, cz) {
@@ -1234,7 +1249,7 @@ export class Vegetation {
 		if (player) this.fadeUniforms.uVegetationCamera.value.set(player.x, player.z);
 		const size = config.world.chunkSize, fadeEnd = this.fadeUniforms.uVegetationRange.value.y;
 		for (const [key, chunk] of this.chunks) {
-			const [x, z] = key.split(',').map(Number);
+			const {x, z} = chunk;
 			if (Math.abs(x - cx) > this.radius || Math.abs(z - cz) > this.radius) { this.removeChunk(key); continue; }
 			if (player) {
 				// Every plant base belongs to this square. Once even its nearest point
@@ -1247,8 +1262,8 @@ export class Vegetation {
 			if (player && Math.abs(x - cx) <= 2 && Math.abs(z - cz) <= 2) this.reveal(chunk, player.x, player.z);
 		}
 		const fcx = Math.floor(cx / 2), fcz = Math.floor(cz / 2);
-		for (const key of this.farChunks.keys()) {
-			const [x, z] = key.slice(1).split(',').map(Number);
+		for (const [key, chunk] of this.farChunks) {
+			const {x, z} = chunk;
 			if (Math.abs(x - fcx) > this.farRadius || Math.abs(z - fcz) > this.farRadius) this.removeFarChunk(key);
 		}
 	}

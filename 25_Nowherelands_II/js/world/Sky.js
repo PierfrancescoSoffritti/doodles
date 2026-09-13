@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { Random } from '../core/Random.js';
-import { config } from '../core/Config.js';
+import { config } from '../core/Config.js?v=stable-30-3';
 import { Aurora } from './Aurora.js';
 import { ShootingStars } from './ShootingStars.js';
-import { Clouds } from './Clouds.js';
+import { Clouds } from './Clouds.js?v=stable-30-3';
 import { damp, clamp01, smoothstep } from '../core/Utils.js';
 
 // Sky dome, moon, stars, aurora and meteors. The whole group follows the camera.
@@ -227,7 +227,7 @@ export class Sky {
 		this.moonDir = new THREE.Vector3();
 	}
 
-	update(worldTime, dt, cameraPos, renderer) {
+	update(worldTime, dt, cameraPos, renderer, renderFrame = true) {
 		const shared = this.shared;
 		this.group.position.copy(cameraPos);
 
@@ -307,7 +307,7 @@ export class Sky {
 		this.starUniforms.uDay.value = this.sunIntensitySmooth;
 
 		this.aurora.update(worldTime, dt);
-		this.clouds.update(worldTime, dt, shared, dim);
+		this.clouds.update(worldTime, dt, shared, dim, renderFrame);
 		this.meteors.update(dt);
 	}
 }

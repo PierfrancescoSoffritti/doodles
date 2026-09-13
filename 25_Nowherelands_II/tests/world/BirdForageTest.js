@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {BirdEncounter} from '../../js/world/fauna/BirdEncounter.js?v=pebble-voice-4b';
 import {BirdForage} from '../../js/world/fauna/BirdForage.js?v=player-notes-13';
-import {BirdJourney} from '../../js/world/fauna/BirdJourney.js';
+import {BirdJourney} from '../../js/world/fauna/BirdJourney.js?v=stable-30-3';
 
 test('feeding birds repeatedly hop, stay near their patch, and land with planted feet',()=>{
  const e=new BirdEncounter({x:0,y:0,z:0},{x:30,y:10,z:0}).enableForaging({seed:71,sample:()=>0});

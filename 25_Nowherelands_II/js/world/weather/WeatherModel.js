@@ -1,3 +1,4 @@
+import {hypot2} from '../../core/NumericDistance.js?v=stable-30-6';
 import { Random, Simplex2D } from '../../core/Random.js';
 
 export const MIN_SNOW_HEIGHT = 700;
@@ -19,11 +20,15 @@ export function snowFraction(height, snowLine) {
 }
 // Saturation proxy, normalized at 10 C. World heights use a deliberately compressed climate.
 export const saturation = temperature => Math.exp(0.055 * (temperature - 10));
-export function condense(vapor, liquid, capacity, dt) {
-	const exchange = vapor > capacity ? (vapor - capacity) * (1 - Math.exp(-dt * 0.12))
+function phaseExchange(vapor, liquid, capacity, dt) {
+	return vapor > capacity ? (vapor - capacity) * (1 - Math.exp(-dt * 0.12))
 		: -Math.min(liquid, (capacity - vapor) * (1 - Math.exp(-dt * 0.045)));
+}
+export function condense(vapor, liquid, capacity, dt) {
+	const exchange=phaseExchange(vapor,liquid,capacity,dt);
 	return [vapor - exchange, liquid + exchange];
 }
+function nearStorm(storms,x,z){for(const c of storms)if(hypot2(x-c.x,z-c.z)<c.radius*2)return true;return false;}
 export function stormEnvelope(age, duration) {
 	return smooth(20, 100, age) * (1 - smooth(duration - 110, duration, age));
 }
@@ -128,12 +133,16 @@ export class WeatherModel {
 		const motion = interpolate ? this.renderMotion() : { windx: this.wind.x, windz: this.wind.z };
 		out.windX = motion.windx + Math.cos(this.angle + 0.3) * gust;
 		out.windZ = motion.windz + Math.sin(this.angle + 0.3) * gust;
-		out.windSpeed = Math.hypot(out.windX, out.windZ);
+		out.windSpeed = hypot2(out.windX, out.windZ);
 		return out;
 	}
 
 	update(dt) {
 		this.accumulator += Math.max(0, dt);
+  if(this.deferSteps){
+   const changed=this.presentedVersion!==this.version;this.presentedVersion=this.version;
+   return changed;
+  }
 		let changed = false;
 		while (this.accumulator + 1e-9 >= WEATHER_STEP) {
 			this.snapshot(); this.step(WEATHER_STEP); this.pack();
@@ -141,6 +150,15 @@ export class WeatherModel {
 		}
 		return changed;
 	}
+
+ // The same fixed step can run between displayed frames. The next update
+ // publishes the complete maps; partially updated weather is never rendered.
+ advancePending(){
+  if(this.accumulator+1e-9<WEATHER_STEP)return false;
+  this.snapshot();this.step(WEATHER_STEP);this.pack();
+  this.accumulator=Math.max(0,this.accumulator-WEATHER_STEP);
+  return true;
+ }
 
 	// Used by the weather survey as well as natural convection. Hail eligibility is drawn once
 	// per cell, never per frame. A 20-minute global cooldown bounds repeated hail outbreaks.
@@ -182,26 +200,30 @@ export class WeatherModel {
 		this.storms = this.storms.filter(c => c.age < c.duration);
 		const n = this.res, dx = this.wind.x * dt / this.cell, dz = this.wind.z * dt / this.cell;
 		let best = -1, bestScore = 0;
+        const temperatureBase=9.8+2.3*Math.sin(t/240),supplySine=.14*Math.sin(t/145),instabilitySine=.15*Math.sin(t/170);
+        const boundaryExchange=1-Math.exp(-dt*.08),waterExchange=1-Math.exp(-dt*.025),landExchange=1-Math.exp(-dt*.007);
+        const windX=this.wind.x,windZ=this.wind.z,offsetX=this.offset.x*2,offsetZ=this.offset.z*2;
 		for (let z = 0; z < n; z++) for (let x = 0; x < n; x++) {
 			const i = z * n + x, wx = this.originX + x * this.cell, wz = this.originZ + z * this.cell;
 			const h = this.ground[i];
-			const front = this.noise.fbm((wx - this.offset.x * 2) / 4300, (wz - this.offset.z * 2) / 4300, 3);
-			const temp = 9.8 + 2.3 * Math.sin(t / 240) + front * 2;
+			const front = this.noise.fbm((wx - offsetX) / 4300, (wz - offsetZ) / 4300, 3);
+			const temp = temperatureBase + front * 2;
 			this.temperature[i] = temp;
 			// Orographic vertical velocity: positive on the windward slope, negative in its lee.
 			const hx = (this.ground[z * n + Math.min(n - 1, x + 1)] - this.ground[z * n + Math.max(0, x - 1)]) / (2 * this.cell);
 			const hz = (this.ground[Math.min(n - 1, z + 1) * n + x] - this.ground[Math.max(0, z - 1) * n + x]) / (2 * this.cell);
-			const lift = clamp(this.wind.x * hx + this.wind.z * hz, -2, 3);
+			const lift = clamp(windX * hx + windZ * hz, -2, 3);
 			let vapor = this.gridSample(this.vapor, x - dx, z - dz);
 			let liquid = this.gridSample(this.liquid, x - dx, z - dz);
-			const supply = 0.51 + front * 0.62 + 0.14 * Math.sin(t / 145);
+			const supply = 0.51 + front * 0.62 + supplySine;
 			const boundary = x === 0 || z === 0 || x === n - 1 || z === n - 1;
-			vapor += (supply - vapor) * (1 - Math.exp(-dt * (boundary ? 0.08 : h <= 0 ? 0.025 : 0.007)));
+			vapor += (supply - vapor) * (boundary ? boundaryExchange : h <= 0 ? waterExchange : landExchange);
 			const capacity = saturation(temp - 10 - lift * 2.5 - Math.max(0, h) * 0.002);
-			[vapor, liquid] = condense(vapor, liquid, capacity, dt);
+			const exchange=phaseExchange(vapor,liquid,capacity,dt);
+			vapor-=exchange;liquid+=exchange;
 			let storm = 0, hail = 0;
 			for (const c of this.storms) {
-				const r = Math.hypot(wx - c.x, wz - c.z) / c.radius;
+				const r = hypot2(wx - c.x, wz - c.z) / c.radius;
 				const footprint = 1 - smooth(0.2, 1, r);
 				const e = stormEnvelope(c.age, c.duration) * c.strength * footprint;
 				storm = Math.max(storm, e);
@@ -232,9 +254,9 @@ export class WeatherModel {
 			const rainAmount = rain * (1 - snow) * (1 - control.weight) + control.rain * (1 - snow) * control.weight;
 			this.snowpack[i] = h < MIN_SNOW_HEIGHT ? 0 : clamp(this.snowpack[i] + snowAmount * dt * 0.005 - melt);
 			this.wetness[i] = clamp(this.wetness[i] + (rainAmount * 0.022 + melt / dt * 0.8 - 0.0014) * dt);
-			const instability = smooth(-0.2, 0.4, front + 0.15 * Math.sin(t / 170));
+			const instability = smooth(-0.2, 0.4, front + instabilitySine);
 			const score = liquid * (0.65 + Math.max(0, lift) * 0.35) * (0.35 + instability * 0.65) + front * 0.12;
-			if (x > 6 && z > 6 && x < n - 7 && z < n - 7 && score > bestScore && !this.storms.some(c => Math.hypot(wx - c.x, wz - c.z) < c.radius * 2)) { bestScore = score; best = i; }
+			if (x > 6 && z > 6 && x < n - 7 && z < n - 7 && score > bestScore && !nearStorm(this.storms,wx,wz)) { bestScore = score; best = i; }
 		}
 		[this.vapor, this.nextVapor] = [this.nextVapor, this.vapor];
 		[this.liquid, this.nextLiquid] = [this.nextLiquid, this.liquid];

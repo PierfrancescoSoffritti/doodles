@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { lumenAppearance } from '../../js/world/fauna/LumenAppearance.js';
+import { lumenAppearance } from '../../js/world/fauna/LumenAppearance.js?v=stable-30-3';
 
 test('light varies with movement but stays within a restrained colour and brightness range', () => {
 	const rest=lumenAppearance(0.7,0,0,0,5), moving=lumenAppearance(0.7,90,0.8,0,5);

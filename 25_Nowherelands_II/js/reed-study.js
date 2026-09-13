@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Random } from './core/Random.js';
 import { reedFamily, reedIndividual } from './world/fauna/ReedWalkerTraits.js?v=reed-7';
-import { ReedWalkerRig } from './world/fauna/ReedWalkerRig.js?v=spray-1';
+import { ReedWalkerRig } from './world/fauna/ReedWalkerRig.js?v=stable-30-3';
 import { createReedAudioScene } from './audio/ReedWalkerAudioScene.js?v=reed-7';
 import { checkReedMix } from '../tests/ReedWalkerMixChecks.js?v=reed-7';
 

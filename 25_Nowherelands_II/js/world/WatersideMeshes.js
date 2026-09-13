@@ -8,7 +8,8 @@ export class WatersideMeshes {
 		this.features = shared.waterside;
 		this.material = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, side: THREE.DoubleSide, emissive: '#201929', emissiveIntensity: 0.16 });
 	}
-	build(hm, chunk, cx, cz, size, seed) {
+	build(...args) { for (const _ of this.buildSteps(...args)) { /* synchronous loading path */ } }
+	*buildSteps(hm, chunk, cx, cz, size, seed) {
 		const x0 = cx * size - size / 2, z0 = cz * size - size / 2, x1 = x0 + size, z1 = z0 + size;
 		const features = this.features.query(this.features.cells, x0, z0, x1, z1);
 		const shores = this.features.query(this.features.shoreCells, x0, z0, x1, z1);
@@ -29,6 +30,7 @@ export class WatersideMeshes {
 			}
 		};
 		for (const f of features) {
+			yield;
 			const r = new Random(f.seed), a = f.a, b = f.b, level = hm.waterAt(a[0], a[2]);
 			if (f.type === 'roots') {
 				// A ragged soil cap projects over the root fan, giving a small real overhang.
@@ -37,6 +39,7 @@ export class WatersideMeshes {
 				tri(...top, [0.13, 0.09, 0.15]);
 				tri(top[0], [top[2][0], top[2][1] - 0.6, top[2][2]], top[2], [0.07, 0.045, 0.08]);
 				for (let j = 0; j < 8; j++) {
+					yield;
 					const shift = r.range(-1, 1), start = [a[0] + nx * shift, a[1], a[2] + nz * shift];
 					const knee = [start[0] + dx * 0.6, a[1] - r.range(0.5, 1.7), start[2] + dz * 0.6];
 					const end = [b[0] + nx * shift * 0.7, b[1] + r.range(-0.2, 0.6), b[2] + nz * shift * 0.7];
@@ -51,6 +54,7 @@ export class WatersideMeshes {
 			const lateral = new THREE.Vector3(0, 1, 0); if (Math.abs(axis.y) > 0.9) lateral.set(1, 0, 0);
 			lateral.cross(axis).normalize(); const up = new THREE.Vector3().crossVectors(axis, lateral);
 			for (let j = 0, count = r.int(4, f.radius > 3 ? 11 : 7); j < count; j++) {
+				yield;
 				const t = r.range(0.25, 0.94), origin = a.map((v, k) => v + (b[k] - v) * t), l = Math.min(length * 0.23, r.range(2, 6) * f.radius);
 				const theta = r.range(0, Math.PI), forward = r.range(0.25, 0.65);
 				const direction = lateral.clone().multiplyScalar(Math.cos(theta)).addScaledVector(up, Math.sin(theta)).addScaledVector(axis, forward).normalize();
@@ -71,6 +75,7 @@ export class WatersideMeshes {
 			}
 		}
 		for (const shore of shores) {
+			yield;
 			// Wave-exposed rocky shores have washed cobbles; lee shores accumulate branches.
 			for (let j = 0; j < 4; j++) {
 				const x = shore.x + rnd.range(-9, 9), z = shore.z + rnd.range(-9, 9), y = hm.sample(x, z), H = y - shore.level;
@@ -87,6 +92,7 @@ export class WatersideMeshes {
 		}
 		// Flood strandlines lie above ordinary river flow; discontinuous piles follow banks.
 		for (const index of hm.rivers.segmentsIn(x0, z0, x1, z1)) {
+			yield;
 			if (index % 5 || rnd.next() > 0.4) continue;
 			const s = hm.rivers.at(index, 0.5), l = Math.hypot(s.dx, s.dz) || 1, tx = s.dx / l, tz = s.dz / l;
 			for (const side of [-1, 1]) {

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { config } from '../core/Config.js';
+import { config } from '../core/Config.js?v=stable-30-3';
 import { Random } from '../core/Random.js';
 import { noiseGlsl } from './TerrainMaterial.js?v=player-notes-13';
 import { shoreWaveGlsl } from './ShoreWaves.js';

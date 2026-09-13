@@ -1,7 +1,7 @@
-import { lumenLightUniforms, lumenLightGlsl } from './fauna/LumenLight.js';
+import { lumenLightUniforms, lumenLightGlsl } from './fauna/LumenLight.js?v=stable-30-3';
 import { weatherGlsl } from './weather/WeatherGlsl.js';
 import * as THREE from 'three';
-import { riverFlowGlsl } from './RiverFlow.js';
+import { riverFlowGlsl } from './RiverFlow.js?v=stable-30-10';
 import { Ripples } from './Ripples.js?v=player-notes-13';
 import { hslGlsl, noiseGlsl } from './TerrainMaterial.js?v=player-notes-13';
 import { fogGlsl } from './FogGlsl.js';

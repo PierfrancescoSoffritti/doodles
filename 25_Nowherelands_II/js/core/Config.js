@@ -1,3 +1,4 @@
+import { lowMemoryMobile } from './MobileDetail.js?v=stable-30-3';
 import { Random, hashString } from './Random.js';
 
 const WORDS = ['umbra', 'lumen', 'vesper', 'ondine', 'halcyon', 'aster', 'nimbus', 'sable', 'orphic', 'zephyr', 'lyra', 'cinder', 'vellum', 'ether', 'ossia', 'tenebra'];
@@ -16,7 +17,7 @@ export const config = {
 
 	world: {
 		chunkSize: 256,         // vegetation chunk
-		vegetationRadius: 4,    // chunks
+		vegetationRadius: [2,3,4].includes(Number(new URLSearchParams(location.search).get('plantRadius'))) ? Number(new URLSearchParams(location.search).get('plantRadius')) : lowMemoryMobile ? 2 : 4,
 		giantRadius: 6,         // far chunks of two vegetation chunks a side: the giants stand out to 3 km
 		waterLevel: 0,          // sea level
 		eyeHeight: 11,
