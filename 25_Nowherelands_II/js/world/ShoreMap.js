@@ -20,15 +20,15 @@ const TIERS = [
 const OUTSIDE = 1000;
 
 class Tier {
-	constructor(spec, heightmap) {
+	constructor(spec, heightmap, filter) {
 		this.spec = spec;
 		this.heightmap = heightmap;
 		const n = spec.res * spec.res * 4;
 		// float32: half floats only resolve 1 m above 1000 m, which would fake shallows in mountain lakes
 		this.data = new Float32Array(n);
 		this.texture = new THREE.DataTexture(this.data, spec.res, spec.res, THREE.RGBAFormat, THREE.FloatType);
-		this.texture.magFilter = THREE.LinearFilter;
-		this.texture.minFilter = THREE.LinearFilter;
+		this.texture.magFilter = filter;
+		this.texture.minFilter = filter;
 		this.texture.wrapS = this.texture.wrapT = THREE.ClampToEdgeWrapping;
 		this.origin = new THREE.Vector2(NaN, NaN);
 		this.uOrigin = new THREE.Vector2();
@@ -68,14 +68,20 @@ class Tier {
 }
 
 export class ShoreMap {
-	constructor(heightmap, surfaceWork = null) {
+	constructor(heightmap, surfaceWork = null, renderer = null) {
 		this.surfaceWork = surfaceWork;
 		this.heightmap = heightmap;
-		this.tiers = TIERS.map((spec) => new Tier(spec, heightmap));
+		// Float32 linear filtering is optional even in WebGL2 (including on iPads).
+		// Unsupported linear textures silently sample black. Keep full height
+		// precision and interpolate explicitly only on GPUs that need it.
+		const linear = renderer?.extensions.has('OES_texture_float_linear') === true;
+		const filter = linear ? THREE.LinearFilter : THREE.NearestFilter;
+		const sample = linear ? 'texture2D' : 'shoreBilinear';
+		this.tiers = TIERS.map((spec) => new Tier(spec, heightmap, filter));
 		const [near, far] = this.tiers;
 		const overview = buildCoastOverview(heightmap.world, heightmap.waterLevel);
 		this.coastTexture = new THREE.DataTexture(overview.data, overview.res, overview.res, THREE.RGBAFormat, THREE.FloatType);
-		this.coastTexture.minFilter = this.coastTexture.magFilter = THREE.LinearFilter;
+		this.coastTexture.minFilter = this.coastTexture.magFilter = filter;
 		this.coastTexture.needsUpdate = true;
 		this.uniforms = {
 			uCoastMap: { value: this.coastTexture },
@@ -90,6 +96,18 @@ export class ShoreMap {
 			uShoreFarSize: { value: far.spec.size },
 		};
 		this.glsl = /* glsl */`
+			${linear ? '' : /* glsl */`
+			vec4 shoreBilinear(sampler2D map, vec2 uv) {
+				ivec2 size = textureSize(map, 0);
+				vec2 p = uv * vec2(size) - 0.5;
+				ivec2 lo = ivec2(floor(p)), hi = lo + 1;
+				vec2 f = fract(p);
+				lo = clamp(lo, ivec2(0), size - 1);
+				hi = clamp(hi, ivec2(0), size - 1);
+				return mix(
+					mix(texelFetch(map, lo, 0), texelFetch(map, ivec2(hi.x, lo.y), 0), f.x),
+					mix(texelFetch(map, ivec2(lo.x, hi.y), 0), texelFetch(map, hi, 0), f.x), f.y);
+			}`}
 			uniform sampler2D uShoreNear, uShoreFar, uCoastMap;
 			uniform vec2 uCoastOrigin;
 			uniform float uCoastSize, uCoastRes;
@@ -103,13 +121,13 @@ export class ShoreMap {
 				if (farEdge > 0.44) {
 					vec2 cuv = (p - uCoastOrigin) / uCoastSize + 0.5;
 					if (all(greaterThanEqual(cuv, vec2(0.0))) && all(lessThanEqual(cuv, vec2(1.0))))
-						far = texture2D(uCoastMap, cuv * (1.0 - 1.0 / uCoastRes) + 0.5 / uCoastRes);
+						far = ${sample}(uCoastMap, cuv * (1.0 - 1.0 / uCoastRes) + 0.5 / uCoastRes);
 				}
-				if (farEdge < 0.497) far = mix(texture2D(uShoreFar, uv), far, smoothstep(0.44, 0.497, farEdge));
+				if (farEdge < 0.497) far = mix(${sample}(uShoreFar, uv), far, smoothstep(0.44, 0.497, farEdge));
 				vec2 nuv = (p - uShoreNearOrigin) / uShoreNearSize + 0.5;
 				float edge = max(abs(nuv.x - 0.5), abs(nuv.y - 0.5));
 				if (edge > 0.49) return far;
-				vec4 near = texture2D(uShoreNear, nuv);
+				vec4 near = ${sample}(uShoreNear, nuv);
 				// the last few texels of the fine map blend into the coarse one so its edge never shows
 				return mix(near, far, smoothstep(0.44, 0.49, edge));
 			}

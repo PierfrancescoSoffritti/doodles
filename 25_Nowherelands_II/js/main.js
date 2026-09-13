@@ -14,7 +14,7 @@ import { damp } from './core/Utils.js';
 import { Heightmap } from './world/Heightmap.js?v=stable-30-28';
 import { Ripples } from './world/Ripples.js?v=player-notes-13';
 import { SurfaceWork } from './world/SurfaceWork.js?v=stable-30-25';
-import { ShoreMap } from './world/ShoreMap.js?v=stable-30-23';
+import { ShoreMap } from './world/ShoreMap.js?v=water-float-filter-1';
 import { Terrain } from './world/Terrain.js?v=stable-30-26';
 import { Water } from './world/Water.js?v=stable-30-3';
 import { CoastalSpray } from './world/CoastalSpray.js?v=player-notes-13';
@@ -115,7 +115,7 @@ async function start(world,caveMeshes) {
 	shared.ripples = ripples;
 	const surfaceWork = new SurfaceWork(heightmap, config.seed);
 	shared.surfaceWork = surfaceWork;
-	const shoreMap = new ShoreMap(heightmap, surfaceWork);
+	const shoreMap = new ShoreMap(heightmap, surfaceWork, renderer);
 	shared.shoreMap = shoreMap;
 	const atmosphere = new Weather(scene, heightmap, shared);
 	const terrain = new Terrain(scene, heightmap, shared);

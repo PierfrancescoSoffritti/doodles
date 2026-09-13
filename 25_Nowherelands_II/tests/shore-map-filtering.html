@@ -1,0 +1,13 @@
+<!doctype html><html><head><meta charset="utf-8"><script type="importmap">{"imports":{"three":"../../common/libs/three-0.185/build/three.module.min.js"}}</script></head><body><script type="module">
+// Disable extension acquisition before creating the renderer. The underlying GL
+// context then really returns black for linearly filtered float32 textures.
+if (new URLSearchParams(location.search).has('noFloatLinear')) {
+ const getExtension = WebGL2RenderingContext.prototype.getExtension;
+ WebGL2RenderingContext.prototype.getExtension = function(name) {
+  return name === 'OES_texture_float_linear' ? null : getExtension.call(this, name);
+ };
+}
+const {checkShoreMapFiltering} = await import('./browser/ShoreMapFilteringChecks.js');
+try { window.result = checkShoreMapFiltering(); } catch (error) { window.failure = String(error); console.error(error); }
+document.body.textContent = JSON.stringify(window.result || window.failure);
+</script></body></html>
