@@ -1,6 +1,9 @@
 import * as THREE from 'three';
 import { bus } from '../core/EventBus.js';
 
+const _x = new THREE.Vector3(), _y = new THREE.Vector3(), _z = new THREE.Vector3();
+const _basis = new THREE.Matrix4();
+
 export class ShootingStars {
 	constructor(parent, shared) {
 		this.shared = shared;
@@ -36,11 +39,20 @@ export class ShootingStars {
 		s.vel.copy(dir).multiplyScalar(1800 + Math.random() * 900);
 		s.life = s.total = 0.9 + Math.random() * 0.7;
 		s.mesh.visible = true;
-		// orient the streak along its velocity, viewed from the origin
-		s.mesh.lookAt(0, 0, 0);
-		const localDir = s.mesh.worldToLocal(p.clone().add(s.vel)).normalize();
-		s.mesh.rotateZ(Math.atan2(localDir.y, localDir.x) + Math.PI);
+		this.orient(s);
 		bus.emit('meteor', {});
+	}
+
+	// Face the viewer, who sits at the sky group's origin, with the bright head (local +x)
+	// leading along the velocity as seen from there. Done in group space: the group follows
+	// the camera, so world-space lookAt / worldToLocal would aim at the world origin instead.
+	orient(s) {
+		const z = _z.copy(s.mesh.position).normalize().negate();
+		const x = _x.copy(s.vel).addScaledVector(z, -s.vel.dot(z));
+		if (x.lengthSq() < 1e-6) return;
+		x.normalize();
+		_y.crossVectors(z, x);
+		s.mesh.quaternion.setFromRotationMatrix(_basis.makeBasis(x, _y, z));
 	}
 
 	update(dt) {
@@ -51,6 +63,7 @@ export class ShootingStars {
 			if (s.life <= 0) continue;
 			s.life -= dt;
 			s.mesh.position.addScaledVector(s.vel, dt);
+			this.orient(s);
 			const t = s.life / s.total;
 			s.mesh.material.uniforms.uAlpha.value = Math.sin(t * Math.PI);
 			if (s.life <= 0) s.mesh.visible = false;
