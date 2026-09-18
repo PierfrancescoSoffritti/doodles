@@ -7,7 +7,7 @@ export class Wanderer {
 	constructor(scene, heightmap, shared, x, z) {
 		this.id = 'wanderer';
 		this.title = 'the wanderer';
-		this.subtitle = 'a shimmer follows you';
+		this.subtitle = 'a shimmer slips away';
 		this.shared = shared;
 		this.heightmap = heightmap;
 		this.radius = 0;   // discovered by being noticed, not by distance
@@ -75,10 +75,6 @@ export class Wanderer {
 			if (shared.conductor) shared.conductor.wandererPhrase(this.mesh.position);
 			bus.emit(Events.RIPPLE, { x: this.mesh.position.x, z: this.mesh.position.z, size: 2, hue: 0.52 });
 			if (!this.noticed) { this.noticed = true; this.discovered = true; bus.emit(Events.DISCOVER, { id: this.id, title: this.title, subtitle: this.subtitle }); }
-		} else if (d > 320 && this.cooldown <= 0) {
-			// keep near the player, leading the way
-			this.pickTarget(player, landmarks);
-			this.cooldown = 8;
 		}
 
 		this.fleeing = damp(this.fleeing, 0, 1.2, dt);
