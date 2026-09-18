@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { VegetationStudy, reedVoice } from '../atelier/VegetationStudy.js?v=reed-chorus-1';
 import { VegetationMeshes } from '../atelier/VegetationMeshes.js';
 import { PlantMeshBatch } from './PlantMeshBatch.js?v=gpu-parts-1';
-import { plantSites } from './PlantHabitats.js?v=inland-reeds-1';
+import { plantSites } from './PlantHabitats.js?v=lowland-plants-1';
 import { playerNoteRadius } from './RippleWave.js';
 import { replyOutline } from './fauna/ReplyOutline.js?v=pendant-feedback-1';
 import { replyHighlight } from './fauna/ReplyHighlight.js';
