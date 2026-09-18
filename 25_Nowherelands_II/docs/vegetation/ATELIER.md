@@ -1,5 +1,7 @@
 # Vegetation atelier
 
+The shared selector now also links to **Light lilies** under **Water · atelier studies**. This floating-leaf plant is part of the [water atelier prototype](../fauna/WATER_ATELIER.md); Bell reeds and Veil willows retain their existing studies and world behavior.
+
 Open [Bell reeds](../../vegetation-atelier.html?species=bell-reed) or [Veil willows](../../vegetation-atelier.html?species=veil-willow), or choose either under **Vegetation** in the existing fauna atelier's species selector. Navigation carries the world seed between studies.
 
 Serve the repository root with `python3 -m http.server 8791 --bind 127.0.0.1` and open `http://127.0.0.1:8791/25_Nowherelands_II/vegetation-atelier.html`.

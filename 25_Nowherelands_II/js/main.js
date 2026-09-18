@@ -18,9 +18,10 @@ import { ShoreMap } from './world/ShoreMap.js?v=water-float-filter-1';
 import { Terrain } from './world/Terrain.js?v=stable-30-26';
 import { Water } from './world/Water.js?v=stable-30-3';
 import { CoastalSpray } from './world/CoastalSpray.js?v=player-notes-13';
-import { InlandWater } from './world/InlandWater.js?v=stable-30-23';
+import { InlandWater } from './world/InlandWater.js?v=pool-life-2';
 import { Waterfalls } from './world/Waterfalls.js?v=stable-30-5';
-import { WatersideLife } from './world/WatersideLife.js';
+import { WatersideLife } from './world/WatersideLife.js?v=pool-life-1';
+import { WorldWaterLife } from './world/WorldWaterLife.js?v=pool-life-7';
 import { WatersideAmbience } from './audio/WatersideAmbience.js';
 import { WatersideFeatures } from './world/WatersideFeatures.js';
 import { RiverDrift } from './world/RiverDrift.js?v=stable-30-10';
@@ -33,7 +34,7 @@ import { Snow } from './world/Snow.js';
 import { Rain } from './world/Rain.js';
 import { Fireflies } from './world/Fireflies.js?v=stable-30-3';
 import { Sprouts } from './world/Sprouts.js';
-import { Landmarks } from './landmarks/Landmarks.js?v=pendant-click-1';
+import { Landmarks } from './landmarks/Landmarks.js?v=pool-life-2';
 import { dispatchPress } from './landmarks/TargetPicking.js';
 import { Player } from './player/Player.js?v=touch-run-3';
 import { HUD } from './ui/HUD.js?v=touch-run-3';
@@ -43,7 +44,7 @@ import { CaveSurvey } from './ui/CaveSurvey.js';
 import { MovementProfile } from './ui/MovementProfile.js';
 import { RiverSurvey } from './ui/RiverSurvey.js';
 import { EventDirector } from './events/Events.js';
-import { PostProcessing } from './fx/PostProcessing.js?v=stable-30-3';
+import { PostProcessing } from './fx/PostProcessing.js?v=pool-life-2';
 import { FoliageDepthPrepass } from './fx/FoliageDepthPrepass.js?v=stable-30-3';
 import { installBoundedPointLights } from './fx/BoundedPointLights.js?v=stable-30-3';
 import { AudioEngine } from './audio/AudioEngine.js?v=reed-retrigger-1';
@@ -54,7 +55,7 @@ import { WorldLanternMites } from './world/fauna/WorldLanternMites.js?v=stable-3
 import { WorldBirds } from './world/fauna/WorldBirds.js?v=stable-30-3';
 import { WorldPlants } from './world/WorldPlants.js?v=reed-chorus-1';
 
-import { FaunaMenu } from './ui/FaunaMenu.js?v=stable-30-25';
+import { FaunaMenu } from './ui/FaunaMenu.js?v=pool-life-6';
 
 const canvas = document.getElementById('canvas');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
@@ -148,6 +149,7 @@ async function start(world,caveMeshes) {
 	const walkers = new WorldReedWalkers(scene,heightmap,shared,fauna,config.seed); shared.walkers=walkers;
 	const mites = new WorldLanternMites(scene,heightmap,shared,terrain.vegetation,config.seed,terrain.material); shared.mites=mites;
 	const plants = new WorldPlants(scene,heightmap,shared,fauna.lakes,config.seed,{small:mobileDetail});shared.plants=plants;
+	const waterLife = new WorldWaterLife(scene,heightmap,shared,fauna.lakes,config.seed,{small:mobileDetail});shared.waterLife=waterLife;
 	const landmarks = new Landmarks(scene, heightmap, shared, camera);
 	landmarks.addFireflies(fireflies);
 	const localLights = mobileDetail ? new MobilePointLights(scene) : null;
@@ -157,7 +159,7 @@ async function start(world,caveMeshes) {
 	const replyOutlines = new ReplyOutlinePass();
 	const pmrem = new THREE.PMREMGenerator(renderer);
 	const environment = new EnvironmentProbe(renderer, scene, camera, shared, pmrem,
-		() => [water.far, ...water.levels, inland.mesh, inland.near, drift.points, watersideLife.points, fauna.meshes.root, birds.root, walkers.root, mites.root, plants.root, ...caves.waterMeshes],
+		() => [water.far, ...water.levels, inland.mesh, inland.near, drift.points, watersideLife.points, fauna.meshes.root, birds.root, walkers.root, mites.root, plants.root, waterLife.root, ...caves.waterMeshes],
 		(target) => {
 			scene.environment = target.texture; scene.environmentIntensity = .55;
 			const image = target.texture.image;
@@ -170,7 +172,7 @@ async function start(world,caveMeshes) {
 	bus.on(Events.RIPPLE, ({ x, z, size, hue, saturation }) => ripples.add(x, z, size, hue % 1, saturation));
 	bus.on(Events.NOTE, (n) => {
 		if(n.layer==='plant-reply'||n.layer==='pendant')return;
-		if(n.layer==='player-note'){shared.playerNotes.hear(n);if(n.position)terrain.vegetation.noteAt(n.position.x,n.position.z,.5+(n.velocity||.3));return;}
+		if(n.layer==='player-note'){waterLife.hearNote(n);shared.playerNotes.hear(n);if(n.position)terrain.vegetation.noteAt(n.position.x,n.position.z,.5+(n.velocity||.3));return;}
 		mites.hearNote(n);
 		walkers.hearNote(n);birds.hearNote(n);
 		if (n.position) terrain.vegetation.noteAt(n.position.x, n.position.z, 0.5 + (n.velocity || 0.3));
@@ -196,6 +198,7 @@ async function start(world,caveMeshes) {
 	walkers.update(0);
 	mites.update(0);
 	plants.stream(true);plants.update(0);
+	waterLife.stream(true);waterLife.update(0);
 	// Finish the first environment and streamed-material driver setup while the
 	// loading screen is still visible, before entering starts music and movement.
 	hud.setLoading('lighting the forest', 1);
@@ -321,6 +324,7 @@ async function start(world,caveMeshes) {
 		walkers.update(dt);
 		mites.update(dt);
 		plants.update(dt);
+		waterLife.update(dt);
 		localLights?.update(camera, dt);
 
 		// fog: valley haze thickens with weather; far ranges fade to a tone darker than the sky
@@ -422,6 +426,6 @@ async function start(world,caveMeshes) {
    produce:dt=>{pacer.next=performance.now()+1000/30;advance(true,dt);},
    present:()=>post.present(),onFrame:at=>hud.recordFrame(at),depth:4});
  }
-	window.__debug = { presentation, staticWaterCopies, heightCache, fireflies, plantBatches, localLights, foliageDepth, environment, pacer, hud, atmosphere, sky, snow, rain, hail, scene, renderer, camera, shared, post, terrain, player, landmarksList: landmarks.list, director, shoreMap, water, inland, waterfalls, drift, heightmap, world, coastalSpray, fauna, faunaMenu, birds, walkers, mites };
+	window.__debug = { waterLife, presentation, staticWaterCopies, heightCache, fireflies, plantBatches, localLights, foliageDepth, environment, pacer, hud, atmosphere, sky, snow, rain, hail, scene, renderer, camera, shared, post, terrain, player, landmarksList: landmarks.list, director, shoreMap, water, inland, waterfalls, drift, heightmap, world, coastalSpray, fauna, faunaMenu, birds, walkers, mites };
 	frame();
 }

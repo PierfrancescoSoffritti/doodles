@@ -12,17 +12,23 @@ export const ATELIER_PLANTS = [
  {id:'bell-reed', name:'Bell reeds', number:'V1'},
  {id:'veil-willow', name:'Veil willows', number:'V2'}
 ];
+export const ATELIER_WATER = [
+ {id:'pool', name:'The living pool', number:'W1'},
+ {id:'scarlet-fish', name:'Scarlet fish', number:'W2'},
+ {id:'light-lily', name:'Light lilies', number:'W3'}
+];
 export function atelierURL(id, seed = '') {
  const plant = ATELIER_PLANTS.some(s=>s.id===id);
- const path = plant ? './vegetation-atelier.html' : id === 'reed' ? './reed-study.html' : './fauna-atelier.html';
- const params = new URLSearchParams(); if (id !== 'reed') params.set('species', plant || ATELIER_SPECIES.some(s=>s.id===id) ? id : 'lumen');
+ const water = ATELIER_WATER.some(s=>s.id===id);
+ const path = water ? './water-atelier.html' : plant ? './vegetation-atelier.html' : id === 'reed' ? './reed-study.html' : './fauna-atelier.html';
+ const params = new URLSearchParams(); if (id !== 'reed') params.set('species', water || plant || ATELIER_SPECIES.some(s=>s.id===id) ? id : 'lumen');
  if (seed) params.set('seed',seed); return path + (params.size ? '?' + params : '');
 }
 export function mountAtelierNavigation(id) {
  const seed = new URLSearchParams(location.search).get('seed') || '';
  const select = document.getElementById('atelier-species');
  select.setAttribute('aria-label','Atelier species');
- for (const [label, entries] of [['Fauna', ATELIER_SPECIES], ['Vegetation', ATELIER_PLANTS]]) {
+ for (const [label, entries] of [['Fauna', ATELIER_SPECIES], ['Vegetation', ATELIER_PLANTS], ['Water · atelier studies', ATELIER_WATER]]) {
   const group=document.createElement('optgroup');group.label=label;
   for (const species of entries) { const option=document.createElement('option'); option.value=species.id;option.textContent=species.number+' / '+species.name;group.append(option); }
   select.append(group);

@@ -91,7 +91,8 @@ export class Landmarks {
 		const p = this.shared.player.position;
 		const plants=this.shared.plants;
 		const plantTargets=plants?.root.visible?plants.targets:[];
-		return pickTarget(this.raycaster,this.camera,p,[...this.interactables,...plantTargets],this.pointer||undefined);
+		const waterTargets=this.shared.waterLife?.root.visible?this.shared.waterLife.targets:[];
+		return pickTarget(this.raycaster,this.camera,p,[...this.interactables,...plantTargets,...waterTargets],this.pointer||undefined);
 	}
 
 	update(dt, shared) {

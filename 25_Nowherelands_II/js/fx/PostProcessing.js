@@ -63,6 +63,9 @@ export class PostProcessing {
   this.display.material.depthTest=false;this.display.material.depthWrite=false;
   this.frameStats={produced:0,presented:0,repeated:0};this.lastPresented=0;
   this.composer = new EffectComposer(renderer);
+  // Inland water reads a copied opaque depth buffer, so swimmers are shaded
+  // by their actual immersion rather than the depth of the lake bed.
+  for(const target of [this.composer.renderTarget1,this.composer.renderTarget2])target.depthTexture=new THREE.DepthTexture(target.width,target.height,THREE.UnsignedIntType);
   this.composer.renderToScreen=!this.buffered;
 		this.composer.addPass(new RenderPass(scene, camera));
 		this.composer.addPass(new ShaderPass(SanitizeShader));

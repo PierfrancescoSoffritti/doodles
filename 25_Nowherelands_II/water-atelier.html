@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Water atelier · Nowherelands</title>
+<link rel="stylesheet" href="./css/fauna-atelier.css?v=1"><link rel="stylesheet" href="./css/water-atelier.css?v=1">
+<script type="importmap">{"imports":{"three":"../common/libs/three-0.185/build/three.module.min.js","three/addons/":"../common/libs/three-0.185/examples/jsm/"}}</script></head>
+<body>
+<main class="stage atelier-stage" id="stage">
+ <header><small>Nowherelands / Water atelier</small><h1 id="name">The living pool.</h1><p id="intro">Red beneath the surface.<br>Floating flowers. A little light.</p></header>
+ <canvas id="canvas" tabindex="0" aria-label="Interactive pool study. Drag to orbit, click the water for a ripple, or press N. Press S for a splash."></canvas>
+ <div class="caption"><span class="eyebrow" id="specimen">Pool study / 001</span><h2 id="form-title">Life above and below the surface.</h2><p id="gesture-status" aria-live="off">Quiet water.</p></div>
+ <div class="transport"><button id="touch">Touch water</button><button id="splash">Splash</button><span class="spacer"></span><button id="pause" aria-pressed="false">Pause</button><button id="reset-view">Reset view</button></div>
+</main>
+<aside>
+ <div class="eyebrow"><span>Living forms · Water 01</span><a id="world-link" href="./">World ↗</a></div>
+ <label class="field atelier-nav"><span>Explore the atelier</span><select id="atelier-species" aria-label="Atelier species"></select></label>
+ <h2 id="character-title">A pool that answers.</h2><p class="lede" id="character">A small ecosystem to try together. Scarlet fish swim beneath floating leaves and flowers.</p>
+ <div class="tabs" role="tablist" aria-label="Water study">
+  <button id="tab-form" role="tab" aria-controls="panel-form" aria-selected="true">01 Form</button>
+  <button id="tab-life" role="tab" aria-controls="panel-life" aria-selected="false" tabindex="-1">02 Interaction</button>
+  <button id="tab-home" role="tab" aria-controls="panel-home" aria-selected="false" tabindex="-1">03 Habitat</button>
+ </div>
+ <section class="panel" id="panel-form" role="tabpanel" aria-labelledby="tab-form">
+  <label class="field" id="school-field"><span>Fish together</span><select id="school"><option value="solo">One solitary fish</option><option value="small">Small school · 4</option><option value="medium">School · 9</option><option value="large">Large school · 20</option><option value="mixed" selected>Alone + small + large · 20 total</option></select></label>
+  <button class="action" id="individual">Another specimen <small>New proportions, spacing and rhythm</small></button>
+  <label class="field"><span>View</span><select id="view"><option value="quarter">From the bank</option><option value="top">Above the water</option><option value="side">Low · inspect the silhouette</option></select></label>
+  <label class="field"><span>Light</span><select id="light"><option value="day">Overcast · inspect the form</option><option value="night" selected>Moonlight · watch the flowers</option></select></label>
+  <label class="field"><span>Water clarity <output id="clarity-value">72%</output></span><input type="range" id="clarity" min="15" max="95" value="72" aria-label="Water clarity"></label>
+  <label class="check-field"><input id="surface" type="checkbox" checked> Show water surface</label>
+  <p class="note">Drag to orbit · Scroll or pinch to approach. Hide the surface to inspect the submerged forms.</p>
+ </section>
+ <section class="panel" id="panel-life" role="tabpanel" aria-labelledby="tab-life" hidden>
+  <p class="note" id="interaction-note">Touch the water to wake the flowers. A splash closes them a little before they settle. Fish follow their own routes.</p>
+  <div id="water-interactions">
+  <button class="action" id="invite">A gentle ripple <small>Click or tap the water · N</small></button>
+  <button class="action" id="startle">A small splash <small>Watch the flowers settle · S</small></button>
+  <button class="action" id="settle">Give them space <small>Return to quiet water</small></button>
+  <label class="check-field"><input id="sound" type="checkbox" checked> Hear the flowers reply</label>
+  <label class="field"><span>Listening level</span><input id="volume" type="range" min="0" max="100" value="45" aria-label="Listening level"></label>
+  <button class="action" id="stop-audio">Stop sound</button><p class="note" id="feedback" role="status">Sound starts only after an interaction.</p>
+  </div>
+ </section>
+ <section class="panel" id="panel-home" role="tabpanel" aria-labelledby="tab-home" hidden>
+  <h3>Quiet freshwater margins</h3><p class="note">Floating leaves and flowers at the surface, red fish in the water column. Sheltered pools leave room for both.</p>
+  <div class="fact"><strong>Fish below, flowers above</strong><p>Fish stay submerged. Lily flowers rest on the surface, with their warm hearts tucked inside a shallow cup of petals.</p></div>
+  <p class="note">A studio for refining the inhabitants now living in the world. This shallow studio pool uses simplified water and provisional flower sounds.</p>
+  <p class="note"><a href="./docs/fauna/underwater-exploration-v2/01-revised-direction.png" target="_blank" rel="noopener">Concept board ↗</a></p>
+ </section>
+ <div class="footer">A first moving study to refine together.<br>Each specimen uses the same world seed.</div>
+</aside>
+<div id="error" role="alert" hidden></div>
+<script type="module">import('./js/water-atelier.js?v=3').catch(e=>{document.getElementById('error').hidden=false;document.getElementById('error').textContent=e.message;document.body.dataset.status='fail';console.error(e);});</script>
+</body></html>

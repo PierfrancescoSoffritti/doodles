@@ -1,5 +1,7 @@
 # Fauna atelier
 
+The selector also includes **Water · atelier studies**: a living pool, Scarlet fish, and Light lilies (plants). These are prototypes for comparison before world placement; see [Water atelier](WATER_ATELIER.md) for controls and verification.
+
 Open **fauna atelier ↗** on the game’s entrance screen or in the corner menu
 (press Escape to release the mouse). The species selector connects seven studies:
 Lumens, Pebble hoppers, Reed walkers, Roundtails, Longtails, Crowncrests and

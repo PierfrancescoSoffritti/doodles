@@ -21,8 +21,8 @@ export class VegetationAudio {
   const ctx = this.context;
   if (!this.enabled || !ctx || ctx.state !== 'running') return;
   let now = ctx.currentTime;
-  const plant = model.plants[event.plant], stem = plant?.stems[event.part];
-  const degrees = [0, 2, 4, 7, 9],voice=stem?reedVoice(plant,stem):null;
+  const plant = model.plants[event.plant], stem = plant?.stems?.[event.part];
+  const degrees = [0, 2, 4, 7, 9],voice=stem?reedVoice(plant,stem):{degree:event.part??0,decay:1.25};
   const freq = event.kind === 'invitation' ? 220 : event.kind === 'mirror' ? 440 * 2 ** (event.part * 7 / 12)
    : 220 * 2 ** ((degrees[(voice?.degree??0)%5]+12*Math.floor((voice?.degree??0)/5)) / 12);
   if(event.chorus){

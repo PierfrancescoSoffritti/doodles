@@ -1,11 +1,11 @@
 import { spatialWaterMesh } from './SpatialWaterMesh.js?v=stable-30-5';
 import { mobileDetail, mobileOption } from '../core/MobileDetail.js?v=stable-30-3';
 import * as THREE from 'three';
-import { WaterOptics } from './WaterOptics.js';
+import { WaterOptics } from './WaterOptics.js?v=pool-life-2';
 import { WaterMeshData, NEAR_RADIUS, NEAR_REBUILD, nearCoverageRadius } from './WaterMeshData.js?v=stable-30-23';
 import { config } from '../core/Config.js?v=stable-30-3';
 export { NEAR_RADIUS } from './WaterMeshData.js?v=stable-30-23';
-import { createWaterUniforms, waterVertexShader, waterFragmentShader, updateWaterUniforms } from './WaterShader.js?v=stable-30-10';
+import { createWaterUniforms, waterVertexShader, waterFragmentShader, updateWaterUniforms } from './WaterShader.js?v=pool-life-2';
 
 // Lakes and rivers: flat lake sheets at each lake's own level, and river ribbons that follow the
 // water surface sample by sample: sloping runs, short steep riffle ramps, and gaps where a

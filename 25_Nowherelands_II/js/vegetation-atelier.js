@@ -4,7 +4,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { mountAtelierNavigation } from './atelier/AtelierCatalog.js?v=vegetation-1';
+import { mountAtelierNavigation } from './atelier/AtelierCatalog.js?v=water-2';
 import { VegetationStudy } from './atelier/VegetationStudy.js';
 import { VegetationMeshes } from './atelier/VegetationMeshes.js';
 import { VegetationAudio } from './atelier/VegetationAudio.js';

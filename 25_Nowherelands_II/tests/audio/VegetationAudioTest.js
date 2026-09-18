@@ -24,6 +24,10 @@ test('disabled or suspended audio cannot restart from queued visual replies',asy
  audio.play({kind:'mirror',plant:0,part:0},model);assert.equal(audio.sources.size,0);
  await audio.dispose();assert.equal(ctx.state,'closed');assert.equal(audio.context,null);
 });
+test('lily replies reuse the audition voice without requiring a reed stem collection',()=>{
+ const {audio}=fixture();audio.play({kind:'lily',plant:0,part:2},{plants:[{x:1.5}]});
+ assert.equal(audio.sources.size,3);audio.stop();assert.equal(audio.sources.size,0);
+});
 test('stopping during an asynchronous unlock stays quiet; a newer intentional unlock survives',async()=>{
  const {audio,ctx}=fixture();let resume;
  ctx.resume=()=>new Promise(resolve=>{resume=()=>{ctx.state='running';resolve();};});

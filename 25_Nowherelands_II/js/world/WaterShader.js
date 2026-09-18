@@ -14,6 +14,10 @@ export function createWaterUniforms(shared, waterLevel) {
 	const uniforms = {
 		uTime: { value: 0 },
 		uSceneColor: { value: null },
+		uSceneDepth: { value: null },
+		uHasSceneDepth: { value: 0 },
+		uInvProjection: { value: new THREE.Matrix4() },
+		uCameraWorld: { value: new THREE.Matrix4() },
 		uResolution: { value: new THREE.Vector2(1, 1) },
 		uHasScene: { value: 0 },
 		uEnvironment: { value: null },
@@ -129,7 +133,8 @@ export function waterVertexShader(shared) {
 export function waterFragmentShader(shared) {
 	return /* glsl */`
 	uniform float uNearRadius, uTime, uHue, uBass, uRain, uHasEnvironment, uHasScene;
-	uniform sampler2D uEnvironment, uSceneColor, uHabitatMap;
+	uniform sampler2D uEnvironment, uSceneColor, uSceneDepth, uHabitatMap;
+	uniform float uHasSceneDepth; uniform mat4 uInvProjection,uCameraWorld;
 	uniform vec2 uRockOrigin; uniform float uRockSize;
 	uniform vec2 uResolution;
 	uniform vec3 uEnvironmentSize;
@@ -237,6 +242,16 @@ export function waterFragmentShader(shared) {
 		vec2 sampleUv = clamp(screen + viewNormal.xy * refraction * (1.0 - obstruction), vec2(0.002), vec2(0.998));
 		vec3 bed = vec3(0.11, 0.09, 0.16);
 		if (uHasScene > 0.5) bed = texture2D(uSceneColor, sampleUv).rgb;
+		// Opaque fish and rocks above the bed shorten the absorption path.
+		if(uHasSceneDepth>.5){
+			float opaqueDepth=texture2D(uSceneDepth,sampleUv).r;
+			if(opaqueDepth<.999999){
+				vec4 opaqueView=uInvProjection*vec4(sampleUv*2.-1.,opaqueDepth*2.-1.,1.);
+				vec3 opaqueWorld=(uCameraWorld*vec4(opaqueView.xyz/opaqueView.w,1.)).xyz;
+				thickness=min(thickness,max(0.,vWorldPos.y-opaqueWorld.y)/max(refractedCos,.3));
+				transmission=exp(-absorption*thickness);
+			}
+		}
 		vec3 body = mix(vec3(0.022, 0.105, 0.13), vec3(0.05, 0.085, 0.12), sediment);
 		body = mix(body, vec3(0.075, 0.066, 0.055), clamp(sediment + tannin, 0.0, 0.75));
 		body *= 0.65 + 0.35 * uMoonIntensity;
