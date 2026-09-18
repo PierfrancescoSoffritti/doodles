@@ -67,8 +67,11 @@ export class Mirrors {
 		this.time += dt;
 		const player = shared.player.position;
 		// only the two nearest mirrors within range render real reflections
-		const byDist = this.items.map((it) => [it, it.mesh.position.distanceTo(player)]).sort((a, b) => a[1] - b[1]);
-		byDist.forEach(([it, d], i) => this.setActive(it, i < 2 && d < NEAR));
+		const pendants=shared.plants?.root.visible?shared.plants.pendants:[];
+		const byDist = [...this.items.map(it=>({it,mesh:it.mesh})),...pendants].map(it=>[it,it.mesh.getWorldPosition(new THREE.Vector3()).distanceTo(player)]).sort((a,b)=>a[1]-b[1]);
+		const active=new Set(byDist.slice(0,2).filter(([,d])=>d<NEAR).map(([it])=>it.mesh));
+		for(const it of this.items)this.setActive(it,active.has(it.mesh));
+		if(shared.plants)shared.plants.reflecting=active;
 		for (const it of this.items) {
 			it.flash = damp(it.flash, 0, 3, dt);
 			it.hover = damp(it.hover, it.hoverTarget ? 1 : 0, 10, dt);

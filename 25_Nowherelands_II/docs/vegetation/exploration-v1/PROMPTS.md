@@ -1,0 +1,51 @@
+# Vegetation exploration v1 — generation record
+
+Generated 2026-09-18 with the built-in `image_gen.imagegen` tool (stylized-concept). These are speculative concept renderings, not captures of implemented vegetation.
+
+Prompts were informed by `js/world/Vegetation.js`, the existing fauna reference sheets, and `docs/performance/distance-transitions-2026-09-10/after-overlook.png`. No image was supplied as a direct edit target. Each full prompt is recorded below.
+
+## 01-ground-layer.png
+
+```text
+Use case: stylized-concept.
+Asset type: vegetation concept exploration for Nowherelands II, an atmospheric low-poly musical walking game. Exploratory art, not a screenshot or final game asset.
+Style: very simple buildable low-polygon 3D geometry, broad flat facets, matte charcoal and muted aubergine plant bodies with desaturated blue-violet edges. Delicate restrained emission only where specifically requested. The existing world has magenta/plum fog, dark faceted terrain, bare angular trees, distant giant groves and sparse cyan/ivory lights. Quiet, uncanny, organic, never cute or ornate.
+Presentation: landscape botanical design study on uniform desaturated plum-gray background, softly lit enough to judge the geometry, generous negative space, subtle thin dividers, crisp off-white understated typography. No photoreal textures, leaf veins, detailed bark, saturated green, neon outlining, excessive bloom, floating particles, crystals, faces, animals or people. Root bases rest directly on the flat studio floor, no pots or diorama plinths.
+Primary request: a two-row four-column design sheet showing two proposed plant families. Title exactly "VEGETATION / 01 — GROUND LAYER". Top row title "THREADGRASS", bottom row title "FOLDED FERNS". Column captions repeated for each row exactly "THREE-QUARTER", "SIDE", "ABOVE", "WIND". Each row is the same individual plant in three neutral views and one gust pose, coherent topology; rows are independently scaled for inspection.
+THREADGRASS: an irregular airy tuft of exactly seven narrow tapered ribbon blades, each built from just three angular segments, dark violet lower blades, a short muted pearl-lilac tip on only three blades. Blades split from one rooted base with open spaces, heights varied, long graceful angular curves, no flowers or seed heads. Three-quarter shows the full fan; side narrow asymmetric outline; above shows seven radiating blades; wind keeps roots fixed and bends upper segments together. Tips glow only faintly.
+FOLDED FERNS: a low asymmetric rosette of exactly five broad arching fronds. Each frond a central folded ribbon with just three pairs of large triangular leaflets, dark dusky indigo, a paper-fold ridge catching lavender light. Read as a few bold leaves, not feathery fine fern detail. Above clearly shows five fronds, central negative space. Wind tilts frond tips modestly while base stays fixed. Entire plant non-emissive.
+```
+
+## 02-water-margin.png
+
+```text
+Use case: stylized-concept.
+Asset type: vegetation concept exploration for Nowherelands II, an atmospheric low-poly musical walking game. Exploratory art, not a screenshot or final game asset.
+Style: very simple buildable low-polygon 3D geometry, broad flat facets, matte charcoal and muted aubergine plant bodies with desaturated blue-violet edges. Delicate restrained emission only where specifically requested. The existing world has magenta/plum fog, dark faceted terrain, bare angular trees, distant giant groves and sparse cyan/ivory lights. Quiet, uncanny, organic, never cute or ornate.
+Presentation: landscape botanical design study on uniform desaturated plum-gray background, softly lit enough to judge the geometry, generous negative space, subtle thin dividers, crisp off-white understated typography. No photoreal textures, leaf veins, detailed bark, saturated green, neon outlining, excessive bloom, floating particles, crystals, faces, animals or people. Root bases rest directly on the flat studio floor, no pots or diorama plinths.
+Primary request: a two-row four-column design sheet showing two proposed wetland plant families. Title exactly "VEGETATION / 02 — WATER MARGIN". Top row title "BELL REEDS", bottom row title "CUP ROSETTES". Column captions repeated for each row exactly "THREE-QUARTER", "SIDE", "ABOVE", "RESPONSE". Each row repeats the same individual clump with consistent topology across three neutral views and one proposed musical response, rows independently scaled.
+BELL REEDS: exactly five slender charcoal segmented stalks of uneven heights sharing a small rooted clump, each ends in one small downward-tilted hollow faceted seed husk with a slotted opening. Husk is a simple long bell folded from three dull mauve planes; very little mass, no literal brass bells or strings, no round glowing fruit. Three simple narrow basal leaves. Open silhouette inspired by rushes and hanging seed cases. In first three panels husks unlit, their openings readable. RESPONSE shows a subtle warm ivory glow only inside TWO husks and a slight stalk lean, same shape, no particles.
+CUP ROSETTES: low shore plants consisting of exactly five thick broad pointed leaves arranged in a shallow open cup on a short rooted base. Each leaf one folded polygonal plane, muted slate-teal upper surfaces, plum undersides, five clean tips, no blossom, no stem, no central gem or water droplet. Above clearly shows five leaves and empty dark center. In RESPONSE the same five leaves open slightly and only their inner bases catch a very dim soft cool light. No bright outlines or floating lily pads.
+```
+
+## 03-woody-layer.png
+
+```text
+Use case: stylized-concept.
+Asset type: vegetation concept exploration for Nowherelands II, an atmospheric low-poly musical walking game. Exploratory art, not a screenshot or final game asset.
+Style: very simple buildable low-polygon 3D geometry, broad flat facets, matte charcoal and muted aubergine plant bodies with desaturated blue-violet edges. Delicate restrained emission only where specifically requested. The existing world has magenta/plum fog, dark faceted terrain, bare angular trees, distant giant groves and sparse cyan/ivory lights. Quiet, uncanny, organic, never cute or ornate.
+Presentation: landscape botanical design study on uniform desaturated plum-gray background, softly lit enough to judge the geometry, generous negative space, subtle thin dividers, crisp off-white understated typography. No photoreal textures, leaf veins, detailed bark, saturated green, neon outlining, excessive bloom, floating particles, crystals, faces, animals or people. Root bases rest directly on the flat studio floor, no pots or diorama plinths.
+Primary request: a two-row four-column design sheet showing two proposed woody plant families. Title exactly "VEGETATION / 03 — WOODY LAYER". Top row title "VEIL WILLOWS", bottom row title "WIND-COMB SHRUBS". Column captions repeated for each row exactly "THREE-QUARTER", "SIDE", "ABOVE", "WIND". Each row repeats the SAME individual across three neutral views and one gust pose, rows independently scaled for inspection.
+VEIL WILLOWS: a medium small tree, gently leaning charcoal trunk splits into three asymmetrical limbs, each carries two or three sparse hanging foliage ribbons, total EIGHT hanging ribbons. Ribbons are wide tapered strips made of three or four flat polygon segments with gaps between ribbons and uneven lengths. Dusky violet surfaces, gently lit blue-lilac edges; opaque matte leaves, not luminous curtains or transparent cloth. Crown has large open holes, trunk stays visibly exposed. Lower ribbon ends stop well above ground. WIND shifts ribbons sideways with fixed branch attachments, trunk remains stable.
+WIND-COMB SHRUBS: a low wind-pruned woody shrub broader than tall, two gnarled faceted stems with short branches all sweeping the same direction; exactly seven sparse flattened wedge clusters of thick dark mauve leaves along outer branches. Rooted low on the studio floor. Strong horizontal comb-shaped silhouette, substantial gaps, no full round canopy, no tiny leaf detail. No emission. WIND bends only terminal leaf clusters slightly further downwind, without moving roots or changing branch anatomy.
+```
+
+## 04-shore-assemblage.png
+
+```text
+Use case: stylized-concept.
+Asset type: environmental concept rendering for the Nowherelands II vegetation exploration. This is a proposed art direction, not an actual game screenshot.
+Primary request: one wide low-poly 3D game scene at walking eye level on a quiet lakeshore in plum twilight, focused on readable planting relationships, sparse terrain and depth. Match a minimalist procedural world with dark faceted ground, desaturated purple vegetation, magenta-violet horizon fog, subdued water reflections, angular distant mountains and a few dark giant trees. No people or animals. No UI or text.
+Foreground left: a few threadgrass tufts, each with seven narrow angular ribbon blades and only a few dim pearl tips; two low folded ferns with five fronds each, each frond has just three paired broad triangular leaflets. Center foreground a readable winding strip of bare ground leading to the water, with ample empty space. Right water edge: three small clumps of bell reeds, thin charcoal stalks topped by small drooping hollow mauve husks; warm ivory glows inside only two husks in the entire scene. Nearby wet bank holds two low cup rosettes, each five large folded slate-teal pointed leaves forming shallow empty cups, non-emissive. Midground left one modest veil willow with forked exposed trunk and only eight broad hanging polygonal leaf ribbons, holes in canopy, not a giant weeping willow. Further up the dry bank small wind-comb shrubs with low sweeping woody branches and sparse wedge leaf clusters. Big untouched lake surface remains visible with distant shore in fog.
+Style: spare buildable low-poly forms, flat shading, broad simple planes, matte surfaces, no realistic textures, no fine leaf detail, no lush fantasy jungle, no luminous forest, no neon edges, no sci-fi mushrooms or crystals. Soft fill light keeps foreground plant silhouettes legible. Moody but not nearly black. Vegetation grows in irregular small groups separated by bare ground, not evenly scattered everywhere. Restrained grain and bloom, no dramatic rays or excessive stars. Landscape 3:2 composition.
+```

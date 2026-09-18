@@ -35,7 +35,7 @@ import { Fireflies } from './world/Fireflies.js?v=stable-30-3';
 import { Sprouts } from './world/Sprouts.js';
 import { Landmarks } from './landmarks/Landmarks.js';
 import { Player } from './player/Player.js';
-import { HUD } from './ui/HUD.js?v=stable-30-3';
+import { HUD } from './ui/HUD.js?v=plant-feedback-2';
 import { Caves } from './world/caves/Caves.js?v=stable-30-28';
 import { WeatherSurvey } from './ui/WeatherSurvey.js?v=stable-30-10';
 import { CaveSurvey } from './ui/CaveSurvey.js';
@@ -45,12 +45,13 @@ import { EventDirector } from './events/Events.js';
 import { PostProcessing } from './fx/PostProcessing.js?v=stable-30-3';
 import { FoliageDepthPrepass } from './fx/FoliageDepthPrepass.js?v=stable-30-3';
 import { installBoundedPointLights } from './fx/BoundedPointLights.js?v=stable-30-3';
-import { AudioEngine } from './audio/AudioEngine.js?v=stable-30-3';
+import { AudioEngine } from './audio/AudioEngine.js?v=reed-retrigger-1';
 import { Conductor } from './audio/Conductor.js?v=pebble-audio-10';
 import { Fauna } from './world/fauna/Fauna.js?v=stable-30-30';
 import { WorldReedWalkers } from './world/fauna/WorldReedWalkers.js?v=stable-30-3';
 import { WorldLanternMites } from './world/fauna/WorldLanternMites.js?v=stable-30-22';
 import { WorldBirds } from './world/fauna/WorldBirds.js?v=stable-30-3';
+import { WorldPlants } from './world/WorldPlants.js';
 
 import { FaunaMenu } from './ui/FaunaMenu.js?v=stable-30-25';
 
@@ -145,6 +146,7 @@ async function start(world,caveMeshes) {
 	shared.birds = birds;
 	const walkers = new WorldReedWalkers(scene,heightmap,shared,fauna,config.seed); shared.walkers=walkers;
 	const mites = new WorldLanternMites(scene,heightmap,shared,terrain.vegetation,config.seed,terrain.material); shared.mites=mites;
+	const plants = new WorldPlants(scene,heightmap,shared,fauna.lakes,config.seed,{small:mobileDetail});shared.plants=plants;
 	const landmarks = new Landmarks(scene, heightmap, shared, camera);
 	landmarks.addFireflies(fireflies);
 	const localLights = mobileDetail ? new MobilePointLights(scene) : null;
@@ -154,7 +156,7 @@ async function start(world,caveMeshes) {
 	const replyOutlines = new ReplyOutlinePass();
 	const pmrem = new THREE.PMREMGenerator(renderer);
 	const environment = new EnvironmentProbe(renderer, scene, camera, shared, pmrem,
-		() => [water.far, ...water.levels, inland.mesh, inland.near, drift.points, watersideLife.points, fauna.meshes.root, birds.root, walkers.root, mites.root, ...caves.waterMeshes],
+		() => [water.far, ...water.levels, inland.mesh, inland.near, drift.points, watersideLife.points, fauna.meshes.root, birds.root, walkers.root, mites.root, plants.root, ...caves.waterMeshes],
 		(target) => {
 			scene.environment = target.texture; scene.environmentIntensity = .55;
 			const image = target.texture.image;
@@ -166,6 +168,7 @@ async function start(world,caveMeshes) {
 	// ---- events ----
 	bus.on(Events.RIPPLE, ({ x, z, size, hue, saturation }) => ripples.add(x, z, size, hue % 1, saturation));
 	bus.on(Events.NOTE, (n) => {
+		if(n.layer==='plant-reply')return;
 		if(n.layer==='player-note'){shared.playerNotes.hear(n);if(n.position)terrain.vegetation.noteAt(n.position.x,n.position.z,.5+(n.velocity||.3));return;}
 		mites.hearNote(n);
 		walkers.hearNote(n);birds.hearNote(n);
@@ -191,6 +194,7 @@ async function start(world,caveMeshes) {
 	birds.prime();
 	walkers.update(0);
 	mites.update(0);
+	plants.stream(true);plants.update(0);
 	// Finish the first environment and streamed-material driver setup while the
 	// loading screen is still visible, before entering starts music and movement.
 	hud.setLoading('lighting the forest', 1);
@@ -315,6 +319,7 @@ async function start(world,caveMeshes) {
 		birds.update(dt);
 		walkers.update(dt);
 		mites.update(dt);
+		plants.update(dt);
 		localLights?.update(camera, dt);
 
 		// fog: valley haze thickens with weather; far ranges fade to a tone darker than the sky
@@ -374,7 +379,7 @@ async function start(world,caveMeshes) {
 		fireflies.points.visible=shared.caveAmount<=.4;
 		if (renderFrame) {
 			post.render(t, shared);
-			if(shared.playerNotes.highlights.size){
+			if(shared.playerNotes.highlights.size||plants.hasReplyHighlights){
     if(post.buffered)renderer.setRenderTarget(post.composer.readBuffer);
     replyOutlines.render(renderer,scene,camera);
     if(post.buffered)renderer.setRenderTarget(null);

@@ -5,6 +5,8 @@ Open **fauna atelier ↗** on the game’s entrance screen or in the corner menu
 Lumens, Pebble hoppers, Reed walkers, Roundtails, Longtails, Crowncrests and
 Fireflies. World links preserve the seed supplied by the game.
 
+The same selector now includes **Vegetation / Bell reeds** and **Vegetation / Veil willows**. These open the separate [vegetation atelier](../vegetation/ATELIER.md), an early form, motion and interaction prototype before world placement.
+
 The Reed walker study remains its dedicated, approved family diorama. The other
 studies share `fauna-atelier.html`, the same paper-and-sage visual language and
 Form / Voice / Home / Traits panels. Each supports orbiting, alternate views,

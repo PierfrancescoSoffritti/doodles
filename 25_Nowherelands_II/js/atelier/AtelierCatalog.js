@@ -8,15 +8,25 @@ export const ATELIER_SPECIES = [
  { id:'crowncrest', name:'Crowncrests', number:'06', bird:2, title:'No need to hurry.', intro:'A crest above the grass.\nA longer pause before flight.', character:'Larger, deliberate, quietly alert.', home:'Clearings with a nearby perch', habitat:'Gentle dry terrain with a nearby tree. Clear ground and a safe branch give it two places to rest.', traits:[['A recognizable crown','A crest and a larger body distinguish its silhouette.'],['Time to look around','Longer rests and slower wingbeats give it a more deliberate rhythm.'],['Individual plumage','Color varies within the same crowned form.']] },
  { id:'firefly', name:'Fireflies', number:'07', title:'Small lights, no destination.', intro:'A few drifting points.\nA landscape quietly breathing.', character:'Weightless, flickering, scattered.', home:'The night air', habitat:'Ambient motes drift above terrain and water; clusters also gather around landmarks. Their light responds to the night and the world’s sound.', traits:[['A pulse, not a steady lamp','Each mote has its own phase and brightness cycle.'],['A little color in the dark','Warm gold, cool cyan and pink lights mingle.'],['Small differences','Size, drift speed and phase keep the group from moving in lockstep.']], actions:[['rest','Drift'],['pulse','Sound response']], voices:[] }
 ];
+export const ATELIER_PLANTS = [
+ {id:'bell-reed', name:'Bell reeds', number:'V1'},
+ {id:'veil-willow', name:'Veil willows', number:'V2'}
+];
 export function atelierURL(id, seed = '') {
- const path = id === 'reed' ? './reed-study.html' : './fauna-atelier.html';
- const params = new URLSearchParams(); if (id !== 'reed') params.set('species', ATELIER_SPECIES.some(s=>s.id===id) ? id : 'lumen');
+ const plant = ATELIER_PLANTS.some(s=>s.id===id);
+ const path = plant ? './vegetation-atelier.html' : id === 'reed' ? './reed-study.html' : './fauna-atelier.html';
+ const params = new URLSearchParams(); if (id !== 'reed') params.set('species', plant || ATELIER_SPECIES.some(s=>s.id===id) ? id : 'lumen');
  if (seed) params.set('seed',seed); return path + (params.size ? '?' + params : '');
 }
 export function mountAtelierNavigation(id) {
  const seed = new URLSearchParams(location.search).get('seed') || '';
  const select = document.getElementById('atelier-species');
- for (const species of ATELIER_SPECIES) { const option=document.createElement('option'); option.value=species.id;option.textContent=species.number+' / '+species.name;select.append(option); }
+ select.setAttribute('aria-label','Atelier species');
+ for (const [label, entries] of [['Fauna', ATELIER_SPECIES], ['Vegetation', ATELIER_PLANTS]]) {
+  const group=document.createElement('optgroup');group.label=label;
+  for (const species of entries) { const option=document.createElement('option'); option.value=species.id;option.textContent=species.number+' / '+species.name;group.append(option); }
+  select.append(group);
+ }
  select.value=id; select.addEventListener('change',()=>location.assign(atelierURL(select.value,seed)));
  const params=new URLSearchParams();if(seed)params.set('seed',seed);
  document.getElementById('world-link').href='./'+(params.size?'?'+params:'');

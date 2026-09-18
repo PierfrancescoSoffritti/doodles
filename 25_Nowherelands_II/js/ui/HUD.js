@@ -100,6 +100,7 @@ export class HUD {
 	}
 
 	setHover(on) { this.ring.setAttribute('r', on ? 9 : 4); this.ring.setAttribute('stroke', on ? '#ff6ad5' : '#fff'); }
+	setAimPosition(point) { const style=this.ring.ownerSVGElement.style;style.left=point?`${point.x}px`:'';style.top=point?`${point.y}px`:''; }
 
 	setCharge(c) {
 		const radius = (c * 22).toFixed(1), visible = c > 0;

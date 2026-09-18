@@ -2,6 +2,7 @@ import { FaunaSurvey } from './FaunaSurvey.js?v=stable-30-25';
 import { ReedSurvey } from './ReedSurvey.js?v=fauna-menu-2';
 import { BirdSurvey } from './BirdSurvey.js?v=fauna-menu-2';
 import { LanternMiteSurvey } from './LanternMiteSurvey.js?v=fauna-menu-2';
+import { PlantSurvey } from './PlantSurvey.js';
 import { config } from '../core/Config.js?v=stable-30-3';
 
 const FAUNA = [
@@ -11,6 +12,8 @@ const FAUNA = [
 	{ id: 'reed', name: 'Reed walkers', habitat: 'Gentle families in the shallows', next: 'Visit another family' },
 	{ id: 'bird', name: 'Birds', habitat: 'Colorful neighbors in the trees', next: 'Visit another group' },
 	{ id: 'mite', name: 'Lantern mites', habitat: 'Tiny lights in the old forest', next: 'Visit another colony' },
+	{ id: 'bell-reed', name: 'Bell reeds', habitat: 'Quiet answering bulbs along the water', next: 'Visit another patch' },
+	{ id: 'veil-willow', name: 'Veil willows', habitat: 'Hanging crowns on sheltered banks', next: 'Visit another willow' },
 ];
 
 // Reuse the habitat-aware tour cameras without mounting their inspection panels.
@@ -25,10 +28,10 @@ export class FaunaMenu {
 		this.panel.id = 'fauna-menu';
 		this.panel.className = 'fauna-guide fauna-menu';
 		this.panel.setAttribute('aria-labelledby', 'fauna-menu-title');
-		this.panel.innerHTML = '<header><div class="fauna-guide-kicker">NOWHERELANDS</div><h2 id="fauna-menu-title">Meet the fauna</h2><p>Choose a creature to visit its home.</p></header>';
+		this.panel.innerHTML = '<header><div class="fauna-guide-kicker">NOWHERELANDS</div><h2 id="fauna-menu-title">Meet the living world</h2><p>Visit the plants and creatures in their homes.</p></header>';
 		const list = document.createElement('nav');
 		list.className = 'fauna-menu-list';
-		list.setAttribute('aria-label', 'Fauna');
+		list.setAttribute('aria-label', 'Plants and fauna');
 		for (const entry of FAUNA) {
 			const button = document.createElement('button');
 			button.type = 'button';
@@ -42,7 +45,7 @@ export class FaunaMenu {
 		this.panel.append(list);
 		this.detail = document.createElement('p');
 		this.detail.className = 'fauna-menu-detail';
-		this.detail.textContent = 'Six kinds of company, one world to explore.';
+		this.detail.textContent = 'Living forms, one world to explore.';
 		this.panel.append(this.detail);
 		const actions = document.createElement('div');
 		actions.className = 'fauna-menu-actions';
@@ -59,7 +62,7 @@ export class FaunaMenu {
 		actions.append(this.next, explore);
 		this.panel.append(actions);
 		const help = document.createElement('small');
-		help.textContent = config.isTouch ? 'Drag to look · tap to play a note' : 'WASD to move · N to play a note · Esc for fauna';
+		help.textContent = config.isTouch ? 'Drag to look · tap to play a note' : 'WASD to move · N to play a note · Esc for the field guide';
 		this.panel.append(help);
 		this.toggle = document.createElement('button');
 		this.toggle.type = 'button';
@@ -83,7 +86,7 @@ export class FaunaMenu {
 			}
 		});
 		const params = new URLSearchParams(location.search);
-		const initial = params.has('reeds') ? 'reed' : params.has('birds') ? 'bird' : params.has('mites') ? 'mite' : params.get('fauna');
+		const initial = params.get('plants') || (params.has('reeds') ? 'reed' : params.has('birds') ? 'bird' : params.has('mites') ? 'mite' : params.get('fauna'));
 		if (FAUNA.some(entry => entry.id === initial)) this.visit(initial, false, false);
 	}
 
@@ -92,14 +95,14 @@ export class FaunaMenu {
 		this.panel.hidden = !open;
 		this.panel.inert = !open;
 		this.toggle.setAttribute('aria-expanded', String(open));
-		this.toggle.textContent = open ? 'Close fauna' : 'Fauna';
+		this.toggle.textContent = open ? 'Close field guide' : 'Field guide';
 	}
 
 	controller(kind) {
 		const key = ['lumen', 'hopper', 'ray'].includes(kind) ? 'fauna' : kind;
 		if (!this.controllers.has(key)) {
 			const s = this.shared, options = { mount: false };
-			const controller = key === 'fauna' ? new FaunaSurvey(s, s.fauna, options)
+			const controller = ['bell-reed','veil-willow'].includes(key) ? new PlantSurvey(s,key) : key === 'fauna' ? new FaunaSurvey(s, s.fauna, options)
 				: key === 'reed' ? new ReedSurvey(s, s.walkers, options)
 				: key === 'bird' ? new BirdSurvey(s, s.birds, options)
 				: new LanternMiteSurvey(s, s.mites, options);
@@ -116,6 +119,7 @@ export class FaunaMenu {
 			controller.mode = null;
 		}
 		this.shared.fauna.model.observing = false;
+		if(this.shared.plants)this.shared.plants.focus=null;
 		this.shared.mites.guided = this.shared.mites.observing = false;
 		this.active = null;
 		this.search = null;
@@ -133,7 +137,7 @@ export class FaunaMenu {
 			const other = another && this.shared.birds.encounters.find(bird => bird.habitat.id !== controller.subject?.habitat.id);
 			if (another && !other) this.findForest(kind, controller.subject?.habitat.id);
 			else { controller.watch('ground', other || undefined); if (controller.mode === 'search') this.findForest(kind); }
-		} else if (kind === 'reed' || kind === 'mite') {
+		} else if (kind === 'reed' || kind === 'mite' || kind === 'bell-reed' || kind === 'veil-willow') {
 			const found = controller.visit(another ? controller.group : undefined);
 			if (kind === 'mite' && !found) this.findForest(kind, another ? controller.group?.id : undefined);
 		} else if (another) {
@@ -147,8 +151,9 @@ export class FaunaMenu {
 		this.detail.textContent = this.search ? 'Finding a home in the forest…' : controller.detail.textContent || entry.habitat;
 		this.setOpen(true);
 		const url = new URL(location.href);
+		url.searchParams.set('seed',config.seed);
 		for (const key of ['reeds', 'birds', 'mites']) url.searchParams.delete(key);
-		url.searchParams.set('fauna', kind);
+		const plant=['bell-reed','veil-willow'].includes(kind);url.searchParams.delete(plant?'fauna':'plants');url.searchParams.set(plant?'plants':'fauna', kind);
 		history.replaceState(null, '', url);
 	}
 
@@ -229,6 +234,10 @@ export class FaunaMenu {
 
 	guide(dt) { if (!this.search) this.active?.guide(dt); }
 	update(ms) {
+		if((this.kind==='bell-reed'||this.kind==='veil-willow')&&this.shared.time>=(this.plantInspectAt||0)){
+			this.plantInspectAt=this.shared.time+.25;
+			const plants=this.shared.plants;this.panel.dataset.plants=JSON.stringify({sites:plants.sites.length,subject:this.active?.group?.id,active:[...plants.entries.values()].map(e=>({id:e.site.id,species:e.site.species,form:e.site.form,position:e.site,draws:e.batch.batches.length,glow:Math.max(0,...e.model.plants.flatMap(p=>p.stems.map(s=>s.energy)))}))});
+		}
 		if (this.shared.time >= (this.rememberAt || 0)) { this.rememberAt = this.shared.time + 1; this.rememberHomes(); }
 		this.searchForest();
 		if (!this.search) this.active?.update(ms);

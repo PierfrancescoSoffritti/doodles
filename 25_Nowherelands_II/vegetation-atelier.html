@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+ <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <title>Vegetation atelier · Nowherelands</title>
+ <link rel="stylesheet" href="./css/fauna-atelier.css?v=1">
+ <link rel="stylesheet" href="./css/vegetation-atelier.css?v=1">
+ <script type="importmap">{"imports":{"three":"../common/libs/three-0.185/build/three.module.min.js","three/addons/":"../common/libs/three-0.185/examples/jsm/"}}</script>
+</head>
+<body>
+ <main class="stage atelier-stage" id="stage">
+  <header><small>Nowherelands / Vegetation atelier</small><h1 id="name">Bell reeds.</h1><p id="intro">A small instrument at the water’s edge.</p></header>
+  <canvas id="canvas" tabindex="0" aria-label="Interactive vegetation study. Drag to orbit. Press N to offer a note, or click a willow mirror to play it."></canvas>
+  <div class="caption"><span class="eyebrow" id="specimen">Specimen 001</span><h2 id="form-title">The open husk.</h2><p id="gesture-status">Resting in the breeze</p></div>
+  <div class="transport" aria-label="Study playback"><button id="pause" aria-pressed="false">Pause</button><button id="reset-view">Reset view</button><span class="spacer"></span><span class="orbit-hint">Drag to orbit · Scroll to approach</span></div>
+ </main>
+ <aside>
+  <div class="eyebrow"><span>Living forms · Study 01</span><a id="world-link" href="./">World ↗</a></div>
+  <label class="field atelier-nav"><span>Explore the atelier</span><select id="atelier-species" aria-label="Atelier species"></select></label>
+  <h2 id="character-title">A quiet answering voice.</h2><p class="lede" id="character"></p>
+  <div class="tabs" role="tablist" aria-label="Plant study">
+   <button id="tab-form" role="tab" aria-controls="panel-form" aria-selected="true">01 Form</button>
+   <button id="tab-life" role="tab" aria-controls="panel-life" aria-selected="false" tabindex="-1">02 Interaction</button>
+   <button id="tab-home" role="tab" aria-controls="panel-home" aria-selected="false" tabindex="-1">03 Habitat</button>
+  </div>
+  <section class="panel" id="panel-form" role="tabpanel" aria-labelledby="tab-form">
+   <label class="field"><span>Variation</span><select id="variation"></select></label>
+   <label class="field"><span>Study</span><select id="group"><option value="single">One plant</option><option value="group">A small group</option></select></label>
+   <button class="action" id="individual">Another specimen <small>New proportions, spacing and rhythm</small></button>
+   <label class="field"><span>View</span><select id="view"><option value="quarter">Three-quarter</option><option value="front">Front</option><option value="side">Side</option><option value="top">Above</option></select></label>
+   <label class="field"><span>Light</span><select id="light"><option value="day">Overcast · inspect the form</option><option value="night">Dusk · inspect the response</option></select></label>
+   <label class="field"><span>Breeze <output id="wind-value">30%</output></span><input id="wind" type="range" min="0" max="100" value="30" aria-label="Breeze strength"></label>
+   <label class="field" id="pendants-field" hidden><span>Mirror pendants</span><select id="pendants"><option value="on">Two hanging mirrors</option><option value="off">An ordinary willow</option></select></label>
+   <p class="note" id="form-note"></p>
+  </section>
+  <section class="panel" id="panel-life" role="tabpanel" aria-labelledby="tab-life" hidden>
+   <p class="note" id="interaction-note"></p>
+   <div id="reed-actions">
+    <button class="action" id="offer-note">Offer a note <small>One husk answers, then its neighbors · N</small></button>
+    <button class="action" id="strong-note">A stronger note <small>A longer phrase through the patch · Hold N</small></button>
+    <button class="action" id="brush">Brush past <small>A passing visitor bends the stems</small></button>
+   </div>
+   <div id="willow-actions" hidden><button class="action" id="play-mirror">Play a pendant <small>Or click a mirror in the study</small></button></div>
+   <p class="note" id="feedback" role="status" aria-live="polite">Choose an action to begin.</p>
+   <label class="field check-field"><input id="sound" type="checkbox" checked> Sound on interaction</label>
+   <label class="field"><span>Listening level</span><input id="volume" type="range" min="0" max="100" value="55" aria-label="Listening level"></label>
+   <button class="action" id="stop-audio">Stop sound</button>
+   <p class="note">An early sound sketch, ready to tune together. Nothing plays until you interact.</p>
+  </section>
+  <section class="panel" id="panel-home" role="tabpanel" aria-labelledby="tab-home" hidden>
+   <h3 id="home-title"></h3><p class="note" id="home-detail"></p>
+   <div class="fact"><strong id="habitat-fact"></strong><p id="habitat-detail"></p></div>
+   <p class="note">An atelier prototype. These plants and their interactions are not placed in the game yet.</p>
+   <a class="note" href="./docs/vegetation/exploration-v2/README.md">Concept studies ↗</a>
+  </section>
+  <div class="footer">A living plant to study together.<br>Compare its silhouette, then try an interaction.</div>
+ </aside>
+ <div id="error" role="alert" hidden></div>
+ <script type="module">import('./js/vegetation-atelier.js?v=1').catch(e=>{document.body.dataset.status='fail';const el=document.getElementById('error');el.hidden=false;el.textContent=e.message;console.error(e);});</script>
+</body>
+</html>

@@ -13,7 +13,8 @@ export function replyOutline(mesh,{signal={value:0},expression='uReplySignal',ec
   shader.fragmentShader='varying float vReplyMask;varying vec2 vReplyEcho;void main(){if(vReplyMask<.01)discard;gl_FragColor=vec4(vReplyMask,vReplyEcho,1.);}';
  };
  let material;
- if(source.isShaderMaterial){material=source.clone();material.uniforms={...source.uniforms};inject(material);}
+ // Reflectors are undeformed planes; their render-target uniforms are not mask inputs.
+ if(source.isShaderMaterial&&!mesh.isReflector){material=source.clone();material.uniforms={...source.uniforms};inject(material);}
  else {material=new THREE.MeshBasicMaterial({vertexColors:source.vertexColors});material.onBeforeCompile=shader=>{source.onBeforeCompile(shader);inject(shader);};material.customProgramCacheKey=()=>source.customProgramCacheKey()+'-reply-mask';}
  material.side=THREE.DoubleSide;material.transparent=true;material.depthTest=false;material.depthWrite=false;material.toneMapped=false;
  material.blending=THREE.CustomBlending;material.blendEquation=THREE.MaxEquation;material.blendSrc=THREE.OneFactor;material.blendDst=THREE.OneFactor;
@@ -22,8 +23,10 @@ export function replyOutline(mesh,{signal={value:0},expression='uReplySignal',ec
  outline.name=mesh.name+'-reply-mask';outline.layers.set(REPLY_MASK_LAYER);outline.frustumCulled=false;mesh.add(outline);
  outline.onBeforeRender=()=>{if(mesh.isInstancedMesh)outline.count=mesh.count;};
  outline.onAfterRender=()=>{if(mesh.isInstancedMesh)outline.count=mesh.instanceMatrix.count;};
- source.addEventListener('dispose',()=>{outline.removeFromParent();material.dispose();if(outline.isInstancedMesh)outline.dispose();});
- return {outline,signal,echo};
+ let disposed=false;
+ const dispose=()=>{if(disposed)return;disposed=true;source.removeEventListener('dispose',dispose);outline.removeFromParent();material.dispose();if(outline.isInstancedMesh)outline.dispose();};
+ source.addEventListener('dispose',dispose);
+ return {outline,signal,echo,dispose};
 }
 
 export function writeReplyEcho(mesh,index,creature){

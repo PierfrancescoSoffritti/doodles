@@ -24,6 +24,7 @@ export class PlayerNotes {
   const s=this.shared,size=.6+note.velocity*2,radius=playerNoteRadius(note.velocity);
   s.ripples.add(note.position.x,note.position.z,size,note.velocity>.75?.085:(s.hue+.15)%1,.9,radius);
   const stimulus={...note,radius};
+  s.plants?.hearNote(stimulus);
   this.highlightNearby(stimulus);
   s.fauna.model.hear({...stimulus,strength:note.velocity});s.walkers?.hearNote(stimulus);s.birds?.hearNote(stimulus);s.mites?.hearNote(stimulus);
  }

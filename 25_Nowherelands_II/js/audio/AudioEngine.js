@@ -258,6 +258,15 @@ export class AudioEngine {
 		mod.stop(time + decay + 0.1); carrier.stop(time + decay + 0.1);
 		this.finishVoice([carrier,mod],[carrier,mod,modGain,env,...this.route(env,{dest,position,reverb,delay})]);
 		this.emitNote(freq, position, velocity, layer, time);
+		let stopped = false;
+		return { stop: () => {
+			if (stopped || ctx.currentTime >= time + decay + .1) return;
+			stopped = true;
+			const now = ctx.currentTime;
+			env.gain.cancelAndHoldAtTime(now);
+			env.gain.exponentialRampToValueAtTime(.0001, now + .025);
+			carrier.stop(now + .03); mod.stop(now + .03);
+		} };
 	}
 
 	// Short pitched thump.

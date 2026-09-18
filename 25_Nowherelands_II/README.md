@@ -57,6 +57,16 @@ Pebble sounds use a dedicated volume path outside ambient ducking, with up to 16
 - **Discovery.** Each landmark permanently adds a layer: the spiral unlocks the arpeggio, the hollow stones the bells, the still clock the sub bass, the wanderer the shimmer, the mirrors lengthen the reverb.
 - **Events.** Snow, aurora, meteor showers, an eclipse that drops the drone an octave, and the hum.
 
+## Vegetation exploration
+
+**Bell reeds** and **Veil willows** now grow along the world's rivers and lakes. Visit [bell reeds](index.html?plants=bell-reed&seed=ondine-ossia) or [veil willows](index.html?plants=veil-willow&seed=ondine-ossia) through the field guide, play N near reeds, and walk close to brush them. Some willows carry playable mirror pendants. See [world integration notes](docs/vegetation/WORLD.md).
+
+Open the [vegetation atelier](vegetation-atelier.html) for close inspection. It is also available in the fauna atelier's species selector. Compare growth/foliage variations and groups, adjust wind and lighting, offer a note or brush past reeds, and play optional hanging willow mirrors. See [controls and implementation notes](docs/vegetation/ATELIER.md).
+
+The [first vegetation study](docs/vegetation/exploration-v1/README.md) proposes six plant families with form sheets and a lakeshore concept rendering. These remain visual references for iteration.
+
+The [second study](docs/vegetation/exploration-v2/README.md) develops bell reeds and veil willows with three variations each, comparing resting specimens and small groups at dusk.
+
 ## Layout
 
 ```

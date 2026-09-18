@@ -3,6 +3,17 @@ import assert from 'node:assert/strict';
 import { AudioEngine } from '../../js/audio/AudioEngine.js?v=stable-30-3';
 import { Drone } from '../../js/audio/layers/Drone.js?v=stable-30-3';
 
+test('a replaced bell fades out once and stops both oscillators', () => {
+ const stops=[],holds=[],ramps=[];
+ const param=()=>({setValueAtTime(){},exponentialRampToValueAtTime(value,time){ramps.push([value,time]);},cancelAndHoldAtTime(time){holds.push(time);}});
+ const ctx={currentTime:0,createOscillator:()=>({frequency:param(),connect(){},start(){},stop(time){stops.push(time);}}),createGain:()=>({gain:param(),connect(){}})};
+ const engine=Object.assign(Object.create(AudioEngine.prototype),{ctx,route:()=>[],finishVoice(){},emitNote(){}});
+ const voice=engine.playBell({freq:440,time:0,decay:1.25});
+ ctx.currentTime=.2;voice.stop();voice.stop();
+ assert.deepEqual(holds,[.2]);assert.deepEqual(ramps.at(-1),[.0001,.225]);
+ assert.deepEqual(stops,[1.35,1.35,.23,.23]);
+});
+
 test('voice routing retires only after every source and its local tail finish', async () => {
  const engine = Object.create(AudioEngine.prototype);
  const sources = [{}, {}], disconnected = [];

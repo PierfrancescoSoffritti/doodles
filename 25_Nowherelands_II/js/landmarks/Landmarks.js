@@ -8,6 +8,7 @@ import { Octahedrons } from './Octahedrons.js';
 import { TimeMonolith } from './TimeMonolith.js';
 import { Mirrors } from './Mirrors.js';
 import { Wanderer } from './Wanderer.js';
+import { pickTarget, hoverTarget } from './TargetPicking.js';
 
 // Places landmarks around the spawn, handles gaze/press interaction and discovery.
 export class Landmarks {
@@ -47,6 +48,7 @@ export class Landmarks {
 		this.raycaster.far = 140;
 		this.hovered = null;
 		this.frame = 0;
+		this.bindPointer();
 
 		bus.on(Events.PRESS_END, ({ duration }) => {
 			// re-aim on release so a click never falls between two gaze updates
@@ -55,6 +57,32 @@ export class Landmarks {
 			const charge = clamp01((duration - 0.28) / 1.1);
 			target.onPress(charge);
 		});
+	}
+
+	bindPointer(){
+		if(config.isTouch)return;
+		const canvas=this.shared.renderer.domElement;
+		const move=event=>{
+			if(this.shared.player.locked||!this.shared.player.enabled)return;
+			const rect=canvas.getBoundingClientRect();
+			this.pointer=new THREE.Vector2((event.clientX-rect.left)/rect.width*2-1,1-(event.clientY-rect.top)/rect.height*2);
+			this.pointerScreen={x:event.clientX,y:event.clientY};
+			this.shared.hud.setAimPosition(this.pointerScreen);canvas.style.cursor='none';
+		};
+		const reset=()=>{this.pointer=null;this.pointerScreen=null;this.pointerDown=null;canvas.style.cursor='';this.shared.hud.setAimPosition(null);};
+		canvas.addEventListener('pointermove',move);
+		canvas.addEventListener('pointerleave',reset);
+		document.addEventListener('pointerlockchange',reset);
+		canvas.addEventListener('pointerdown',event=>{if(event.button===0&&!this.shared.player.locked){move(event);this.pointerDown=performance.now();}});
+		// Consume a target click before Player's click-to-lock handler. Empty ground
+		// still enters normal mouse-look; locked and touch gestures keep PRESS_END.
+		canvas.addEventListener('click',event=>{
+			if(event.button!==0||this.shared.player.locked||!this.shared.player.enabled)return;
+			move(event);const hit=this.aim();if(!hit)return;
+			event.preventDefault();event.stopImmediatePropagation();
+			hit.onPress(clamp01(((performance.now()-(this.pointerDown??performance.now()))/1000-.28)/1.1));
+			this.pointerDown=null;this.hovered=hoverTarget(this.hovered,hit,this.shared.hud);
+		},true);
 	}
 
 	addFireflies(fireflies) {
@@ -68,10 +96,9 @@ export class Landmarks {
 
 	aim() {
 		const p = this.shared.player.position;
-		this.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
-		const near = this.interactables.filter((i) => i.mesh.getWorldPosition(new THREE.Vector3()).distanceTo(p) < 160);
-		const hits = this.raycaster.intersectObjects(near.map((i) => i.mesh), false);
-		return hits.length ? near.find((i) => i.mesh === hits[0].object) : null;
+		const plants=this.shared.plants;
+		const pendants=plants?.root.visible?plants.pendants.map(item=>item.target):[];
+		return pickTarget(this.raycaster,this.camera,p,[...this.interactables,...pendants],this.pointer||undefined);
 	}
 
 	update(dt, shared) {
@@ -92,12 +119,7 @@ export class Landmarks {
 		// gaze
 		if (this.frame % 2 === 0) {
 			const hit = this.aim();
-			if (hit !== this.hovered) {
-				if (this.hovered) this.hovered.onHover(false);
-				if (hit) hit.onHover(true);
-				this.hovered = hit;
-				shared.hud.setHover(!!hit);
-			}
+			this.hovered=hoverTarget(this.hovered,hit,shared.hud);
 		}
 	}
 }
