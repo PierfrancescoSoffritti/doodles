@@ -55,7 +55,7 @@ import { WorldLanternMites } from './world/fauna/WorldLanternMites.js?v=stable-3
 import { WorldBirds } from './world/fauna/WorldBirds.js?v=stable-30-3';
 import { WorldPlants } from './world/WorldPlants.js?v=reed-chorus-1';
 
-import { Capture } from './ui/Capture.js?v=capture-1';
+import { Capture } from './ui/Capture.js?v=capture-3';
 import { FaunaMenu } from './ui/FaunaMenu.js?v=pool-life-6';
 
 const canvas = document.getElementById('canvas');

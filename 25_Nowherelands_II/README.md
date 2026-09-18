@@ -14,7 +14,7 @@ Open `index.html` through any static server (ES modules need `http://`). A seed 
 | click | sing a note anywhere, or touch a thing: cycle a monolith's note, ring a stone, flip time |
 | hold click | charge a note or strike: louder, brighter, bigger ripple |
 | P | save a screenshot (also while recording) |
-| P P | start / stop recording video and audio |
+| P P | start / stop recording video and audio (saved as `.mkv`; `ffmpeg -i take.mkv -c copy take.mp4` rewraps it) |
 | Enter | toggle fullscreen |
 | gamepad | left stick move, right stick look, A / RT touch |
 | touch | left half joystick, right half look, tap to touch |
