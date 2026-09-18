@@ -12,12 +12,12 @@ export class PlayerNotes {
   this.cancel=()=>{this.pressed=null;};window.addEventListener('blur',this.cancel);
   this.visibility=()=>{if(document.hidden){this.cancel();this.replies?.silence();for(const c of [...this.highlights])this.clearHighlight(c);}};document.addEventListener('visibilitychange',this.visibility);
  }
- async send(charge=0){
+ async send(charge=0,replyTarget=null){
   const s=this.shared;if(!s.audio){s.hud.enterBtn.click();await new Promise(resolve=>requestAnimationFrame(resolve));}if(!s.audio)return false;
   if(s.audio.ctx.state!=='running')await s.audio.resume();const e=s.audio;
   if(e.now-this.last<.16)return false;this.last=e.now;
   const degree=[0,2,4,2][this.serial++%4],loaded=charge>2/3;
-  e.playTone({freq:s.conductor.scale.freq(degree,loaded?1:2),position:{x:s.player.position.x,y:s.player.position.y,z:s.player.position.z},velocity:.35+Math.min(1,charge)*.6,type:loaded?'triangle':'sine',voices:loaded?3:1,detune:loaded?7:0,octaveLayer:loaded?.35:0,attack:loaded?.055:.035,duration:loaded?.48:.22,release:loaded?.75:.4,cutoff:loaded?1300:2200,reverb:.2,dest:e.playerBus,layer:'player-note'});
+  e.playTone({freq:s.conductor.scale.freq(degree,loaded?1:2),position:{x:s.player.position.x,y:s.player.position.y,z:s.player.position.z},velocity:.35+Math.min(1,charge)*.6,type:loaded?'triangle':'sine',voices:loaded?3:1,detune:loaded?7:0,octaveLayer:loaded?.35:0,attack:loaded?.055:.035,duration:loaded?.48:.22,release:loaded?.75:.4,cutoff:loaded?1300:2200,reverb:.2,dest:e.playerBus,layer:'player-note',replyTarget});
   e.duck(.35,1.2);return true;
  }
  hear(note){

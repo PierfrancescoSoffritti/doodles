@@ -18,6 +18,6 @@ export class PlantSurvey {
  }
  update(){
   const g=this.group;if(!g)return;
-  this.detail.textContent=this.species==='bell-reed'?`${g.form} reeds with ${g.companions?.length||0} smaller companions · Play N to hear their answering lights. Walk close to brush the stems.`:`${g.form} willow${g.pendants?' · Aim at a pendant: the cursor grows. Click for its mirror chime.':' · Explore here to walk around its crown.'}`;
+  this.detail.textContent=this.species==='bell-reed'?`${g.form} reeds with ${g.companions?.length||0} smaller companions · Tap N to trade notes. Hold N to wake the whole patch.`:`${g.form} willow${g.pendants?' · Aim at a pendant: the cursor grows. Click for its mirror chime.':' · Explore here to walk around its crown.'}`;
  }
 }

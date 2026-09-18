@@ -52,7 +52,7 @@ import { Fauna } from './world/fauna/Fauna.js?v=stable-30-30';
 import { WorldReedWalkers } from './world/fauna/WorldReedWalkers.js?v=stable-30-3';
 import { WorldLanternMites } from './world/fauna/WorldLanternMites.js?v=stable-30-22';
 import { WorldBirds } from './world/fauna/WorldBirds.js?v=stable-30-3';
-import { WorldPlants } from './world/WorldPlants.js';
+import { WorldPlants } from './world/WorldPlants.js?v=reed-chorus-1';
 
 import { FaunaMenu } from './ui/FaunaMenu.js?v=stable-30-25';
 

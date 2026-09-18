@@ -80,7 +80,7 @@ $('wind').oninput=()=>{model.wind=Number($('wind').value)/100;$('wind-value').te
 $('pause').onclick=()=>setPaused(!paused);
 function action(kind,charge=0,target){
  setPaused(false);audio.unlock().catch(()=>{$('feedback').textContent='Sound is unavailable; the visual study is still active.';});
- const accepted=kind==='note'?model.offerNote(charge):kind==='brush'?model.brush():model.touchMirror(target?.plant??0,target?.part??mirrorIndex++%2);
+ const accepted=kind==='note'?model.offerNote(charge,'player',target):kind==='brush'?model.brush():model.touchMirror(target?.plant??0,target?.part??mirrorIndex++%2);
  $('feedback').textContent=accepted?(kind==='note'?'Listen for the answer inside the husks.':kind==='brush'?'The small ring marks a passing visitor.':'A little swing, then a lingering ring.'):'Let the current gesture settle, then try again.';
 }
 $('offer-note').onclick=()=>action('note');$('strong-note').onclick=()=>action('note',1);$('brush').onclick=()=>action('brush');$('play-mirror').onclick=()=>action('mirror');
@@ -96,9 +96,9 @@ $('canvas').addEventListener('pointercancel',()=>pointer=null);
 $('canvas').addEventListener('pointerup',e=>{
  if(!pointer||pointer.moved||pointer.id!==e.pointerId){pointer=null;return;}
  const charge=Math.min(1,Math.max(0,(performance.now()-pointer.time-280)/1100));pointer=null;
- if(!willow){action('note',charge);return;}
  const rect=$('canvas').getBoundingClientRect();raycaster.setFromCamera(new THREE.Vector2((e.clientX-rect.left)/rect.width*2-1,-(e.clientY-rect.top)/rect.height*2+1),camera);
- const hit=raycaster.intersectObjects(meshes.picks,false)[0];if(hit)action('mirror',0,hit.object.userData);
+ const hit=raycaster.intersectObjects(meshes.picks,false)[0];
+ if(!willow)action('note',charge,hit?.object.userData);else if(hit)action('mirror',0,hit.object.userData);
 });
 addEventListener('blur',()=>{keyStart=null;pointer=null;audio.suspend();});
 document.addEventListener('visibilitychange',()=>{last=performance.now();if(document.hidden){keyStart=null;pointer=null;audio.suspend();}});

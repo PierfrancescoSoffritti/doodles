@@ -1,3 +1,5 @@
+import { reedVoice } from './VegetationStudy.js';
+
 // A bounded audition voice: no ambient autoplay and no scheduled response timers.
 export class VegetationAudio {
  constructor() { this.context = null; this.master = null; this.sources = new Set(); this.retiring = new Set(); this.volume = .55; this.enabled = true; this.wanted = false; }
@@ -18,20 +20,26 @@ export class VegetationAudio {
  play(event, model) {
   const ctx = this.context;
   if (!this.enabled || !ctx || ctx.state !== 'running') return;
-  const now = ctx.currentTime, plant = model.plants[event.plant], stem = plant?.stems[event.part];
-  const degrees = [0, 2, 4, 7, 9];
+  let now = ctx.currentTime;
+  const plant = model.plants[event.plant], stem = plant?.stems[event.part];
+  const degrees = [0, 2, 4, 7, 9],voice=stem?reedVoice(plant,stem):null;
   const freq = event.kind === 'invitation' ? 220 : event.kind === 'mirror' ? 440 * 2 ** (event.part * 7 / 12)
-   : 220 * 2 ** ((degrees[event.part % 5] + (stem?.size < .31 ? 12 : 0)) / 12);
+   : 220 * 2 ** ((degrees[(voice?.degree??0)%5]+12*Math.floor((voice?.degree??0)/5)) / 12);
+  if(event.chorus){
+   if(this.chorusTime!==model.time){this.chorusTime=model.time;this.chorusStart=now+.01;this.chorusDegrees=new Set();}
+   if(this.chorusDegrees.has(voice.degree)||this.chorusDegrees.size>=6)return;
+   this.chorusDegrees.add(voice.degree);now=this.chorusStart;
+  }
   if (event.kind === 'brush') { this.noise(now, .65, .11); return; }
   this.makeRoom(event.kind === 'reed' ? 4 : 3);
-  const mirror = event.kind === 'mirror', duration = mirror ? 2.6 : event.kind === 'invitation' ? .4 : 1.25;
+  const mirror = event.kind === 'mirror', duration = mirror ? 2.6 : event.kind === 'invitation' ? .4 : voice.decay;
   const ratios = mirror ? [1, 2.76, 4.07] : [1, 2.02, 3.9];
   ratios.forEach((ratio, i) => {
    if (this.sources.size >= 24) return;
    const oscillator = ctx.createOscillator(), gain = ctx.createGain(), pan = ctx.createStereoPanner();
    oscillator.type = 'sine'; oscillator.frequency.value = freq * ratio;
    pan.pan.value = Math.max(-.65, Math.min(.65, (plant?.x || 0) / 9));
-   const level = (mirror ? .2 : .27) / (1 + i * 3);
+   const level = (mirror ? .2 : .27)*(event.kind==='reed'?(event.strength??1)*(event.chorus?.6:1):1) / (1 + i * 3);
    gain.gain.setValueAtTime(0, now); gain.gain.linearRampToValueAtTime(level, now + .018);
    gain.gain.exponentialRampToValueAtTime(.0001, now + duration / (1 + i * .5));
    oscillator.connect(gain); gain.connect(pan); pan.connect(this.master);

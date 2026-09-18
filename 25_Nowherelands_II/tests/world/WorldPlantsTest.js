@@ -7,7 +7,7 @@ registerHooks({resolve(specifier,context,next){
  return next(specifier,context);
 }});
 const THREE=await import('three');
-const {WorldPlants,PLANT_CAPS}=await import('../../js/world/WorldPlants.js');
+const {WorldPlants,PLANT_SPECIES,PLANT_RANGE}=await import('../../js/world/WorldPlants.js');
 const {plantSites,plantFooting}=await import('../../js/world/PlantHabitats.js');
 const {bus,Events}=await import('../../js/core/EventBus.js');
 const {REPLY_MASK_LAYER}=await import('../../js/world/fauna/ReplyOutline.js?v=pendant-feedback-1');
@@ -22,18 +22,18 @@ function fixture(){
 }
 test('plant sites are deterministic, spaced, dry-rooted and reject steep or buried banks',()=>{
  const sites=plantSites({rivers:[]},lakes,sample,'plants-test');assert.deepEqual(sites,plantSites({rivers:[]},lakes,sample,'plants-test'));
- for(const species of Object.keys(PLANT_CAPS)){
+ for(const species of PLANT_SPECIES){
   const members=sites.filter(s=>s.species===species);assert.ok(members.length>0);
   assert.deepEqual(new Set(members.flatMap(s=>[s.form,...(s.companions||[]).map(c=>c.form)])),new Set(species==='bell-reed'?['young','mature','weathered']:['ribbons','sprays','veils']));
   for(const patch of [{roof:true},{slope:.8},{ground:-3},{foam:.7}])assert.equal(plantFooting(species,{...sample(),...patch},0),false);
   for(const a of members)for(const b of members)if(a!==b)assert.ok(Math.hypot(a.x-b.x,a.z-b.z)>=(species==='bell-reed'?7:60));
  }
 });
-test('world plants stream within species caps and release batches, mirrors and colliders',()=>{
+test('world plants stream by distance and release batches, mirrors and colliders',()=>{
  const {plants,shared,scene}=fixture();let built=0;
  for(let x=0;x<1800;x+=180){
   shared.player.position.x=x;plants.stream(true);plants.update(0);plants.update(.05);
-  for(const species of Object.keys(PLANT_CAPS))assert.ok([...plants.entries.values()].filter(e=>e.site.species===species).length<=PLANT_CAPS[species]);
+  for(const e of plants.entries.values())assert.ok(Math.hypot(e.site.x-shared.player.position.x,e.site.z-shared.player.position.z)<=PLANT_RANGE.retire);
   for(const e of plants.entries.values()){
    built++;assert.equal(e.root.position.y,e.site.y);assert.ok(e.root.scale.x>0,'a newly streamed reflector never has a singular world matrix');
    for(const {mesh} of e.batch.batches)for(const attr of Object.values(mesh.geometry.attributes))assert.ok(attr.array.every(Number.isFinite));
@@ -74,11 +74,11 @@ test('rapid blips retrigger sound and light at full range even when all six voic
  shared.audio={ctx:{state:'running'},now:0,playBell:options=>{sounds.push(options);const id=sounds.length;return {stop:()=>stopped.push(id)};}};
  shared.conductor={scale:{freq:()=>440}};
  for(let i=0;i<12;i++){
-  plants.hearNote({layer:'player-note',position:p,velocity:1,radius:165});
+  plants.hearNote({layer:'player-note',position:p,velocity:.65,radius:165});
   entry.model.update(.2);
   const events=entry.model.drainEvents().filter(e=>e.kind==='reed');
   assert.ok(events.length>0);assert.ok(entry.model.pending.length<=8);
-  assert.ok(entry.model.plants[0].stems[0].energy>0);
+  assert.ok(entry.model.plants.some(p=>p.stems.some(s=>s.energy>.01)));
   const before=sounds.length;for(const event of events)plants.play(entry,event);
   assert.equal(sounds.length,before+events.length,'new sound is never dropped at the voice limit');
   assert.ok(plants.voices.length<=6);
@@ -135,4 +135,118 @@ test('a target click never also emits a player blip, including a moving pendant 
  assert.deepEqual(touches,[0,1]);assert.deepEqual(notes,[]);
  dispatchPress({aim:()=>null,hovered:null},playerNotes,.83);
  assert.equal(notes.length,1);assert.ok(Math.abs(notes[0]-.5)<1e-10);
+});
+
+
+test('the world picks a clicked flower first and uses flower size for its sound',()=>{
+ const {plants,shared}=fixture();plants.stream(true);plants.update(1);
+ const entry=[...plants.entries.values()].find(e=>e.site.species==='bell-reed');
+ const destination=entry.rig.stems.at(-1).bulb.getWorldPosition(new THREE.Vector3());shared.player.position.copy(destination).add(new THREE.Vector3(0,0,1));
+ const target=entry.reeds.at(-1).target,stem=entry.reeds.at(-1).stem;
+ const point=target.mesh.getWorldPosition(new THREE.Vector3());
+ shared.camera.position.copy(point).add(new THREE.Vector3(0,0,10));shared.camera.lookAt(point);shared.camera.updateMatrixWorld(true);
+ const raycaster=new THREE.Raycaster();raycaster.far=140;
+ assert.equal(pickTarget(raycaster,shared.camera,shared.player.position,[target]),target,'batched flowers retain pickable husks');
+ const sent=[];shared.playerNotes={send:(charge,replyTarget)=>{
+  sent.push(replyTarget);plants.hearNote({layer:'player-note',position:shared.player.position,velocity:.35,radius:90,replyTarget});
+ }};
+ dispatchPress({aim:()=>target},shared.playerNotes,.1);
+ assert.equal(sent.length,1);assert.equal(entry.model.pending[0].plant,stem.plant.id);assert.equal(entry.model.pending[0].part,stem.spec.id);
+ const firstAt=entry.model.pending[0].at-entry.model.time;
+ for(const other of plants.entries.values())if(other!==entry&&other.model.pending.length)assert.ok(other.model.pending[0].at-other.model.time>firstAt);
+ const sounds=[];shared.audio={ctx:{state:'running'},now:0,playBell:note=>{sounds.push(note);return {stop(){}};}};
+ shared.conductor={scale:{freq:(degree,octave)=>degree+octave*10}};
+ const large=entry.rig.stems.filter(s=>s.plant.id===0).sort((a,b)=>b.spec.size-a.spec.size)[0];
+ const small=entry.rig.stems.filter(s=>s.plant.id!==0).sort((a,b)=>a.spec.size*a.plant.scale-b.spec.size*b.plant.scale)[0];
+ for(const stem of [large,small])plants.play(entry,{kind:'reed',plant:stem.plant.id,part:stem.spec.id,strength:1});
+ assert.ok(sounds[1].freq>sounds[0].freq);assert.ok(sounds[1].decay<sounds[0].decay);
+ plants.dispose();
+});
+
+
+test('reeds and willows keep their full size from first appearance through the streaming boundary',()=>{
+ const {plants,shared}=fixture();
+ for(const species of PLANT_SPECIES){
+  const site=plants.sites.find(s=>s.species===species),entry=plants.add(site);
+  plants.streamAt=Infinity;
+  for(const distance of [350,320,100,5,320,359]){
+   shared.player.position.set(site.x+distance,site.y+11,site.z);plants.update(.016);
+   assert.equal(entry.root.visible,true);
+   assert.deepEqual(entry.root.scale.toArray(),[site.scale,site.scale,site.scale],'no birth or distance scaling');
+   assert.equal(entry.root.position.y,site.y);
+  }
+  plants.remove(entry);
+ }
+ plants.dispose();
+});
+
+test('walking retains visible patches instead of replacing nearest-N residents',()=>{
+ for(const species of PLANT_SPECIES){
+  const {plants,shared}=fixture(),template=plants.sites.find(s=>s.species===species);
+  plants.sites=[0,80,160,240].map((x,i)=>({...template,id:`walk:${i}`,x,z:0,companions:[]}));
+  shared.player.position.set(0,13,0);plants.stream(true);
+  const originals=[...plants.entries.values()];assert.equal(originals.length,4);
+  for(const x of [150,115,270,0]){
+   shared.player.position.x=x;plants.stream();
+   for(const entry of originals)assert.equal(plants.entries.get(entry.site.id),entry,'standing plants are never replaced while visible');
+  }
+  shared.player.position.x=1000;plants.stream();assert.equal(plants.entries.size,0);plants.dispose();
+ }
+});
+
+test('GPU plant batches keep vertex buffers static while transforming and recoloring articulated parts',()=>{
+ const {plants,shared}=fixture();plants.stream(true);
+ const entry=[...plants.entries.values()].find(e=>e.site.species==='bell-reed'),batch=entry.batch;
+ assert.equal(batch.batches.length,1,'one draw per complete reed family');
+ const {mesh,parts}=batch.batches[0],positions=mesh.geometry.attributes.position,initial=positions.array.slice(),version=positions.version;
+ const textureBefore=batch.data.slice();entry.model.offerNote(1);entry.model.update(.2);entry.rig.update(shared.camera);batch.update();
+ assert.deepEqual(positions.array,initial);assert.equal(positions.version,version,'no vertex-buffer reuploads during animation');
+ assert.notDeepEqual(batch.data,textureBefore,'transforms and emissive values do change');
+ const point=new THREE.Vector3(),expected=new THREE.Vector3(),matrix=new THREE.Matrix4();
+ for(let i=0;i<parts.length;i++){
+  const part=parts[i];matrix.fromArray(batch.data,i*36);
+  point.fromBufferAttribute(part.geometry.attributes.position,0).applyMatrix4(matrix);
+  expected.fromBufferAttribute(part.geometry.attributes.position,0).applyMatrix4(part.matrixWorld).applyMatrix4(batch.inverse);
+  assert.ok(point.distanceTo(expected)<1e-5,'GPU transforms preserve the original posed mesh');
+  assert.ok(point.length()<mesh.geometry.boundingSphere.radius,'conservative culling bounds contain the animated geometry');
+ }
+ assert.ok(batch.data.byteLength<initial.byteLength,'upload transforms rather than every vertex');
+ shared.player.position.set(entry.site.x+300,entry.site.y+11,entry.site.z);plants.streamAt=Infinity;
+ const revision=batch.texture.version;plants.update(.2);assert.equal(batch.texture.version,revision,'distant plants do not animate or upload');
+ plants.dispose();
+});
+
+
+test('travel preloads a patch while fully hidden and retires it only beyond the distant fade',()=>{
+ const {plants,shared}=fixture(),template=plants.sites.find(s=>s.species==='bell-reed');
+ plants.sites=[{...template,id:'ahead',x:620,z:0,companions:[]}];
+ shared.player.position.set(0,13,0);plants.stream();assert.equal(plants.entries.size,0);
+ shared.player.position.x=40;plants.update(.4);const entry=plants.entries.get('ahead');
+ assert.ok(entry);assert.equal(entry.root.visible,false,'built before it enters the visible range');
+ assert.deepEqual(entry.batch.range.value.toArray(),[PLANT_RANGE.fade,PLANT_RANGE.hide]);
+ shared.player.position.x=160;plants.update(.4);assert.equal(entry.root.visible,true);
+ assert.equal(plants.entries.get('ahead'),entry);assert.equal(entry.root.scale.x,entry.site.scale);
+ shared.player.position.x=40;plants.update(.4);assert.equal(entry.root.visible,false);assert.equal(plants.entries.get('ahead'),entry);
+ let textures=0;entry.batch.texture.addEventListener('dispose',()=>textures++);
+ shared.player.position.x=-100;plants.update(.4);assert.equal(plants.entries.size,0);assert.equal(textures,1);plants.dispose();
+});
+
+
+test('charged blips synchronize all in-range patches with a bounded chord, including aimed clicks',()=>{
+ const {plants,shared}=fixture(),template=plants.sites.find(s=>s.species==='bell-reed');
+ plants.sites=[0,60,300].map((x,i)=>({...template,id:`chorus:${i}`,x,z:0,companions:[]}));plants.stream(true);
+ shared.player.position.set(0,template.y+11,0);plants.update(.01);
+ const sounds=[],stops=[];shared.audio={ctx:{state:'running'},now:1,playBell:options=>{sounds.push(options);return {stop:()=>stops.push(1)};}};
+ shared.conductor={scale:{freq:degree=>220+degree*20}};
+ const note={layer:'player-note',position:shared.player.position,velocity:.95,radius:165,replyTarget:{site:'chorus:0',plant:0,part:0}};
+ for(let i=0;i<3;i++){
+  shared.audio.now+=.2;const from=sounds.length;plants.hearNote(note);plants.update(.06);
+  const near=[plants.entries.get('chorus:0'),plants.entries.get('chorus:1')];
+  for(const entry of near)assert.ok(entry.model.plants.every(p=>p.stems.every(s=>s.energy>0&&s.nod>0)));
+  assert.equal(new Set(near.flatMap(e=>e.model.plants.flatMap(p=>p.stems.map(s=>s.pulseAt)))).size,1);
+  assert.ok(plants.entries.get('chorus:2').model.plants.every(p=>p.stems.every(s=>s.energy===0)));
+  const chord=sounds.slice(from);assert.ok(chord.length>0&&chord.length<=6);assert.equal(new Set(chord.map(s=>s.time)).size,1);
+  assert.ok(plants.voices.length<=6);
+ }
+ assert.ok(stops.length>0);plants.dispose();
 });

@@ -4,6 +4,12 @@ export const REED_FORMS = ['young', 'mature', 'weathered'];
 export const WILLOW_FORMS = ['ribbons', 'sprays', 'veils'];
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
+// Flower size gives a stable voice: small companions answer higher and settle sooner.
+export function reedVoice(plant,stem){
+ const size=clamp((plant.scale*stem.size-.12)/.3,0,1);
+ return {degree:Math.round((1-size)*6),octave:2,decay:.7+size*.8,attack:.065+size*.085,lightDecay:3.4-size*1.2};
+}
+
 // Independent of rendering/audio so a later world adapter can reuse identities and responses.
 export class VegetationStudy {
  constructor({species = 'bell-reed', form, seed = 'stillwater', serial = 1, group = false, pendants = true} = {}) {
@@ -12,7 +18,8 @@ export class VegetationStudy {
   const forms = this.species === 'bell-reed' ? REED_FORMS : WILLOW_FORMS;
   this.form = forms.includes(form) || form === 'mixed' ? form : forms[1];
   this.time = 0; this.wind = .3; this.brushStart = -100;
-  this.events = []; this.pending = []; this.sequence = 0; this.plants = [];
+  this.events = []; this.pending = []; this.sequence = 0; this.plants = []; this.lastNote=-100; this.noteCount=0;
+  this.replyRandom=new Random(`${seed}:${serial}:reed-replies`);
   const rnd = new Random(`${seed}:${this.species}:${serial}`);
   const count = group ? 3 : 1;
   for (let i = 0; i < count; i++) {
@@ -32,21 +39,45 @@ export class VegetationStudy {
    this.plants.push(plant);
   }
  }
- emit(kind, plant, part, strength = 1) {
-  this.events.push({sequence:++this.sequence, time:this.time, kind, plant, part, strength});
+ emit(kind, plant, part, strength = 1, details = {}) {
+  this.events.push({sequence:++this.sequence, time:this.time, kind, plant, part, strength, ...details});
  }
- offerNote(charge = 0, source = 'player') {
+ offerNote(charge = 0, source = 'player', target = null, delay = 0) {
   if (source !== 'player' || this.species !== 'bell-reed') return false;
-  charge = clamp(Number.isFinite(charge) ? charge : 0, 0, 1);
-  // Restart the answering phrase instead of blocking a new invitation. Keep an
-  // imminent reply's deadline so fast repeated notes cannot postpone it forever.
-  const start = Math.min(this.time + .18, this.pending[0]?.at ?? Infinity);
-  this.pending.length = 0;
-  this.emit('invitation', 0, 0, charge);
-  const candidates = this.plants.flatMap(p => p.stems.map(s => ({plant:p.id, part:s.id, distance:Math.abs(p.x)})))
-   .sort((a,b) => (a.distance+a.part*.5) - (b.distance+b.part*.5) || a.part - b.part);
-  const count = Math.min(candidates.length, charge > .5 ? 8 : 3);
-  for (let i = 0; i < count; i++) this.pending.push({...candidates[i], at:start + i * .19, strength:.7 + charge * .3});
+  charge=clamp(Number.isFinite(charge)?charge:0,0,1);
+  const interval=this.time-this.lastNote,continuing=interval<1.8;
+  const waiting=new Set(this.pending.map(r=>`${r.plant}:${r.part}`));
+  const candidates=this.plants.flatMap(plant=>plant.stems.map(stem=>({
+   plant:plant.id,part:stem.id,stem,voice:reedVoice(plant,stem),
+   // Quiet flowers get a turn, in a fresh seeded order. Distance does not rank replies.
+   rank:(stem.replyCount||0)+this.replyRandom.next()*.9+(waiting.has(`${plant.id}:${stem.id}`)?1000:0),
+  })));
+  if(!candidates.length)return false;
+  if(charge>2/3){
+   // Charged blips replace the phrase with one shared onset for every flower.
+   this.pending=candidates.map(c=>({plant:c.plant,part:c.part,at:this.time+.045,strength:1,chorus:true}));
+   this.lastNote=this.time;this.noteCount++;this.emit('invitation',0,0,charge);return true;
+  }
+  candidates.sort((a,b)=>a.rank-b.rank);
+  const aimed=candidates.findIndex(c=>c.plant===target?.plant&&c.part===target?.part);
+  const lead=candidates.splice(aimed<0?0:aimed,1)[0],chosen=[lead],seen=new Set([lead.plant]);
+  const count=Math.min(candidates.length+1,charge>.5?Math.round(3+charge*5):continuing&&interval<.5&&aimed<0?1:2+(this.noteCount%3===2?1:0));
+  while(chosen.length<count){
+   candidates.sort((a,b)=>a.rank-b.rank+(charge>.5?(seen.has(a.plant)?5:0)-(seen.has(b.plant)?5:0):0));
+   const next=candidates.shift();chosen.push(next);seen.add(next.plant);
+  }
+  const beat=continuing?clamp(interval*.6,.12,.32):.23;
+  let at=this.time+.045+delay;
+  const replies=chosen.map((c,i)=>{
+   if(i)at+=beat*(c.voice.decay<1?.8:1.1)+(i%2?.035:0);
+   return {plant:c.plant,part:c.part,at,strength:(i? .68:.9)+charge*(i?.3:.1)};
+  });
+  // Keep already travelling answers on a tap. A held invitation grows a fresh
+  // wave through the family. Uncharged phrases keep at most eight future bells.
+  const keys=new Set(replies.map(r=>`${r.plant}:${r.part}`));
+  const tail=charge>.5?[]:this.pending.filter(r=>!keys.has(`${r.plant}:${r.part}`));
+  this.pending=[...replies,...tail].sort((a,b)=>a.at-b.at).slice(0,8);
+  this.lastNote=this.time;this.noteCount++;this.emit('invitation',lead.plant,lead.part,charge);
   return true;
  }
  brush() {
@@ -82,12 +113,21 @@ export class VegetationStudy {
   this.time += dt;
   while (this.pending.length && this.pending[0].at <= this.time) {
    const event = this.pending.shift(), stem = this.plants[event.plant].stems[event.part];
-   stem.pulseAt = event.at; this.emit('reed', event.plant, event.part, event.strength);
+   const voice=reedVoice(this.plants[event.plant],stem);
+   stem.pulseAt=event.at;stem.pulseStrength=event.strength;stem.pulseAttack=event.chorus?.09:voice.attack;stem.pulseDecay=voice.lightDecay;
+   stem.replyCount=(stem.replyCount||0)+1;
+   (stem.nods??=[]).push({at:event.at,strength:event.strength});
+   this.emit('reed',event.plant,event.part,event.strength,{chorus:!!event.chorus});
   }
   for (const plant of this.plants) for (const part of plant.stems) {
    const age = this.time - part.pulseAt;
-   const reply=age < 0 ? 0 : Math.max(0, Math.sin(Math.min(1, age / .18) * Math.PI / 2) * Math.exp(-age * 2.2));
+   const reply=age < 0 ? 0 : Math.max(0, Math.sin(Math.min(1, age / (part.pulseAttack||.18)) * Math.PI / 2) * Math.exp(-age*(part.pulseDecay||2.2)))*(part.pulseStrength??1);
    part.energy = reply;
+   part.nods=(part.nods||[]).filter(n=>this.time-n.at<2.5);
+   // Overlapping impulses start at zero displacement, so rapid clicks never snap the pose.
+   const nod=part.nods.reduce((sum,n)=>{const age=this.time-n.at;return sum+Math.sin(age*9)*Math.exp(-age*3)*n.strength;},0);
+   part.nod=.48*Math.tanh(nod);
+
   }
   // Exact damped-spring step keeps the same swing at different frame rates.
   const damping=1.5,stiffness=25,frequency=Math.sqrt(stiffness-damping*damping);

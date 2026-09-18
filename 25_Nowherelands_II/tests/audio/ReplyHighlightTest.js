@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {replyHighlight} from '../../js/world/fauna/ReplyHighlight.js?v=player-notes-13';
 import {CreatureReplyAudio} from '../../js/audio/CreatureReplyAudio.js?v=stable-30-3';
+import {AudioEngine} from '../../js/audio/AudioEngine.js';
+import {bus,Events} from '../../js/core/EventBus.js';
 import {PlayerNotes} from '../../js/player/PlayerNotes.js?v=stable-30-3';
 const node=()=>({gain:{value:0},playbackRate:{value:1},connect(){},disconnect(){},start(){},stop(){}});
 const engine=()=>({now:0,master:node(),reverb:node(),duck(){},makePanner:()=>node(),ctx:{state:'running',sampleRate:22050,createGain:node,createBufferSource:node,createBuffer:(n,length,rate)=>({duration:length/rate,copyToChannel(){}})}});
@@ -69,4 +71,17 @@ test('pebbles retain distinct voices across reply order, movement and buffer evi
  }
  assert.equal(audio.buffers.size,64);
  e.now+=2;audio.play('hopper',pebbles[0]);assert.deepEqual(audio.pebbleProfiles.get(pebbles[0]),profile);
+});
+
+
+test('a clicked flower identity travels with exactly one player note and does not leak into later notes',async()=>{
+ const heard=[],off=bus.on(Events.NOTE,n=>heard.push(n));
+ const e={now:1,ctx:{state:'running'},duck(){},playTone:n=>AudioEngine.prototype.emitNote.call(e,n.freq,n.position,n.velocity,n.layer,e.now,n.replyTarget)};
+ const player={shared:{audio:e,player:{position:{x:1,y:2,z:3}},conductor:{scale:{freq:()=>440}}},last:-100,serial:0};
+ const target={site:'bank',plant:2,part:3};
+ try{
+  await PlayerNotes.prototype.send.call(player,0,target);e.now=2;await PlayerNotes.prototype.send.call(player,0);
+  assert.equal(heard.length,2);assert.deepEqual(heard[0].replyTarget,target);assert.equal(heard[1].replyTarget,undefined);
+  assert.ok(heard.every(n=>n.layer==='player-note'));
+ }finally{off();}
 });

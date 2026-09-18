@@ -90,8 +90,8 @@ export class Landmarks {
 	aim() {
 		const p = this.shared.player.position;
 		const plants=this.shared.plants;
-		const pendants=plants?.root.visible?plants.pendants.map(item=>item.target):[];
-		return pickTarget(this.raycaster,this.camera,p,[...this.interactables,...pendants],this.pointer||undefined);
+		const plantTargets=plants?.root.visible?plants.targets:[];
+		return pickTarget(this.raycaster,this.camera,p,[...this.interactables,...plantTargets],this.pointer||undefined);
 	}
 
 	update(dt, shared) {

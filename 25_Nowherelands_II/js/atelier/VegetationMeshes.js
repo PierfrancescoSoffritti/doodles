@@ -189,10 +189,10 @@ export class VegetationMeshes {
    const dx=plant.x-visitor.x,dz=plant.z-visitor.z,norm=Math.max(.1,Math.hypot(dx,dz)),yaw=plant.yaw+spec.angle;
    const awayX=(Math.cos(yaw)*dx-Math.sin(yaw)*dz)/norm,awayZ=(Math.sin(yaw)*dx+Math.cos(yaw)*dz)/norm;
    joints.forEach((joint,i)=>{
-    joint.rotation.z=-spec.spread*.09-(plant.form==='weathered'?.045:0)+Math.sin(time*1.2+spec.phase-i*.22)*wind*.035-awayX*bend*(i+1)*.28;
+    joint.rotation.z=-spec.spread*.09-(plant.form==='weathered'?.045:0)+Math.sin(time*1.2+spec.phase-i*.22)*wind*.035-awayX*bend*(i+1)*.28+(spec.nod||0)*(i+1)*.035;
     joint.rotation.x=Math.cos(time*.85+spec.phase)*wind*.018+awayZ*bend*(i+1)*.28;
    });
-   item.shell.rotation.z=-.12+Math.sin(time*1.9+spec.phase)*wind*.09+spec.energy*.13;
+   item.shell.rotation.z=-.12+Math.sin(time*1.9+spec.phase)*wind*.09+(spec.nod||0);
    item.inner.emissive.copy(restingBulb).lerp(answeringBulb,Math.min(1,spec.energy*2.5));
    item.inner.emissiveIntensity=.035+spec.energy*.65;
    item.bulb.material.emissive.copy(restingBulb).lerp(answeringBulb,Math.min(1,spec.energy*2.5));

@@ -194,7 +194,7 @@ export class AudioEngine {
 
 	// A detuned multi-oscillator pad/pluck voice with ADSR and filter envelope.
 	playTone({ freq, time = this.now, duration = 1, velocity = 0.4, type = 'triangle', detune = 7, voices = 3,
-		attack = 0.04, release = 0.6, cutoff = 1600, cutoffEnv = 1.8, q = 0.8, position = null, reverb = 0.5, delay = 0, dest = null, layer = 'misc', octaveLayer = 0 }) {
+		attack = 0.04, release = 0.6, cutoff = 1600, cutoffEnv = 1.8, q = 0.8, position = null, reverb = 0.5, delay = 0, dest = null, layer = 'misc', octaveLayer = 0, replyTarget = null }) {
 		const ctx = this.ctx;
 		const filter = ctx.createBiquadFilter();
 		filter.type = 'lowpass';
@@ -231,7 +231,7 @@ export class AudioEngine {
 		}
 		nodes.push(...this.route(env, { dest, position, reverb, delay }));
 		this.finishVoice(sources,nodes);
-		this.emitNote(freq, position, velocity, layer, time);
+		this.emitNote(freq, position, velocity, layer, time, replyTarget);
 	}
 
 	// FM bell: carrier modulated by a decaying modulator.
@@ -319,9 +319,9 @@ export class AudioEngine {
 		return { src, filter, gain: g };
 	}
 
-	emitNote(freq, position, velocity, layer, time) {
+	emitNote(freq, position, velocity, layer, time, replyTarget = null) {
 		const delayMs = Math.max(0, (time - this.now) * 1000);
-		const payload = { freq, position: position ? { x: position.x, y: position.y, z: position.z } : null, velocity, layer };
+		const payload = { freq, position: position ? { x: position.x, y: position.y, z: position.z } : null, velocity, layer, ...(replyTarget ? {replyTarget} : {}) };
 		if (delayMs < 5) bus.emit(Events.NOTE, payload);
 		else setTimeout(() => bus.emit(Events.NOTE, payload), delayMs);
 	}

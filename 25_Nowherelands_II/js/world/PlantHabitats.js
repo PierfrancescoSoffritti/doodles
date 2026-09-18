@@ -2,10 +2,11 @@ import { Random } from '../core/Random.js';
 import { RIVER_STRIDE, RV, surfaceHalfWidth } from './gen/Rivers.js';
 
 export function plantFooting(species, sample, water) {
+ // Sea-level coastal banks exclude reeds, including small companion plants.
  const above=sample.ground-water;
  return Number.isFinite(sample.ground) && !sample.roof && sample.slope<.28 && sample.foam<.3 &&
   sample.ground>=sample.water-.2 && (species==='bell-reed'
-   ? above>=-.2 && above<7
+   ? above>=-.2 && above<7 && !(water<=2 && sample.coast>.35)
    : above>1 && above<24 && sample.wet>.3 && sample.coast<.8);
 }
 
