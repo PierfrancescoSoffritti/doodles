@@ -37,7 +37,7 @@ import { Sprouts } from './world/Sprouts.js';
 import { Landmarks } from './landmarks/Landmarks.js?v=pool-life-2';
 import { dispatchPress } from './landmarks/TargetPicking.js';
 import { Player } from './player/Player.js?v=capture-2';
-import { HUD } from './ui/HUD.js?v=capture-1';
+import { HUD } from './ui/HUD.js?v=capture-2';
 import { Caves } from './world/caves/Caves.js?v=stable-30-28';
 import { WeatherSurvey } from './ui/WeatherSurvey.js?v=stable-30-10';
 import { CaveSurvey } from './ui/CaveSurvey.js';

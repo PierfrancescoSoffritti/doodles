@@ -13,6 +13,7 @@ export class HUD {
 		this.hint = document.getElementById('hint');
 		this.seed = document.getElementById('seed');
 		this.rec = document.getElementById('rec');
+		this.recTime = document.getElementById('rec-time');
 		this.joystick = document.getElementById('joystick');
 		this.knob = document.getElementById('joystick-knob');
 		this.fps = document.getElementById('fps');
@@ -131,7 +132,18 @@ export class HUD {
 		this.hint.classList.add('show');
 	}
 
-	setRecording(on) { this.rec.hidden = !on; }
+	setRecording(on) {
+		this.rec.hidden = this.recTime.hidden = !on;
+		clearInterval(this.recTimer);
+		if (!on) return;
+		const start = performance.now();
+		const show = () => {
+			const s = Math.floor((performance.now() - start) / 1000);
+			this.recTime.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+		};
+		show();
+		this.recTimer = setInterval(show, 250);
+	}
 
 	flashCapture() {
 		const shutter = document.getElementById('shutter');

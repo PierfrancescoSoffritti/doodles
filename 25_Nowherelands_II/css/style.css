@@ -161,6 +161,8 @@ body.touch .controls:not(.touch-only) { display: none; }
 	animation: blink 1.6s infinite;
 }
 #rec[hidden] { display: none; }
+#rec-time { color: var(--fg); font: 12px/1.2 ui-monospace, monospace; font-variant-numeric: tabular-nums; opacity: 0.8; margin-left: -0.2rem; }
+#rec-time[hidden] { display: none; }
 @keyframes blink { 50% { opacity: 0.2; } }
 #shutter { position: absolute; inset: 0; border: 2px solid #fff; opacity: 0; pointer-events: none; }
 #shutter.flash { animation: shutter 0.35s ease-out; }
