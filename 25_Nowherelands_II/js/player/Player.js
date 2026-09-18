@@ -5,8 +5,8 @@ import { config } from '../core/Config.js?v=stable-30-3';
 import { clamp, clamp01, damp } from '../core/Utils.js';
 
 const WALK = 42, SPRINT = 80;
-// touch gestures, in CSS pixels: stick radius, run hysteresis, tap wobble allowance, charge abandon distance
-const STICK = 50, RUN_ON = 86, RUN_OFF = 68, TAP_SLOP = 12, CHARGE_CANCEL = 70, HOLD_MS = 280;
+// touch gestures, in CSS pixels: stick radius, run hysteresis, tap wobble allowance
+const STICK = 50, RUN_ON = 86, RUN_OFF = 68, TAP_SLOP = 12, HOLD_MS = 280;
 
 export class Player {
 	constructor(camera, canvas, heightmap, shared) {
@@ -95,7 +95,7 @@ export class Player {
 	// Left thumb: floating stick; pushing well past the ring runs. Right thumb is one
 	// of three gestures, decided by total travel from where it landed (never per-event
 	// deltas, which a slow pan keeps tiny): a still tap sends a note, a still hold
-	// charges one with the camera frozen, and anything that travels is only a look.
+	// commits to a charged one, and anything that travels before that is only a look.
 	onTouchStart(e) {
 		e.preventDefault();
 		if (!this.enabled) return;
@@ -126,10 +126,14 @@ export class Player {
 				const dx = t.clientX - this.touch.lookLast.x, dy = t.clientY - this.touch.lookLast.y;
 				this.touch.lookLast.set(t.clientX, t.clientY);
 				const travel = Math.hypot(t.clientX - look.x, t.clientY - look.y);
+				// Once the hold lands, the ring is showing and the note is promised: release always
+				// sends it. Dragging from there still looks around, exactly like a held mouse button.
 				if (look.mode === 'pending' && performance.now() - look.start > HOLD_MS) look.mode = 'charge';
-				// dragging a charge well away abandons it and hands the thumb back to the camera
-				if (travel > (look.mode === 'charge' ? CHARGE_CANCEL : TAP_SLOP)) { look.mode = 'look'; this.pressStart = null; }
-				if (look.mode === 'look') this.rotate(dx, dy, 0.0045);
+				if (travel > TAP_SLOP) {
+					if (look.mode === 'pending') { look.mode = 'look'; this.pressStart = null; }
+					else look.turning = true;
+				}
+				if (look.mode === 'look' || look.turning) this.rotate(dx, dy, 0.0045);
 			}
 		}
 	}

@@ -102,12 +102,19 @@ export class HUD {
 	setHover(on) { this.ring.setAttribute('r', on ? 9 : 4); this.ring.setAttribute('stroke', on ? '#ff6ad5' : '#fff'); }
 	setAimPosition(point) { const style=this.ring.ownerSVGElement.style;style.left=point?`${point.x}px`:'';style.top=point?`${point.y}px`:''; }
 
+	// The ring only ever shows for a press that will send a note; it turns gold at the
+	// point where letting go sends the long, loaded one (PlayerNotes: charge > 2/3).
 	setCharge(c) {
-		const radius = (c * 22).toFixed(1), visible = c > 0;
+		const radius = (c * 22).toFixed(1), visible = c > 0, loaded = c > 2 / 3;
 		if (radius === this.chargeRadius && visible === this.chargeVisible) return;
 		this.chargeRadius = radius; this.chargeVisible = visible;
 		this.charge.setAttribute('r', radius);
 		this.charge.setAttribute('opacity', c > 0 ? 0.8 : 0);
+		if (loaded !== this.chargeLoaded) {
+			this.chargeLoaded = loaded;
+			this.charge.setAttribute('stroke', loaded ? '#ffc46b' : '#fff');
+			this.charge.setAttribute('stroke-width', loaded ? 3 : 1.5);
+		}
 	}
 
 	showToast(text, sub) {
