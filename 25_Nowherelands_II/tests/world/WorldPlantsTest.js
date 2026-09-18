@@ -11,7 +11,7 @@ const {WorldPlants,PLANT_CAPS}=await import('../../js/world/WorldPlants.js');
 const {plantSites,plantFooting}=await import('../../js/world/PlantHabitats.js');
 const {bus,Events}=await import('../../js/core/EventBus.js');
 const {REPLY_MASK_LAYER}=await import('../../js/world/fauna/ReplyOutline.js?v=pendant-feedback-1');
-const {pickTarget,hoverTarget}=await import('../../js/landmarks/TargetPicking.js');
+const {pickTarget,hoverTarget,dispatchPress}=await import('../../js/landmarks/TargetPicking.js');
 const sample=(x,z)=>({ground:2,water:0,slope:.04,foam:0,wet:.7,coast:.1,roof:false});
 const lakes=[{id:0,shore:Array.from({length:20},(_,i)=>({x:i*90,z:0,nx:0,nz:1,y:0}))}];
 function fixture(){
@@ -102,7 +102,7 @@ test('pendants use stable gaze targets, enlarge the reticle, and play the existi
  let hovered=hoverTarget(null,hit,hud);assert.equal(item.mirror.hovered,true);
  hovered=hoverTarget(hovered,pickTarget(raycaster,camera,camera.position,plants.pendants.map(p=>p.target)),hud);assert.deepEqual(hovers,[true]);
  const ripples=[],off=bus.on(Events.RIPPLE,event=>ripples.push(event));
- const sounds=[];shared.conductor={mirrorTouch:at=>sounds.push(at.clone())};
+ const sounds=[];shared.conductor={mirrorTouch:(at,layer)=>{assert.equal(layer,'pendant');sounds.push(at.clone());}};
  hit.onPress(0);hit.onPress(1);assert.equal(sounds.length,2);assert.ok(sounds.every(at=>at.distanceTo(point)<1e-8));
  assert.equal(ripples.length,2);assert.ok(ripples.every(r=>r.x===site.x&&r.z===site.z),'ground rings start at the tree base');off();
  assert.equal(item.reply.outline.parent,item.mesh);assert.ok(item.reply.outline.layers.isEnabled(REPLY_MASK_LAYER));
@@ -123,4 +123,16 @@ test('retiring a willow releases each owned buffer, material and reflection targ
  const disposed=new Map();for(const r of resources)r.addEventListener('dispose',()=>disposed.set(r,(disposed.get(r)||0)+1));
  plants.remove(entry);for(const r of resources)assert.equal(disposed.get(r),1);
  plants.dispose();
+});
+
+
+test('a target click never also emits a player blip, including a moving pendant caught by hover',()=>{
+ const touches=[],notes=[],target={onPress:charge=>touches.push(charge)},playerNotes={send:charge=>notes.push(charge)};
+ let aims=0;
+ dispatchPress({aim:()=>{aims++;return target;},hovered:null},playerNotes,.1);
+ assert.equal(aims,1);assert.deepEqual(touches,[0]);assert.deepEqual(notes,[]);
+ dispatchPress({aim:()=>null,hovered:target},playerNotes,2);
+ assert.deepEqual(touches,[0,1]);assert.deepEqual(notes,[]);
+ dispatchPress({aim:()=>null,hovered:null},playerNotes,.83);
+ assert.equal(notes.length,1);assert.ok(Math.abs(notes[0]-.5)<1e-10);
 });

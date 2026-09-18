@@ -232,10 +232,10 @@ export class Conductor {
 		degrees.forEach((d, i) => this.engine.playBell({ freq: this.scale.freq(d, 1), time: t0 + i * dur, position, dest: this.engine.playerBus, velocity: 0.45, ratio: 2, index: 3, decay: 3.5 }));
 	}
 
-	mirrorTouch(position) {
+	mirrorTouch(position, layer = 'bells') {
 		const t = this.scheduler.quantize(2);
 		this.engine.duck(0.5, 1.5);
-		this.engine.playBell({ freq: this.scale.freq(this.scale.chordDegrees()[Math.floor(Math.random() * 4)], 3), time: t, position, dest: this.engine.playerBus, velocity: 0.35, ratio: 1.41, index: 4, decay: 6, reverb: 1 });
+		this.engine.playBell({ freq: this.scale.freq(this.scale.chordDegrees()[Math.floor(Math.random() * 4)], 3), time: t, position, dest: this.engine.playerBus, velocity: 0.35, ratio: 1.41, index: 4, decay: 6, reverb: 1, layer });
 	}
 
 	eclipseShift(on) {

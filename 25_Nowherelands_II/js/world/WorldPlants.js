@@ -98,7 +98,7 @@ export class WorldPlants {
   if(this.entries.get(item.entry.site.id)!==item.entry||!this.root.visible)return;
   const {mirror,entry}=item,position=mirror.reflector.getWorldPosition(new THREE.Vector3());
   entry.model.touchMirror(mirror.plant.id,mirror.spec.id,charge,false);
-  this.shared.conductor?.mirrorTouch(position);
+  this.shared.conductor?.mirrorTouch(position,'pendant');
   bus.emit(Events.RIPPLE,{x:entry.site.x,z:entry.site.z,size:2+Math.max(0,Math.min(1,charge))*2,hue:.95});
  }
  update(dt){

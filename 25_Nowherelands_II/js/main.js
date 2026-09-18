@@ -33,7 +33,8 @@ import { Snow } from './world/Snow.js';
 import { Rain } from './world/Rain.js';
 import { Fireflies } from './world/Fireflies.js?v=stable-30-3';
 import { Sprouts } from './world/Sprouts.js';
-import { Landmarks } from './landmarks/Landmarks.js';
+import { Landmarks } from './landmarks/Landmarks.js?v=pendant-click-1';
+import { dispatchPress } from './landmarks/TargetPicking.js';
 import { Player } from './player/Player.js';
 import { HUD } from './ui/HUD.js?v=plant-feedback-2';
 import { Caves } from './world/caves/Caves.js?v=stable-30-28';
@@ -46,7 +47,7 @@ import { PostProcessing } from './fx/PostProcessing.js?v=stable-30-3';
 import { FoliageDepthPrepass } from './fx/FoliageDepthPrepass.js?v=stable-30-3';
 import { installBoundedPointLights } from './fx/BoundedPointLights.js?v=stable-30-3';
 import { AudioEngine } from './audio/AudioEngine.js?v=reed-retrigger-1';
-import { Conductor } from './audio/Conductor.js?v=pebble-audio-10';
+import { Conductor } from './audio/Conductor.js?v=pendant-click-1';
 import { Fauna } from './world/fauna/Fauna.js?v=stable-30-30';
 import { WorldReedWalkers } from './world/fauna/WorldReedWalkers.js?v=stable-30-3';
 import { WorldLanternMites } from './world/fauna/WorldLanternMites.js?v=stable-30-22';
@@ -168,7 +169,7 @@ async function start(world,caveMeshes) {
 	// ---- events ----
 	bus.on(Events.RIPPLE, ({ x, z, size, hue, saturation }) => ripples.add(x, z, size, hue % 1, saturation));
 	bus.on(Events.NOTE, (n) => {
-		if(n.layer==='plant-reply')return;
+		if(n.layer==='plant-reply'||n.layer==='pendant')return;
 		if(n.layer==='player-note'){shared.playerNotes.hear(n);if(n.position)terrain.vegetation.noteAt(n.position.x,n.position.z,.5+(n.velocity||.3));return;}
 		mites.hearNote(n);
 		walkers.hearNote(n);birds.hearNote(n);
@@ -177,7 +178,7 @@ async function start(world,caveMeshes) {
 		else if (n.layer === 'sequencer') ripples.add(n.position.x, n.position.z, 0.5, (shared.hue + 0.05) % 1);
 	});
 	bus.on(Events.KEY_CHANGE, () => { shared.hue = (shared.hue + 0.11 + Math.random() * 0.1) % 1; });
-	bus.on(Events.PRESS_END, ({duration}) => { if(!landmarks.aim())shared.playerNotes.send(Math.max(0,(duration-.28)/1.1)); });
+	bus.on(Events.PRESS_END, ({duration}) => dispatchPress(landmarks,shared.playerNotes,duration));
 	bus.on('plant', ({ x, z }) => { if (sprouts.add(x, z, shared.time)) ripples.add(x, z, 0.5, shared.hue, 0.8); });
 	bus.on('footstep', ({ inWater }) => { if (shared.conductor) shared.conductor.footstep(inWater); });
 	bus.on('meteor', () => { if (shared.conductor) shared.conductor.meteor(); });

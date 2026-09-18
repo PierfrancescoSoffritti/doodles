@@ -50,13 +50,6 @@ export class Landmarks {
 		this.frame = 0;
 		this.bindPointer();
 
-		bus.on(Events.PRESS_END, ({ duration }) => {
-			// re-aim on release so a click never falls between two gaze updates
-			const target = this.aim() || this.hovered;
-			if (!target) return;
-			const charge = clamp01((duration - 0.28) / 1.1);
-			target.onPress(charge);
-		});
 	}
 
 	bindPointer(){
