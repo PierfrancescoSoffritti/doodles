@@ -344,28 +344,12 @@ export class AudioEngine {
 		an.attack = this.noteEnv;
 	}
 
-	toggleRecording() {
-		if (this.recorder && this.recorder.state === 'recording') {
-			this.recorder.stop();
-			return false;
-		}
-		if (!window.MediaRecorder) return false;
+	// Master output as a MediaStream, for Capture to mux with the canvas video.
+	recordingStream() {
 		if (!this.recordDest) {
 			this.recordDest = this.ctx.createMediaStreamDestination();
 			this.compressor.connect(this.recordDest);
 		}
-		const chunks = [];
-		this.recorder = new MediaRecorder(this.recordDest.stream);
-		this.recorder.ondataavailable = (e) => chunks.push(e.data);
-		this.recorder.onstop = () => {
-			const blob = new Blob(chunks, { type: this.recorder.mimeType || 'audio/webm' });
-			const a = document.createElement('a');
-			a.href = URL.createObjectURL(blob);
-			a.download = 'nowherelands-' + new Date().toISOString().replace(/[:.]/g, '-') + '.webm';
-			a.click();
-			setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-		};
-		this.recorder.start();
-		return true;
+		return this.recordDest.stream;
 	}
 }

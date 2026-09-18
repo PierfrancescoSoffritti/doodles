@@ -46,12 +46,21 @@ export class Player {
 		this.bind();
 	}
 
+	toggleFullscreen() {
+		const el = document.documentElement;
+		const active = document.fullscreenElement || document.webkitFullscreenElement;
+		const call = active ? (document.exitFullscreen || document.webkitExitFullscreen) : (el.requestFullscreen || el.webkitRequestFullscreen);
+		if (!call) return;
+		try { const r = call.call(active ? document : el); if (r && r.catch) r.catch(() => {}); } catch (e) { /* unsupported */ }
+	}
+
 	bind() {
 		const c = this.canvas;
 		document.addEventListener('keydown', (e) => {
 			if (e.repeat) return;
 			this.keys.add(e.code);
-			if (e.code === 'KeyR' && this.enabled) bus.emit('record');
+			if (e.code === 'KeyP' && this.enabled) bus.emit('record');
+			if (e.code === 'Enter' && this.enabled) this.toggleFullscreen();
 			if (e.code === 'KeyF' && this.enabled) { this.fly = !this.fly; bus.emit(Events.TOAST, { text: this.fly ? 'flying' : 'walking', sub: this.fly ? 'W A S D · space up · C down · shift fast · F to land' : '' }); }
 		});
 		document.addEventListener('keyup', (e) => this.keys.delete(e.code));

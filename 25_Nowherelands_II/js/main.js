@@ -36,8 +36,8 @@ import { Fireflies } from './world/Fireflies.js?v=stable-30-3';
 import { Sprouts } from './world/Sprouts.js';
 import { Landmarks } from './landmarks/Landmarks.js?v=pool-life-2';
 import { dispatchPress } from './landmarks/TargetPicking.js';
-import { Player } from './player/Player.js?v=touch-run-3';
-import { HUD } from './ui/HUD.js?v=touch-run-3';
+import { Player } from './player/Player.js?v=capture-2';
+import { HUD } from './ui/HUD.js?v=capture-1';
 import { Caves } from './world/caves/Caves.js?v=stable-30-28';
 import { WeatherSurvey } from './ui/WeatherSurvey.js?v=stable-30-10';
 import { CaveSurvey } from './ui/CaveSurvey.js';
@@ -47,7 +47,7 @@ import { EventDirector } from './events/Events.js';
 import { PostProcessing } from './fx/PostProcessing.js?v=pool-life-2';
 import { FoliageDepthPrepass } from './fx/FoliageDepthPrepass.js?v=stable-30-3';
 import { installBoundedPointLights } from './fx/BoundedPointLights.js?v=stable-30-3';
-import { AudioEngine } from './audio/AudioEngine.js?v=reed-retrigger-1';
+import { AudioEngine } from './audio/AudioEngine.js?v=capture-1';
 import { Conductor } from './audio/Conductor.js?v=pendant-click-1';
 import { Fauna } from './world/fauna/Fauna.js?v=stable-30-30';
 import { WorldReedWalkers } from './world/fauna/WorldReedWalkers.js?v=stable-30-3';
@@ -55,6 +55,7 @@ import { WorldLanternMites } from './world/fauna/WorldLanternMites.js?v=stable-3
 import { WorldBirds } from './world/fauna/WorldBirds.js?v=stable-30-3';
 import { WorldPlants } from './world/WorldPlants.js?v=reed-chorus-1';
 
+import { Capture } from './ui/Capture.js?v=capture-1';
 import { FaunaMenu } from './ui/FaunaMenu.js?v=pool-life-6';
 
 const canvas = document.getElementById('canvas');
@@ -184,7 +185,8 @@ async function start(world,caveMeshes) {
 	bus.on('plant', ({ x, z }) => { if (sprouts.add(x, z, shared.time)) ripples.add(x, z, 0.5, shared.hue, 0.8); });
 	bus.on('footstep', ({ inWater }) => { if (shared.conductor) shared.conductor.footstep(inWater); });
 	bus.on('meteor', () => { if (shared.conductor) shared.conductor.meteor(); });
-	bus.on('record', () => { if (shared.audio) hud.setRecording(shared.audio.toggleRecording()); });
+	const capture = new Capture(canvas, shared, hud);
+	bus.on('record', () => capture.press());
 	bus.on(Events.TOGGLE_TIME, ({ fast }) => { shared.timeFactor = fast ? 6 : 1; });
 	shared.timeFactor = 1;
 
@@ -389,7 +391,7 @@ async function start(world,caveMeshes) {
     replyOutlines.render(renderer,scene,camera);
     if(post.buffered)renderer.setRenderTarget(null);
    }
-			if(!post.buffered)hud.recordFrame(performance.now());
+			if(!post.buffered){capture.presented();hud.recordFrame(performance.now());}
 		}
 		caveSurvey?.update(now-previousFrame);
 		weatherSurvey?.update(now-previousFrame);
@@ -416,7 +418,7 @@ async function start(world,caveMeshes) {
   }
 
   if(post.buffered && renderFrame){
-   if(post.present())hud.recordFrame(performance.now());
+   if(post.present()){capture.presented();hud.recordFrame(performance.now());}
    advanceTimer=setTimeout(()=>{advanceTimer=null;if(document.hidden){lastFrame=performance.now();pacer.reset();return;}advance(renderFrame);},0);
   }else advance(renderFrame);
 	}
@@ -424,7 +426,7 @@ async function start(world,caveMeshes) {
   const {BufferedPresentation}=await import('./fx/BufferedPresentation.js?v=stable-30-28');
   presentation=await BufferedPresentation.create({source:canvas,
    produce:dt=>{pacer.next=performance.now()+1000/30;advance(true,dt);},
-   present:()=>post.present(),onFrame:at=>hud.recordFrame(at),depth:4});
+   present:()=>{const drawn=post.present();if(drawn)capture.presented();return drawn;},onFrame:at=>hud.recordFrame(at),depth:4});
  }
 	window.__debug = { waterLife, presentation, staticWaterCopies, heightCache, fireflies, plantBatches, localLights, foliageDepth, environment, pacer, hud, atmosphere, sky, snow, rain, hail, scene, renderer, camera, shared, post, terrain, player, landmarksList: landmarks.list, director, shoreMap, water, inland, waterfalls, drift, heightmap, world, coastalSpray, fauna, faunaMenu, birds, walkers, mites };
 	frame();

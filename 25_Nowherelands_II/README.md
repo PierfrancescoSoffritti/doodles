@@ -13,7 +13,9 @@ Open `index.html` through any static server (ES modules need `http://`). A seed 
 | mouse | look (pointer lock) |
 | click | sing a note anywhere, or touch a thing: cycle a monolith's note, ring a stone, flip time |
 | hold click | charge a note or strike: louder, brighter, bigger ripple |
-| R | record the session's audio to a `.webm` |
+| P | save a screenshot (also while recording) |
+| P P | start / stop recording video and audio |
+| Enter | toggle fullscreen |
 | gamepad | left stick move, right stick look, A / RT touch |
 | touch | left half joystick, right half look, tap to touch |
 

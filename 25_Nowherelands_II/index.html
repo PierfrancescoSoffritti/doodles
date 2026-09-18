@@ -5,7 +5,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 	<title>Nowherelands</title>
 	<link href="https://fonts.googleapis.com/css?family=Comfortaa:300,400&display=swap" rel="stylesheet">
-	<link rel="stylesheet" href="css/style.css?v=touch-run-1">
+	<link rel="stylesheet" href="css/style.css?v=capture-3">
 	<script type="importmap">
 	{
 		"imports": {
@@ -28,23 +28,28 @@
 				<span>mouse <em>look</em></span>
 				<span>click <em>touch</em></span>
 				<span>hold <em>charge</em></span>
-				<span>R <em>record</em></span>
+				<span>P <em>photo</em></span>
+				<span>P P <em>record</em></span>
 				<span>F <em>fly</em></span>
+				<span>enter <em>fullscreen</em></span>
 			</p>
 			<p class="controls touch-only"><span>left thumb <em>move</em></span><span>push further <em>run</em></span><span>right thumb <em>look</em></span><span>tap <em>touch</em></span><span>hold still <em>charge</em></span></p>
 		</div>
 	</div>
 
 	<div id="hud">
-		<div id="fps" aria-label="Rendered frames per second">— FPS</div>
+		<div id="status">
+			<div id="rec" hidden></div>
+			<div id="fps" aria-label="Rendered frames per second">— FPS</div>
+		</div>
 		<svg class="crosshair" viewBox="0 0 100 100" width="48" height="48">
 			<circle id="crosshair-ring" cx="50" cy="50" r="4" stroke="#fff" stroke-width="2.5" fill="none"/>
 			<circle id="crosshair-charge" cx="50" cy="50" r="0" stroke="#fff" stroke-width="1.5" fill="none" opacity="0.7"/>
 		</svg>
+		<div id="shutter"></div>
 		<div id="toast"></div>
 		<div id="hint"></div>
 		<div id="corner">
-			<span id="rec" hidden>● rec</span>
 			<a id="seed" title="share this world"></a>
 		</div>
 		<div id="joystick" hidden><div id="joystick-knob"></div></div>

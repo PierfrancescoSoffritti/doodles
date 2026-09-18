@@ -133,6 +133,13 @@ export class HUD {
 
 	setRecording(on) { this.rec.hidden = !on; }
 
+	flashCapture() {
+		const shutter = document.getElementById('shutter');
+		shutter.classList.remove('flash');
+		void shutter.offsetWidth;
+		shutter.classList.add('flash');
+	}
+
 	showJoystick(x, y) {
 		this.joystick.hidden = false;
 		this.joystick.style.left = (x - 60) + 'px';
