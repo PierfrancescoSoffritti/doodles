@@ -131,6 +131,6 @@ export class HUD {
 		this.joystick.style.top = (y - 60) + 'px';
 		this.joystick.style.bottom = 'auto';
 	}
-	moveJoystick(dx, dy) { this.knob.style.transform = `translate(${dx}px, ${dy}px)`; }
-	hideJoystick() { this.joystick.hidden = true; this.knob.style.transform = ''; }
+	moveJoystick(dx, dy, running = false) { this.knob.style.transform = `translate(${dx}px, ${dy}px)`; this.joystick.classList.toggle('running', running); }
+	hideJoystick() { this.joystick.hidden = true; this.knob.style.transform = ''; this.joystick.classList.remove('running'); }
 }

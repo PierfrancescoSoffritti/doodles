@@ -5,6 +5,8 @@ import { config } from '../core/Config.js?v=stable-30-3';
 import { clamp, clamp01, damp } from '../core/Utils.js';
 
 const WALK = 42, SPRINT = 80;
+// touch gestures, in CSS pixels: stick radius, run hysteresis, tap wobble allowance, charge abandon distance
+const STICK = 50, RUN_ON = 86, RUN_OFF = 68, TAP_SLOP = 12, CHARGE_CANCEL = 70, HOLD_MS = 280;
 
 export class Player {
 	constructor(camera, canvas, heightmap, shared) {
@@ -34,7 +36,7 @@ export class Player {
 		this.stillTime = 0;
 		this.planted = false;
 		this.pressStart = null;
-		this.touch = { move: null, look: null, moveVec: new THREE.Vector2(), lookLast: new THREE.Vector2(), tapStart: 0, tapMoved: false };
+		this.touch = { move: null, look: null, sprint: false, moveVec: new THREE.Vector2(), lookLast: new THREE.Vector2() };
 		this.gamepadPress = false;
 		this.yawRate = 0;
 		this.prevYaw = this.yaw;
@@ -90,6 +92,10 @@ export class Player {
 	}
 
 	// ---- touch ----
+	// Left thumb: floating stick; pushing well past the ring runs. Right thumb is one
+	// of three gestures, decided by total travel from where it landed (never per-event
+	// deltas, which a slow pan keeps tiny): a still tap sends a note, a still hold
+	// charges one with the camera frozen, and anything that travels is only a look.
 	onTouchStart(e) {
 		e.preventDefault();
 		if (!this.enabled) return;
@@ -98,10 +104,8 @@ export class Player {
 				this.touch.move = { id: t.identifier, x: t.clientX, y: t.clientY };
 				this.shared.hud.showJoystick(t.clientX, t.clientY);
 			} else if (!this.touch.look) {
-				this.touch.look = { id: t.identifier };
+				this.touch.look = { id: t.identifier, x: t.clientX, y: t.clientY, start: performance.now(), mode: 'pending' };
 				this.touch.lookLast.set(t.clientX, t.clientY);
-				this.touch.tapStart = performance.now();
-				this.touch.tapMoved = false;
 				this.press();
 			}
 		}
@@ -111,15 +115,21 @@ export class Player {
 		for (const t of e.changedTouches) {
 			if (this.touch.move && t.identifier === this.touch.move.id) {
 				const dx = t.clientX - this.touch.move.x, dy = t.clientY - this.touch.move.y;
-				const len = Math.hypot(dx, dy), max = 50;
-				const k = len > max ? max / len : 1;
-				this.touch.moveVec.set(dx * k / max, dy * k / max);
-				this.shared.hud.moveJoystick(dx * k, dy * k);
+				const len = Math.hypot(dx, dy);
+				this.touch.sprint = len > (this.touch.sprint ? RUN_OFF : RUN_ON);
+				const k = len > STICK ? STICK / len : 1;
+				this.touch.moveVec.set(dx * k / STICK, dy * k / STICK);
+				const reach = this.touch.sprint ? Math.min(len, RUN_ON) / len : k;
+				this.shared.hud.moveJoystick(dx * reach, dy * reach, this.touch.sprint);
 			} else if (this.touch.look && t.identifier === this.touch.look.id) {
+				const look = this.touch.look;
 				const dx = t.clientX - this.touch.lookLast.x, dy = t.clientY - this.touch.lookLast.y;
-				if (Math.abs(dx) + Math.abs(dy) > 6) this.touch.tapMoved = true;
 				this.touch.lookLast.set(t.clientX, t.clientY);
-				this.rotate(dx, dy, 0.0045);
+				const travel = Math.hypot(t.clientX - look.x, t.clientY - look.y);
+				if (look.mode === 'pending' && performance.now() - look.start > HOLD_MS) look.mode = 'charge';
+				// dragging a charge well away abandons it and hands the thumb back to the camera
+				if (travel > (look.mode === 'charge' ? CHARGE_CANCEL : TAP_SLOP)) { look.mode = 'look'; this.pressStart = null; }
+				if (look.mode === 'look') this.rotate(dx, dy, 0.0045);
 			}
 		}
 	}
@@ -128,11 +138,13 @@ export class Player {
 		for (const t of e.changedTouches) {
 			if (this.touch.move && t.identifier === this.touch.move.id) {
 				this.touch.move = null;
+				this.touch.sprint = false;
 				this.touch.moveVec.set(0, 0);
 				this.shared.hud.hideJoystick();
 			} else if (this.touch.look && t.identifier === this.touch.look.id) {
+				const sends = this.touch.look.mode !== 'look' && e.type === 'touchend';
 				this.touch.look = null;
-				if (this.touch.tapMoved) this.pressStart = null; else this.release();
+				if (sends) this.release(); else this.pressStart = null;
 			}
 		}
 	}
@@ -207,6 +219,7 @@ export class Player {
 			if (k.has('KeyA') || k.has('ArrowLeft')) input.x -= 1;
 			if (k.has('KeyD') || k.has('ArrowRight')) input.x += 1;
 			if (k.has('ShiftLeft') || k.has('ShiftRight')) input.sprint = true;
+			if (this.touch.sprint) input.sprint = true;
 			input.x += this.touch.moveVec.x;
 			input.z += this.touch.moveVec.y;
 			this.pollGamepad(input);
