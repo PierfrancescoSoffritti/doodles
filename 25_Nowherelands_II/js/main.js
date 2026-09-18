@@ -21,7 +21,7 @@ import { CoastalSpray } from './world/CoastalSpray.js?v=player-notes-13';
 import { InlandWater } from './world/InlandWater.js?v=pool-life-2';
 import { Waterfalls } from './world/Waterfalls.js?v=stable-30-5';
 import { WatersideLife } from './world/WatersideLife.js?v=pool-life-1';
-import { WorldWaterLife } from './world/WorldWaterLife.js?v=pool-life-7';
+import { WorldWaterLife } from './world/WorldWaterLife.js?v=pool-life-8';
 import { WatersideAmbience } from './audio/WatersideAmbience.js';
 import { WatersideFeatures } from './world/WatersideFeatures.js';
 import { RiverDrift } from './world/RiverDrift.js?v=stable-30-10';

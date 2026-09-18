@@ -85,7 +85,19 @@ export class PoolLifeModel {
    const size=rnd.chance(.3)?rnd.range(.75,1.15):rnd.range(1.4,2.1);
    this.fish.push({school,group:g,offset:(i/Math.max(1,g.count))*TAU+rnd.range(-.25,.25),lane:rnd.range(.53,.83),pace:rnd.range(.92,1.08),wander:rnd.range(.035,.09),size,bodyWidth:rnd.range(.65,1.18),bodyLength:rnd.range(.9,1.3),hue:rnd.range(-.012,.009),color:rnd.pick(['#ff3522','#ff6540','#ef1957','#ffac52','#ee352f']),marking:rnd.int(0,3),beat:rnd.range(0,TAU),depth:rnd.range(.95,Math.min(1.75,g.depth-1.1))});
   }
-  for(const f of this.fish){const half=.4*f.size*(.8+.2*f.bodyWidth);f.depth=half+.32+rnd.next()*Math.max(0,Math.min(.65,f.group.depth-2*half-.65));}
+  const depths=new Random(`${seed}:fish-depths:${site.id}`);
+  for(const [i,f] of this.fish.entries()){
+   const half=.4*f.size*(.8+.2*f.bodyWidth);
+   f.depth=half+.32+rnd.next()*Math.max(0,Math.min(.65,f.group.depth-2*half-.65));
+   // The shallowest bed across the whole home disk bounds every dive. Keep
+   // shallow pools near the surface; deeper pools open up distinct swim lanes.
+   const range=Math.min(18,Math.max(0,f.group.depth-4)*.7);
+   const schoolIndex=i-this.fish.findIndex(other=>other.school===f.school);
+   f.depth+=range*(schoolIndex+depths.next())/f.group.count;
+   f.depthAmplitude=Math.min(range*.12,1.2,f.depth-half-.32,f.group.depth-half-.32-f.depth);
+   f.depthPhase=depths.range(0,TAU);f.depthRate=depths.range(.12,.22);
+   f.maxDepth=f.depth+f.depthAmplitude+.09;
+  }
   this.update(0);
  }
  pose(f,time){
@@ -94,6 +106,7 @@ export class PoolLifeModel {
   const x=Math.cos(a)*orbit,z=Math.sin(a)*orbit*g.aspect;
   return {x:(g.x||0)+x*ct-z*st,z:(g.z||0)+x*st+z*ct};
  }
+ swimY(f,time){return -f.depth+Math.sin(time*f.depthRate+f.depthPhase)*f.depthAmplitude+Math.sin(time*1.1+f.beat)*.09;}
  curve(points,t){
   const u=1-t;
   if(points.length===5){const weights=[u**4,4*u**3*t,6*u*u*t*t,4*u*t**3,t**4];return points.reduce((p,q,i)=>({x:p.x+q.x*weights[i],z:p.z+q.z*weights[i]}),{x:0,z:0});}
@@ -145,14 +158,14 @@ export class PoolLifeModel {
    if(f.escape&&time-f.escape.at>=f.escape.duration+f.escape.returnDuration)delete f.escape;
    const p=this.swimPose(f,time),next=this.swimPose(f,time+.025);
    f.burst=f.escape?Math.max(0,1-(time-f.escape.at)/(f.escape.duration+1)):0;
-   f.x=p.x;f.z=p.z;f.y=-f.depth+Math.sin(time*1.1+f.beat)*.09;const yaw=Math.atan2(-(next.z-p.z),next.x-p.x);
+   f.x=p.x;f.z=p.z;f.y=this.swimY(f,time);const yaw=Math.atan2(-(next.z-p.z),next.x-p.x);
    if(f.escape&&Number.isFinite(f.yaw)){const turnRate=time-f.escape.at<f.escape.duration?5.6:3.2,turn=Math.atan2(Math.sin(yaw-f.yaw),Math.cos(yaw-f.yaw));f.yaw+=clamp(turn,-dt*turnRate,dt*turnRate);}else f.yaw=yaw;
    f.speed=Math.hypot(next.x-p.x,next.z-p.z)/.025;
   }
   // Gentle local separation keeps large adults from stacking into a dark blob.
   for(let pass=0;pass<2;pass++)for(let i=0;i<this.fish.length;i++)for(let j=i+1;j<this.fish.length;j++){
    const a=this.fish[i],b=this.fish[j];if(a.school!==b.school||a.escape||b.escape)continue;
-   const dx=a.x-b.x,dz=a.z-b.z,d=Math.hypot(dx,dz)||.001,min=(a.size+b.size)*.9;
+   const dx=a.x-b.x,dz=a.z-b.z,d=Math.hypot(dx,dz)||.001,min=Math.sqrt(Math.max(0,((a.size+b.size)*.9)**2-(a.y-b.y)**2));
    if(d>=min)continue;const push=(min-d)*.5/d;
    a.x+=dx*push;a.z+=dz*push;b.x-=dx*push;b.z-=dz*push;
   }

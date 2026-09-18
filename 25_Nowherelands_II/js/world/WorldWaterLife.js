@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { WaterFish } from '../atelier/WaterFish.js?v=4';
 import { PoolLilies } from './PoolLilies.js?v=pool-life-6';
-import { PoolLifeModel, waterSites } from './WaterHabitats.js?v=pool-life-7';
+import { PoolLifeModel, waterSites } from './WaterHabitats.js?v=pool-life-8';
 import { RIVER_STRIDE as S, RV } from './gen/Rivers.js';
 import { playerNoteRadius } from './RippleWave.js';
 
@@ -23,7 +23,7 @@ export class WorldWaterLife {
   // includes the largest body and sample spacing; no terrain probes per frame.
   const wet=new Map(),cell=2;
   const canSwim=(x,z,f)=>{
-   const ix=Math.round(x/cell),iz=Math.round(z/cell),bottom=f.depth+f.size*.4+.22;
+   const ix=Math.round(x/cell),iz=Math.round(z/cell),bottom=f.maxDepth+f.size*(.8+.2*f.bodyWidth)*.4+.22;
    for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++){
     const key=`${ix+dx}:${iz+dz}`;let depth=wet.get(key);
     if(depth===undefined){const sample=this.sample(site.x+(ix+dx)*cell,site.z+(iz+dz)*cell);

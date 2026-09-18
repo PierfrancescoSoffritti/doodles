@@ -42,6 +42,32 @@ test('mountain lakes receive fish, while small and narrow pools cannot',()=>{
  }
 });
 
+test('deeper pools spread fish vertically with slow, deterministic dives and full body clearance',()=>{
+ const base=waterSites(world,lakes,sample,'water-test').find(s=>s.groups.length);
+ for(const depth of [2.6,3,4,6,12,30,300]){
+  const site={...base,groups:[{...base.groups[0],count:13,depth}],plants:[]};
+  const m=new PoolLifeModel(site,'water-test'),low=m.fish.map(f=>f.y),high=[...low];
+  for(let frame=0;frame<1800;frame++){
+   m.update(frame/30);
+   for(const [i,f] of m.fish.entries()){
+    const half=f.size*(.8+.2*f.bodyWidth)*.4;
+    assert.ok(f.y+half<-.2,'whole body stays below surface');
+    assert.ok(f.y-half>-depth+.2,'whole body stays above shallowest bed');
+    assert.ok(-f.y<=f.maxDepth+1e-8,'escape clearance includes deepest dive');
+    low[i]=Math.min(low[i],f.y);high[i]=Math.max(high[i],f.y);
+   }
+  }
+  if(depth<=4)assert.ok(Math.max(...m.fish.map(f=>-f.y))<2,'shallow fish retain near-surface routes');
+  if(depth>=12){
+   assert.ok(Math.max(...m.fish.map(f=>f.y))-Math.min(...m.fish.map(f=>f.y))>4,'school occupies multiple depths');
+   assert.ok(high.some((y,i)=>y-low[i]>1),'individual fish rise and dive');
+  }
+  const reload=new PoolLifeModel(site,'water-test');reload.update(m.time);assert.deepEqual(reload.fish,m.fish);
+  m.hear(site.x,site.z,200);const y=m.fish.map(f=>f.y);m.update(m.time);
+  assert.deepEqual(m.fish.map(f=>f.y),y,'startling does not jump between depths');
+ }
+});
+
 test('fish have readable variety and travel substantial distances; lilies include large colorful adults',()=>{
  const sites=waterSites(world,lakes,sample,'water-test'),models=sites.map(s=>new PoolLifeModel(s,'water-test')),fish=models.flatMap(m=>m.fish),plants=sites.flatMap(s=>s.plants);
  assert.ok(new Set(fish.map(f=>f.color)).size>=4);assert.ok(new Set(fish.map(f=>f.marking)).size>=3);

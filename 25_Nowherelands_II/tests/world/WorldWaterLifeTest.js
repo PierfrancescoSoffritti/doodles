@@ -30,6 +30,29 @@ test('world population is bounded, batched, submerged and disposed on travel',()
   life.dispose();assert.equal(scene.children.length,0);
  }
 });
+
+test('deep fish escape routes reject shelves shallower than their entire dive range',()=>{
+ const {life}=fixture();
+ const site={id:'deep-test',x:0,z:0,y:10,radius:45,plants:[],groups:[{x:0,z:0,count:13,radius:18,depth:20,speed:.2,direction:1,phase:0,aspect:.8,turn:0}]};
+ let probes=0;
+ life.sample=(x,z)=>{probes++;return {ground:Math.abs(x)>30?-3:-10,water:10,foam:0,speed:0,roof:false};};
+ const e=life.add(site),deep=e.model.fish.at(-1);
+ assert.ok(deep.maxDepth+deep.size*.4>13);
+ assert.equal(e.model.canSwim(0,0,deep),true);
+ assert.equal(e.model.canSwim(40,0,deep),false,'shelf cannot fit the complete dive');
+ const before=probes;e.model.update(3);e.model.update(6);assert.equal(probes,before,'cruising requires no terrain probes');
+ e.model.hear(0,0,200);
+ assert.ok(e.model.fish.some(f=>f.escape));
+ for(const f of e.model.fish){
+  const b=f.escape;if(!b)continue;
+  for(let t=0;t<b.duration+b.returnDuration;t+=.025){
+   const p=e.model.swimPose(f,b.at+t),y=site.y+e.model.swimY(f,b.at+t),half=f.size*(.8+.2*f.bodyWidth)*.4;
+   assert.ok(y-half>life.sample(p.x,p.z).ground+.2);
+   assert.ok(y+half<site.y-.2);
+  }
+ }
+ life.dispose();
+});
 test('only nearby surface lilies hear player notes; hiding in caves suspends resident updates',()=>{
  const {life,shared}=fixture();life.stream(true);life.update(1);
  const e=[...life.entries.values()].find(e=>e.model.plants.some(p=>p.bloom));assert.ok(e);
