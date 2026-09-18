@@ -15,7 +15,7 @@ function fixture(small=false){
 test('world population is bounded, batched, submerged and disposed on travel',()=>{
  for(const small of [false,true]){
   const {life,shared,scene}=fixture(small);life.stream(true);life.update(1);scene.updateMatrixWorld(true);
-  assert.ok(life.entries.size);assert.ok(life.entries.size<=(small?2:4));
+  assert.ok(life.entries.size);assert.ok(life.entries.size<=(small?8:12));
   for(const e of life.entries.values()){
    assert.ok(e.lilies.batches.length<=3);
    e.root.traverse(o=>{assert.ok(!o.isLight);if(o.isMesh&&o.visible){assert.equal(o.castShadow,false);assert.equal(o.receiveShadow,false);assert.ok(o.isInstancedMesh);for(const a of Object.values(o.geometry.attributes))assert.ok(a.array.every(Number.isFinite));}});
@@ -28,6 +28,55 @@ test('world population is bounded, batched, submerged and disposed on travel',()
   let disposed=0;resources.forEach(r=>r.addEventListener('dispose',()=>disposed++));
   shared.player.position.set(100000,20,0);life.stream(true);assert.equal(life.entries.size,0);assert.equal(disposed,resources.length);assert.equal(shared.mirrorHide.size,0);
   life.dispose();assert.equal(scene.children.length,0);
+ }
+});
+
+function lilyRoute(life,count=30){
+ const template=life.sites.find(s=>s.plants.some(p=>p.bloom));
+ life.sites=Array.from({length:count},(_,i)=>{
+  const x=i*70;
+  return {...template,id:`route:${i}`,x,z:0,groups:[],plants:template.plants.map(p=>({...p,x:x+p.x-template.x,z:p.z-template.z}))};
+ });
+}
+
+test('lilies are fully visible well ahead throughout a sprint, including on mobile',()=>{
+ for(const small of [false,true])for(const fps of [30,60]){
+  const {life,shared}=fixture(small);lilyRoute(life);
+  shared.player.position.x=-600;shared.player.velocity=new THREE.Vector3(80,0,0);
+  let checked=0;
+  for(let frame=0;frame<fps*22;frame++){
+   shared.player.position.x+=80/fps;life.update(1/fps);
+   assert.ok(life.entries.size<=life.cap);
+   for(const site of life.sites){
+    const ahead=site.x-shared.player.position.x;if(ahead<180||ahead>240)continue;
+    const e=life.entries.get(site.id);
+    assert.ok(e,`patch ${site.id} is loaded ${ahead.toFixed(0)} units ahead`);
+    assert.ok(e.root.visible);assert.equal(e.fade,1);
+    for(const b of e.lilies.batches)assert.equal(b.mesh.material.opacity,1);
+    checked++;
+   }
+  }
+  assert.ok(checked>100);life.dispose();
+ }
+});
+
+test('closer upcoming patches replace distant residents and queued patches load next frame',()=>{
+ for(const small of [false,true]){
+  const {life,shared}=fixture(small);lilyRoute(life);
+  shared.player.position.x=350;life.stream(true);assert.equal(life.entries.size,life.cap);
+  shared.player.position.x=490;shared.player.velocity=new THREE.Vector3(80,0,0);
+  // Occupy every slot with old patches behind the player.
+  for(const e of life.entries.values())life.remove(e);
+  const old=life.sites.slice(0,life.cap).map((s,i)=>({...s,id:`old:${i}`,x:200-i*10}));
+  life.sites.unshift(...old);old.forEach(s=>life.add(s));
+  const upcoming=life.sites.find(s=>s.id==='route:8');
+  for(let i=0;i<3;i++)life.update(1/60);
+  assert.ok(life.entries.has(upcoming.id),'residents do not pin the whole budget');
+  const size=life.entries.size;life.update(1/60);
+  assert.equal(life.entries.size,size+1,'backlog drains without a polling delay');
+  life.focus=old.at(-1);life.stream(true);
+  assert.ok(life.entries.has(life.focus.id),'field-guide focus remains resident');
+  assert.ok(life.entries.size<=life.cap);life.dispose();
  }
 });
 

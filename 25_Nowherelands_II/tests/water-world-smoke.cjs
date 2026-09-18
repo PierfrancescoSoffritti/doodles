@@ -90,7 +90,7 @@ const fs=require('node:fs');
    }
    for(const site of w.sites){const model=new PoolLifeModel(site,w.seed);for(let t=0;t<60;t+=2){model.update(t);model.hear(site.x,site.z,100);model.update(t+.4);for(const f of model.fish){const x=site.x+f.x,z=site.z+f.z,ground=hm.sample(x,z),y=site.y+f.y;checked++;if(y-f.size*(.8+.2*f.bodyWidth)*.4<ground+.1||y+f.size*(.8+.2*f.bodyWidth)*.4>hm._water-.1)invalid++;}}}
    return {checked,invalid,maxDraws,active:w.entries.size,cap:w.cap};
-  });assert.equal(validity.invalid,0);assert.ok(validity.maxDraws<=4);assert.ok(validity.active<=validity.cap);assert.equal(validity.cap,mobile?2:4);
+  });assert.equal(validity.invalid,0);assert.ok(validity.maxDraws<=4);assert.ok(validity.active<=validity.cap);assert.equal(validity.cap,mobile?8:12);
   assert.deepEqual(errors,[]);console.log(JSON.stringify({status:'passed',population,reply,optics,validity,screenshots:out},null,2));
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

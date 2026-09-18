@@ -5,9 +5,11 @@ import { PoolLifeModel, waterSites } from './WaterHabitats.js?v=pool-life-8';
 import { RIVER_STRIDE as S, RV } from './gen/Rivers.js';
 import { playerNoteRadius } from './RippleWave.js';
 
+const LOAD_DISTANCE=540,VIEW_DISTANCE=420,FADE_DISTANCE=120;
+
 export class WorldWaterLife {
  constructor(scene,hm,shared,lakes,seed,{small=false}={}){
-  this.hm=hm;this.shared=shared;this.seed=seed;this.cap=small?2:4;this.entries=new Map();this.streamAt=0;this.time=0;this.voices=[];
+  this.hm=hm;this.shared=shared;this.seed=seed;this.cap=small?8:12;this.entries=new Map();this.streamAt=0;this.time=0;this.voices=[];
   this.pickGeometry=new THREE.SphereGeometry(1,10,8);this.pickMaterial=new THREE.MeshBasicMaterial();
   this.root=new THREE.Group();this.root.name='Scarlet fish and light lilies';scene.add(this.root);
   const sample=(x,z)=>{
@@ -54,11 +56,19 @@ export class WorldWaterLife {
  }
  remove(entry){entry.fish.dispose();entry.lilies.dispose();entry.root.removeFromParent();this.entries.delete(entry.site.id);}
  stream(force=false){
-  const p=this.shared.player.position,near=this.sites.filter(s=>Math.hypot(s.x-p.x,s.z-p.z)<180&&Math.abs(s.y-p.y)<90);
-  near.sort((a,b)=>Number(b===this.focus)-Number(a===this.focus)||Number(this.entries.has(b.id))-Number(this.entries.has(a.id))||Math.hypot(a.x-p.x,a.z-p.z)-Math.hypot(b.x-p.x,b.z-p.z));
-  const chosen=near.slice(0,this.cap);
+  const {position:p,velocity:v}=this.shared.player;
+  const lookAhead=Math.min(1.5,240/(Math.hypot(v?.x||0,v?.z||0)||1)),x=p.x+(v?.x||0)*lookAhead,z=p.z+(v?.z||0)*lookAhead;
+  const near=this.sites.map(site=>{
+   const distance=Math.hypot(site.x-p.x,site.z-p.z),ahead=Math.hypot(site.x-x,site.z-z);
+   // A small residency bias avoids churn, without pinning patches behind the
+   // player while closer ones wait. Prepare the route ahead during movement.
+   return {site,distance,ahead,priority:Math.min(distance,ahead)-(this.entries.has(site.id)?24:0)};
+  }).filter(s=>Math.min(s.distance,s.ahead)<LOAD_DISTANCE&&Math.abs(s.site.y-p.y)<180);
+  near.sort((a,b)=>Number(b.site===this.focus)-Number(a.site===this.focus)||a.priority-b.priority);
+  const chosen=near.slice(0,this.cap).map(s=>s.site);
   for(const e of this.entries.values())if(!chosen.includes(e.site))this.remove(e);
   for(const site of chosen)if(!this.entries.has(site.id)){this.add(site);if(!force)break;}
+  return chosen.some(site=>!this.entries.has(site.id));
  }
  get targets(){return [...this.entries.values()].filter(e=>e.root.visible).flatMap(e=>e.targets);}
  hearNote(note){
@@ -77,15 +87,17 @@ export class WorldWaterLife {
  }
  update(dt){
   this.time+=dt;this.root.visible=this.shared.surfaceStreaming!==false&&(this.shared.caveAmount||0)<.8;if(!this.root.visible)return;
-  if(this.time>=this.streamAt){this.streamAt=this.time+.4;this.stream();}
+  // Drain a newly encountered cluster one patch per frame, rather than making
+  // each patch wait another polling interval while the player runs past it.
+  if(this.time>=this.streamAt)this.streamAt=this.time+(this.stream()?0:.2);
   const p=this.shared.player.position;
   for(const e of this.entries.values()){
-   const distance=Math.hypot(e.site.x-p.x,e.site.z-p.z);e.root.visible=distance<180;if(!e.root.visible)continue;
+   e.fade=Math.min(1,e.fade+dt*1.5);
+   const distance=Math.hypot(e.site.x-p.x,e.site.z-p.z);e.root.visible=distance<VIEW_DISTANCE;if(!e.root.visible)continue;
    e.model.update(this.time);e.fish.update();e.lilies.update();for(const event of e.model.drainEvents())this.play(e,event);
    // Fade in place with screen-door coverage: submerged fish and floating pads
    // keep their world size and height, and still enter the opaque water capture.
-   e.fade=Math.min(1,e.fade+dt*1.5);
-   const coverage=e.fade*Math.min(1,Math.max(0,(180-distance)/45));
+   const coverage=e.fade*Math.min(1,Math.max(0,(VIEW_DISTANCE-distance)/FADE_DISTANCE));
    for(const m of [e.fish.mesh,...e.lilies.batches.map(b=>b.mesh)])if(m)m.material.opacity=coverage;
   }
  }
