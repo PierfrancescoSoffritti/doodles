@@ -5,8 +5,8 @@ import { config } from '../core/Config.js?v=stable-30-3';
 import { clamp, clamp01, damp } from '../core/Utils.js';
 
 const WALK = 42, SPRINT = 80;
-// touch gestures, in CSS pixels: stick radius, run hysteresis, tap wobble allowance
-const STICK = 50, RUN_ON = 86, RUN_OFF = 68, TAP_SLOP = 12, HOLD_MS = 280;
+// touch gestures, in CSS pixels: stick radius, run hysteresis, tap wobble and charge drift allowances
+const STICK = 50, RUN_ON = 86, RUN_OFF = 68, TAP_SLOP = 12, CHARGE_SLOP = 40, HOLD_MS = 280;
 
 export class Player {
 	constructor(camera, canvas, heightmap, shared) {
@@ -92,10 +92,10 @@ export class Player {
 	}
 
 	// ---- touch ----
-	// Left thumb: floating stick; pushing well past the ring runs. Right thumb is one
-	// of three gestures, decided by total travel from where it landed (never per-event
-	// deltas, which a slow pan keeps tiny): a still tap sends a note, a still hold
-	// commits to a charged one, and anything that travels before that is only a look.
+	// Left thumb: floating stick; pushing well past the ring runs. Right thumb always
+	// turns the camera, and also carries a note until it travels too far from where it
+	// landed (total travel, never per-event deltas, which a slow pan keeps tiny): a still
+	// tap sends a note, a still hold a charged one, and a drag past the slop is only a look.
 	onTouchStart(e) {
 		e.preventDefault();
 		if (!this.enabled) return;
@@ -104,7 +104,7 @@ export class Player {
 				this.touch.move = { id: t.identifier, x: t.clientX, y: t.clientY };
 				this.shared.hud.showJoystick(t.clientX, t.clientY);
 			} else if (!this.touch.look) {
-				this.touch.look = { id: t.identifier, x: t.clientX, y: t.clientY, start: performance.now(), mode: 'pending' };
+				this.touch.look = { id: t.identifier, x: t.clientX, y: t.clientY, start: performance.now(), cancelled: false };
 				this.touch.lookLast.set(t.clientX, t.clientY);
 				this.press();
 			}
@@ -126,14 +126,11 @@ export class Player {
 				const dx = t.clientX - this.touch.lookLast.x, dy = t.clientY - this.touch.lookLast.y;
 				this.touch.lookLast.set(t.clientX, t.clientY);
 				const travel = Math.hypot(t.clientX - look.x, t.clientY - look.y);
-				// Once the hold lands, the ring is showing and the note is promised: release always
-				// sends it. Dragging from there still looks around, exactly like a held mouse button.
-				if (look.mode === 'pending' && performance.now() - look.start > HOLD_MS) look.mode = 'charge';
-				if (travel > TAP_SLOP) {
-					if (look.mode === 'pending') { look.mode = 'look'; this.pressStart = null; }
-					else look.turning = true;
-				}
-				if (look.mode === 'look' || look.turning) this.rotate(dx, dy, 0.0045);
+				// A settled hold earns more room than a tap, so the thumb can drift and nudge the
+				// aim while charging; past that the gesture is a look and the ring lets go of its note.
+				const slop = performance.now() - look.start > HOLD_MS ? CHARGE_SLOP : TAP_SLOP;
+				if (!look.cancelled && travel > slop) { look.cancelled = true; this.pressStart = null; }
+				this.rotate(dx, dy, 0.0045);
 			}
 		}
 	}
@@ -146,7 +143,7 @@ export class Player {
 				this.touch.moveVec.set(0, 0);
 				this.shared.hud.hideJoystick();
 			} else if (this.touch.look && t.identifier === this.touch.look.id) {
-				const sends = this.touch.look.mode !== 'look' && e.type === 'touchend';
+				const sends = !this.touch.look.cancelled && e.type === 'touchend';
 				this.touch.look = null;
 				if (sends) this.release(); else this.pressStart = null;
 			}
