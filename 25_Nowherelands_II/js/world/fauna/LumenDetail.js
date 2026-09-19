@@ -4,13 +4,13 @@ import { flightSwirl } from './LumenFlight.js?v=stable-30-20';
 
 // Keep interaction-range flocks on the full model. The two thresholds prevent
 // repeated changes at the boundary; a spread-out flock wakes as one unit.
-export function selectLumenDetail(group, listener, enabled) {
+export function selectLumenDetail(group, listener, enabled, scale=1) {
  const wake = b => {
   if(b.coarse)for(const c of b.members){c.neighbourTimer=0;c.floorTimer=0;c.acceleration.x=c.acceleration.y=c.acceleration.z=0;delete c.distantTarget;}
   b.coarse=false;
  };
  for (const b of group.flow.branches) {
-  const radius=b.coarse?1000:1200;
+  const radius=(b.coarse?1000:1200)*scale;
   const coarse=!!enabled && b.members.every(c=>(c.pos.x-listener.x)**2+(c.pos.y-listener.y)**2+(c.pos.z-listener.z)**2>radius*radius);
   if(!coarse)wake(b);
   b.coarse=coarse;

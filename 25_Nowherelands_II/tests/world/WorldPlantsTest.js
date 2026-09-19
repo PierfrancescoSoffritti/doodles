@@ -12,12 +12,12 @@ const {plantSites,plantFooting}=await import('../../js/world/PlantHabitats.js');
 const {bus,Events}=await import('../../js/core/EventBus.js');
 const {REPLY_MASK_LAYER}=await import('../../js/world/fauna/ReplyOutline.js?v=pendant-feedback-1');
 const {pickTarget,hoverTarget,dispatchPress}=await import('../../js/landmarks/TargetPicking.js');
-const sample=(x,z)=>({ground:2,water:0,slope:.04,foam:0,wet:.7,coast:.1,roof:false});
+const sample=(x,z)=>({ground:2,water:0,slope:.04,foam:0,wet:.7,coast:.1,alt:1,roof:false});
 const lakes=[{id:0,shore:Array.from({length:20},(_,i)=>({x:i*90,z:0,nx:0,nz:1,y:0}))}];
 function fixture(){
  const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera();camera.position.set(0,13,24);
  const shared={world:{rivers:[]},camera,player:{position:camera.position},colliders:[],surfaceStreaming:true};
- const hm={sample(x,z){this._water=0;this._slope=.04;return 2;},habitat:()=>({wet:.7,coast:.1}),caves:{hasOpening:()=>false,surfaceDensity:()=>-10}};
+ const hm={sample(x,z){this._water=0;this._slope=.04;return 2;},habitat:()=>({wet:.7,coast:.1,alt:1}),caves:{hasOpening:()=>false,surfaceDensity:()=>-10}};
  const plants=new WorldPlants(scene,hm,shared,lakes,'plants-test');return {scene,shared,plants};
 }
 test('plant sites are deterministic, spaced, dry-rooted and reject steep or buried banks',()=>{
@@ -221,14 +221,14 @@ test('travel preloads a patch while fully hidden and retires it only beyond the 
  const {plants,shared}=fixture(),template=plants.sites.find(s=>s.species==='bell-reed');
  plants.sites=[{...template,id:'ahead',x:620,z:0,companions:[]}];
  shared.player.position.set(0,13,0);plants.stream();assert.equal(plants.entries.size,0);
- shared.player.position.x=40;plants.update(.4);const entry=plants.entries.get('ahead');
+ shared.player.position.x=40;plants.update(.4);for(let i=0;i<120&&!plants.entries.has('ahead');i++)plants.update(1/60);const entry=plants.entries.get('ahead');
  assert.ok(entry);assert.equal(entry.root.visible,false,'built before it enters the visible range');
  assert.deepEqual(entry.batch.range.value.toArray(),[PLANT_RANGE.fade,PLANT_RANGE.hide]);
  shared.player.position.x=160;plants.update(.4);assert.equal(entry.root.visible,true);
  assert.equal(plants.entries.get('ahead'),entry);assert.equal(entry.root.scale.x,entry.site.scale);
  shared.player.position.x=40;plants.update(.4);assert.equal(entry.root.visible,false);assert.equal(plants.entries.get('ahead'),entry);
  let textures=0;entry.batch.texture.addEventListener('dispose',()=>textures++);
- shared.player.position.x=-100;plants.update(.4);assert.equal(plants.entries.size,0);assert.equal(textures,1);plants.dispose();
+ shared.player.position.x=-100;plants.update(.4);assert.equal(plants.entries.size,0);assert.equal(entry.root.parent,null);assert.equal(textures,0);plants.update(0);assert.equal(textures,1);plants.dispose();
 });
 
 

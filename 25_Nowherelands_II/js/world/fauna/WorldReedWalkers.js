@@ -1,6 +1,7 @@
+import { warmStreamedMaterials } from '../../fx/StreamedMaterialWarmup.js?v=streaming-60-30-19';
 import { mobileDetail } from '../../core/MobileDetail.js?v=stable-30-3';
 import { reedIndividual } from './ReedWalkerTraits.js';
-import {replyOutline} from './ReplyOutline.js?v=outline-2';
+import {replyOutline} from './ReplyOutline.js?v=streaming-60-30-19';
 import { noteGlow } from './NoteGlow.js?v=player-notes-13';
 import * as THREE from 'three';
 import { reedSites } from './ReedWalkerHabitat.js?v=graze-1';
@@ -34,7 +35,7 @@ export class WorldReedWalkers {
  decorateRig(rig,m) {
    rig.noteUniforms={uNoteGlow:{value:0},uNotePhase:{value:0},uNoteAlarm:{value:0},uNoteFloor:{value:0},uNoteHeight:{value:m.traits.legs*m.scale}};
    const materials=new Set();rig.root.traverse(o=>{if(o.material)materials.add(o.material);});for(const material of materials)noteGlow(material,rig.noteUniforms);rig.root.scale.setScalar(m.scale);
-   rig.replySignal={value:0};rig.replyEcho={value:new THREE.Vector2()};const parts=[];rig.root.traverse(o=>{if(o.isMesh)parts.push(o);});for(const part of parts)replyOutline(part,{signal:rig.replySignal,echo:rig.replyEcho});
+   rig.replySignal={value:0};rig.replyEcho={value:new THREE.Vector2()};const parts=[];rig.root.traverse(o=>{if(o.isMesh)parts.push(o);});rig.replyOutlines=parts.map(part=>replyOutline(part,{signal:rig.replySignal,echo:rig.replyEcho}));
   return rig;
  }
  *buildRig(m) {
@@ -56,22 +57,11 @@ export class WorldReedWalkers {
   for(const group of this.model.groups.values())if(group.members.every(m=>this.rigs.has(m)))for(const m of group.members){const rig=this.rigs.get(m);if(rig.root.parent!==this.root)this.root.add(rig.root);}
  }
  async prewarm() {
-  const renderer=this.shared.renderer,world=this.shared.scene,scene=new THREE.Scene();
-  scene.environment=world.environment;scene.environmentIntensity=world.environmentIntensity;scene.fog=world.fog;
-  world.updateMatrixWorld(true);
-  world.traverseVisible(light=>{if(!light.isLight||!light.layers.test(this.shared.camera.layers))return;const copy=light.clone();copy.position.setFromMatrixPosition(light.matrixWorld);scene.add(copy);});
+  const scene=new THREE.Scene();
   const rig=this.createRig({traits:reedIndividual('reedbed',1,'adult','male'),scale:1});
   scene.add(rig.root);rig.update(0);
   const spray=new ReedWalkerSpray(rig,scene);spray.mesh.visible=true;
-  scene.traverse(o=>{if(o.isMesh)o.frustumCulled=false;});
-  const camera=this.shared.camera.clone();camera.layers.enable(30);
-  const target=new THREE.WebGLRenderTarget(2,2,{type:THREE.HalfFloatType});
-  const previous=renderer.getRenderTarget(),face=renderer.getActiveCubeFace(),mip=renderer.getActiveMipmapLevel();
-  try {
-   let ready;try{renderer.setRenderTarget(target);ready=renderer.compileAsync(scene,camera);}finally{renderer.setRenderTarget(previous,face,mip);}
-   await ready;
-   renderer.setRenderTarget(target);renderer.render(scene,camera);
-  }finally{renderer.setRenderTarget(previous,face,mip);target.dispose();}
+  await warmStreamedMaterials(this.shared,[scene],{includeHidden:true});
   // Retain these exact program owners when the last streamed family retires.
   this.warmup={dispose(){spray.dispose();rig.dispose();scene.clear();}};
  }
@@ -94,7 +84,7 @@ export class WorldReedWalkers {
    rig.root.visible=Math.hypot(m.origin.x-p.x,m.origin.z-p.z)<320;
    if(!rig.root.visible){rig.spray?.update(0,false);continue;}
    rig.root.position.set(m.draw.origin.x,m.draw.origin.y,m.draw.origin.z);rig.root.rotation.y=m.draw.yaw;
-   rig.replySignal.value=m.replyGlow||0;rig.replyEcho.value.set(m.replyProgress||0,m.replyCharged?1:0);
+   for(const reply of rig.replyOutlines)reply.setSignal(m.replyGlow||0);rig.replyEcho.value.set(m.replyProgress||0,m.replyCharged?1:0);
    rig.noteUniforms.uNoteGlow.value=m.noteGlow||0;rig.noteUniforms.uNotePhase.value=m.notePhase||0;rig.noteUniforms.uNoteAlarm.value=m.noteAlarm?1:0;rig.noteUniforms.uNoteFloor.value=m.origin.y;
    rig.update(m.release?.time??m.clock,m.state,0,m.draw.pose);
    const nearby=Math.hypot(m.origin.x-p.x,m.origin.z-p.z)<140;

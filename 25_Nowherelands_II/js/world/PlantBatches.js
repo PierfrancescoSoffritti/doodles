@@ -10,7 +10,9 @@ export class PlantBatches {
   this.saved=[];this.savedEntries=new WeakMap();this.savedEpoch=0;this.membership={has:source=>this.savedEntries.get(source)?.epoch===this.savedEpoch};this.bounds=new WeakMap();this.selected=new Map();this.entries=new WeakMap();this.stats={sources:0,visibleSources:0,draws:0,instances:0,uploads:0};
   this.original=renderer.render;
   this.render=(scene,camera)=>{
-   if(!this.enabled||scene!==world||scene.overrideMaterial)return this.original.call(renderer,scene,camera);
+   // Reply masks use their own child meshes. Rebatching vegetation for this
+   // layer cannot help and needlessly repeats all instance visibility work.
+   if(!this.enabled||scene!==world||scene.overrideMaterial||camera.layers.mask===(1<<30))return this.original.call(renderer,scene,camera);
    world.updateWorldMatrix(true,false);
    if(!world.matrixWorld.equals(this.identity))return this.original.call(renderer,scene,camera);
    const outer=this.depth++===0;

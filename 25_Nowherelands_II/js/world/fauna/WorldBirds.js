@@ -4,7 +4,7 @@ import {BIRD_SPECIES} from './BirdSpecies.js?v=birds-10';
 import * as THREE from 'three';
 import {BirdPassages,SKY_BIRD_CAPACITY} from './BirdPassages.js?v=stable-30-3';
 import {BirdSprites} from './BirdSprites.js?v=birds-10';
-import {BirdMesh} from './BirdMesh.js?v=outline-2';
+import {BirdMesh} from './BirdMesh.js?v=streaming-60-30-19';
 import {BirdEncounter} from './BirdEncounter.js?v=pebble-voice-4b';
 import {BIRD_JOURNEY_TIME} from './BirdJourney.js?v=stable-30-3';
 

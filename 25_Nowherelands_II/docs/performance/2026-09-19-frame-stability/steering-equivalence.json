@@ -1,0 +1,8 @@
+{
+  "cases": 10000,
+  "identicalDecisions": true,
+  "oldProbes": 2841825,
+  "newProbes": 1397759,
+  "reduction": 0.5081474052765389,
+  "savedCases": 4717
+}

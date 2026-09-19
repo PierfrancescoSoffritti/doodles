@@ -1,0 +1,210 @@
+[
+  {
+    "aspect": 1.5,
+    "yaw": 0,
+    "full": {
+      "lumen": 640,
+      "pebbles": 4,
+      "stones": 20
+    },
+    "culled": {
+      "lumen": 508,
+      "pebbles": 3,
+      "stones": 20
+    },
+    "max": 0,
+    "different": 0,
+    "lit": 122350
+  },
+  {
+    "aspect": 1.5,
+    "yaw": 0.5,
+    "full": {
+      "lumen": 640,
+      "pebbles": 4,
+      "stones": 20
+    },
+    "culled": {
+      "lumen": 437,
+      "pebbles": 2,
+      "stones": 16
+    },
+    "max": 0,
+    "different": 0,
+    "lit": 104123
+  },
+  {
+    "aspect": 1.5,
+    "yaw": 1.5,
+    "full": {
+      "lumen": 640,
+      "pebbles": 4,
+      "stones": 20
+    },
+    "culled": {
+      "lumen": 162,
+      "pebbles": 1,
+      "stones": 7
+    },
+    "max": 0,
+    "different": 0,
+    "lit": 93526
+  },
+  {
+    "aspect": 1.5,
+    "yaw": 3,
+    "full": {
+      "lumen": 640,
+      "pebbles": 4,
+      "stones": 20
+    },
+    "culled": {
+      "lumen": 115,
+      "pebbles": 0,
+      "stones": 4
+    },
+    "max": 0,
+    "different": 0,
+    "lit": 66633
+  },
+  {
+    "aspect": 1.5,
+    "yaw": 4.5,
+    "full": {
+      "lumen": 640,
+      "pebbles": 4,
+      "stones": 20
+    },
+    "culled": {
+      "lumen": 135,
+      "pebbles": 1,
+      "stones": 6
+    },
+    "max": 0,
+    "different": 0,
+    "lit": 66795
+  },
+  {
+    "aspect": 1.5,
+    "yaw": 5.5,
+    "full": {
+      "lumen": 640,
+      "pebbles": 4,
+      "stones": 20
+    },
+    "culled": {
+      "lumen": 329,
+      "pebbles": 2,
+      "stones": 11
+    },
+    "max": 0,
+    "different": 0,
+    "lit": 106886
+  },
+  {
+    "aspect": 0.55,
+    "yaw": 0,
+    "full": {
+      "lumen": 640,
+      "pebbles": 4,
+      "stones": 20
+    },
+    "culled": {
+      "lumen": 287,
+      "pebbles": 1,
+      "stones": 14
+    },
+    "max": 0,
+    "different": 0,
+    "lit": 106009
+  },
+  {
+    "aspect": 0.55,
+    "yaw": 0.5,
+    "full": {
+      "lumen": 640,
+      "pebbles": 4,
+      "stones": 20
+    },
+    "culled": {
+      "lumen": 239,
+      "pebbles": 1,
+      "stones": 10
+    },
+    "max": 0,
+    "different": 0,
+    "lit": 113146
+  },
+  {
+    "aspect": 0.55,
+    "yaw": 1.5,
+    "full": {
+      "lumen": 640,
+      "pebbles": 4,
+      "stones": 20
+    },
+    "culled": {
+      "lumen": 78,
+      "pebbles": 1,
+      "stones": 4
+    },
+    "max": 0,
+    "different": 0,
+    "lit": 90082
+  },
+  {
+    "aspect": 0.55,
+    "yaw": 3,
+    "full": {
+      "lumen": 640,
+      "pebbles": 4,
+      "stones": 20
+    },
+    "culled": {
+      "lumen": 54,
+      "pebbles": 0,
+      "stones": 3
+    },
+    "max": 0,
+    "different": 0,
+    "lit": 66151
+  },
+  {
+    "aspect": 0.55,
+    "yaw": 4.5,
+    "full": {
+      "lumen": 640,
+      "pebbles": 4,
+      "stones": 20
+    },
+    "culled": {
+      "lumen": 62,
+      "pebbles": 1,
+      "stones": 4
+    },
+    "max": 0,
+    "different": 0,
+    "lit": 63186
+  },
+  {
+    "aspect": 0.55,
+    "yaw": 5.5,
+    "full": {
+      "lumen": 640,
+      "pebbles": 4,
+      "stones": 20
+    },
+    "culled": {
+      "lumen": 206,
+      "pebbles": 2,
+      "stones": 7
+    },
+    "max": 0,
+    "different": 0,
+    "lit": 151365
+  },
+  {
+    "caveSurfaceUploadsSkipped": true,
+    "exitRefreshed": true
+  }
+]

@@ -24,3 +24,14 @@ test('hidden or removed sources leave smoothly and disposal restores source laye
  assert.ok(pool.slots.every(s=>s.owner!==sources[0]&&s.owner!==sources[1]));
  pool.dispose();assert.equal(sources[0].layers.mask,3);assert.ok(pool.slots.every(s=>!s.light.parent));assert.equal(sources[0].intensity,3);
 });
+
+test('ordinary updates reuse registered lights without traversing hidden rigs',()=>{
+ const {scene,camera,pool}=setup();pool.update(camera,1);const traverse=scene.traverse;
+ scene.traverse=()=>assert.fail('Steady frames must not scan the scene graph');
+ for(let i=0;i<60;i++)pool.update(camera,1/30);
+ scene.traverse=traverse;
+ const added=new THREE.PointLight(0xffffff,10,100,2);scene.add(added);pool.discover();
+ for(let i=0;i<30;i++)pool.update(camera,1/30);
+ assert.ok(pool.slots.some(s=>s.owner===added));assert.equal(added.layers.mask,0);
+ pool.dispose();assert.equal(added.layers.mask,1);
+});

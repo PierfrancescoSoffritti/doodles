@@ -1,7 +1,8 @@
+import { warmStreamedMaterials } from '../fx/StreamedMaterialWarmup.js?v=streaming-60-30-19';
 import * as THREE from 'three';
 import { WaterFish } from '../atelier/WaterFish.js?v=4';
-import { PoolLilies } from './PoolLilies.js?v=pool-life-6';
-import { PoolLifeModel, waterSites } from './WaterHabitats.js?v=pool-life-11';
+import { PoolLilies } from './PoolLilies.js?v=streaming-60-30-19';
+import { PoolLifeModel, waterSites } from './WaterHabitats.js?v=streaming-60-30-19';
 import { RIVER_STRIDE as S, RV } from './gen/Rivers.js';
 import { playerNoteRadius } from './RippleWave.js';
 
@@ -20,23 +21,42 @@ export class WorldWaterLife {
   this.sample=sample;
   this.sites=waterSites(shared.world,lakes,sample,seed,hm.waterLevel);
  }
+ async prewarm(){
+  this.warmEntries=[];
+  // Include both ordinary fish and every lily draw even if spawn has no water.
+  const sites=[this.sites.find(s=>s.groups.length),this.sites.find(s=>s.plants.some(p=>p.bloom))].filter(Boolean);
+  for(const [i,site] of sites.entries()){
+   const entry=this.add({...site,id:`warm-water:${i}`});
+   this.entries.delete(entry.site.id);entry.root.removeFromParent();
+   this.warmEntries.push(entry);
+  }
+  await warmStreamedMaterials(this.shared,this.warmEntries.map(e=>e.root));
+ }
  add(site){
   // Reuse sampled two-unit cells across fish and repeated blips. Clearance
   // includes the largest body and sample spacing; no terrain probes per frame.
-  const wet=new Map(),cell=2;
+  const wet=new Map(),clearance=new Map(),cell=2;
+  const cellKey=(x,z)=>Math.abs(x)<32760&&Math.abs(z)<32760?(x+32768)+(z+32768)*65536:`${x}:${z}`;
   const canSwim=(x,z,f)=>{
-   const ix=Math.round(x/cell),iz=Math.round(z/cell),bottom=f.maxDepth+f.size*(.8+.2*f.bodyWidth)*.4+.22;
-   for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++){
-    const key=`${ix+dx}:${iz+dz}`;let depth=wet.get(key);
-    if(depth===undefined){const sample=this.sample(site.x+(ix+dx)*cell,site.z+(iz+dz)*cell);
-     depth=!sample.roof&&sample.foam<.12&&sample.speed<.8&&Math.abs(sample.water-site.y)<.12?sample.water-sample.ground:0;
-     wet.set(key,depth);
+   const ix=Math.round(x/cell),iz=Math.round(z/cell),key=cellKey(ix,iz),bottom=f.maxDepth+f.size*(.8+.2*f.bodyWidth)*.4+.22;
+   let minimum=clearance.get(key);
+   if(minimum===undefined){
+    minimum=Infinity;
+    for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++){
+     const key=cellKey(ix+dx,iz+dz);let depth=wet.get(key);
+     if(depth===undefined){
+      if(performance.now()>=(this.routeDeadline??Infinity))return undefined;
+      const sample=this.sample(site.x+(ix+dx)*cell,site.z+(iz+dz)*cell);
+      depth=!sample.roof&&sample.foam<.12&&sample.speed<.8&&Math.abs(sample.water-site.y)<.12?sample.water-sample.ground:0;
+      wet.set(key,depth);
+     }
+     minimum=Math.min(minimum,depth);
     }
-    if(depth<bottom)return false;
+    clearance.set(key,minimum);
    }
-   return true;
+   return minimum>=bottom;
   };
-  const model=new PoolLifeModel(site,this.seed,{canSwim});model.update(this.time);
+  const model=new PoolLifeModel(site,this.seed,{canSwim,deferStartle:!!this.shared.renderer});model.update(this.time);
   const root=new THREE.Group();root.position.set(site.x,site.y,site.z);this.root.add(root);
   const fish=new WaterFish(root,model);if(fish.mesh){fish.mesh.boundingSphere.set(new THREE.Vector3(0,-1,0),site.radius+70);fish.material.emissive.set('#ffffff');fish.material.emissiveIntensity=.36;
    fish.material.customProgramCacheKey=()=> 'water-fish-world-3';
@@ -54,7 +74,7 @@ export class WorldWaterLife {
   }
   this.entries.set(site.id,entry);return entry;
  }
- remove(entry){entry.fish.dispose();entry.lilies.dispose();entry.root.removeFromParent();this.entries.delete(entry.site.id);}
+ remove(entry){entry.model.routeWork?.return();entry.model.routeWork=null;entry.fish.dispose();entry.lilies.dispose();entry.root.removeFromParent();this.entries.delete(entry.site.id);}
  stream(force=false){
   const {position:p,velocity:v}=this.shared.player;
   const lookAhead=Math.min(1.5,240/(Math.hypot(v?.x||0,v?.z||0)||1)),x=p.x+(v?.x||0)*lookAhead,z=p.z+(v?.z||0)*lookAhead;
@@ -100,11 +120,14 @@ export class WorldWaterLife {
    const coverage=e.fade*Math.min(1,Math.max(0,(VIEW_DISTANCE-distance)/FADE_DISTANCE));
    for(const m of [e.fish.mesh,...e.lilies.batches.map(b=>b.mesh)])if(m)m.material.opacity=coverage;
   }
+  this.routeDeadline=performance.now()+1.5;
+  try{for(const e of this.entries.values())e.model.advanceRoutes(this.routeDeadline);}
+  finally{this.routeDeadline=Infinity;}
  }
  visit(species,current,visited=new Set()){
   const p=this.shared.player.position;
   return this.sites.filter(s=>s.id!==current?.id&&(species==='scarlet-fish'?s.groups.length:s.plants.some(p=>p.bloom)))
    .sort((a,b)=>Number(visited.has(a.id))-Number(visited.has(b.id))||Math.hypot(a.x-p.x,a.z-p.z)-Math.hypot(b.x-p.x,b.z-p.z))[0]||current||null;
  }
- dispose(){for(const v of this.voices)v.handle?.stop();this.voices=[];this.pickGeometry.dispose();this.pickMaterial.dispose();for(const e of this.entries.values())this.remove(e);this.root.removeFromParent();}
+ dispose(){for(const e of this.warmEntries||[])this.remove(e);this.warmEntries=[];for(const v of this.voices)v.handle?.stop();this.voices=[];this.pickGeometry.dispose();this.pickMaterial.dispose();for(const e of this.entries.values())this.remove(e);this.root.removeFromParent();}
 }

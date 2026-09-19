@@ -26,7 +26,10 @@ export class Mirrors {
 			mesh.reflectorMaterial = mesh.material;
 			const reflect = mesh.onBeforeRender;
 			mesh.reflectorRender = function(renderer, scene, camera, ...rest) {
-				if (camera === shared.camera) reflect.call(this, renderer, scene, camera, ...rest);
+				if (camera === shared.camera) {
+     if(shared.planarReflections)shared.planarReflections.capture(this,reflect,renderer,scene,camera,...rest);
+     else reflect.call(this,renderer,scene,camera,...rest);
+    }
 			};
 			mesh.onBeforeRender = () => {};
 			mesh.material = this.fallback;

@@ -52,7 +52,7 @@ function bulbGeometry(size, phase) {
 }
 
 export class VegetationMeshes {
- constructor(scene, model, camera) {
+ constructor(scene, model, camera, defer=false) {
   this.scene = scene; this.model = model; this.camera = camera; this.root = new THREE.Group(); scene.add(this.root);
   this.stems = []; this.leaves = []; this.mirrors = []; this.picks = [];
   this.bark = material('#37313f'); this.stalk = material('#38313d');
@@ -61,16 +61,21 @@ export class VegetationMeshes {
   this.hangerMat = material('#4b414b');
   this.metal = material('#b4b6c7', {metalness:.93, roughness:.17, side:THREE.DoubleSide});
   this.frameMat = material('#a092a9', {metalness:.65, roughness:.35});
+  this.work=this.build();
+  if(!defer)while(!this.work.next().done){}
+ }
+ *build(){
+  const model=this.model;
   for (const plant of model.plants) {
    const group = new THREE.Group(); group.position.set(plant.x,plant.y||0,plant.z); group.scale.setScalar(plant.scale); group.rotation.y = plant.yaw;
    this.root.add(group); const rnd = new Random(`${model.seed}:${model.serial}:${plant.id}`);
    if(model.species==='veil-willow')group.scale.x*=rnd.range(.9,1.12);
-   if (model.species === 'bell-reed') this.reeds(group, plant); else this.willow(group, plant, rnd);
+   if (model.species === 'bell-reed') yield* this.reeds(group, plant); else yield* this.willow(group, plant, rnd);
   }
   this.visitor = addMesh(this.root, new THREE.RingGeometry(.24,.29,32), new THREE.MeshBasicMaterial({color:'#c5a06a',side:THREE.DoubleSide,transparent:true,opacity:.6,depthWrite:false}));
   this.visitor.rotation.x = -Math.PI/2; this.visitor.visible = false;
  }
- reeds(group, plant) {
+ *reeds(group, plant) {
   for (const spec of plant.stems) {
    const base = new THREE.Group(); base.rotation.y = spec.angle; base.position.set(Math.sin(spec.angle)*.1,0,Math.cos(spec.angle)*.1); group.add(base);
    const joints = []; let parent = base;
@@ -96,14 +101,14 @@ export class VegetationMeshes {
    }));
    bulb.position.y=-spec.size*1.18;
    shell.userData.stem = spec.id; shell.traverse(o=>{if(o.isMesh){o.userData.plant=plant.id;o.userData.part=spec.id;this.picks.push(o);}});
-   this.stems.push({plant,spec,joints,head,shell,inner,bulb});
+   this.stems.push({plant,spec,joints,head,shell,inner,bulb});yield;
   }
   for(let i=0;i<3;i++) {
    const leaf = addMesh(group,leafGeometry(plant.form==='young'?.65:1.05,.21),this.basalMat);
    leaf.rotation.set(Math.PI-.4, i*2.1, .35); leaf.position.y=.03;
   }
  }
- willow(group, plant, rnd) {
+ *willow(group, plant, rnd) {
   const lean = rnd.range(-.45,-.2), twist = rnd.range(-.3,.3);
   const trunk = [[0,0,0],[lean*.45,1.25,twist*.4],[lean,2.55,twist],[lean*.65,3.45,twist*.5]];
   for(let i=0;i<3;i++) tube(group,trunk[i],trunk[i+1],.34-i*.075,.265-i*.065,this.bark,6);
@@ -148,10 +153,10 @@ export class VegetationMeshes {
      this.ribbon(leaf,length*.47,.26,phase+j*.4,plant);
     }
    }
-   this.leaves.push({pivot:attachment,phase,plant,attachment:true});
+   this.leaves.push({pivot:attachment,phase,plant,attachment:true});yield;
   }
   for(const mirror of plant.mirrors) {
-   this.pendant(group,pendantAnchors[mirror.id],plant,mirror);
+   this.pendant(group,pendantAnchors[mirror.id],plant,mirror);yield;
   }
  }
  ribbon(parent,length,width,phase,plant) {
@@ -201,7 +206,10 @@ export class VegetationMeshes {
   for(const item of this.leaves) {
    item.pivot.rotation.z=Math.sin(time*.72+item.phase)*wind*(item.attachment?.12:.075);
    item.pivot.rotation.x=(item.attachment?0:.055)+Math.cos(time*.57+item.phase)*wind*.055;
-   if(item.geometry){
+   // World batches own a snapshot of these vertices; only their articulated
+   // transforms are uploaded afterward. Rebuilding the hidden source geometry
+   // cannot affect the batch (or any stem/pendant picking surface).
+   if(item.geometry&&!this.geometryBatched){
     const positions=item.geometry.attributes.position;
     for(let i=0;i<positions.count;i++){
      const t=-item.rest[i*3+1]/item.length,bend=t*t*item.length;

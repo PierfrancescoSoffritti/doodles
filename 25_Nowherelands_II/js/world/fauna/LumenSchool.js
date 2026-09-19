@@ -155,12 +155,12 @@ function travelSchool(group, environment, time, threat = null, chosen = null) {
 	const c2={x:to.x-dx*reach+dz*bend,z:to.z-dz*reach-dx*bend};
 	// Distant journeys retain the curve but need fewer terrain control points.
 	const count=group.coarse?Math.min(192,Math.max(32,Math.ceil((length+Math.abs(bend)*3)/72))):Math.max(32,Math.ceil((length+Math.abs(bend)*3)/18));
-	const launchSurface=environment.sample(from.x,from.z);
+	const launchSurface=environment.sample(from.x,from.z,true);
 	for (let i=0;i<=count;i++) {
 		const u=i/count,v=1-u, sweep=Math.sin(u*Math.PI*4)*Math.sin(u*Math.PI)*Math.min(120,length*0.14);
 		const x=v*v*v*from.x+3*v*v*u*c1.x+3*v*u*u*c2.x+u*u*u*to.x-dz*sweep;
 		const z=v*v*v*from.z+3*v*v*u*c1.z+3*v*u*u*c2.z+u*u*u*to.z+dx*sweep;
-		const surface=environment.sample(x,z), arc=Math.sin(u*Math.PI);
+		const surface=environment.sample(x,z,true), arc=Math.sin(u*Math.PI);
 		const localFloor=Math.max(surface.ground,surface.water);
 		const launchLift=Math.max(0,from.y-Math.max(launchSurface.ground,launchSurface.water)-35)*Math.exp(-horizontal(from,{x,z})/120);
 		const y=localFloor+8+arc*group.cruiseHeight+launchLift;

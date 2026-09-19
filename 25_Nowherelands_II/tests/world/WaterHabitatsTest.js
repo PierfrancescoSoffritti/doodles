@@ -200,3 +200,30 @@ test('a blip produces a visible escape within 200ms without an orientation snap'
  assert.ok(Math.hypot(f.x-x,f.z-z)>2,'fish visibly darts within the first 200ms');assert.ok(f.speed>10);
  assert.ok(f.escape.returnDuration>7,'regrouping remains relaxed');
 });
+
+test('incremental fish planning keeps cruising, starts at the current pose and preserves validated returns',()=>{
+ const site=waterSites(world,lakes,sample,'water-test').find(s=>s.groups.some(g=>g.count===1));
+ const m=new PoolLifeModel({...site,groups:[{...site.groups.find(g=>g.count===1),count:1}],plants:[]},'water-test',{canSwim:()=>true,deferStartle:true});
+ m.update(2);const f=m.fish[0];m.hear(site.x+f.group.x,site.z+f.group.z,200);
+ assert.ok(m.routeWork);assert.equal(f.escape,undefined);
+ for(let i=0;i<2000&&m.routeWork;i++){
+  m.update(m.time+1/60);const before={x:f.x,z:f.z};
+  const step=m.routeWork.next();if(step.done)m.routeWork=null;
+  if(f.escape&&f.escape.at===m.time){const at=m.swimPose(f,m.time);assert.ok(Math.hypot(at.x-before.x,at.z-before.z)<1e-8);}
+ }
+ assert.equal(m.routeWork,null);assert.ok(f.escape);
+ const b=f.escape;assert.ok(m.gentleReturn(b.back,b.returnDuration,.01));
+ m.hear(site.x+f.x,site.z+f.z,200);const second=m.routeWork;m.hear(site.x+f.x,site.z+f.z,200);assert.notEqual(m.routeWork,second);assert.equal(second.next().done,true);
+});
+
+test('deferred clearance retries preserve current-pose continuity instead of rejecting a partially sampled route',()=>{
+ const site=waterSites(world,lakes,sample,'water-test').find(s=>s.groups.length);let pending=2,queries=0;
+ const m=new PoolLifeModel({...site,groups:[{...site.groups[0],count:1}],plants:[]},'water-test',{deferStartle:true,canSwim:()=>{queries++;if(pending){pending--;return undefined;}return true;}});
+ m.update(2);const fish=m.fish[0];m.hear(site.x+fish.x,site.z+fish.z,200);
+ for(let i=0;i<2000&&m.routeWork;i++){
+  m.update(m.time+1/60);const before={x:fish.x,z:fish.z};
+  const step=m.routeWork.next();if(step.done)m.routeWork=null;
+  if(fish.escape?.at===m.time)assert.deepEqual(m.swimPose(fish,m.time),before);
+ }
+ assert.equal(pending,0);assert.ok(queries>2);assert.ok(fish.escape);assert.equal(m.routeWork,null);
+});

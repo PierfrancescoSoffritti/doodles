@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { FaunaModel } from './world/fauna/FaunaModel.js?v=stable-30-25';
-import { PebbleMeshes } from './world/fauna/PebbleMeshes.js?v=stable-30-25';
+import { FaunaModel } from './world/fauna/FaunaModel.js?v=streaming-60-30-19';
+import { PebbleMeshes } from './world/fauna/PebbleMeshes.js?v=streaming-60-30-19';
 import { createFogUniforms } from './world/FogGlsl.js';
 import { checkPebbleRendering, checkPebbleAppearance } from '../tests/PebbleRenderChecks.js?v=pebble-voice-4b';
 import { checkFaunaShaders } from '../tests/FaunaShaderChecks.js';

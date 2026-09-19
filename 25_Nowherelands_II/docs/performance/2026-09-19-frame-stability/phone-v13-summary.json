@@ -1,0 +1,423 @@
+{
+  "met": false,
+  "target": 30,
+  "runs": [
+    {
+      "kind": "scarlet-fish",
+      "frames": 2701,
+      "fps": 29.999744508695454,
+      "p99": 35,
+      "max": 41,
+      "over50": 0,
+      "oneSecondFPS": {
+        "minimum": 30,
+        "belowTolerance": 0,
+        "histogram": {
+          "30": 90
+        }
+      },
+      "elapsed": 90.05510000002384,
+      "simulationRate": 1.000128439884471,
+      "distance": 0,
+      "caveFrames": 0,
+      "playerFrames": 0,
+      "waypoints": 0,
+      "notes": 15,
+      "successfulNotes": 15,
+      "audioUnderruns": 0,
+      "workerHealthy": true,
+      "skin": 41.8,
+      "lostImages": 0,
+      "met": true
+    },
+    {
+      "kind": "veil-willow",
+      "frames": 901,
+      "fps": 29.998435007464582,
+      "p99": 34.900146484375,
+      "max": 37.5,
+      "over50": 0,
+      "oneSecondFPS": {
+        "minimum": 30,
+        "belowTolerance": 0,
+        "histogram": {
+          "30": 30
+        }
+      },
+      "elapsed": 30.0605,
+      "simulationRate": 1.0002051418527622,
+      "distance": 0,
+      "caveFrames": 0,
+      "playerFrames": 0,
+      "waypoints": 0,
+      "notes": 5,
+      "successfulNotes": 5,
+      "audioUnderruns": 0,
+      "workerHealthy": true,
+      "skin": 42,
+      "lostImages": 0,
+      "met": true
+    },
+    {
+      "kind": "light-lily",
+      "frames": 900,
+      "fps": 30.000600109660397,
+      "p99": 35,
+      "max": 38.10009765625,
+      "over50": 0,
+      "oneSecondFPS": {
+        "minimum": 30,
+        "belowTolerance": 0,
+        "histogram": {
+          "30": 30
+        }
+      },
+      "elapsed": 30.041,
+      "simulationRate": 0.9997447932269773,
+      "distance": 0,
+      "caveFrames": 0,
+      "playerFrames": 0,
+      "waypoints": 0,
+      "notes": 5,
+      "successfulNotes": 5,
+      "audioUnderruns": 0,
+      "workerHealthy": true,
+      "skin": 42.3,
+      "lostImages": 0,
+      "met": true
+    },
+    {
+      "kind": "bell-reed",
+      "frames": 901,
+      "fps": 30.000332967069557,
+      "p99": 35,
+      "max": 36.699951171875,
+      "over50": 0,
+      "oneSecondFPS": {
+        "minimum": 30,
+        "belowTolerance": 0,
+        "histogram": {
+          "30": 30
+        }
+      },
+      "elapsed": 30.058,
+      "simulationRate": 1.0002883314480324,
+      "distance": 0,
+      "caveFrames": 0,
+      "playerFrames": 0,
+      "waypoints": 0,
+      "notes": 5,
+      "successfulNotes": 5,
+      "audioUnderruns": 0,
+      "workerHealthy": true,
+      "skin": 42.4,
+      "lostImages": 0,
+      "met": true
+    },
+    {
+      "kind": "hopper",
+      "frames": 901,
+      "fps": 29.999533809746985,
+      "p99": 35.10009765625,
+      "max": 37.699951171875,
+      "over50": 0,
+      "oneSecondFPS": {
+        "minimum": 30,
+        "belowTolerance": 0,
+        "histogram": {
+          "30": 30
+        }
+      },
+      "elapsed": 30.07089999997616,
+      "simulationRate": 0.9998592215959214,
+      "distance": 0,
+      "caveFrames": 0,
+      "playerFrames": 0,
+      "waypoints": 0,
+      "notes": 5,
+      "successfulNotes": 5,
+      "audioUnderruns": 0,
+      "workerHealthy": true,
+      "skin": 42.6,
+      "lostImages": 0,
+      "met": true
+    },
+    {
+      "kind": "lumen",
+      "frames": 900,
+      "fps": 29.99990014681673,
+      "p99": 35.10009765625,
+      "max": 38.199951171875,
+      "over50": 0,
+      "oneSecondFPS": {
+        "minimum": 30,
+        "belowTolerance": 0,
+        "histogram": {
+          "30": 30
+        }
+      },
+      "elapsed": 30.04140000009537,
+      "simulationRate": 0.9997314816632935,
+      "distance": 0,
+      "caveFrames": 0,
+      "playerFrames": 0,
+      "waypoints": 0,
+      "notes": 5,
+      "successfulNotes": 5,
+      "audioUnderruns": 0,
+      "workerHealthy": true,
+      "skin": 42.8,
+      "lostImages": 0,
+      "met": true
+    },
+    {
+      "kind": "ray",
+      "frames": 900,
+      "fps": 29.999899902677733,
+      "p99": 35.10009765625,
+      "max": 61.800048828125,
+      "over50": 1,
+      "oneSecondFPS": {
+        "minimum": 30,
+        "belowTolerance": 0,
+        "histogram": {
+          "30": 30
+        }
+      },
+      "elapsed": 30.0385,
+      "simulationRate": 0.9998279985138151,
+      "distance": 0,
+      "caveFrames": 0,
+      "playerFrames": 0,
+      "waypoints": 0,
+      "notes": 5,
+      "successfulNotes": 5,
+      "audioUnderruns": 0,
+      "workerHealthy": true,
+      "skin": 43.3,
+      "lostImages": 0,
+      "met": false
+    },
+    {
+      "kind": "reed",
+      "frames": 900,
+      "fps": 29.999700198308567,
+      "p99": 34.400146484375,
+      "max": 35.5,
+      "over50": 0,
+      "oneSecondFPS": {
+        "minimum": 30,
+        "belowTolerance": 0,
+        "histogram": {
+          "30": 30
+        }
+      },
+      "elapsed": 30.0525,
+      "simulationRate": 1.0004713972777837,
+      "distance": 0,
+      "caveFrames": 0,
+      "playerFrames": 0,
+      "waypoints": 0,
+      "notes": 5,
+      "successfulNotes": 5,
+      "audioUnderruns": 0,
+      "workerHealthy": true,
+      "skin": 43.3,
+      "lostImages": 0,
+      "met": true
+    },
+    {
+      "kind": "bird",
+      "frames": 900,
+      "fps": 29.999699954172822,
+      "p99": 35.199951171875,
+      "max": 36.5,
+      "over50": 0,
+      "oneSecondFPS": {
+        "minimum": 30,
+        "belowTolerance": 0,
+        "histogram": {
+          "30": 30
+        }
+      },
+      "elapsed": 30.040799999952316,
+      "simulationRate": 1.0008610511949854,
+      "distance": 0,
+      "caveFrames": 0,
+      "playerFrames": 0,
+      "waypoints": 0,
+      "notes": 5,
+      "successfulNotes": 5,
+      "audioUnderruns": 0,
+      "workerHealthy": true,
+      "skin": 43.5,
+      "lostImages": 0,
+      "met": true
+    },
+    {
+      "kind": "mite",
+      "frames": 900,
+      "fps": 29.998200059171253,
+      "p99": 35.099853515625,
+      "max": 43.300048828125,
+      "over50": 0,
+      "oneSecondFPS": {
+        "minimum": 30,
+        "belowTolerance": 0,
+        "histogram": {
+          "30": 30
+        }
+      },
+      "elapsed": 30.032199999928473,
+      "simulationRate": 1.0000377372762823,
+      "distance": 0,
+      "caveFrames": 0,
+      "playerFrames": 0,
+      "waypoints": 0,
+      "notes": 5,
+      "successfulNotes": 5,
+      "audioUnderruns": 0,
+      "workerHealthy": true,
+      "skin": 43.8,
+      "lostImages": 0,
+      "met": true
+    },
+    {
+      "kind": "walk",
+      "frames": 14400,
+      "fps": 29.999949997031585,
+      "p99": 35,
+      "max": 61.89990234375,
+      "over50": 1,
+      "oneSecondFPS": {
+        "minimum": 30,
+        "belowTolerance": 0,
+        "histogram": {
+          "30": 480
+        }
+      },
+      "elapsed": 480.0137999999523,
+      "simulationRate": 0.999971250826142,
+      "distance": 71727.33680296496,
+      "caveFrames": 0,
+      "playerFrames": 0,
+      "waypoints": 0,
+      "notes": 80,
+      "successfulNotes": 80,
+      "audioUnderruns": 1,
+      "workerHealthy": true,
+      "skin": 44.7,
+      "lostImages": 0,
+      "met": false
+    },
+    {
+      "kind": "forest",
+      "frames": 3557,
+      "fps": 29.631616561820906,
+      "p99": 47.699951171875,
+      "max": 76.800048828125,
+      "over50": 30,
+      "oneSecondFPS": {
+        "minimum": 21,
+        "belowTolerance": 9,
+        "histogram": {
+          "21": 1,
+          "23": 1,
+          "24": 1,
+          "26": 2,
+          "27": 4,
+          "28": 3,
+          "29": 1,
+          "30": 103,
+          "31": 3,
+          "32": 1
+        }
+      },
+      "elapsed": 120.05639999997616,
+      "simulationRate": 0.9873137403191256,
+      "distance": 4370.47075424601,
+      "caveFrames": 0,
+      "playerFrames": 3556,
+      "waypoints": 0,
+      "notes": 20,
+      "successfulNotes": 20,
+      "audioUnderruns": 2,
+      "workerHealthy": true,
+      "skin": 44.8,
+      "lostImages": 0,
+      "met": false
+    },
+    {
+      "kind": "cave-dry",
+      "frames": 3501,
+      "fps": 29.178647330916366,
+      "p99": 50.10009765625,
+      "max": 91.39990234375,
+      "over50": 36,
+      "oneSecondFPS": {
+        "minimum": 23,
+        "belowTolerance": 18,
+        "histogram": {
+          "23": 3,
+          "25": 1,
+          "26": 6,
+          "27": 8,
+          "28": 8,
+          "29": 10,
+          "30": 82,
+          "31": 2
+        }
+      },
+      "elapsed": 120.01820000004768,
+      "simulationRate": 0.9731857334958145,
+      "distance": 4826.3395483727945,
+      "caveFrames": 3503,
+      "playerFrames": 3504,
+      "waypoints": 160,
+      "notes": 19,
+      "successfulNotes": 19,
+      "audioUnderruns": 2,
+      "workerHealthy": true,
+      "skin": 44.4,
+      "lostImages": 0,
+      "met": false
+    },
+    {
+      "kind": "cave-wet",
+      "frames": 3559,
+      "fps": 29.66031068737916,
+      "p99": 46.300048828125,
+      "max": 94.699951171875,
+      "over50": 31,
+      "oneSecondFPS": {
+        "minimum": 23,
+        "belowTolerance": 8,
+        "histogram": {
+          "23": 1,
+          "25": 3,
+          "26": 1,
+          "27": 3,
+          "28": 2,
+          "29": 5,
+          "30": 102,
+          "31": 2,
+          "32": 1
+        }
+      },
+      "elapsed": 120.02680000007153,
+      "simulationRate": 0.9886680863481158,
+      "distance": 4908.4443580063735,
+      "caveFrames": 3560,
+      "playerFrames": 3560,
+      "waypoints": 182,
+      "notes": 19,
+      "successfulNotes": 19,
+      "audioUnderruns": 0,
+      "workerHealthy": true,
+      "skin": 44.5,
+      "lostImages": 0,
+      "met": false
+    }
+  ],
+  "errors": []
+}

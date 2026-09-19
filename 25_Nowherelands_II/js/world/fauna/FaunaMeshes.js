@@ -1,10 +1,10 @@
 import {hypot2,hypot3} from '../../core/NumericDistance.js?v=stable-30-6';
 import { FaunaViews } from './FaunaViews.js?v=stable-30-3';
-import {replyOutline,writeReplyEcho} from './ReplyOutline.js?v=outline-2';
-import { PebbleMeshes } from './PebbleMeshes.js?v=stable-30-25';
+import {replyOutline,writeReplyEcho} from './ReplyOutline.js?v=streaming-60-30-19';
+import { PebbleMeshes } from './PebbleMeshes.js?v=streaming-60-30-19';
 import { lumenAppearance } from './LumenAppearance.js?v=stable-30-3';
 import * as THREE from 'three';
-import { SPECIES } from './FaunaModel.js?v=stable-30-25';
+import { SPECIES } from './FaunaModel.js?v=streaming-60-30-19';
 import { fogGlsl } from '../FogGlsl.js';
 import { faunaGeometry } from './FaunaGeometry.js';
 import { faunaDeformation } from './FaunaDeformation.js';
@@ -157,6 +157,12 @@ export class FaunaMeshes {
 		for(const bucket of buckets)bucket.length=0;
 		const camera = this.shared.camera;
 		if(camera&&(this.cullLumen||this.pebbles.cull))this.views.update(camera);
+		// Surface pools are hidden in caves. Keep their simulation running, but
+		// defer appearance calculations and instance uploads until the exit frame.
+		if(!aboveGround){
+			counts.hopper=this.pebbles.update(model,alpha,camera?this.views:null);
+			this.root.userData.population=counts;return;
+		}
 		const pixels = (this.shared.renderer?.domElement.height || 900) / (2 * Math.tan((camera?.fov || 66) * Math.PI / 360));
 		for (const c of model.creatures) {
 			if (c.kind !== 'lumen') continue;

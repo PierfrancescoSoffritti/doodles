@@ -9,7 +9,7 @@ export class PlantSurvey {
   // Pick the clearest low bank around the specimen rather than landing inside the crown.
   const views=Array.from({length:12},(_,i)=>{const a=i*Math.PI/6,x=site.x+Math.sin(a)*distance,z=site.z+Math.cos(a)*distance;return {x,z,y:Math.max(s.heightmap.height(x,z),s.heightmap.waterAt(x,z))+11};});
   views.sort((a,b)=>Math.abs(a.y-site.y-11)-Math.abs(b.y-site.y-11));
-  const at=views[0];p.position.set(at.x,at.y,at.z);s.plants.stream(true);this.guide();this.update();return site;
+  const at=views[0];p.position.set(at.x,at.y,at.z);s.plants.stream();this.guide();this.update();return site;
  }
  guide(){
   if(!this.tracking||!this.group||this.shared.player.locked)return;

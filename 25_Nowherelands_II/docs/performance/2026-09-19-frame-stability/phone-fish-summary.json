@@ -1,0 +1,24 @@
+{
+  "met": true,
+  "target": 30,
+  "runs": [
+    {
+      "kind": "scarlet-fish",
+      "frames": 3600,
+      "fps": 30.000025024434937,
+      "p99": 34.900146484375,
+      "max": 41.39990234375,
+      "over50": 0,
+      "elapsed": 120.0575,
+      "simulationRate": 1.0000763523033724,
+      "distance": 0,
+      "notes": 20,
+      "successfulNotes": 20,
+      "audioUnderruns": 0,
+      "skin": 42.1,
+      "lostImages": 0,
+      "met": true
+    }
+  ],
+  "errors": []
+}

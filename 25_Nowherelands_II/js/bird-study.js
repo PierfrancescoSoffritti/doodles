@@ -3,7 +3,7 @@ import {BirdEncounter} from './world/fauna/BirdEncounter.js?v=pebble-voice-4b';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { BirdJourney, BIRD_GROUND, BIRD_JOURNEY_TIME } from './world/fauna/BirdJourney.js?v=stable-30-3';
-import { BirdMesh } from './world/fauna/BirdMesh.js?v=outline-2';
+import { BirdMesh } from './world/fauna/BirdMesh.js?v=streaming-60-30-19';
 
 const $=id=>document.getElementById(id);
 const reportError=message=>{ $('error').hidden=false; $('error').textContent=message; document.body.dataset.status='fail'; };

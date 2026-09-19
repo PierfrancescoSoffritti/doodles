@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { lilyPad } from '../atelier/WaterLilyGeometry.js';
 import { lakeWaveGlsl } from './WaterShader.js';
-import { LILY_PALETTES } from './WaterHabitats.js?v=pool-life-6';
+import { LILY_PALETTES } from './WaterHabitats.js?v=streaming-60-30-19';
 import { noiseGlsl } from './TerrainMaterial.js?v=player-notes-13';
 
 // Three draws per patch: leaves, ivory cups/petals, warm cores. No point lights,

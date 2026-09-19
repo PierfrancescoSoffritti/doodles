@@ -5,8 +5,8 @@ export class BufferedPresentation {
   try { instance=new BufferedPresentation(options);await instance.ready;return instance; }
   catch(error) { instance?.dispose();console.warn('Separate presentation unavailable',error);return null; }
  }
- constructor({source,produce,present,onFrame,depth=3}) {
-  this.source=source;this.produce=produce;this.present=present;this.onFrame=onFrame;this.depth=depth;
+ constructor({source,produce,present,onFrame,onIdle,depth=3}) {
+  this.source=source;this.produce=produce;this.present=present;this.onFrame=onFrame;this.onIdle=onIdle;this.depth=depth;
   this.lastResponse=performance.now();this.visibility=()=>{if(document.hidden)this.suspend();};document.addEventListener("visibilitychange",this.visibility);
   this.epoch=0;this.nextId=0;this.active=false;this.failed=false;this.disposed=false;this.busy=false;this.credits=0;
   this.measurement=null;this.originalOpacity=source.style.opacity;this.pending=new Map();this.nextRequest=0;
@@ -76,7 +76,11 @@ export class BufferedPresentation {
     await new Promise(resolve=>setTimeout(resolve,0));
    }
   }catch(error){this.fail(error);}
-  finally{this.busy=false;}
+  finally{
+   this.busy=false;
+   // Auxiliary GPU work can run only after all requested images have been sent.
+   if(this.active&&!this.credits){try{this.onIdle?.();}catch(error){this.fail(error);}}
+  }
  }
  healthy() {
   if(this.active&&!this.probing&&performance.now()-this.lastResponse>1000) {

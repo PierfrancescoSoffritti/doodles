@@ -2,7 +2,7 @@ import { hypot2, hypot3 } from '../../core/NumericDistance.js?v=stable-30-6';
 
 // Cave colonies own a floor sampler. A two-dimensional surface height cannot
 // distinguish a gallery from the mountain directly above it.
-export function pebbleCaveSampler(hm, surfaceSample, cave, anchorY) {
+export function pebbleCaveSampler(hm, surfaceSample, cave, anchorY, {cacheQueries=true}={}) {
 	const cache = new Map(), keys = [], entrances = cave.entrances || [cave.entrance];
 	let nextKey=0;
 	const floor = (x, z) => {
@@ -38,7 +38,7 @@ export function pebbleCaveSampler(hm, surfaceSample, cave, anchorY) {
 		}
 		return value;
 	};
-	return (x, z) => {
+	const sample = (x, z) => {
 		// Smooth support on a one-unit grid, finer than the 3.2-unit cave mesh.
 		// Cave interval unions are cached, so fast feet do not repeat them each substep.
 		const ix = Math.floor(x), iz = Math.floor(z), u = x - ix, v = z - iz;
@@ -59,6 +59,18 @@ export function pebbleCaveSampler(hm, surfaceSample, cave, anchorY) {
 			return { ...a, ground, water, slope, clearance, cave: true, daylight: Math.exp(-entranceDistance * 0.024), forest: 0, wet: ground - water < 1.5 ? 0.65 : 0.12, hardness: 0.95, foam: 0, roof: false, coast: 0 };
 		}
 		return { ...a, ground, water, slope, clearance };
+	};
+	if(!cacheQueries)return sample;
+	// Foot contacts and body support repeat exact positions across the 120 Hz
+	// substeps. Cache the complete immutable query, not a coarser approximation.
+	// Return copies so callers cannot change retained support data.
+	let queries=[],mesh=hm.caveFloorSurface;
+	return (x,z)=>{
+		if(mesh!==hm.caveFloorSurface){queries=[];mesh=hm.caveFloorSurface;}
+		const slot=(Math.imul((x*1024)|0,73856093)^Math.imul((z*1024)|0,19349663))&511;
+		let entry=queries[slot];
+		if(!entry||!Object.is(entry.x,x)||!Object.is(entry.z,z))queries[slot]=entry={x,z,value:sample(x,z)};
+		return {...entry.value};
 	};
 }
 

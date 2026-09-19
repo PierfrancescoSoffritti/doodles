@@ -1,5 +1,5 @@
 import { Random } from '../../core/Random.js';
-import { FaunaModel } from './FaunaModel.js?v=stable-30-25';
+import { FaunaModel } from './FaunaModel.js?v=streaming-60-30-19';
 
 export const LUMEN_STEP = 1 / 30;
 export const PRESENTATION_OWNED = new Set(['renderLod','renderPosition','radiance','replyGlow','replyProgress','replyCharged','replyStart','replyEnd']);
@@ -7,7 +7,7 @@ export const PRESENTATION_OWNED = new Set(['renderLod','renderPosition','radianc
 // A checkpoint contains the complete cyclic simulation graph, including RNGs.
 // Renderer and audio objects never enter it. Structured clone retains aliases.
 export function lumenCheckpoint(model) {
- const state = Object.fromEntries(Object.entries(model).filter(([key,value]) => key !== 'environment' && key !== 'externalLumen' && typeof value !== 'function'));
+ const state = Object.fromEntries(Object.entries(model).filter(([key,value]) => key !== 'environment' && key !== 'externalLumen' && key !== 'pebbleSteering' && typeof value !== 'function'));
  state.groups = new Map([...model.groups].filter(([,group]) => group.kind === 'lumen'));
  state.creatures = model.creatures.filter(c => c.kind === 'lumen');
  return state;

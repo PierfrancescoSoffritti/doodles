@@ -6,7 +6,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { mountAtelierNavigation } from './atelier/AtelierCatalog.js?v=water-2';
 import { VegetationStudy } from './atelier/VegetationStudy.js';
-import { VegetationMeshes } from './atelier/VegetationMeshes.js';
+import { VegetationMeshes } from './atelier/VegetationMeshes.js?v=streaming-60-30-19';
 import { VegetationAudio } from './atelier/VegetationAudio.js';
 import { Random } from './core/Random.js';
 

@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { CaveField } from '../../js/world/caves/CaveField.js';
 import { pebbleCaveSampler, pebbleHabitatSites } from '../../js/world/fauna/PebbleHabitats.js?v=stable-30-12';
-import { FaunaModel } from '../../js/world/fauna/FaunaModel.js?v=stable-30-25';
+import { FaunaModel } from './PebbleTestModel.js';
+import {PebbleSteeringScheduler} from '../../js/world/fauna/PebbleSteeringScheduler.js';
 
 const surface = () => ({ ground: 100, water: -4, slope: 0.1, hardness: 0.8, forest: 0.9, wet: 0.95, roof: false });
 function fixture(wet = false, height = 25) {
@@ -33,6 +34,24 @@ test('submerged cave floors and solid passage walls do not become pebble habitat
 	const { sample } = fixture(true), model = new FaunaModel('wet-stones', { sample: surface });
 	assert.equal(model.addGroup('wet', 'hopper', 90, 0, 12, { sample }), null);
 	const dry = fixture().sample; assert.ok(!Number.isFinite(dry(100, 80).ground));
+});
+
+test('expensive cave searches can span frames while escapes remain prompt and collision-safe',()=>{
+ const {sample}=fixture();let time=0;
+ const slowSample=(x,z)=>{time+=.01;return sample(x,z);};
+ const model=new FaunaModel('cave-stones',{sample:surface});model.pebbleStepHz=60;
+ model.pebbleSteering=new PebbleSteeringScheduler({budgetMs:1,now:()=>time});
+ const group=model.addGroup('cave','hopper',90,0,12,{sample:slowSample}),c=group.members[0],origin={...c.pos};
+ model.listener={x:c.pos.x+4,y:c.ground+11,z:c.pos.z};
+ let pending=0,firstMove=Infinity,moved=0;
+ for(let i=0;i<1200;i++){
+  model.step(1/30);if(model.pebbleSteering.jobs.size)pending++;
+  if(Math.hypot(c.pos.x-origin.x,c.pos.z-origin.z)>.2)firstMove=Math.min(firstMove,i/30);
+  for(const o of group.members){const s=sample(o.pos.x,o.pos.z);assert.ok(s.cave&&s.clearance>3.5);assert.ok(Math.abs(o.ground-s.ground)<.01);if(o.speed>10)moved++;}
+ }
+ assert.ok(pending>30,'exercise work that actually spans frames');
+ assert.ok(firstMove<1,'physical reaction must remain prompt');assert.ok(moved>100);
+ assert.ok(group.members.some(o=>o.pebble.reunited),'deferred searches must still make progress through reunion');
 });
 
 test('habitat sites explicitly include cave mouths, galleries and elevated lake banks', () => {

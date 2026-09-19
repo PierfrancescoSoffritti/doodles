@@ -1,0 +1,102 @@
+{
+  "withinTolerance": true,
+  "met": true,
+  "target": 60,
+  "runs": [
+    {
+      "kind": "forest",
+      "frames": 7189,
+      "fps": 59.90963137506079,
+      "p99": 21.200000762939453,
+      "max": 36.19999980926514,
+      "over50": 0,
+      "oneSecondFPS": {
+        "minimum": 59,
+        "belowTolerance": 0,
+        "histogram": {
+          "59": 12,
+          "60": 107,
+          "61": 1
+        }
+      },
+      "elapsed": 120.00280000019073,
+      "simulationRate": 0.9999766672094713,
+      "distance": 3345.764156794303,
+      "caveFrames": 0,
+      "playerFrames": 7194,
+      "waypoints": 0,
+      "notes": 20,
+      "successfulNotes": 20,
+      "audioUnderruns": 0,
+      "workerHealthy": true,
+      "lostImages": 0,
+      "met": true,
+      "maxConsecutiveSlow": 0,
+      "withinTolerance": true
+    },
+    {
+      "kind": "cave-dry",
+      "frames": 7190,
+      "fps": 59.916017576857186,
+      "p99": 22.5,
+      "max": 35.10000038146973,
+      "over50": 0,
+      "oneSecondFPS": {
+        "minimum": 58,
+        "belowTolerance": 0,
+        "histogram": {
+          "58": 1,
+          "59": 12,
+          "60": 104,
+          "61": 3
+        }
+      },
+      "elapsed": 120.00380000019074,
+      "simulationRate": 0.9999683343344332,
+      "distance": 4944.545594115899,
+      "caveFrames": 7193,
+      "playerFrames": 7194,
+      "waypoints": 172,
+      "notes": 20,
+      "successfulNotes": 20,
+      "audioUnderruns": 0,
+      "workerHealthy": true,
+      "lostImages": 0,
+      "met": true,
+      "maxConsecutiveSlow": 0,
+      "withinTolerance": true
+    },
+    {
+      "kind": "cave-wet",
+      "frames": 7190,
+      "fps": 59.90807984198454,
+      "p99": 22.5,
+      "max": 35.39999961853027,
+      "over50": 0,
+      "oneSecondFPS": {
+        "minimum": 59,
+        "belowTolerance": 0,
+        "histogram": {
+          "59": 14,
+          "60": 103,
+          "61": 3
+        }
+      },
+      "elapsed": 120.00539999961853,
+      "simulationRate": 1.0002327673071638,
+      "distance": 4974.61584524434,
+      "caveFrames": 7195,
+      "playerFrames": 7195,
+      "waypoints": 158,
+      "notes": 19,
+      "successfulNotes": 19,
+      "audioUnderruns": 0,
+      "workerHealthy": true,
+      "lostImages": 0,
+      "met": true,
+      "maxConsecutiveSlow": 0,
+      "withinTolerance": true
+    }
+  ],
+  "errors": []
+}

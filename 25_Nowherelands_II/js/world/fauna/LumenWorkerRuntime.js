@@ -1,6 +1,6 @@
 import { packLumenFrame, encodeCheckpoint } from './LumenTransfer.js?v=stable-30-20';
 import { Heightmap } from '../Heightmap.js?v=stable-30-6';
-import { lumenCheckpoint, restoreLumenModel, lumenAvoid, advanceLumen, LUMEN_STEP } from './LumenWorkerState.js?v=stable-30-25';
+import { lumenCheckpoint, restoreLumenModel, lumenAvoid, advanceLumen, LUMEN_STEP } from './LumenWorkerState.js?v=streaming-60-30-19';
 export function createLumenRuntime(heightmap, send) {
 let hm=heightmap,model,obstacles=[],events=[],checkpointAt=0,checkpointBuffer=null;
 const sample=(x,z,clearanceOnly=false)=>{

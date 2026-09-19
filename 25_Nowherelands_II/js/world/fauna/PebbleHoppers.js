@@ -136,9 +136,15 @@ function clearOfStones(c, p) {
 // Navigation only looks a few body lengths ahead. It never searches the world
 // for a complete path: long refuge/reunion targets are intentions, not routes.
 function routeDistance(c, model, p, from = c.pos) {
+ const work=routeDistanceSteps(c,model,p,from);
+ for(;;){const step=work.next();if(step.done)return step.value;}
+}
+
+function* routeDistanceSteps(c, model, p, from = c.pos) {
  const length = flatDistance(from, p), n = Math.ceil(length / (0.7 * c.size));
  let ground = c.ground, reached=0;
  for (let i = 0; i <= n; i++) {
+  yield;
   const u=i===0 ? Math.min(1,.1/Math.max(length,.001)) : i/n;
   const x = mix(from.x, p.x, u), z = mix(from.z, p.z, u);
   const s = pebbleGround(model, x, z, c.size, ground);
@@ -180,6 +186,19 @@ function* caveShelfExitSteps(c, model) {
 }
 
 function steering(c, model, t) {
+ const b=c.pebble;
+ if(t<b.steerAt && b.heading!==undefined)return b.heading;
+ if(model.pebbleSteering&&c.group.sample){
+  model.pebbleSteering.request(c,model,t,steeringSteps);
+  // Keep the last intention while searching. Every actual footstep still
+  // validates its complete footprint and intervening path synchronously.
+  return b.heading ?? Math.atan2(b.refuge.z-c.pos.z,b.refuge.x-c.pos.x);
+ }
+ const work=steeringSteps(c,model,t);
+ for(;;){const step=work.next();if(step.done)return step.value;}
+}
+
+function* steeringSteps(c, model, t) {
  const b=c.pebble, goal=b.refuge, direct=Math.atan2(goal.z-c.pos.z,goal.x-c.pos.x);
  if(t<b.steerAt && b.heading!==undefined)return b.heading;
  b.steerAt=t+.18;
@@ -191,7 +210,12 @@ function steering(c, model, t) {
  for(const a of directions) {
   if(t<b.blockedUntil && Math.abs(angleDelta(a,b.blockedHeading))<.3)continue;
   const offset=angleDelta(a,direct),p={x:c.pos.x+Math.cos(a)*reach,z:c.pos.z+Math.sin(a)*reach};
-  const free=routeDistance(c,model,p);
+  // Once a completely clear direction exists, a partial route cannot win.
+  // Reject headings whose best possible score cannot beat that direction
+  // before probing every footprint along them. This preserves tie ordering.
+  const maximum=b.avoiding ? Math.cos(angleDelta(a,b.heading ?? direct))*2+Math.cos(offset)*.2 : Math.cos(offset)*2-Math.abs(angleDelta(a,b.heading ?? -c.yaw))*.35;
+  if(bestFull&&maximum<=score)continue;
+  const free=yield* routeDistanceSteps(c,model,p);
   if(c.group.sample && !b.returning && a===direct) {
    if(free<reach-.001)b.avoiding=true;
    else if(Math.abs(angleDelta(direct,b.heading ?? direct))<.7)b.avoiding=false;
@@ -485,7 +509,7 @@ export function updatePebble(c, model, dt) {
 	const previousStand = c.pebble.stand;
  const previousRunCycle = c.pebble.runCycle || 0;
 	let previousFeet = c.feet?.map(f => ({ ...f.pos }));
-	const steps = Math.max(1, Math.ceil(dt * 120)), step = dt / steps;
+	const steps = Math.max(1, Math.ceil(dt * (model.pebbleStepHz ?? 120))), step = dt / steps;
 	for (let i = 0; i < steps; i++) {
 		advancePebble(c, model, step, model.time - dt + (i + 1) * step);
 		if (!previousFeet && c.feet) previousFeet = c.feet.map(f => ({ ...f.prev }));

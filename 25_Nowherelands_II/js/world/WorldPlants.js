@@ -1,10 +1,11 @@
+import { warmStreamedMaterials } from '../fx/StreamedMaterialWarmup.js?v=streaming-60-30-19';
 import * as THREE from 'three';
 import { VegetationStudy, reedVoice } from '../atelier/VegetationStudy.js?v=reed-chorus-1';
-import { VegetationMeshes } from '../atelier/VegetationMeshes.js';
-import { PlantMeshBatch } from './PlantMeshBatch.js?v=gpu-parts-1';
+import { VegetationMeshes } from '../atelier/VegetationMeshes.js?v=streaming-60-30-19';
+import { PlantMeshBatch } from './PlantMeshBatch.js?v=streaming-60-30-19';
 import { plantSites } from './PlantHabitats.js?v=lowland-plants-1';
 import { playerNoteRadius } from './RippleWave.js';
-import { replyOutline } from './fauna/ReplyOutline.js?v=pendant-feedback-1';
+import { replyOutline } from './fauna/ReplyOutline.js?v=streaming-60-30-19';
 import { replyHighlight } from './fauna/ReplyHighlight.js';
 import { bus, Events } from '../core/EventBus.js';
 
@@ -13,7 +14,7 @@ export const PLANT_RANGE={fade:380,hide:520,load:600,retire:700,animate:180};
 export class WorldPlants {
  constructor(scene,hm,shared,lakes,seed,{small=false}={}) {
   this.shared=shared;this.hm=hm;this.seed=seed;this.small=small;this.root=new THREE.Group();this.root.name='Bell reeds and veil willows';scene.add(this.root);
-  this.entries=new Map();this.time=0;this.streamAt=0;this.voices=[];this.reflecting=new Set();this.buildQueue=[];
+  this.entries=new Map();this.time=0;this.streamAt=0;this.voices=[];this.reflecting=new Set();this.buildQueue=[];this.retiredEntries=[];
   const sample=(x,z)=>{
    const ground=hm.sample(x,z),water=hm._water,slope=hm._slope,foam=hm._foam||0,hab={...hm.habitat(x,z)};
    return {ground,water,slope,foam,...hab,roof:hm.caves?.hasOpening(x,z)||hm.caves?.surfaceDensity(x,ground,z)>-2};
@@ -21,23 +22,51 @@ export class WorldPlants {
   this.sites=plantSites(shared.world,lakes,sample,seed);
  }
  blocked(site){return this.shared.colliders.some(c=>c!==this.entries.get(site.id)?.collider&&Math.hypot(site.x-c.position.x,site.z-c.position.z)<(c.radius||c.r||0)+(site.species==='veil-willow'?8:3)&&Math.abs(site.y-c.position.y)<Math.max(30,(c.radius||c.r||0)*2));}
+ async prewarm(){
+  this.warmEntries=[];
+  for(const species of PLANT_SPECIES){
+   const site=this.sites.find(s=>s.species===species);if(!site)continue;
+   const entry=this.add({...site,id:`warm-plant:${species}`,pendants:true});
+   this.entries.delete(entry.site.id);entry.root.removeFromParent();
+   if(entry.collider){const i=this.shared.colliders.indexOf(entry.collider);if(i>=0)this.shared.colliders.splice(i,1);}
+   this.warmEntries.push(entry);
+  }
+  await warmStreamedMaterials(this.shared,this.warmEntries.map(e=>e.root));
+ }
  add(site){
+  const work=this.buildEntry(site);let step;do{step=work.next();}while(!step.done);return step.value;
+ }
+ *buildEntry(site){
   const model=new VegetationStudy({species:site.species,form:site.form,seed:`${this.seed}:${site.id}`,pendants:site.pendants});
   for(const [i,companion] of (site.companions||[]).entries()){
    const plant=new VegetationStudy({species:'bell-reed',form:companion.form,seed:`${this.seed}:${site.id}:companion:${i}`}).plants[0];
    plant.id=model.plants.length;plant.x=(companion.x-site.x)/site.scale;plant.z=(companion.z-site.z)/site.scale;plant.y=(companion.y-site.y)/site.scale;plant.scale*=companion.scale/site.scale;model.plants.push(plant);
   }
-  const root=new THREE.Group();root.position.set(site.x,site.y,site.z);root.scale.setScalar(site.scale);this.root.add(root);
-  const rig=new VegetationMeshes(root,model,this.shared.camera);rig.update(this.shared.camera);
+  const root=new THREE.Group();root.position.set(site.x,site.y,site.z);root.scale.setScalar(site.scale);
+  const rig=new VegetationMeshes(root,model,this.shared.camera,true);let batch,complete=false;
+  try{
+  yield* rig.work;rig.update(this.shared.camera);yield;
   // Match the world's existing ambient lift: shaded foliage remains readable at night.
   for(const [material,intensity] of [[rig.leafMat,.18],[rig.bark,.1],[rig.stalk,.08],[rig.basalMat,.12]]){material.emissive.copy(material.color);material.emissiveIntensity=intensity;}
   for(const {shell} of rig.stems){const material=shell.children[0].material;material.emissive.copy(material.color);material.emissiveIntensity=.1;}
-  const batch=new PlantMeshBatch(rig,root);
+  batch=new PlantMeshBatch(rig,root,true);yield* batch.work;
   // The explicit animation update maintains source transforms. Do not traverse
   // hundreds of hidden source parts again during each scene/reflection render.
   rig.root.updateMatrixWorld=()=>{};
+  // Batched reeds have no remaining visible source meshes. Stop renderer
+  // traversal at the rig root instead of visiting every hidden stem and joint
+  // again for the main view, depth copy, and each reflection. Picking still
+  // uses the original husks and the explicit animation update keeps them live.
+  if(!rig.mirrors.length)rig.root.visible=false;
   const entry={site,root,model,rig,batch,nextUpdate:0};
   batch.range.value.set(PLANT_RANGE.fade,PLANT_RANGE.hide);
+  for(const mirror of rig.mirrors){
+   const render=mirror.render;
+   mirror.render=(renderer,scene,camera,...rest)=>{
+    if(this.shared.planarReflections)this.shared.planarReflections.capture(mirror.reflector,render,renderer,scene,camera,...rest);
+    else render(renderer,scene,camera,...rest);
+   };
+  }
   entry.pendants=rig.mirrors.map(mirror=>{
    // A small volume is easier to aim at than a thin, swaying mirror plane.
    const hitbox=new THREE.Mesh(new THREE.SphereGeometry(.37,10,8),new THREE.MeshBasicMaterial());hitbox.visible=false;mirror.turn.add(hitbox);
@@ -63,26 +92,49 @@ export class WorldPlants {
   if(site.species==='veil-willow'){
    entry.collider={position:new THREE.Vector3(site.x,site.y+12,site.z),radius:site.scale*.34};this.shared.colliders.push(entry.collider);
   }
-  this.entries.set(site.id,entry);return entry;
+  this.root.add(root);this.entries.set(site.id,entry);complete=true;return entry;
+  }finally{if(!complete){batch?.dispose();rig.dispose();root.removeFromParent();}}
  }
  remove(entry){
   for(const item of entry.pendants)item.reply.dispose();
-  entry.batch.dispose();entry.rig.dispose();entry.root.removeFromParent();this.entries.delete(entry.site.id);
+  entry.batch.dispose();entry.rig.dispose();entry.root.removeFromParent();if(this.entries.get(entry.site.id)===entry)this.entries.delete(entry.site.id);
   if(entry.collider){const i=this.shared.colliders.indexOf(entry.collider);if(i>=0)this.shared.colliders.splice(i,1);}
+ }
+ retire(entry){
+  // Leave the view and picking immediately; release the many source buffers
+  // over subsequent frames instead of destroying a whole bank in one frame.
+  entry.root.removeFromParent();this.entries.delete(entry.site.id);
+  if(entry.collider){const i=this.shared.colliders.indexOf(entry.collider);if(i>=0)this.shared.colliders.splice(i,1);}
+  this.retiredEntries.push(entry);
+ }
+ disposeRetired(){
+  const deadline=performance.now()+1;
+  while(this.retiredEntries.length){this.remove(this.retiredEntries.shift());if(performance.now()>=deadline)break;}
  }
  stream(force=false){
   const p=this.shared.player.position,distance=s=>Math.hypot(s.x-p.x,s.z-p.z);
   // Keep every site in the visible neighbourhood. No nearest-N substitutions.
-  for(const entry of this.entries.values())if(distance(entry.site)>PLANT_RANGE.retire)this.remove(entry);
+  for(const entry of this.entries.values())if(distance(entry.site)>PLANT_RANGE.retire){if(force)this.remove(entry);else this.retire(entry);}
   this.buildQueue=this.sites.filter(s=>distance(s)<PLANT_RANGE.load&&!this.entries.has(s.id)&&!this.blocked(s))
-   .sort((a,b)=>distance(a)-distance(b));
-  if(force){while(this.buildQueue.length)this.buildNext();}else this.buildNext();
+   .sort((a,b)=>Number(b===this.focus)-Number(a===this.focus)||distance(a)-distance(b));
+  if(force){
+   this.pendingBuild?.work.return();this.pendingBuild=null;
+   for(const site of this.buildQueue)this.add(site);this.buildQueue=[];
+  }else this.buildNext();
  }
  buildNext(){
-  const site=this.buildQueue.shift();if(!site||this.entries.has(site.id))return;
-  const p=this.shared.player.position;if(Math.hypot(site.x-p.x,site.z-p.z)>=PLANT_RANGE.load)return;
-  this.add(site);
+  const p=this.shared.player.position;
+  if(this.pendingBuild&&Math.hypot(this.pendingBuild.site.x-p.x,this.pendingBuild.site.z-p.z)>=PLANT_RANGE.load){this.pendingBuild.work.return();this.pendingBuild=null;}
+  if(!this.pendingBuild){
+   let site;
+   while(this.buildQueue.length){const next=this.buildQueue.shift();if(!this.entries.has(next.id)&&Math.hypot(next.x-p.x,next.z-p.z)<PLANT_RANGE.load){site=next;break;}}
+   if(!site)return;
+   this.pendingBuild={site,work:this.buildEntry(site)};
+  }
+  const deadline=performance.now()+1;
+  do{if(this.pendingBuild.work.next().done){this.pendingBuild=null;break;}}while(performance.now()<deadline);
  }
+
  hearNote(note){
   if(note.layer!=='player-note'||!note.position||!this.root.visible||(this.shared.caveAmount||0)>.4)return;
   const radius=note.radius??playerNoteRadius(note.velocity),charge=Math.max(0,Math.min(1,((note.velocity??.35)-.35)/.6));
@@ -128,8 +180,9 @@ export class WorldPlants {
   bus.emit(Events.RIPPLE,{x:entry.site.x,z:entry.site.z,size:2+Math.max(0,Math.min(1,charge))*2,hue:.95});
  }
  update(dt){
+  this.disposeRetired();
   this.time+=dt;this.root.visible=this.shared.surfaceStreaming!==false&&(this.shared.caveAmount||0)<.8;if(!this.root.visible)return;
-  if(this.time>=this.streamAt){this.streamAt=this.time+.35;this.stream();}else if(this.buildQueue.length)this.buildNext();
+  if(this.time>=this.streamAt){this.streamAt=this.time+.35;this.stream();}else if(this.buildQueue.length||this.pendingBuild)this.buildNext();
   const camera=this.shared.camera,p=this.shared.player.position;
   for(const entry of this.entries.values()){
    const distance=Math.hypot(entry.site.x-p.x,entry.site.z-p.z);entry.distance=distance;entry.root.visible=distance<PLANT_RANGE.hide;
@@ -138,7 +191,7 @@ export class WorldPlants {
    // Distant plants are static GPU batches; their full rigs only animate nearby.
    for(const m of entry.rig.mirrors)m.reflector.visible=distance<PLANT_RANGE.animate;
    if(distance>PLANT_RANGE.animate){
-    for(const {reply} of entry.pendants)reply.signal.value=0;
+    for(const {reply} of entry.pendants)reply.setSignal(0);
     entry.model.pending.length=0;entry.model.events.length=0;
     continue;
    }
@@ -149,7 +202,7 @@ export class WorldPlants {
    for(const m of entry.rig.mirrors){const enabled=this.reflecting.has(m.reflector);m.reflector.material=enabled?m.reflectionMaterial:entry.rig.metal;m.reflector.onBeforeRender=enabled?m.render:()=>{};m.frame.material.emissive.set(m.hovered?'#ff6ad5':'#000000');m.frame.material.emissiveIntensity=m.hovered?.7:0;}
    for(const {mirror,reply} of entry.pendants){
     const start=mirror.spec.echoStart;
-    reply.signal.value=replyHighlight(entry.model.time,start,start+.9);
+    reply.setSignal(replyHighlight(entry.model.time,start,start+.9));
     reply.echo.value.set(Math.max(0,Math.min(1,(entry.model.time-start)/.9)),mirror.spec.echoCharged?1:0);
    }
    for(const event of entry.model.drainEvents())this.play(entry,event);
@@ -159,5 +212,5 @@ export class WorldPlants {
   const p=this.shared.player.position,candidates=this.sites.filter(s=>s.species===species&&s.id!==current?.id&&!this.blocked(s));
   candidates.sort((a,b)=>Number(visited.has(a.id))-Number(visited.has(b.id))||Math.hypot(a.x-p.x,a.z-p.z)-Math.hypot(b.x-p.x,b.z-p.z));return candidates[0]||current||null;
  }
- dispose(){for(const voice of this.voices)voice.handle?.stop();this.voices=[];for(const e of this.entries.values())this.remove(e);this.root.removeFromParent();}
+ dispose(){this.pendingBuild?.work.return();this.pendingBuild=null;for(const e of this.retiredEntries)this.remove(e);this.retiredEntries=[];for(const e of this.warmEntries||[])this.remove(e);this.warmEntries=[];for(const voice of this.voices)voice.handle?.stop();this.voices=[];for(const e of this.entries.values())this.remove(e);this.root.removeFromParent();}
 }

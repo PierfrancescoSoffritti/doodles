@@ -12,7 +12,7 @@ function setup(lakes=[]) {
 }
 
 test('nearby full-detail animals retain their motion and note responses',()=>{
- const a=setup(),b=setup();b.model.distantLumen=true;
+ const a=setup(),b=setup();b.model.distantLumen=true;b.model.lumenDetailScale=.6;
  for(let i=0;i<300;i++){
   if(i===100)for(const s of [a,b])s.model.hear({position:{...s.model.creatures[0].pos},strength:.35,layer:'player-note',radius:110});
   a.model.step(1/30);b.model.step(1/30);

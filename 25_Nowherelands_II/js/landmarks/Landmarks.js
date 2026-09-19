@@ -6,7 +6,7 @@ import { clamp01 } from '../core/Utils.js';
 import { Sequencer } from './Sequencer.js';
 import { Octahedrons } from './Octahedrons.js';
 import { TimeMonolith } from './TimeMonolith.js';
-import { Mirrors } from './Mirrors.js';
+import { Mirrors } from './Mirrors.js?v=streaming-60-30-19';
 import { Wanderer } from './Wanderer.js';
 import { pickTarget, hoverTarget } from './TargetPicking.js';
 

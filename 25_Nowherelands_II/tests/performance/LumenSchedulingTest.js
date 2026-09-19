@@ -70,6 +70,18 @@ test('desktop play keeps the local simulation by default', () => {
  } finally {globalThis.Worker=previous;}
 });
 
+test('catch-up publishes bounded batches without dropping or reordering inputs',async()=>{
+ const {LumenSimulation}=await import('../../js/world/fauna/LumenSimulation.js');
+ const sent=[],inputs=Array.from({length:7},(_,i)=>({steps:1,commands:[{type:'hear',id:i}],obstacles:[]}));
+ const simulation={active:true,sequence:0,pending:inputs.slice(),worker:{postMessage(message){sent.push(message);}},fail(reason){assert.fail(reason);}};
+ while(simulation.pending.length){
+  LumenSimulation.prototype.dispatch.call(simulation);clearTimeout(simulation.timeout);
+  assert.ok(simulation.inflight.inputs.length<=2);simulation.inflight=null;
+ }
+ assert.deepEqual(sent.flatMap(message=>message.inputs.flatMap(input=>input.commands.map(command=>command.id))),[0,1,2,3,4,5,6]);
+ assert.equal(sent.reduce((sum,message)=>sum+message.inputs.reduce((n,input)=>n+input.steps,0),0),7);
+});
+
 test('skipped presentation keeps simulation and audio running without uploading meshes', () => {
  const {fauna,model,rendered}=setup();
  fauna.simulation.active=false;

@@ -31,6 +31,8 @@ export async function checkFaunaVisibility(){
    const pixels=[],counts=[];
    model.time+=1/30;
    for(const cull of [false,true]){
+    // A fixed identity scene root must preserve dynamic descendants and mirrors.
+    scene.matrixAutoUpdate=!cull;
     const current=cull?meshes:control;
     current.cullLumen=cull;current.pebbles.cull=cull;current.update(model,1,1/30);
     meshes.root.visible=cull;control.root.visible=!cull;
@@ -48,6 +50,14 @@ export async function checkFaunaVisibility(){
   if(!rows.some(r=>r.culled.lumen<r.full.lumen*.75))throw Error('Fixture did not exercise substantial culling');
   if(!rows.some(r=>r.culled.pebbles<r.full.pebbles))throw Error('Fixture did not exercise pebble culling');
   if(!rows.some(r=>r.culled.stones<r.full.stones))throw Error('Fixture did not exercise stone culling');
+  const before=meshes.placement.version,bodyBefore=meshes.pebbles.bodies.instanceMatrix.version;
+  shared.caveAmount=1;meshes.update(model,1,1/30);
+  if(meshes.placement.version!==before||meshes.lumenLods.some(m=>m.visible))throw Error('Hidden surface pools must not rebuild in caves');
+  if(meshes.pebbles.bodies.instanceMatrix.version<=bodyBefore)throw Error('Cave pebble rendering must continue');
+  const moving=model.creatures.find(c=>c.kind==='lumen');moving.pos.x+=10;moving.prev.x=moving.pos.x;
+  shared.caveAmount=0;meshes.update(model,1,1/30);
+  if(meshes.placement.version<=before||!meshes.lumenLods.every(m=>m.visible))throw Error('Surface pools must refresh on the exit frame');
+  rows.push({caveSurfaceUploadsSkipped:true,exitRefreshed:true});
   return rows;
  }finally{renderer.setRenderTarget(null);target.dispose();for(const mirror of mirrors)mirror.dispose();renderer.dispose();}
 }

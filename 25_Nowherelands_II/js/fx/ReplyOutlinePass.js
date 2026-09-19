@@ -1,5 +1,6 @@
+import { warmStreamedMaterials } from './StreamedMaterialWarmup.js?v=streaming-60-30-19';
 import * as THREE from 'three';
-import {REPLY_MASK_LAYER} from '../world/fauna/ReplyOutline.js?v=outline-2';
+import {REPLY_MASK_LAYER} from '../world/fauna/ReplyOutline.js?v=streaming-60-30-19';
 
 const vertexShader='varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}';
 // A bounded separable distance search gives a rounded contour with a clear gap.
@@ -34,17 +35,29 @@ export class ReplyOutlinePass {
   this.distance=new THREE.ShaderMaterial({uniforms:this.uniforms,vertexShader,depthTest:false,depthWrite:false,fragmentShader:`
    uniform sampler2D tMask;uniform vec2 uTexel;varying vec2 vUv;
    ${emptyTile}
-   void main(){if(emptyTile()){gl_FragColor=vec4(1.,0.,0.,0.);return;}vec3 center=texture2D(tMask,vUv).rgb;if(center.r>.01){gl_FragColor=vec4(0.,center);return;}float nearest=21.;vec3 echo=vec3(0.);for(int x=-20;x<=20;x++){
-    vec2 uv=vUv+vec2(float(x)*uTexel.x,0.);if(uv.x<0.||uv.x>1.)continue;
-    vec3 s=texture2D(tMask,uv).rgb;float d=abs(float(x));if(s.r>.01&&d<nearest){nearest=d;echo=s;}
-   }gl_FragColor=vec4(nearest/21.,echo);}`});
+   void main(){if(emptyTile()){gl_FragColor=vec4(1.,0.,0.,0.);return;}vec3 center=texture2D(tMask,vUv).rgb;if(center.r>.01){gl_FragColor=vec4(0.,center);return;}
+    // Search outward. The first occupied distance is exact; test the left
+    // sample first to retain the original tie ordering and echo identity.
+    for(int x=1;x<=20;x++){
+     float d=float(x);vec2 left=vUv-vec2(d*uTexel.x,0.),right=vUv+vec2(d*uTexel.x,0.);
+     if(left.x>=0.){vec3 s=texture2D(tMask,left).rgb;if(s.r>.01){gl_FragColor=vec4(d/21.,s);return;}}
+     if(right.x<=1.){vec3 s=texture2D(tMask,right).rgb;if(s.r>.01){gl_FragColor=vec4(d/21.,s);return;}}
+    }gl_FragColor=vec4(1.,0.,0.,0.);}`});
   this.contour=new THREE.ShaderMaterial({uniforms:this.uniforms,vertexShader,transparent:true,depthTest:false,depthWrite:false,toneMapped:false,fragmentShader:`
    uniform sampler2D tHorizontal;uniform vec2 uTexel;varying vec2 vUv;
    ${emptyTile}
-   void main(){if(emptyTile())discard;vec4 center=texture2D(tHorizontal,vUv);if(center.g>.01&&center.r*21.<2.)discard;float nearest=21.;vec3 echo=vec3(0.);for(int y=-20;y<=20;y++){
-    vec2 uv=vUv+vec2(0.,float(y)*uTexel.y);if(uv.y<0.||uv.y>1.)continue;
-    vec4 h=texture2D(tHorizontal,uv);float d=length(vec2(h.r*21.,float(y)));
-    if(h.g>.01&&d<nearest){nearest=d;echo=h.gba;}
+   void main(){if(emptyTile())discard;vec4 center=texture2D(tHorizontal,vUv);if(center.g>.01&&center.r*21.<2.)discard;
+   float nearest=21.,bestY=21.;vec3 echo=vec3(0.);
+   if(center.g>.01){nearest=length(vec2(center.r*21.,0.));echo=center.gba;bestY=0.;}
+   // A row farther away than the best Euclidean distance cannot improve it.
+   // Equal-distance ties still select the lowest row, as in the full scan.
+   for(int y=1;y<=20;y++){
+    float stepY=float(y);if(stepY>nearest)break;
+    for(int side=0;side<2;side++){
+     float offset=side==0?-stepY:stepY;vec2 uv=vUv+vec2(0.,offset*uTexel.y);if(uv.y<0.||uv.y>1.)continue;
+     vec4 h=texture2D(tHorizontal,uv);float d=length(vec2(h.r*21.,offset));
+     if(h.g>.01&&(d<nearest||(d==nearest&&offset<bestY))){nearest=d;echo=h.gba;bestY=offset;}
+    }
    }
    if(echo.x<.01||nearest<2.)discard;
    float charged=step(.5,echo.z),progress=echo.y,ink=0.;vec2 pixel=vUv/uTexel;
@@ -65,6 +78,19 @@ export class ReplyOutlinePass {
    gl_FragColor=vec4(color,ink*echo.x);}`});
   this.scene=new THREE.Scene();this.camera=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
   this.quad=new THREE.Mesh(new THREE.PlaneGeometry(2,2),this.distance);this.quad.frustumCulled=false;this.scene.add(this.quad);
+ }
+ async prewarm(shared){
+  const root=new THREE.Group();
+  for(const material of [this.tileMask,this.expandTiles,this.distance,this.contour])root.add(new THREE.Mesh(this.quad.geometry,material));
+  await warmStreamedMaterials(shared,[root]);root.clear();
+  // Allocate the real-size targets and exercise the exact mask/post cameras
+  // while the loading screen still covers the canvas.
+  this.render(shared.renderer,shared.scene,shared.camera);
+  // Mobile composites into the buffered linear image; desktop composites to
+  // the screen. Both output spaces have distinct Three program cache keys.
+  const renderer=shared.renderer,target=new THREE.WebGLRenderTarget(2,2,{type:THREE.HalfFloatType}),previous=renderer.getRenderTarget();
+  try{renderer.setRenderTarget(target);this.render(renderer,shared.scene,shared.camera);}
+  finally{renderer.setRenderTarget(previous);target.dispose();}
  }
  render(renderer,scene,camera){
   renderer.getSize(this.size);const w=Math.max(1,Math.round(this.size.x)),h=Math.max(1,Math.round(this.size.y));

@@ -1,4 +1,4 @@
-import { SPECIES } from './FaunaModel.js?v=stable-30-25';
+import { SPECIES } from './FaunaModel.js?v=streaming-60-30-19';
 
 // Construction owns a private membership list. Live creatures can keep stepping
 // between yields; incomplete newcomers never reach rendering or audio.

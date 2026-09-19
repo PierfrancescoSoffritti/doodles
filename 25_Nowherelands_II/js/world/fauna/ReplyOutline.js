@@ -17,16 +17,20 @@ export function replyOutline(mesh,{signal={value:0},expression='uReplySignal',ec
  if(source.isShaderMaterial&&!mesh.isReflector){material=source.clone();material.uniforms={...source.uniforms};inject(material);}
  else {material=new THREE.MeshBasicMaterial({vertexColors:source.vertexColors});material.onBeforeCompile=shader=>{source.onBeforeCompile(shader);inject(shader);};material.customProgramCacheKey=()=>source.customProgramCacheKey()+'-reply-mask';}
  material.side=THREE.DoubleSide;material.transparent=true;material.depthTest=false;material.depthWrite=false;material.toneMapped=false;
+ // Max blending with depth disabled is order independent. Drawing both
+ // faces together produces the same silhouette without two transparent passes.
+ material.forceSinglePass=true;
  material.blending=THREE.CustomBlending;material.blendEquation=THREE.MaxEquation;material.blendSrc=THREE.OneFactor;material.blendDst=THREE.OneFactor;
  const outline=mesh.isInstancedMesh?new THREE.InstancedMesh(mesh.geometry,material,mesh.instanceMatrix.count):new THREE.Mesh(mesh.geometry,material);
  if(mesh.isInstancedMesh)outline.instanceMatrix=mesh.instanceMatrix;
+ if(expression==='uReplySignal')outline.visible=signal.value>=.01;
  outline.name=mesh.name+'-reply-mask';outline.layers.set(REPLY_MASK_LAYER);outline.frustumCulled=false;mesh.add(outline);
  outline.onBeforeRender=()=>{if(mesh.isInstancedMesh)outline.count=mesh.count;};
  outline.onAfterRender=()=>{if(mesh.isInstancedMesh)outline.count=mesh.instanceMatrix.count;};
  let disposed=false;
  const dispose=()=>{if(disposed)return;disposed=true;source.removeEventListener('dispose',dispose);outline.removeFromParent();material.dispose();if(outline.isInstancedMesh)outline.dispose();};
  source.addEventListener('dispose',dispose);
- return {outline,signal,echo,dispose};
+ return {outline,signal,echo,dispose,setSignal(value){signal.value=value;if(expression==='uReplySignal')outline.visible=value>=.01;}};
 }
 
 export function writeReplyEcho(mesh,index,creature){

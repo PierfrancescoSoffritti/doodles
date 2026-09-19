@@ -1,12 +1,12 @@
 import { hypot2, hypot3 } from '../../core/NumericDistance.js?v=stable-30-6';
-import { selectLumenDetail, swimDistantLumen } from './LumenDetail.js?v=stable-30-20';
+import { selectLumenDetail, swimDistantLumen } from './LumenDetail.js?v=streaming-60-30-19';
 import { receiveNote, updateNote, isPlayerNote } from './NoteResponse.js?v=pebble-voice-4b';
 import { initializeWorldRays, updateWorldRays, hearWorldRays, worldRayCall } from './VeilRayWorld.js?v=stable-30-3';
-import { initializePebblesSteps, pebbleHabitat, updatePebble, answerPebble } from './PebbleHoppers.js?v=stable-30-25';
+import { initializePebblesSteps, pebbleHabitat, updatePebble, answerPebble } from './PebbleHoppers.js?v=streaming-60-30-19';
 import { buildLumenGrid } from './LumenFlow.js?v=stable-30-20';
 import { Random } from '../../core/Random.js';
 import { motor, steer, damp } from './Locomotion.js';
-import { initializeSchool, updateSchool, swimLumen } from './LumenSchool.js?v=stable-30-20';
+import { initializeSchool, updateSchool, swimLumen } from './LumenSchool.js?v=streaming-60-30-19';
 
 export const SPECIES = {
 	lumen: { name: 'Lumen shoal', count: 640, cap: 640, speed: 6, height: 13, radius: 42, voice: 'liquid whistles', interval: 12 },
@@ -203,7 +203,7 @@ export class FaunaModel {
 		this.previousListener = { ...this.listener };
 		for (const group of this.groups.values()) {
 			if (this.externalLumen && group.kind === 'lumen') continue;
-			if (group.kind === 'lumen') { selectLumenDetail(group, this.listener, this.distantLumen); updateSchool(group, this, dt); }
+			if (group.kind === 'lumen') { selectLumenDetail(group, this.listener, this.distantLumen, this.lumenDetailScale ?? 1); updateSchool(group, this, dt); }
 			if (!group.raySite && group.kind !== 'hopper' && this.time >= group.nextCall && (group.kind==='lumen'?group.members.some(c=>distance(c.pos,this.listener)<160):distance(group.center || group.home, this.listener)<230)) {
 				const audible=group.kind==='lumen'?group.members.filter(c=>distance(c.pos,this.listener)<160):group.members;
 			audible[group.rnd.int(0,audible.length-1)].callAt=this.time;
@@ -281,6 +281,7 @@ export class FaunaModel {
 			p.y = Math.max(floor + 1.5, p.y + c.vel.y * dt);
 			c.pitch = damp(c.pitch, clamp(Math.atan2(c.vel.y, Math.max(c.speed, 1)), -0.32, 0.32), 3, dt);
 		}
+		this.pebbleSteering?.advance(this);
 	}
 
 }

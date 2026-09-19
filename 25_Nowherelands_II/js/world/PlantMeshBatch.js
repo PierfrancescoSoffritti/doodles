@@ -3,24 +3,32 @@ import * as THREE from 'three';
 // Static vertices, one draw, and nine texels per articulated part. Only transforms
 // and material values change: the GPU moves the vertices, not a JS loop per vertex.
 export class PlantMeshBatch {
- constructor(rig,parent) {
+ constructor(rig,parent,defer=false) {
   this.rig=rig;this.parent=parent;this.inverse=new THREE.Matrix4();this.matrix=new THREE.Matrix4();this.normal=new THREE.Matrix3();
-  const parts=[];
+  this.work=this.build();
+  if(!defer)while(!this.work.next().done){}
+ }
+ *build(){
+  const rig=this.rig,parent=this.parent,parts=[];
   rig.root.traverse(mesh=>{
    if(!mesh.isMesh||mesh.isReflector||mesh===rig.visitor)return;
    parts.push(mesh);mesh.visible=false;mesh.updateMatrix();mesh.matrixAutoUpdate=false;
   });
-  const count=parts.reduce((n,p)=>n+(p.geometry.index?.count??p.geometry.attributes.position.count),0);
+  const count=parts.reduce((n,p)=>n+p.geometry.attributes.position.count,0);
+  const indexCount=parts.reduce((n,p)=>n+(p.geometry.index?.count??p.geometry.attributes.position.count),0);
+  const indices=new (count>65535?Uint32Array:Uint16Array)(indexCount);let indexAt=0;
   const positions=new Float32Array(count*3),normals=new Float32Array(count*3),ids=new Float32Array(count);
   let at=0;
   for(const [id,part] of parts.entries()){
    const p=part.geometry.attributes.position,n=part.geometry.attributes.normal,index=part.geometry.index;
-   for(let i=0;i<(index?.count??p.count);i++){
-    const k=index?index.getX(i):i;
-    positions.set([p.getX(k),p.getY(k),p.getZ(k)],at*3);normals.set([n.getX(k),n.getY(k),n.getZ(k)],at*3);ids[at++]=id;
+   for(let i=0;i<(index?.count??p.count);i++)indices[indexAt++]=at+(index?index.getX(i):i);
+   for(let k=0;k<p.count;k++){
+    positions[at*3]=p.getX(k);positions[at*3+1]=p.getY(k);positions[at*3+2]=p.getZ(k);
+    normals[at*3]=n.getX(k);normals[at*3+1]=n.getY(k);normals[at*3+2]=n.getZ(k);ids[at++]=id;
    }
+   yield;
   }
-  const geometry=new THREE.BufferGeometry();
+  const geometry=new THREE.BufferGeometry();geometry.setIndex(new THREE.BufferAttribute(indices,1));
   geometry.setAttribute('position',new THREE.BufferAttribute(positions,3));geometry.setAttribute('normal',new THREE.BufferAttribute(normals,3));geometry.setAttribute('aPlantPart',new THREE.BufferAttribute(ids,1));
   this.data=new Float32Array(parts.length*36);this.texture=new THREE.DataTexture(this.data,9,parts.length,THREE.RGBAFormat,THREE.FloatType);
   this.range={value:new THREE.Vector2(380,520)};this.viewer={value:new THREE.Vector2()};
@@ -52,8 +60,10 @@ export class PlantMeshBatch {
   const point=new THREE.Vector3();let radius=0;
   for(const part of parts){this.matrix.multiplyMatrices(this.inverse,part.matrixWorld);const p=part.geometry.attributes.position;
    for(let i=0;i<p.count;i++)radius=Math.max(radius,point.fromBufferAttribute(p,i).applyMatrix4(this.matrix).length());
+   yield;
   }
   geometry.boundingSphere=new THREE.Sphere(new THREE.Vector3(),radius*1.5+2);
+  rig.geometryBatched=true;
  }
  update(){
   this.parent.updateWorldMatrix(true,false);this.rig.root.updateWorldMatrix(true,true);this.inverse.copy(this.parent.matrixWorld).invert();
@@ -66,5 +76,5 @@ export class PlantMeshBatch {
   }
   this.texture.needsUpdate=true;
  }
- dispose(){for(const {mesh} of this.batches){mesh.geometry.dispose();mesh.material.dispose();mesh.removeFromParent();}this.texture.dispose();this.batches=[];}
+ dispose(){for(const {mesh} of this.batches||[]){mesh.geometry.dispose();mesh.material.dispose();mesh.removeFromParent();}this.texture?.dispose();this.batches=[];}
 }

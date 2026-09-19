@@ -38,3 +38,12 @@ test('chunk culling copies complete matrix and growth spans and tracks replaceme
   f.sources[0].removeFromParent();f.renderer.render(f.world,f.camera);assert.equal(group.mesh.count,2);assert.deepEqual([...group.mesh.geometry.attributes.aBorn.array.slice(0,2)],[1,2]);
  }finally{b.dispose();f.dispose();}
 });
+
+test('reply-mask rendering preserves source children without preparing vegetation batches',()=>{
+ const f=setup();let drawn=0;
+ f.camera.layers.set(30);const child=new T.Mesh(f.base,f.material);child.layers.set(30);f.sources[0].add(child);
+ f.renderer.render=()=>{assert.ok(f.sources[0].visible&&child.visible);drawn++;};
+ const b=new PlantBatches(f.renderer,f.world);b.prepare=()=>assert.fail('mask pass must not rebuild vegetation');
+ try{f.renderer.render(f.world,f.camera);assert.equal(drawn,1);assert.equal(b.groups.size,0);}
+ finally{b.dispose();f.dispose();}
+});

@@ -2,11 +2,11 @@ import { StaticMeshSurface } from './StaticMeshSurface.js?v=stable-30-5';
 import * as THREE from 'three';
 import { lanternAngles, buildLanternBarkSite, lanternHabitat, buildLanternHollowSite } from './LanternMiteHabitat.js?v=stable-30-3';
 import { LanternMiteColony } from './LanternMiteWorldModel.js?v=pebble-voice-4b';
-import { LanternMiteMeshes } from './LanternMiteMeshes.js?v=outline-2';
+import { LanternMiteMeshes } from './LanternMiteMeshes.js?v=streaming-60-30-19';
 import { LanternMiteHomeMeshes } from './LanternMiteHomeMeshes.js?v=stable-30-6';
 import { LanternMitePaths } from './LanternMitePaths.js?v=stable-30-22';
 import { LanternMiteAudio } from '../../audio/LanternMiteVoice.js?v=stable-30-3';
-import { warmLanternMaterials } from './LanternMiteWarmup.js?v=stable-30-3';
+import { warmLanternMaterials } from './LanternMiteWarmup.js?v=streaming-60-30-19';
 
 const CAP = 3, RANGE = 440;
 export class WorldLanternMites {
@@ -134,7 +134,6 @@ export class WorldLanternMites {
    yield;
    const renderer=this.shared.renderer,camera=this.shared.camera;
    if(renderer){
-    this.shared.localLights?.discover();
     // Compile against the live light layout before the home becomes visible.
     const warm=new THREE.Scene();warm.environment=this.scene.environment;warm.environmentIntensity=this.scene.environmentIntensity;warm.fog=this.scene.fog;warm.add(staging);
     this.scene.traverseVisible(light=>{if(!light.isLight||!light.layers.test(camera.layers))return;const copy=light.clone();copy.position.setFromMatrixPosition(light.matrixWorld);warm.add(copy);});

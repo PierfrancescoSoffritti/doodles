@@ -1,9 +1,9 @@
-import { FaunaSurvey } from './FaunaSurvey.js?v=stable-30-25';
+import { FaunaSurvey } from './FaunaSurvey.js?v=streaming-60-30-19';
 import { ReedSurvey } from './ReedSurvey.js?v=fauna-menu-2';
 import { BirdSurvey } from './BirdSurvey.js?v=fauna-menu-2';
 import { LanternMiteSurvey } from './LanternMiteSurvey.js?v=fauna-menu-2';
-import { WaterLifeSurvey } from './WaterLifeSurvey.js?v=pool-life-6';
-import { PlantSurvey } from './PlantSurvey.js';
+import { WaterLifeSurvey } from './WaterLifeSurvey.js?v=streaming-60-30-19';
+import { PlantSurvey } from './PlantSurvey.js?v=streaming-60-30-19';
 import { config } from '../core/Config.js?v=stable-30-3';
 
 const FAUNA = [

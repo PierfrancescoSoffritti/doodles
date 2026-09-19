@@ -2,7 +2,7 @@ import { Heightmap } from './Heightmap.js?v=stable-30-6';
 import { terrainMeshData, terrainMeshSteps } from './TerrainMeshData.js?v=stable-30-23';
 import { shoreTileData, shoreTileSteps } from './ShoreTileData.js?v=stable-30-23';
 import { WaterMeshData } from './WaterMeshData.js?v=stable-30-23';
-import { createLumenRuntime } from './fauna/LumenWorkerRuntime.js?v=stable-30-25';
+import { createLumenRuntime } from './fauna/LumenWorkerRuntime.js?v=streaming-60-30-19';
 
 let heightmap, water, cooperative = false, task = null;
 function transfer(result) {

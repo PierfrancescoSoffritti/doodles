@@ -1,4 +1,5 @@
-import { prepareFaunaGroup } from './PrepareFaunaGroup.js?v=stable-30-25';
+import {PebbleSteeringScheduler} from './PebbleSteeringScheduler.js?v=streaming-60-30-19';
+import { prepareFaunaGroup } from './PrepareFaunaGroup.js?v=streaming-60-30-19';
 import { FaunaSurfaceCache } from './FaunaSurfaceCache.js?v=stable-30-5';
 import { mobileDetail, mobileOption } from '../../core/MobileDetail.js?v=stable-30-3';
 import { rayHabitatSite } from './VeilRayHabitat.js';
@@ -7,12 +8,12 @@ import { LumenLight } from './LumenLight.js?v=stable-30-3';
 import { FaunaProfile } from './FaunaProfile.js';
 import { Random } from '../../core/Random.js';
 import { bus, Events } from '../../core/EventBus.js';
-import { FaunaModel, SPECIES } from './FaunaModel.js?v=stable-30-25';
-import { FaunaMeshes } from './FaunaMeshes.js?v=stable-30-25';
+import { FaunaModel, SPECIES } from './FaunaModel.js?v=streaming-60-30-19';
+import { FaunaMeshes } from './FaunaMeshes.js?v=streaming-60-30-19';
 import { FaunaAudio } from '../../audio/FaunaAudio.js?v=stable-30-3';
-import { pebbleHabitatSites } from './PebbleHabitats.js?v=stable-30-30';
+import { pebbleHabitatSites } from './PebbleHabitats.js?v=streaming-60-30-19';
 import { PebbleColonyTour } from './PebbleColonyTour.js?v=2';
-import { lumenLakes } from './LumenSchool.js?v=stable-30-20';
+import { lumenLakes } from './LumenSchool.js?v=streaming-60-30-19';
 
 const CELL = 220, STEP = 1 / 30;
 
@@ -35,6 +36,11 @@ export class Fauna {
 		this.pebbleSiteRetries = new Map(); this.pebbleTour = new PebbleColonyTour(this.pebbleSites);
 		this.model = new FaunaModel(shared.world.seed || shared.seed || 'nowhere', { sample: this.sample, lakes: this.lakes, raySites: true, avoid: p => this.avoid(p), blocked: (x, z, radius, ground) => this.obstacles.some(o => Math.hypot(x - o.position.x, z - o.position.z) < o.radius + radius && Math.abs(ground - o.position.y) < Math.max(12, o.radius * 2)) });
 		this.model.distantLumen = mobileDetail;
+		// Full local steering extends well beyond the 220-unit interaction/light
+		// range. Distant ribbons retain every animal, guide, phase and 30 Hz motion.
+		this.model.lumenDetailScale = mobileDetail ? .6 : 1;
+		this.model.pebbleStepHz = mobileDetail ? 60 : 120;
+		if(mobileDetail)this.model.pebbleSteering=new PebbleSteeringScheduler();
 		this.raySites = new Map(); this.rayVisited = new Set();
 		this.meshes = new FaunaMeshes(scene, shared);
 		this.light = new LumenLight(shared);
@@ -76,7 +82,7 @@ export class Fauna {
 	}
 	startSimulationWorker() {
 		if(!mobileOption('lumenWorker')||typeof Worker==='undefined'||!this.lakes.length)return;
-		return import('./LumenSimulation.js?v=stable-30-25').then(({ LumenSimulation }) => {
+		return import('./LumenSimulation.js?v=streaming-60-30-19').then(({ LumenSimulation }) => {
 			this.simulation=new LumenSimulation(this);
 			return this.simulation.ready;
 		}).catch(error => {

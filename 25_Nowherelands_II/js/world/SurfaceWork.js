@@ -6,7 +6,7 @@ export class SurfaceWork {
 		this.simulations=new Set();
 		this.stats = { completed: 0, discarded: 0, installed: 0 };
 		try {
-			this.worker = new Worker(new URL('./SurfaceWorker.js?v=stable-30-25', import.meta.url), { type: 'module' });
+			this.worker = new Worker(new URL('./SurfaceWorker.js?v=streaming-60-30-19', import.meta.url), { type: 'module' });
 			this.worker.onerror = event => { event.preventDefault(); this.fail(); };
 			this.worker.onmessage = ({ data }) => {
 				if (data.type === 'ready') { this.ready = true; this.dispatch(); return; }

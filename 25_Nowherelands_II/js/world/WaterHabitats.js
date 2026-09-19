@@ -76,7 +76,8 @@ export function waterSites(world,lakes,sample,seed,seaLevel=0){
 // Independent lanes spread and regroup over time. Excursions follow complete
 // validated water routes, with no per-frame terrain sampling.
 export class PoolLifeModel {
- constructor(site,seed,{canSwim=null}={}){
+ constructor(site,seed,{canSwim=null,deferStartle=false}={}){
+  this.deferStartle=deferStartle;this.routeWork=null;
   this.canSwim=canSwim||((x,z,f)=>Math.hypot(x-(f.group.x||0),z-(f.group.z||0))<=f.group.radius*.93);
   this.site=site;this.time=0;this.lastNote=-100;this.noteCount=0;this.pending=[];this.events=[];this.fish=[];
   this.plants=site.plants.map((p,index)=>({...p,index,nods:[],x:p.x-site.x,z:p.z-site.z}));
@@ -109,7 +110,10 @@ export class PoolLifeModel {
  swimY(f,time){return -f.depth+Math.sin(time*f.depthRate+f.depthPhase)*f.depthAmplitude+Math.sin(time*1.1+f.beat)*.09;}
  curve(points,t){
   const u=1-t;
-  if(points.length===5){const weights=[u**4,4*u**3*t,6*u*u*t*t,4*u*t**3,t**4];return points.reduce((p,q,i)=>({x:p.x+q.x*weights[i],z:p.z+q.z*weights[i]}),{x:0,z:0});}
+  if(points.length===5){
+   const [a,b,c,d,e]=points,u2=u*u,t2=t*t,w0=u2*u2,w1=4*u2*u*t,w2=6*u2*t2,w3=4*u*t2*t,w4=t2*t2;
+   return {x:a.x*w0+b.x*w1+c.x*w2+d.x*w3+e.x*w4,z:a.z*w0+b.z*w1+c.z*w2+d.z*w3+e.z*w4};
+  }
   const [a,b,c,d]=points;
   return {x:u*u*u*a.x+3*u*u*t*b.x+3*u*t*t*c.x+t*t*t*d.x,z:u*u*u*a.z+3*u*u*t*b.z+3*u*t*t*c.z+t*t*t*d.z};
  }
@@ -123,23 +127,32 @@ export class PoolLifeModel {
  gentleReturn(points,duration,minSpeed){
   // Reject folded curves that would almost stop and pivot before reaching the
   // school. Position/velocity matching alone cannot rule out those hairpins.
-  let previous=null;
-  const steps=Math.ceil(duration/.08);
+  let previousX=0,previousZ=0;
+  const steps=Math.ceil(duration/.08),scale=4/duration,min2=(minSpeed/scale)**2;
+  const [a,b,c,d,e]=points,ax=b.x-a.x,az=b.z-a.z,bx=c.x-b.x,bz=c.z-b.z,cx=d.x-c.x,cz=d.z-c.z,dx=e.x-d.x,dz=e.z-d.z;
+  const turnCos=Math.cos(duration/steps*.85);
   for(let i=0;i<=steps;i++){
-   const t=i/steps,u=1-t,weights=[u*u*u,3*u*u*t,3*u*t*t,t*t*t];let x=0,z=0;
-   for(let j=0;j<4;j++){x+=(points[j+1].x-points[j].x)*weights[j]*4/duration;z+=(points[j+1].z-points[j].z)*weights[j]*4/duration;}
-   if(Math.hypot(x,z)<minSpeed)return false;
-   if(previous&&Math.abs(Math.atan2(previous.x*z-previous.z*x,previous.x*x+previous.z*z))>duration/steps*.85)return false;
-   previous={x,z};
+   const t=i/steps,u=1-t,w0=u*u*u,w1=3*u*u*t,w2=3*u*t*t,w3=t*t*t;
+   const x=ax*w0+bx*w1+cx*w2+dx*w3,z=az*w0+bz*w1+cz*w2+dz*w3;
+   if(x*x+z*z<min2)return false;
+   if(i&&(previousX*x+previousZ*z)<turnCos*Math.sqrt((previousX*previousX+previousZ*previousZ)*(x*x+z*z)))return false;
+   previousX=x;previousZ=z;
   }
   return true;
  }
  startle(x,z,radius,charge){
+  const work=this.startleSteps(x,z,radius,charge);
+  if(this.deferStartle){this.routeWork?.return();this.routeWork=work;return this.fish.some(f=>Math.hypot(f.x+this.site.x-x,f.z+this.site.z-z)<=radius);}
+  let step;do{step=work.next();}while(!step.done);return step.value;
+ }
+ advanceRoutes(deadline){
+  while(this.routeWork&&performance.now()<deadline)if(this.routeWork.next().done)this.routeWork=null;
+ }
+ *startleSteps(x,z,radius,charge){
   let heard=false;
   for(const f of this.fish){
    const dx=f.x+this.site.x-x,dz=f.z+this.site.z-z,d=Math.hypot(dx,dz);if(d>radius)continue;
-   const away=Math.atan2(dz,dx)+Math.sin(f.beat)*.18,start={x:f.x,z:f.z},g=f.group;
-   const heading={x:Math.cos(f.yaw),z:-Math.sin(f.yaw)};
+   const away=Math.atan2(dz,dx)+Math.sin(f.beat)*.18,g=f.group;
    // Plan a dart, a wandering coast, and only then a gradual return. The coast
    // follows open water away from the note, without aiming at the home route.
    // The eventual return meets that route at its future position and velocity.
@@ -148,6 +161,13 @@ export class PoolLifeModel {
    for(const distance of [34+charge*10+f.size*3,25,16,9]){
     for(const offset of [0,.4,-.4,.85,-.85,1.25,-1.25]){
      for(const delay of [0,2.5,5]){
+      let retry;
+      do{
+      retry=false;
+      yield;
+      // A rejected candidate can yield while the fish keeps cruising. Start
+      // each new attempt at its current pose so publication never teleports it.
+      const start={x:f.x,z:f.z},heading={x:Math.cos(f.yaw),z:-Math.sin(f.yaw)};
       const angle=away+offset,ux=Math.cos(angle),uz=Math.sin(angle);
       const end={x:start.x+ux*distance,z:start.z+uz*distance};
       // Individuals recover at different times, so the school doesn't perform
@@ -168,21 +188,30 @@ export class PoolLifeModel {
       const roam=[end,{x:end.x+vx*roamDuration/3,z:end.z+vz*roamDuration/3},{x:drift.x-rx*roamDuration/3,z:drift.z-rz*roamDuration/3},drift];
       const back=[drift,{x:drift.x+rx*returnDuration/4,z:drift.z+rz*returnDuration/4},{x:(drift.x+home.x)*.5-uz*distance*.55*side,z:(drift.z+home.z)*.5+ux*distance*.55*side},{x:home.x-(next.x-previous.x)/.002*returnDuration/4,z:home.z-(next.z-previous.z)/.002*returnDuration/4},home];
       const cruiseSpeed=Math.hypot(next.x-previous.x,next.z-previous.z)/.002;
-      if(!this.gentleReturn(back,returnDuration,Math.min(.8,roamSpeed*.7,cruiseSpeed*.7)))continue;
+      if(!this.gentleReturn(back,returnDuration,Math.min(.8,roamSpeed*.7,cruiseSpeed*.7)))break;
       let valid=true;
       for(const path of [out,roam,back]){
        // Sample by control-polygon length, at most 1.5 units between samples.
        const length=path.slice(1).reduce((sum,p,i)=>sum+Math.hypot(p.x-path[i].x,p.z-path[i].z),0),steps=Math.ceil(length/1.5);
-       for(let i=1;i<=steps;i++){const p=this.curve(path,i/steps);if(Math.hypot(p.x-(g.x||0),p.z-(g.z||0))>g.radius+65||!this.canSwim(p.x,p.z,f)){valid=false;break;}}
+       for(let i=1;i<=steps;i++){
+        const p=this.curve(path,i/steps);if(Math.hypot(p.x-(g.x||0),p.z-(g.z||0))>g.radius+65){valid=false;break;}
+        const wet=this.canSwim(p.x,p.z,f);
+        // A deferred terrain query keeps its sampled cells and asks to retry
+        // this candidate next frame, starting from the fish's current pose.
+        if(wet===undefined&&this.deferStartle){retry=true;valid=false;break;}
+        if(!wet){valid=false;break;}
+       }
        if(!valid)break;
       }
       if(valid){trip={at:this.time,out,roam,back,duration,roamDuration,returnDuration};break;}
+      }while(retry);
+      if(trip)break;
      }
      if(trip)break;
     }
     if(trip)break;
    }
-   if(trip){f.escape=trip;heard=true;}
+   if(trip){f.escape=trip;heard=true;}yield;
   }
   return heard;
  }

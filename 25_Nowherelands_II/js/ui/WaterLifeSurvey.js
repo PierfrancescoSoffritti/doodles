@@ -10,7 +10,7 @@ export class WaterLifeSurvey {
   this.subject={x:subject.x,z:subject.z,y:site.y+(this.species==='scarlet-fish'?-1:subject.size*.2*(subject.flowerHeight??.85))};
   const reach=this.species==='scarlet-fish'?Math.max(28,subject.size*2):Math.max(24,subject.size*4);
   const views=[reach,reach*.65].flatMap(distance=>Array.from({length:12},(_,i)=>{const a=i*Math.PI/6,x=this.subject.x+Math.sin(a)*distance,z=this.subject.z+Math.cos(a)*distance;return {x,z,y:Math.max(s.heightmap.height(x,z)+11,site.y+Math.max(16,reach*.55))};}));
-  views.sort((a,b)=>a.y-b.y);const at=views[0];p.position.set(at.x,at.y,at.z);s.waterLife.stream(true);this.guide();this.update();return site;
+  views.sort((a,b)=>a.y-b.y);const at=views[0];p.position.set(at.x,at.y,at.z);s.waterLife.stream();this.guide();this.update();return site;
  }
  guide(){
   if(!this.tracking||!this.group||this.shared.player.locked)return;

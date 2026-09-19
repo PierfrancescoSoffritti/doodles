@@ -1,4 +1,4 @@
-import {replyOutline,writeReplyEcho} from './ReplyOutline.js?v=outline-2';
+import {replyOutline,writeReplyEcho} from './ReplyOutline.js?v=streaming-60-30-19';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 

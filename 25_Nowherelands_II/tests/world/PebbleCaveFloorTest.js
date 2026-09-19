@@ -4,7 +4,7 @@ import { CaveFloorSurface } from '../../js/world/caves/CaveFloorSurface.js?v=sta
 import { CaveField } from '../../js/world/caves/CaveField.js';
 import { buildCaveMeshes } from '../../js/world/caves/CaveMeshData.js';
 import { pebbleCaveSampler } from '../../js/world/fauna/PebbleHabitats.js?v=stable-30-12';
-import { FaunaModel } from '../../js/world/fauna/FaunaModel.js?v=stable-30-25';
+import { FaunaModel } from './PebbleTestModel.js';
 
 const triangle=(y)=>[0,y,0, 0,y,8, 8,y+2,0];
 test('rendered support uses triangle height, rejects ceilings, and keeps stacked floors separate',()=>{

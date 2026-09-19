@@ -1,7 +1,7 @@
 import {mobileOption} from '../../core/MobileDetail.js?v=stable-30-3';
 import { ObstacleSnapshot } from './ObstacleSnapshot.js?v=stable-30-19';
 import { applyLumenFrame, decodeCheckpoint, LUMEN_STRIDE } from './LumenTransfer.js?v=stable-30-20';
-import { lumenCheckpoint, restoreLumenModel, advanceLumen, LUMEN_STEP, PRESENTATION_OWNED } from './LumenWorkerState.js?v=stable-30-25';
+import { lumenCheckpoint, restoreLumenModel, advanceLumen, LUMEN_STEP, PRESENTATION_OWNED } from './LumenWorkerState.js?v=streaming-60-30-19';
 
 // One request in flight. Inputs retain their order and fixed steps; neither
 // late messages nor a slow worker can accumulate an unbounded simulation queue.
@@ -15,7 +15,7 @@ export class LumenSimulation {
   this.model.hear=note=>{if(this.active)this.commands.push({type:'hear',note:structuredClone(note)});return this.originalHear.call(this.model,note);};
   this.model.call=c=>{if(this.active&&c?.kind==='lumen'){this.commands.push({type:'call',id:c.id,position:{...c.pos}});return;}return this.originalCall.call(this.model,c);};
   try{
-   this.worker=(mobileOption('sharedSimulationWorker')&&fauna.shared.surfaceWork?.simulationWorker())||new Worker(new URL('./LumenWorker.js?v=stable-30-25',import.meta.url),{type:'module'});
+   this.worker=(mobileOption('sharedSimulationWorker')&&fauna.shared.surfaceWork?.simulationWorker())||new Worker(new URL('./LumenWorker.js?v=streaming-60-30-19',import.meta.url),{type:'module'});
    this.stats.sharedWorker=!!this.worker.shared;
    this.worker.onmessage=({data})=>this.receive(data);
    this.worker.onerror=event=>{event.preventDefault();this.fail(event.message);};
@@ -85,7 +85,9 @@ export class LumenSimulation {
  }
  dispatch() {
   if(!this.active||this.inflight||!this.pending.length)return;
-  this.inflight={type:'step',id:++this.sequence,inputs:this.pending.splice(0)};
+  // Publish progress frequently during catch-up instead of turning a short
+  // stall into an ever larger, uninterrupted simulation batch.
+  this.inflight={type:'step',id:++this.sequence,inputs:this.pending.splice(0,2)};
   // Keep complete immutable inputs in the journal, but send unchanged obstacle
   // values only once. Each worker message still advances the same fixed steps.
   const inputs=this.inflight.inputs.map(input=>{

@@ -157,3 +157,10 @@ test('worker messages omit unchanged obstacles while recovery inputs retain ever
   assert.deepEqual(sent[3].inputs[0].obstacles,[]);assert.deepEqual(d.obstacles,[]);
  } finally {s?.dispose();globalThis.Worker=oldWorker;}
 });
+
+test('Lumen checkpoints exclude the main-thread cave steering scheduler and pending generators',()=>{
+ const m=setup();m.pebbleSteering={now:()=>performance.now(),jobs:new Map([[m, (function*(){yield;})()]])};
+ const checkpoint=structuredClone(lumenCheckpoint(m));
+ assert.equal('pebbleSteering' in checkpoint,false);
+ assert.equal(restoreLumenModel(checkpoint,m.environment).creatures.length,m.creatures.filter(c=>c.kind==='lumen').length);
+});

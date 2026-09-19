@@ -1,0 +1,23 @@
+{
+  "met": true,
+  "target": 60,
+  "runs": [
+    {
+      "kind": "walk",
+      "frames": 28753,
+      "fps": 59.902619960994286,
+      "p99": 23.600000381469727,
+      "max": 40.60000038146973,
+      "over50": 0,
+      "elapsed": 480.00410000038147,
+      "simulationRate": 0.9999914584058529,
+      "distance": 71807.0333457859,
+      "notes": 80,
+      "successfulNotes": 80,
+      "audioUnderruns": 0,
+      "lostImages": 0,
+      "met": true
+    }
+  ],
+  "errors": []
+}

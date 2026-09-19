@@ -8,9 +8,16 @@ function setup(){
  globalThis.Worker=class{constructor(){this.messages=[];workers.push(this);}postMessage(message){this.messages.push(message);if(message.type==='init')queueMicrotask(()=>this.onmessage({data:{type:'ready',supported:true}}));if(message.type==='reset')queueMicrotask(()=>this.onmessage({data:{type:'reset',epoch:message.epoch}}));}terminate(){this.terminated=true;}};
  globalThis.createImageBitmap=()=>new Promise((resolve,reject)=>captures.push({resolve,reject}));
  const source={width:32,height:64,style:{opacity:'.4'},transferControlToOffscreen(){},insertAdjacentElement(){}},produced=[];
- return{captures,workers,events,source,produced,create:()=>BufferedPresentation.create({source,depth:2,produce:dt=>produced.push(dt),present(){},onFrame(){}})};
+ return{captures,workers,events,source,produced,create:options=>BufferedPresentation.create({source,depth:2,produce:dt=>produced.push(dt),present(){},onFrame(){},...options})};
 }
 const bitmap=()=>({closed:0,close(){this.closed++;}});
+test('idle work waits until every requested image has been transferred',async()=>{
+ const f=setup(),idle=[],m=await f.create({onIdle(){idle.push({busy:m.busy,credits:m.credits,frames:f.workers[0].messages.filter(m=>m.type==='frame').length});}});
+ m.resume();await settle();assert.equal(idle.length,0);
+ f.captures[0].resolve(bitmap());await new Promise(r=>setTimeout(r,5));assert.equal(idle.length,0);
+ f.captures[1].resolve(bitmap());await new Promise(r=>setTimeout(r,5));
+ assert.deepEqual(idle,[{busy:false,credits:0,frames:2}]);m.dispose();
+});
 test('resize rejects an old in-flight image and refills the current generation',async()=>{
  const f=setup(),m=await f.create();m.resume();await settle();assert.equal(f.captures.length,1);
  const old=bitmap();m.resize();await settle();f.captures[0].resolve(old);await settle();

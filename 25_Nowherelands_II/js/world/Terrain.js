@@ -2,7 +2,7 @@ import { terrainMeshData } from './TerrainMeshData.js?v=stable-30-23';
 import * as THREE from 'three';
 import { config } from '../core/Config.js?v=stable-30-3';
 import { createTerrainMaterial } from './TerrainMaterial.js?v=player-notes-13';
-import { Vegetation } from './Vegetation.js?v=stable-30-26';
+import { Vegetation } from './Vegetation.js?v=streaming-60-30-19';
 
 // Quadtree terrain: the whole continent is always on screen, from 3 m cells at the player's feet
 // to 300 m cells on the far horizon. Every node is a 48x48 grid with a skirt hanging off its
@@ -13,7 +13,9 @@ const MAX_DEPTH = 9;                 // 80 m leaves beside rivers/cave mouths; 1
 const RIVER_DEPTH = 8;               // the finest level away from rivers
 const LOD_FACTOR = config.isTouch ? 1.3 : 1.7;
 const BUILD_BUDGET_MS = 3;
-const CATCH_UP_BUDGET_MS = 6;
+// A new area also builds fauna and articulated plants. Keep headroom for those
+// jobs and presentation on phones instead of doubling terrain work at entry.
+const CATCH_UP_BUDGET_MS = config.isTouch ? 3 : 6;
 const KEEP_FRAMES = 900;
 
 function buildIndex(seg) {
@@ -81,6 +83,7 @@ export class Terrain {
 	update(playerPos, dt) {
 		this.frame++;
 		const deadline = performance.now() + (this.needsVegetationCatchUp(playerPos) ? CATCH_UP_BUDGET_MS : BUILD_BUDGET_MS);
+		this.vegetation.disposeRetired(Math.min(deadline, performance.now() + 0.75));
 		const drawn = new Set();
 		this.requests.length = 0;
 		this.select(0, 0, 0, playerPos, drawn);

@@ -397,6 +397,7 @@ export class Vegetation {
 		this.heightmap = heightmap;
 		this.shared = shared;
 		this.chunks = new Map();
+		this.retiredMeshes = [];
 		this.geometryBounds = new WeakMap();
 		this.radius = config.world.vegetationRadius;
 		this.time = 0;
@@ -782,10 +783,27 @@ export class Vegetation {
 		this.noteCursor = (this.noteCursor + 1) % 8;
 	}
 
-	removeFarChunk(fkey) {
+	retireMeshes(meshes, defer) {
+		for (const mesh of meshes) {
+			this.scene.remove(mesh);
+			if (defer) this.retiredMeshes.push(mesh);
+			else { mesh.geometry.dispose(); mesh.dispose?.(); }
+		}
+	}
+
+	// Detach immediately, but release owned GPU buffers within the terrain's
+	// shared streaming budget. Materials belong to the vegetation system.
+	disposeRetired(deadline) {
+		while (this.retiredMeshes.length && performance.now() < deadline) {
+			const mesh = this.retiredMeshes.pop();
+			mesh.geometry.dispose(); mesh.dispose?.();
+		}
+	}
+
+	removeFarChunk(fkey, defer = false) {
 		const chunk = this.farChunks.get(fkey);
 		if (!chunk) return;
-		for (const mesh of chunk.meshes) { this.scene.remove(mesh); mesh.geometry.dispose(); if (mesh.dispose) mesh.dispose(); }
+		this.retireMeshes(chunk.meshes, defer);
 		this.farChunks.delete(fkey);
 	}
 
@@ -1207,10 +1225,10 @@ export class Vegetation {
         return p.applyMatrix4(perch.matrix);
     }
 
-	removeChunk(key) {
+	removeChunk(key, defer = false) {
 		const chunk = this.chunks.get(key);
 		if (!chunk) return;
-		for (const mesh of chunk.meshes) { this.scene.remove(mesh); mesh.geometry.dispose(); if (mesh.dispose) mesh.dispose(); }
+		this.retireMeshes(chunk.meshes, defer);
 		if (chunk.colliders && chunk.colliders.length) { const drop = new Set(chunk.colliders); this.shared.colliders = this.shared.colliders.filter((c) => !drop.has(c)); }
 		this.chunks.delete(key);
 		const [cx, cz] = key.split(',').map(Number);
@@ -1249,9 +1267,16 @@ export class Vegetation {
 		const player = this.shared.player ? this.shared.player.position : null;
 		if (player) this.fadeUniforms.uVegetationCamera.value.set(player.x, player.z);
 		const size = config.world.chunkSize, fadeEnd = this.fadeUniforms.uVegetationRange.value.y;
+		// Retire far copies first: near removals must not rebuild instance data
+		// in far chunks that are also leaving this frame.
+		const fcx = Math.floor(cx / 2), fcz = Math.floor(cz / 2);
+		for (const [key, chunk] of this.farChunks) {
+			const {x, z} = chunk;
+			if (Math.abs(x - fcx) > this.farRadius || Math.abs(z - fcz) > this.farRadius) this.removeFarChunk(key, true);
+		}
 		for (const [key, chunk] of this.chunks) {
 			const {x, z} = chunk;
-			if (Math.abs(x - cx) > this.radius || Math.abs(z - cz) > this.radius) { this.removeChunk(key); continue; }
+			if (Math.abs(x - cx) > this.radius || Math.abs(z - cz) > this.radius) { this.removeChunk(key, true); continue; }
 			if (player) {
 				// Every plant base belongs to this square. Once even its nearest point
 				// is beyond the fade, skip the now-invisible draws and vertex work.
@@ -1261,11 +1286,6 @@ export class Vegetation {
 				for (const mesh of chunk.detailMeshes) mesh.visible = visible;
 			}
 			if (player && Math.abs(x - cx) <= 2 && Math.abs(z - cz) <= 2) this.reveal(chunk, player.x, player.z);
-		}
-		const fcx = Math.floor(cx / 2), fcz = Math.floor(cz / 2);
-		for (const [key, chunk] of this.farChunks) {
-			const {x, z} = chunk;
-			if (Math.abs(x - fcx) > this.farRadius || Math.abs(z - fcz) > this.farRadius) this.removeFarChunk(key);
 		}
 	}
 }

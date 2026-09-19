@@ -84,3 +84,20 @@ test('packed cave grid keys keep signs, integer boundaries and string fallback d
   result.ground=-999; // A caller cannot overwrite any retained support record.
  }
 });
+
+test('complete cave support queries reuse exact coordinates without changing results or exposing cached records',()=>{
+ const cave={id:0,entrance:{x:0,y:0,z:0}},segment={cave};let queries=0;
+ const floor=(x,z)=>Math.sin(x*.03)+Math.cos(z*.02);
+ const hm={caves:{candidates:()=>[segment],section:(s,x,z)=>({cave,floor:floor(x,z),wall:20}),column:(x,z)=>({floor:floor(x,z),ceiling:40,water:-1000}),rockClearance:()=>100},caveFloorSurface:{sample:(id,x,z)=>{queries++;return {ground:floor(x,z),slope:.03};}}};
+ const surface=()=>({ground:100,water:-1000,roof:false});
+ const sample=pebbleCaveSampler(hm,surface,cave,0),reference=pebbleCaveSampler(hm,surface,cave,0,{cacheQueries:false});
+ for(let i=0;i<2048;i++){
+  const x=i*.013-15,z=i*.027-30,expected=reference(x,z),first=sample(x,z),before=queries;
+  assert.deepEqual(first,expected);first.ground=999;
+  for(let repeat=0;repeat<4;repeat++)assert.deepEqual(sample(x,z),expected);
+  assert.equal(queries,before,'repeated exact support must not re-query mesh triangles');
+ }
+ const old=sample(1.25,2.75);hm.caveFloorSurface={sample:()=>({ground:old.ground+1,slope:.2})};
+ assert.equal(sample(1.25,2.75).ground,old.ground+1);
+ assert.deepEqual(sample(-0,0),reference(-0,0));assert.deepEqual(sample(0,-0),reference(0,-0));
+});

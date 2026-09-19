@@ -10,14 +10,20 @@ export class MobilePointLights {
   this.pool=new Set(this.slots.map(s=>s.light));
  }
  discover() {
+  this.discovered=true;
   const live=new Set();
   this.scene.traverse(source=>{if(!source.isPointLight||this.pool.has(source))return;live.add(source);if(!this.sources.has(source))this.sources.set(source,source.layers.mask);source.layers.mask=0;});
   for(const [source,mask]of this.sources)if(!live.has(source)){source.layers.mask=mask;this.sources.delete(source);}
  }
  update(camera,dt) {
-  this.discover();const candidates=[];
-  for(const source of this.sources.keys()){
-   let visible=true;for(let parent=source;parent;parent=parent.parent)if(!parent.visible){visible=false;break;}
+  // World light owners exist before the first update. Explicit discovery is
+  // available for later additions; ordinary frames only inspect those owners,
+  // rather than walking every node in all the hidden plant rigs.
+  if(!this.discovered)this.discover();const candidates=[];
+  for(const [source,mask] of this.sources){
+   let visible=true,attached=false;
+   for(let parent=source;parent;parent=parent.parent){if(!parent.visible)visible=false;if(parent===this.scene)attached=true;}
+   if(!attached){source.layers.mask=mask;this.sources.delete(source);continue;}
    if(!visible||source.intensity<=0)continue;
    source.updateWorldMatrix(true,false);source.getWorldPosition(this.position);
    const d2=this.position.distanceToSquared(camera.position),range=source.distance||1000;
