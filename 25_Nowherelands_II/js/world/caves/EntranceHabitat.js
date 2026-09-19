@@ -33,13 +33,17 @@ export function entranceHabitat(hm,caves) {
 		}
 		// In-place jointed bedrock shoulders belong to the cliff. Their buried volume
 		// anchors each mass in the slope; downhill fragments are generated separately.
-		if(!['spring','valley'].includes(e.type))for(let j=0;j<7;j++) {
-			const side=rnd.next()<.6?-1:1,along=rnd.range(-10,60),across=side*(a.width+rnd.range(7,32)),p=at(along,across);
-			const sx=rnd.range(12,21),sy=rnd.range(5,10),sz=rnd.range(10,19),surface=hm.height(p.x,p.z);
+		for(let j=0;j<7;j++) {
+			// Two taller, unequal bedrock ribs frame the dark mouth from farther away;
+			// smaller shoulders and buried fragments keep the outcrop irregular.
+			const rib=j<2,side=rib?(j===0?-1:1):(rnd.next()<.6?-1:1);
+			const along=rib?rnd.range(22,48):rnd.range(-10,60),across=side*(a.width+rnd.range(rib?28:7,rib?42:32)),p=at(along,across);
+			const sx=rnd.range(12,21),sy=rib?rnd.range(28,44):rnd.range(5,10),sz=rnd.range(10,19),surface=hm.height(p.x,p.z);
+			if(hm.waterAt(p.x,p.z)>surface-12)continue;
 			const support=Math.min(surface,ground(p.x,p.z),ground(p.x-nx*sz*.5,p.z-nz*sz*.5));
 			// Avoid a block projecting unsupported across an exposed cave void.
 			if(field.density(p.x,support,p.z)>-Math.max(sx,sz))continue;
-			rocks.push({...p,y:support-sy*.65,sx,sy,sz,yaw:Math.atan2(nx,nz)+rnd.range(-.3,.3),tilt:rnd.range(-.15,.15),large:true,cover:0});
+			rocks.push({...p,y:support-sy*(rib?.38:.65),sx,sy,sz,yaw:Math.atan2(nx,nz)+rnd.range(-.3,.3),tilt:rnd.range(-.15,.15),large:true,cover:0});
 		}
 
 		for(let i=0;i<560;i++) {

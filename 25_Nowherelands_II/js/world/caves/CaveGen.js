@@ -1,6 +1,6 @@
 import { Random } from '../../core/Random.js';
 import { RIVER_STRIDE as S, RV, sectionArea } from '../gen/Rivers.js';
-import { CaveField, mix } from './CaveField.js';
+import { CaveField, mix, smooth } from './CaveField.js';
 
 // Spring caves beneath rising valley sides. Water is groundwater-fed and emerges into an
 // existing river; no surface stream is silently duplicated or removed. Joint directions and
@@ -21,16 +21,23 @@ export function generateCaves(hm, seed, limit=6) {
 	candidates.sort((a,b)=>b.rank-a.rank);
 	const caves=[];
 	const faceSlots=Math.min(2,Math.floor(limit/2));
-	for (const c of candidates) {
+	// Try the nearest suitable reach of the starting river first. Once one cave is
+	// accepted, resume geological ranking so the rest remain spread across the world.
+	const firstSites=[...candidates].sort((a,b)=>
+		Number(b.river===hm.world.spawn.river)-Number(a.river===hm.world.spawn.river) ||
+		Math.hypot(a.x,a.z)-Math.hypot(b.x,b.z));
+	for (const c of [...firstSites.map(c=>({...c,introductory:true})),...candidates]) {
+		if(c.introductory && caves.length)continue;
 		if (caves.some(p=>Math.hypot(p.entrance.x-c.x,p.entrance.z-c.z)<1500)) continue;
 		const wet=caves.length%3!==2, length=rnd.range(520,900), points=[];
 		const phase=rnd.range(0,6.28), width=rnd.range(19,26), base=c.wl+(wet?-3:9);
 		for (let i=0;i<=28;i++) {
 			const t=i/28,dist=t*length;
 			const bend=Math.sin(t*Math.PI)*Math.sin(t*7+phase)*48;
+			const mouth=1-smooth(0,140,dist);
 			const chamber=1+1.05*Math.exp(-(((t-.58)/.12)**2))+.45*Math.exp(-(((t-.84)/.09)**2));
 			points.push({x:c.x+c.nx*dist-c.nz*bend,z:c.z+c.nz*dist+c.nx*bend,floor:base+dist*.024,
-				width:width*chamber,height:25*chamber+5*Math.sin(t*9)**2,water:c.wl-.08+dist*.024,along:dist});
+				width:width*chamber+mouth*13,height:25*chamber+mouth*16+5*Math.sin(t*9)**2,water:c.wl-.08+dist*.024,along:dist});
 		}
 		// Keep all deep passages inside the mountain. Reject an unsuitable route instead of
 		// creating an exposed roof or an arbitrary mound to hide it.
@@ -102,6 +109,14 @@ function addMountainCaves(hm,caves,seed,limit) {
 		const slope=Math.hypot(dx,dz);if(slope<.4 || slope>1.8)continue;
 		const nx=dx/slope,nz=dz/slope;
 		if(hm.height(x+nx*180,z+nz*180)<h+65 || hm.height(x-nx*80,z-nz*80)>h-20)continue;
+		// A dry, descending approach gives walkers a view of the face. Avoid putting
+		// the new apron across a stream, where protecting the water would leave a step.
+		let approach=true;
+		for(let distance=20;distance<=210;distance+=10) {
+			const ax=x-nx*distance,az=z-nz*distance,ground=hm.height(ax,az);
+			if(hm.waterAt(ax,az)>ground-14 || ground>h-distance*.12){approach=false;break;}
+		}
+		if(!approach)continue;
 		sites.push({x,z,h,nx,nz,rank:rnd.next()+Math.min(slope,1)*.5});
 	}
 	sites.sort((a,b)=>b.rank-a.rank);
@@ -115,7 +130,7 @@ function addMountainCaves(hm,caves,seed,limit) {
 			const t=i/28,dist=t*length,bend=Math.sin(t*Math.PI)*Math.sin(t*5)*32;
 			const throat=Math.min(1,t*5),chamber=Math.exp(-(((t-.64)/.16)**2));
 			points.push({x:x+nx*dist-nz*bend,z:z+nz*dist+nx*bend,floor:h-1-dist*.13,
-				width:mix(fissure?8:19,20,throat)+chamber*13,height:mix(fissure?38:23,28,throat)+chamber*18,water:-1e6,along:dist});
+				width:mix(fissure?12:31,20,throat)+chamber*13,height:mix(fissure?48:39,28,throat)+chamber*18,water:-1e6,along:dist});
 		}
 		const main={wet:false,points,surfaceStart:4,roofTilt:fissure?-.18:.22,roofPower:fissure?.65:.35},cover=roofCover(hm,main);if(cover<10)continue;
 		const root=points[17],branch=[];
@@ -147,7 +162,7 @@ function addHighEntrance(hm,cave) {
 			for(let i=0;i<=steps;i++) {
 				const t=i/steps;
 				points.push({x:mix(root.x,x,t),z:mix(root.z,z,t),floor:mix(root.floor,floor,t),
-					width:mix(16,10,t),height:mix(25,32,t),water:-1e6,along:t*length});
+					width:mix(16,14,t),height:mix(25,40,t),water:-1e6,along:t*length});
 			}
 			const path={wet:false,points,surfaceEnd:4,roofTilt:-.18,roofPower:.4};if(roofCover(hm,path)<10)continue;
 			// The mouth must actually intersect the surface, including on steep terrain.

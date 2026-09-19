@@ -238,7 +238,7 @@ export function createTerrainMaterial(shared, heightmap) {
 				// Eroded limestone at the opening interrupts the soil cover and blends the
 				// cavity shell into an irregular band of exposed mountain rock.
 				float caveRim = smoothstep(-8.0, -0.2, vCave - vnoise(vWorldPos.xz * .24) * 2.5);
-				vec3 exposedRock=mix(vec3(.19,.16,.22),vec3(.39,.34,.38),vnoise(vWorldPos.xz*.085 + hSea*.031));
+				vec3 exposedRock=mix(vec3(.30,.27,.34),vec3(.56,.50,.55),vnoise(vWorldPos.xz*.085 + hSea*.031));
 				exposedRock*=.86+.14*band;
 				float soilPocket=smoothstep(.55,.8,n.y)*smoothstep(.48,.72,vnoise(vWorldPos.xz*.16));
 				exposedRock=mix(exposedRock,vec3(.10,.145,.12),soilPocket*.48);

@@ -9,6 +9,8 @@ export class CaveSurvey {
 			['Entrance',()=>this.visit('entrance')],['Underground river',()=>this.visit('river')],['Upper gallery',()=>this.visit('upper')],['Deep chamber',()=>this.visit('deep')],
 			['Mountain face',()=>this.findEntrance('mountain')],['Narrow fissure',()=>this.findEntrance('fissure')],['High entrance',()=>this.findEntrance('high')],
 			['On approach',()=>{this.start=null;this.outside(this.selectedEntrance,true);this.elapsed=-3;this.frames=[];}],
+			['Distant approach',()=>{this.start=null;this.outside(this.selectedEntrance,true,180);this.elapsed=-3;this.frames=[];}],
+			['Side approach',()=>{this.start=null;this.outside(this.selectedEntrance,true,140,80);this.elapsed=-3;this.frames=[];}],
 			['Look outward',()=>this.lookOut()],
 			['Next cave',()=>{this.index=(this.index+1)%shared.world.caves.length;this.visit('entrance');}],
 			['Follow passage (24s)',()=>{this.visit('river');this.start=performance.now()+4000;this.moving=[];this.panel.dataset.profile='';}],
@@ -37,13 +39,13 @@ export class CaveSurvey {
 		this.shared.player.pitch=-.14;
 		this.output.textContent='Looking out through the entrance · settling…';
 	}
-	outside(entrance,onFoot=false) {
+	outside(entrance,onFoot=false,distance=onFoot?12:65,side=0) {
 		const cave=this.shared.world.caves[this.index],points=cave.paths[entrance.path||0].points,end=entrance.end==='end';
 		const a=points[end?points.length-1:0],b=points[end?points.length-2:1],dx=b.x-a.x,dz=b.z-a.z,l=Math.hypot(dx,dz)||1;
-		const distance=onFoot?12:65,p=this.shared.player,x=a.x-dx/l*distance,z=a.z-dz/l*distance;
+		const p=this.shared.player,x=a.x-dx/l*distance-dz/l*side,z=a.z-dz/l*distance+dx/l*side;
 		const y=onFoot?this.shared.heightmap.height(x,z)+11:Math.max(a.floor+38,this.shared.heightmap.height(x,z)+14);
 		p.position.set(x,y,z);p.groundY=y-11;p.velocity.set(0,0,0);p.fly=true;
-		p.yaw=Math.atan2(-dx,-dz);p.pitch=onFoot?Math.atan2(b.floor+12-y,distance+l):Math.atan2(a.floor+16-y,distance);
+		p.yaw=Math.atan2(x-b.x,z-b.z);p.pitch=Math.atan2(b.floor+b.height*.5-y,Math.hypot(b.x-x,b.z-z));
 	}
 	place(path,index) {
 		const points=path.points,i=Math.min(points.length-2,Math.floor(index)),t=index-i,a=points[i],b=points[i+1],p=this.shared.player;

@@ -21,3 +21,15 @@ test('reconstructed object depth gives a near-surface fish a shorter absorption 
  const fish=restore(new THREE.Vector3(0,9,0)),bed=restore(new THREE.Vector3(0,-20,0));
  assert.ok(Math.abs(fish.y-9)<1e-9);assert.ok(Math.exp(-.32*(10-fish.y))>Math.exp(-.32*(10-bed.y))*1000);
 });
+
+test('cave streams capture color from depth-enabled targets without requiring depth uniforms',()=>{
+ const camera=new THREE.PerspectiveCamera(),uniforms={uSceneColor:{},uHasScene:{},uResolution:{value:new THREE.Vector2()}};
+ let target=new THREE.WebGLRenderTarget(64,64,{depthTexture:new THREE.DepthTexture(64,64)}),copies=0;
+ const renderer={getRenderTarget:()=>target,copyFramebufferToTexture:()=>copies++};
+ const optics=new WaterOptics({camera},uniforms);
+ optics.capture(renderer,null,camera);optics.capture(renderer,null,camera);
+ assert.equal(copies,1);assert.equal(uniforms.uHasScene.value,1);assert.equal(optics.depthTarget,null);
+ target.dispose();target=new THREE.WebGLRenderTarget(32,32);optics.beginFrame();optics.capture(renderer,null,camera);
+ assert.equal(copies,2);assert.deepEqual(uniforms.uResolution.value.toArray(),[32,32]);
+ optics.dispose();target.dispose();
+});

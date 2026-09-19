@@ -26,7 +26,9 @@ export class WaterOptics {
 			this.uniforms.uResolution.value.set(width, height);
 		}
 		renderer.copyFramebufferToTexture(this.texture);
-		if(target.depthTexture){
+		// Cave streams only sample color; depth reconstruction is an optional
+		// surface-water capability, not a requirement of every optics consumer.
+		if(target.depthTexture && this.uniforms.uSceneDepth){
 			if(!this.depthTarget||this.depthTarget.width!==width||this.depthTarget.height!==height){
 				this.depthTarget?.dispose();
 				this.depthTarget=new THREE.WebGLRenderTarget(width,height,{depthTexture:new THREE.DepthTexture(width,height,THREE.UnsignedIntType)});
@@ -38,7 +40,7 @@ export class WaterOptics {
 			this.uniforms.uHasSceneDepth.value=1;
 			this.uniforms.uInvProjection.value.copy(camera.projectionMatrixInverse);
 			this.uniforms.uCameraWorld.value.copy(camera.matrixWorld);
-		}else this.uniforms.uHasSceneDepth.value=0;
+		}else if(this.uniforms.uHasSceneDepth)this.uniforms.uHasSceneDepth.value=0;
 		this.uniforms.uHasScene.value = 1;
 		this.captured = true;
 	}
