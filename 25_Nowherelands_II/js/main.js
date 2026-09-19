@@ -8,8 +8,9 @@ import { PlantBatches } from './world/PlantBatches.js?v=streaming-60-30-19';
 import { mobileDetail, lowMemoryMobile, mobileOption } from './core/MobileDetail.js?v=stable-30-3';
 import { MobilePointLights } from './fx/MobilePointLights.js?v=streaming-60-30-19';
 import { ReplyOutlinePass } from './fx/ReplyOutlinePass.js?v=streaming-60-30-19';
-import { PlayerNotes } from './player/PlayerNotes.js?v=stable-30-3';
+import { PlayerNotes } from './player/PlayerNotes.js?v=structures-play-4';
 import * as THREE from 'three';
+import { WorldStructures } from './world/structures/WorldStructures.js?v=structures-place-4';
 import { FramePacer } from './core/FramePacer.js';
 import { EnvironmentProbe } from './fx/EnvironmentProbe.js?v=stable-30-3';
 import { config } from './core/Config.js?v=stable-30-3';
@@ -19,30 +20,30 @@ import { Heightmap } from './world/Heightmap.js?v=stable-30-28';
 import { Ripples } from './world/Ripples.js?v=player-notes-13';
 import { SurfaceWork } from './world/SurfaceWork.js?v=streaming-60-30-19';
 import { ShoreMap } from './world/ShoreMap.js?v=water-float-filter-1';
-import { Terrain } from './world/Terrain.js?v=streaming-60-30-19';
-import { Water } from './world/Water.js?v=stable-30-3';
-import { CoastalSpray } from './world/CoastalSpray.js?v=player-notes-13';
-import { InlandWater } from './world/InlandWater.js?v=pool-life-2';
-import { Waterfalls } from './world/Waterfalls.js?v=stable-30-5';
+import { Terrain } from './world/Terrain.js?v=structures-place-4';
+import { Water } from './world/Water.js?v=gate-dark-4';
+import { CoastalSpray } from './world/CoastalSpray.js?v=gate-dark-4';
+import { InlandWater } from './world/InlandWater.js?v=gate-dark-4';
+import { Waterfalls } from './world/Waterfalls.js?v=gate-dark-4';
 import { WatersideLife } from './world/WatersideLife.js?v=pool-life-1';
-import { WorldWaterLife } from './world/WorldWaterLife.js?v=streaming-60-30-19';
+import { WorldWaterLife } from './world/WorldWaterLife.js?v=gate-dark-4';
 import { WatersideAmbience } from './audio/WatersideAmbience.js?v=waterfall-audio-2';
 import { WatersideFeatures } from './world/WatersideFeatures.js';
-import { RiverDrift } from './world/RiverDrift.js?v=stable-30-10';
+import { RiverDrift } from './world/RiverDrift.js?v=gate-dark-4';
 import { createFogUniforms } from './world/FogGlsl.js';
 import { Sky } from './world/Sky.js?v=stable-30-3';
 import { RainCurtains } from './world/weather/RainCurtains.js';
-import { Weather } from './world/weather/Weather.js?v=stable-30-10';
-import { Precipitation } from './world/weather/Precipitation.js';
-import { Snow } from './world/Snow.js';
-import { Rain } from './world/Rain.js';
+import { Weather } from './world/weather/Weather.js?v=structures-world-2';
+import { Precipitation } from './world/weather/Precipitation.js?v=structures-place-4';
+import { Snow } from './world/Snow.js?v=structures-place-4';
+import { Rain } from './world/Rain.js?v=structures-place-4';
 import { Fireflies } from './world/Fireflies.js?v=stable-30-3';
 import { Sprouts } from './world/Sprouts.js';
-import { Landmarks } from './landmarks/Landmarks.js?v=streaming-60-30-19';
+import { Landmarks } from './landmarks/Landmarks.js?v=structures-world-2';
 import { dispatchPress } from './landmarks/TargetPicking.js';
-import { Player } from './player/Player.js?v=capture-2';
+import { Player } from './player/Player.js?v=structures-play-4';
 import { HUD } from './ui/HUD.js?v=capture-2';
-import { Caves } from './world/caves/Caves.js?v=stable-30-28';
+import { Caves } from './world/caves/Caves.js?v=gate-dark-4';
 import { WeatherSurvey } from './ui/WeatherSurvey.js?v=stable-30-10';
 import { CaveSurvey } from './ui/CaveSurvey.js';
 import { MovementProfile } from './ui/MovementProfile.js';
@@ -51,16 +52,16 @@ import { EventDirector } from './events/Events.js';
 import { PostProcessing } from './fx/PostProcessing.js?v=pool-life-2';
 import { FoliageDepthPrepass } from './fx/FoliageDepthPrepass.js?v=stable-30-3';
 import { installBoundedPointLights } from './fx/BoundedPointLights.js?v=stable-30-3';
-import { AudioEngine } from './audio/AudioEngine.js?v=capture-1';
-import { Conductor } from './audio/Conductor.js?v=waterfall-audio-1';
-import { Fauna } from './world/fauna/Fauna.js?v=streaming-60-30-19';
+import { AudioEngine } from './audio/AudioEngine.js?v=structures-play-4';
+import { Conductor } from './audio/Conductor.js?v=structures-place-4';
+import { Fauna } from './world/fauna/Fauna.js?v=gate-dark-4';
 import { WorldReedWalkers } from './world/fauna/WorldReedWalkers.js?v=streaming-60-30-19';
 import { WorldLanternMites } from './world/fauna/WorldLanternMites.js?v=streaming-60-30-19';
 import { WorldBirds } from './world/fauna/WorldBirds.js?v=streaming-60-30-19';
-import { WorldPlants } from './world/WorldPlants.js?v=streaming-60-30-19';
+import { WorldPlants } from './world/WorldPlants.js?v=structures-place-4';
 
 import { Capture } from './ui/Capture.js?v=capture-3';
-import { FaunaMenu } from './ui/FaunaMenu.js?v=streaming-60-30-19';
+import { FaunaMenu } from './ui/FaunaMenu.js?v=structures-place-4';
 
 const canvas = document.getElementById('canvas');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
@@ -95,6 +96,8 @@ const shared = {
 	conductor: null,
 	wandererProximity: 0,
 	colliders: [],
+ structureShelter: 0,
+ structureRoof: {uStructureRoofPose:{value:new THREE.Vector4(0,-1e6,0,0)},uStructureRoofProfile:{value:new THREE.Vector4(-3,28,2,29)}},
 };
 
 shared.planarReflections=new PlanarReflectionBudget(shared,{mobile:mobileDetail});
@@ -161,6 +164,7 @@ async function start(world,caveMeshes) {
 	const waterLife = new WorldWaterLife(scene,heightmap,shared,fauna.lakes,config.seed,{small:mobileDetail});shared.waterLife=waterLife;
 	const landmarks = new Landmarks(scene, heightmap, shared, camera);
 	landmarks.addFireflies(fireflies);
+ const structures=new WorldStructures(scene,heightmap,shared,config.seed,{enabled:new URLSearchParams(location.search).get('structures')!=='off'});shared.structures=structures;
 	const localLights = mobileDetail ? new MobilePointLights(scene) : new StablePointLights(scene);
 	shared.localLights = localLights;
 	const director = new EventDirector(shared);
@@ -180,8 +184,8 @@ async function start(world,caveMeshes) {
 	// ---- events ----
 	bus.on(Events.RIPPLE, ({ x, z, size, hue, saturation }) => ripples.add(x, z, size, hue % 1, saturation));
 	bus.on(Events.NOTE, (n) => {
-		if(n.layer==='plant-reply'||n.layer==='pendant')return;
-		if(n.layer==='player-note'){waterLife.hearNote(n);shared.playerNotes.hear(n);if(n.position)terrain.vegetation.noteAt(n.position.x,n.position.z,.5+(n.velocity||.3));return;}
+		if(n.layer==='plant-reply'||n.layer==='pendant'||n.layer==='structure-reply')return;
+		if(n.layer==='player-note'){shared.conductor?.playerNote(n);structures.hearNote(n);waterLife.hearNote(n);shared.playerNotes.hear(n);if(n.position)terrain.vegetation.noteAt(n.position.x,n.position.z,.5+(n.velocity||.3));return;}
 		mites.hearNote(n);
 		walkers.hearNote(n);birds.hearNote(n);
 		if (n.position) terrain.vegetation.noteAt(n.position.x, n.position.z, 0.5 + (n.velocity || 0.3));
@@ -221,7 +225,7 @@ async function start(world,caveMeshes) {
 	await plants.prewarm();
 	hud.setLoading('lighting the water', 1);
 	await waterLife.prewarm();
-	await warmStreamedMaterials(shared,[fauna.meshes.root,birds.root],{includeHidden:true});
+	await warmStreamedMaterials(shared,[fauna.meshes.root,birds.root,structures.root],{includeHidden:true});
  await replyOutlines.prewarm(shared);
 	const weatherSurvey=new URLSearchParams(location.search).has('weather') ? new WeatherSurvey(shared, sky) : null;
 	const caveSurvey=!weatherSurvey && new URLSearchParams(location.search).has('caves') ? new CaveSurvey(shared) : null;
@@ -308,6 +312,7 @@ async function start(world,caveMeshes) {
 		caveSurvey?.guide(now);
 		faunaMenu?.guide(dt);
 		player.update(dt, t);
+  structures.update(dt);
 		caves.update(t,player.position);
 		atmosphere.update(worldDt, dt, camera.position);
 		director.update(dt);

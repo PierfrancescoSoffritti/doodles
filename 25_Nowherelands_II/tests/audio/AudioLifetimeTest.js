@@ -48,3 +48,12 @@ test('drone crossfades disconnect the old modulation edge without disconnecting 
  assert.deepEqual(disconnected, [old, oldGain]);
  assert.deepEqual([...edges], [voice.osc.detune]);
 });
+
+test('replaced structure tones fade and stop every oscillator exactly once',()=>{
+ const stops=[],cancelled=[],targets=[];
+ const param=()=>({setValueAtTime(){},exponentialRampToValueAtTime(){},cancelScheduledValues(t){cancelled.push(t);},setTargetAtTime(...args){targets.push(args);}});
+ const ctx={currentTime:0,createBiquadFilter:()=>({Q:{},frequency:param(),connect(){}}),createGain:()=>({gain:param(),connect(){}}),createOscillator:()=>({frequency:{},detune:{},connect(){},start(){},stop(t){stops.push(t);}})};
+ const engine=Object.assign(Object.create(AudioEngine.prototype),{ctx,route:()=>[],finishVoice(){},emitNote(){}});
+ const voice=engine.playTone({freq:220,time:0,voices:2,octaveLayer:.1});ctx.currentTime=.2;voice.stop();voice.stop();
+ assert.deepEqual(cancelled,[.2]);assert.deepEqual(targets,[[.0001,.2,.02]]);assert.deepEqual(stops.slice(3),[.32,.32,.32]);
+});

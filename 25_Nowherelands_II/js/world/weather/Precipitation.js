@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { structureRoofGlsl } from '../structures/StructureRoof.js?v=structures-place-4';
 import { config } from '../../core/Config.js?v=stable-30-3';
 import { Random } from '../../core/Random.js';
 import { damp } from '../../core/Utils.js';
@@ -17,7 +18,7 @@ export class Precipitation {
 		const seed = new Float32Array(count * 4);
 		for (let i=0; i<count*4; i++) seed[i] = random.next();
 		g.setAttribute('aSeed', new THREE.InstancedBufferAttribute(seed, 4)); g.instanceCount = count;
-		this.uniforms = { ...shared.weather.uniforms, ...shared.shoreMap.uniforms,
+		this.uniforms = { ...shared.weather.uniforms, ...shared.shoreMap.uniforms, ...(shared.structureRoof||{uStructureRoofPose:{value:new THREE.Vector4(0,-1e6,0,0)},uStructureRoofProfile:{value:new THREE.Vector4(-3,28,2,29)}}),
 			uParticleTime: { value: 0 }, uFall: { value: 0 }, uCenter: { value: new THREE.Vector3() },
 			uTravel: { value: new THREE.Vector2() }, uLocalWind: { value: new THREE.Vector2() },
 		};
@@ -69,11 +70,12 @@ export class Precipitation {
 			fragmentShader: /* glsl */`
 				varying vec2 vUv; varying float vAlpha; varying vec3 vWorldPosition;
 				uniform float uLightning;
+    ${structureRoofGlsl}
 				${shared.shoreMap.glsl}
 				void main(){
 					// Shelter belongs to the drop's position. Clip the whole ribbon below terrain/roof,
 					// rather than hiding outdoor rain when the camera enters a cave.
-					if(vWorldPosition.y<=max(terrainHeightAt(vWorldPosition.xz),waterLevelAt(vWorldPosition.xz))+0.05)discard;
+					if(vWorldPosition.y<=max(max(terrainHeightAt(vWorldPosition.xz),waterLevelAt(vWorldPosition.xz)),structureRoofAt(vWorldPosition.xz))+0.05)discard;
 					vec2 p=vUv*2.0-1.0;
 					float shape=${snow || hail ? '1.0-smoothstep(0.35,1.0,length(p))' : '(1.0-smoothstep(0.15,1.0,abs(p.x)))*(1.0-smoothstep(0.55,1.0,abs(p.y)))'};
 					float a=shape*vAlpha*${snow ? '0.85' : hail ? '0.95' : '0.72'};

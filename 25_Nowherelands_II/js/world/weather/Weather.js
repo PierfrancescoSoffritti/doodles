@@ -83,7 +83,8 @@ export class Weather {
 		this.nearEntrance = this.entrances.some(e => Math.hypot(e.x-position.x, e.y-position.y, e.z-position.z) < 220);
 		// Terrain above the listener is authoritative at entrances; caveAmount smooths the sound.
 		const roof = s.heightmap.height(position.x, position.z) > position.y + 3;
-		this.exposure = roof ? 0 : 1 - smooth(0.08, 0.45, s.caveAmount || 0);
+  const structureExposure=1-(s.structureShelter||0)*.85;
+		this.exposure = roof ? 0 : (1 - smooth(0.08, 0.45, s.caveAmount || 0))*structureExposure;
 		for (const key of ['rain', 'snow', 'hail']) s.state[key] = l[key] * this.exposure;
 		s.state.storm = l.storm; s.state.cloudCover = l.coverage;
 		s.state.wind = l.windSpeed / 13 * this.exposure;

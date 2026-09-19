@@ -1,7 +1,7 @@
 import {replyOutline,writeReplyEcho} from './ReplyOutline.js?v=streaming-60-30-19';
 import { pebbleLighting, setPebbleLight } from './PebbleLighting.js';
 import * as THREE from 'three';
-import { terrainLightGlsl } from '../TerrainMaterial.js?v=player-notes-13';
+import { terrainLightGlsl } from '../TerrainMaterial.js?v=gate-dark-4';
 import { fogGlsl } from '../FogGlsl.js';
 
 const SEGMENTS = 7;

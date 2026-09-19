@@ -1,0 +1,1 @@
+{"label":"umbra / rapid player blips","frames":719,"interval":{"mean":16.669123782236156,"p95":19.600000381469727,"max":33.30000019073486},"maxPulses":6,"audio":{"underrunDuration":0.09175,"underrunEvents":2,"totalDuration":25.037512,"averageLatency":0.02727,"minimumLatency":0,"maximumLatency":0.027297}}

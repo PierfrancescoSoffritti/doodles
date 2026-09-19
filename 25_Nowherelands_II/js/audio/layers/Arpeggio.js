@@ -1,4 +1,4 @@
-import { Layer } from './Layer.js';
+import { Layer } from './Layer.js?v=structures-world-2';
 
 // Markov-chain melody: mostly stepwise motion with the occasional leap, gated by density.
 export class Arpeggio extends Layer {

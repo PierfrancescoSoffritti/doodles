@@ -272,6 +272,7 @@ export class Player {
 			}
 		}
 
+		this.shared.structures?.resolveMovement(previous,this.position);
 		this.speed = Math.hypot(this.velocity.x, this.velocity.z) * slopeK;
 		this.speed01 = clamp01(this.speed / SPRINT);
 
@@ -282,7 +283,7 @@ export class Player {
 		}
 		const surface=this.heightmap.sample(this.position.x,this.position.z);
 		if(cave && surface<cave.floor)cave=null;
-		const h = cave ? cave.floor : surface;
+		const h = cave ? cave.floor : Math.max(surface,this.shared.structures?.floorAt(this.position.x,this.position.z)??-1e6);
 		const waterY = cave ? cave.water : this.heightmap._water;
 		const ground = Math.max(h, waterY - 1.5);
 		this.groundY = damp(this.groundY, ground, 12, dt);

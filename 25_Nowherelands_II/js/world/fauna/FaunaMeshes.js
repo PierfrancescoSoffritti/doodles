@@ -1,7 +1,7 @@
 import {hypot2,hypot3} from '../../core/NumericDistance.js?v=stable-30-6';
 import { FaunaViews } from './FaunaViews.js?v=stable-30-3';
 import {replyOutline,writeReplyEcho} from './ReplyOutline.js?v=streaming-60-30-19';
-import { PebbleMeshes } from './PebbleMeshes.js?v=streaming-60-30-19';
+import { PebbleMeshes } from './PebbleMeshes.js?v=gate-dark-4';
 import { lumenAppearance } from './LumenAppearance.js?v=stable-30-3';
 import * as THREE from 'three';
 import { SPECIES } from './FaunaModel.js?v=streaming-60-30-19';

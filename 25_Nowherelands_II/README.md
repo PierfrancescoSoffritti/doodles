@@ -71,6 +71,10 @@ The [first vegetation study](docs/vegetation/exploration-v1/README.md) proposes 
 
 The [second study](docs/vegetation/exploration-v2/README.md) develops bell reeds and veil willows with three variations each, comparing resting specimens and small groups at dusk.
 
+## Structures
+
+The field guide now visits the **Resonant gate**, **Listening fold** and **Horizon frame**. Offer repeated notes to hear and see each structure answer. Enter the larger fold to hear the main music deepen; follow rough stone steps up the mountain to the horizon frame. There is at most one of each per seed, placed on validated dry terrain. The fold also shelters precipitation. See [world integration and performance notes](docs/structures/WORLD.md) and the [shared atelier](structure-atelier.html).
+
 ## Layout
 
 ```

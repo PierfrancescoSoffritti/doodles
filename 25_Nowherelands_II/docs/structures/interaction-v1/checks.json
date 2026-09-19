@@ -1,0 +1,291 @@
+{
+  "scope": "Short headless desktop integration/overhead check; not a sustained device acceptance run.",
+  "errors": [],
+  "seeds": [
+    {
+      "seed": "umbra",
+      "sites": [
+        {
+          "id": "resonant-gate",
+          "kind": "resonant-gate",
+          "x": -104.70350390462269,
+          "y": 78.95836446475079,
+          "z": 685.7708908880267,
+          "yaw": 0.7853981633974483,
+          "cos": 0.7071067811865476,
+          "sin": 0.7071067811865475,
+          "clearX": 43,
+          "clearZ": 35,
+          "extent": 55.44366510251644,
+          "score": 7.266062625260788,
+          "relief": 1.4492670631266122
+        },
+        {
+          "id": "listening-fold",
+          "kind": "listening-fold",
+          "x": 725.1198482394279,
+          "y": 80.51476129907336,
+          "z": 760.1727101838194,
+          "yaw": 5.497787143782138,
+          "cos": 0.7071067811865474,
+          "sin": -0.7071067811865477,
+          "clearX": 58,
+          "clearZ": 46,
+          "extent": 74.02702209328699,
+          "score": 7.162465788363534,
+          "relief": 1.264689048912544
+        },
+        {
+          "id": "horizon-frame",
+          "kind": "horizon-frame",
+          "x": -6072.867727969614,
+          "y": 1435.0175050946955,
+          "z": 4322.631383838907,
+          "yaw": 0.7853981633974483,
+          "cos": 0.7071067811865476,
+          "sin": 0.7071067811865475,
+          "clearX": 43,
+          "clearZ": 12,
+          "extent": 170,
+          "relief": 15.201338621918012,
+          "steps": 47,
+          "arrivalX": 0,
+          "arrivalZ": 155,
+          "end": 148,
+          "prominence": 76.67186102556207,
+          "score": 142.38936546541996,
+          "stoneCount": 60
+        }
+      ],
+      "stats": {
+        "sites": 3,
+        "draws": 4,
+        "triangles": 2974,
+        "responses": 0
+      }
+    },
+    {
+      "seed": "fern",
+      "sites": [
+        {
+          "id": "resonant-gate",
+          "kind": "resonant-gate",
+          "x": -637.5701940691117,
+          "y": 99.81902168236137,
+          "z": -698.4379441634073,
+          "yaw": 5.497787143782138,
+          "cos": 0.7071067811865474,
+          "sin": -0.7071067811865477,
+          "clearX": 43,
+          "clearZ": 35,
+          "extent": 55.44366510251644,
+          "score": 12.924428691386986,
+          "relief": 2.7372657234680275
+        },
+        {
+          "id": "listening-fold",
+          "kind": "listening-fold",
+          "x": -890.8770649246661,
+          "y": 100.84718073236675,
+          "z": -895.747100974016,
+          "yaw": 0,
+          "cos": 1,
+          "sin": 0,
+          "clearX": 58,
+          "clearZ": 46,
+          "extent": 74.02702209328699,
+          "score": 19.462711882094325,
+          "relief": 4.220749311973378
+        },
+        {
+          "id": "horizon-frame",
+          "kind": "horizon-frame",
+          "x": 2742.624088961708,
+          "y": 1275.7701471511289,
+          "z": 3443.698205160835,
+          "yaw": 5.497787143782138,
+          "cos": 0.7071067811865474,
+          "sin": -0.7071067811865477,
+          "clearX": 43,
+          "clearZ": 12,
+          "extent": 170,
+          "relief": 12.965014492799128,
+          "steps": 57,
+          "arrivalX": 0,
+          "arrivalZ": 155,
+          "end": 148,
+          "prominence": 59.80767551530653,
+          "score": 139.83374955079427,
+          "stoneCount": 77
+        }
+      ],
+      "stats": {
+        "sites": 3,
+        "draws": 4,
+        "triangles": 3514,
+        "responses": 0
+      }
+    },
+    {
+      "seed": "ondine-ossia",
+      "sites": [
+        {
+          "id": "resonant-gate",
+          "kind": "resonant-gate",
+          "x": 592.164228297675,
+          "y": 79.2017157762469,
+          "z": -639.4038963568514,
+          "yaw": 1.5707963267948966,
+          "cos": 6.123233995736766e-17,
+          "sin": 1,
+          "clearX": 43,
+          "clearZ": 35,
+          "extent": 55.44366510251644,
+          "score": 9.663337086654803,
+          "relief": 1.9689196561679267
+        },
+        {
+          "id": "listening-fold",
+          "kind": "listening-fold",
+          "x": -428.3291424247734,
+          "y": 5.997649936136325,
+          "z": -1108.3779172795414,
+          "yaw": 3.141592653589793,
+          "cos": -1,
+          "sin": 1.2246467991473532e-16,
+          "clearX": 58,
+          "clearZ": 46,
+          "extent": 74.02702209328699,
+          "score": 9.165151662099216,
+          "relief": 1.69227328283824
+        },
+        {
+          "id": "horizon-frame",
+          "kind": "horizon-frame",
+          "x": 2800.8680267583013,
+          "y": 1149.8322612615448,
+          "z": 5097.28969813999,
+          "yaw": 2.356194490192345,
+          "cos": -0.7071067811865475,
+          "sin": 0.7071067811865476,
+          "clearX": 43,
+          "clearZ": 12,
+          "extent": 170,
+          "relief": 7.008152837903253,
+          "steps": 41,
+          "arrivalX": 0,
+          "arrivalZ": 155,
+          "end": 148,
+          "prominence": 54.82948795422408,
+          "score": 123.37701794301866,
+          "stoneCount": 52
+        }
+      ],
+      "stats": {
+        "sites": 3,
+        "draws": 4,
+        "triangles": 2694,
+        "responses": 0
+      }
+    }
+  ],
+  "samples": [
+    {
+      "label": "umbra / gate enabled",
+      "frames": 719,
+      "interval": {
+        "mean": 16.684540389972145,
+        "p95": 20.399999618530273,
+        "max": 31.700000762939453
+      },
+      "structureUpdateMs": {
+        "mean": 0.003055551317003038,
+        "p95": 0,
+        "max": 0.10000038146972656
+      },
+      "programs": 125,
+      "geometryCount": 2029,
+      "audio": {
+        "underrunDuration": 0,
+        "underrunEvents": 0,
+        "totalDuration": 16.025326,
+        "averageLatency": 0.027268,
+        "minimumLatency": 0,
+        "maximumLatency": 0.0273
+      }
+    },
+    {
+      "label": "umbra / inside fold",
+      "frames": 720,
+      "interval": {
+        "mean": 16.663699582488547,
+        "p95": 23,
+        "max": 25
+      },
+      "structureUpdateMs": {
+        "mean": 0.0077777836057874895,
+        "p95": 0.10000038146972656,
+        "max": 0.10000038146972656
+      },
+      "programs": 126,
+      "geometryCount": 2083,
+      "audio": {
+        "underrunDuration": 0,
+        "underrunEvents": 0,
+        "totalDuration": 40.08331,
+        "averageLatency": 0.027274,
+        "minimumLatency": 0,
+        "maximumLatency": 0.027302
+      }
+    },
+    {
+      "label": "umbra / summit trail",
+      "frames": 720,
+      "interval": {
+        "mean": 16.67065368673566,
+        "p95": 20.699999809265137,
+        "max": 23.699999809265137
+      },
+      "structureUpdateMs": {
+        "mean": 0.004444448153177897,
+        "p95": 0,
+        "max": 0.10000038146972656
+      },
+      "programs": 125,
+      "geometryCount": 1567,
+      "audio": {
+        "underrunDuration": 0,
+        "underrunEvents": 0,
+        "totalDuration": 71.158206,
+        "averageLatency": 0.027275,
+        "minimumLatency": 0,
+        "maximumLatency": 0.027302
+      }
+    },
+    {
+      "label": "umbra / structures disabled",
+      "frames": 720,
+      "interval": {
+        "mean": 16.69151599417144,
+        "p95": 19.600000381469727,
+        "max": 33.30000019073486
+      },
+      "structureUpdateMs": {
+        "mean": 0.002357834751166186,
+        "p95": 0,
+        "max": 0.10000038146972656
+      },
+      "programs": 123,
+      "geometryCount": 2048,
+      "audio": {
+        "underrunDuration": 0,
+        "underrunEvents": 0,
+        "totalDuration": 20.024326,
+        "averageLatency": 0.02727,
+        "minimumLatency": 0,
+        "maximumLatency": 0.0273
+      }
+    }
+  ],
+  "status": "passed"
+}

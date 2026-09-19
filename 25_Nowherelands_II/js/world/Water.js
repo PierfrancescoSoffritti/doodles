@@ -2,7 +2,7 @@ import { mobileDetail, mobileOption } from '../core/MobileDetail.js?v=stable-30-
 import * as THREE from 'three';
 import { Reflector } from 'three/addons/objects/Reflector.js';
 import { config } from '../core/Config.js?v=stable-30-3';
-import { createSeaUniforms, seaVertexShader, seaFragmentShader, updateSeaUniforms } from './SeaShader.js?v=player-notes-13';
+import { createSeaUniforms, seaVertexShader, seaFragmentShader, updateSeaUniforms } from './SeaShader.js?v=gate-dark-4';
 
 // The sea: concentric square rings with 2 m cells (4 m on mobile) at the feet,
 // doubling toward the four-kilometre rim. Waves displace the vertices; beyond is a flat

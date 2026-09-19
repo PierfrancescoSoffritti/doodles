@@ -9,7 +9,7 @@ import { FaunaProfile } from './FaunaProfile.js';
 import { Random } from '../../core/Random.js';
 import { bus, Events } from '../../core/EventBus.js';
 import { FaunaModel, SPECIES } from './FaunaModel.js?v=streaming-60-30-19';
-import { FaunaMeshes } from './FaunaMeshes.js?v=streaming-60-30-19';
+import { FaunaMeshes } from './FaunaMeshes.js?v=gate-dark-4';
 import { FaunaAudio } from '../../audio/FaunaAudio.js?v=stable-30-3';
 import { pebbleHabitatSites } from './PebbleHabitats.js?v=streaming-60-30-19';
 import { PebbleColonyTour } from './PebbleColonyTour.js?v=2';

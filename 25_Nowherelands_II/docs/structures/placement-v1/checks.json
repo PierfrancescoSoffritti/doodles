@@ -1,0 +1,372 @@
+{
+  "scope": "Short headless desktop integration/overhead check; not a sustained device acceptance run.",
+  "errors": [],
+  "seeds": [
+    {
+      "seed": "umbra",
+      "sites": [
+        {
+          "id": "resonant-gate",
+          "kind": "resonant-gate",
+          "x": -1004.2344623694979,
+          "y": 89.26731893035219,
+          "z": 1519.1490278308224,
+          "yaw": 5.497787143782138,
+          "cos": 0.7071067811865474,
+          "sin": -0.7071067811865477,
+          "clearX": 43,
+          "clearZ": 35,
+          "extent": 55.44366510251644,
+          "arrivalZ": 85,
+          "score": 49.66693660334577,
+          "relief": 3.146984044386869,
+          "setting": "shore threshold",
+          "interest": 57.78197597687743,
+          "reveal": 24.481811013568475,
+          "backing": 3.2680831551114267,
+          "forestEdge": -0.8918097749179562,
+          "waterView": true
+        },
+        {
+          "id": "listening-fold",
+          "kind": "listening-fold",
+          "x": -1511.782599896508,
+          "y": 94.93148033889977,
+          "z": 2099.745313119348,
+          "yaw": 0,
+          "cos": 1,
+          "sin": 0,
+          "clearX": 58,
+          "clearZ": 46,
+          "extent": 74.02702209328699,
+          "arrivalZ": 120,
+          "score": 53.28736681256789,
+          "relief": 2.5545545870278374,
+          "setting": "sheltered waterside",
+          "interest": 60.983833134238964,
+          "reveal": 21.048253465467056,
+          "backing": 1.7084020469526706,
+          "forestEdge": 0.6149828242594791,
+          "waterView": true
+        },
+        {
+          "id": "horizon-frame",
+          "kind": "horizon-frame",
+          "x": -6072.867727969614,
+          "y": 1436.0878376158923,
+          "z": 4322.631383838907,
+          "yaw": 5.105088062083414,
+          "cos": 0.38268343236509,
+          "sin": -0.9238795325112866,
+          "clearX": 43,
+          "clearZ": 12,
+          "extent": 170,
+          "relief": 18.86314247040559,
+          "steps": 31,
+          "arrivalX": 0,
+          "arrivalZ": 95,
+          "end": 88,
+          "arrivalYaw": 5.105088062083414,
+          "prominence": 76.67186102556207,
+          "view": {
+            "x": -4040.3327564447836,
+            "y": 799.0382362322902,
+            "z": 3480.727832635709,
+            "distance": 2200,
+            "drop": 639.3173301408514,
+            "nearDrop": 84.18116183429743,
+            "leftRise": 170.7071060787166,
+            "rightRise": 388.2370409050983,
+            "score": 134.80851655771426
+          },
+          "setting": "valley overlook",
+          "score": 253.52516128452606,
+          "stoneCount": 43
+        }
+      ],
+      "stats": {
+        "sites": 3,
+        "draws": 4,
+        "triangles": 2314,
+        "responses": 0
+      }
+    },
+    {
+      "seed": "fern",
+      "sites": [
+        {
+          "id": "resonant-gate",
+          "kind": "resonant-gate",
+          "x": -1057.2529763671976,
+          "y": 103.18108104164712,
+          "z": -806.14478425557,
+          "yaw": 3.9269908169872414,
+          "cos": -0.7071067811865477,
+          "sin": -0.7071067811865475,
+          "clearX": 43,
+          "clearZ": 35,
+          "extent": 55.44366510251644,
+          "arrivalZ": 85,
+          "score": 46.4745733090595,
+          "relief": 2.500206703709992,
+          "setting": "shore threshold",
+          "interest": 52.80451793808346,
+          "reveal": 21.39500031085005,
+          "backing": 2.285819803575805,
+          "forestEdge": 0.7804647951224555,
+          "waterView": true
+        },
+        {
+          "id": "listening-fold",
+          "kind": "listening-fold",
+          "x": 1168.698712667274,
+          "y": 11.295637061042495,
+          "z": -1199.421999307164,
+          "yaw": 0,
+          "cos": 1,
+          "sin": 0,
+          "clearX": 58,
+          "clearZ": 46,
+          "extent": 74.02702209328699,
+          "arrivalZ": 120,
+          "score": 42.30169063287251,
+          "relief": 4.293908271620021,
+          "setting": "sheltered waterside",
+          "interest": 52.56416230879275,
+          "reveal": 22.923093838863736,
+          "backing": 1.1909772625426047,
+          "forestEdge": 0.44529914366988893,
+          "waterView": true
+        },
+        {
+          "id": "horizon-frame",
+          "kind": "horizon-frame",
+          "x": -884.1516407954178,
+          "y": 1331.4328806278263,
+          "z": 3960.7258363625797,
+          "yaw": 0.7853981633974483,
+          "cos": 0.7071067811865476,
+          "sin": 0.7071067811865475,
+          "clearX": 43,
+          "clearZ": 12,
+          "extent": 170,
+          "relief": 13.175649160080638,
+          "steps": 39,
+          "arrivalX": -155,
+          "arrivalZ": 9.491012693391987e-15,
+          "end": 148,
+          "arrivalYaw": -0.7853981633974483,
+          "prominence": 128.80684682045103,
+          "view": {
+            "x": -2439.786559405822,
+            "y": 459.7044986738413,
+            "z": 2405.0909177521753,
+            "distance": 2200,
+            "drop": 874.0178076512414,
+            "nearDrop": 157.10395741262255,
+            "leftRise": 318.66168627032437,
+            "rightRise": 82.12322918442624,
+            "score": 149.0698583347541
+          },
+          "setting": "valley overlook",
+          "score": 289.2267807909728,
+          "stoneCount": 54
+        }
+      ],
+      "stats": {
+        "sites": 3,
+        "draws": 4,
+        "triangles": 2694,
+        "responses": 0
+      }
+    },
+    {
+      "seed": "ondine-ossia",
+      "sites": [
+        {
+          "id": "resonant-gate",
+          "kind": "resonant-gate",
+          "x": -816.9277198230914,
+          "y": 80.74927270521344,
+          "z": 1756.441678433474,
+          "yaw": 5.497787143782138,
+          "cos": 0.7071067811865474,
+          "sin": -0.7071067811865477,
+          "clearX": 43,
+          "clearZ": 35,
+          "extent": 55.44366510251644,
+          "arrivalZ": 85,
+          "score": 48.06602771812483,
+          "relief": 2.9072960188845087,
+          "setting": "shore threshold",
+          "interest": 55.81774604737656,
+          "reveal": 31.53058737743944,
+          "backing": 1.3037826685017535,
+          "forestEdge": 0.7652011561506501,
+          "waterView": true
+        },
+        {
+          "id": "listening-fold",
+          "kind": "listening-fold",
+          "x": -358.59694718492426,
+          "y": 4.670106319303877,
+          "z": -1031.2985905252187,
+          "yaw": 3.141592653589793,
+          "cos": -1,
+          "sin": 1.2246467991473532e-16,
+          "clearX": 58,
+          "clearZ": 46,
+          "extent": 74.02702209328699,
+          "arrivalZ": 120,
+          "score": 58.58246263773451,
+          "relief": 2.7898109547785612,
+          "setting": "sheltered waterside",
+          "interest": 65.25394926114113,
+          "reveal": 6.145380023868033,
+          "backing": 1.7828512214835568,
+          "forestEdge": 0.7591032504695476,
+          "waterView": true
+        },
+        {
+          "id": "horizon-frame",
+          "kind": "horizon-frame",
+          "x": 5488.66716561596,
+          "y": 1147.5290919322406,
+          "z": 1186.5824831364557,
+          "yaw": 1.1780972450961724,
+          "cos": 0.38268343236508984,
+          "sin": 0.9238795325112867,
+          "clearX": 43,
+          "clearZ": 12,
+          "extent": 170,
+          "relief": 16.331465846329138,
+          "steps": 34,
+          "arrivalX": 119,
+          "arrivalZ": 7.286648454926752e-15,
+          "end": 112,
+          "arrivalYaw": 2.748893571891069,
+          "prominence": 127.80553513699942,
+          "view": {
+            "x": 4010.4599135979006,
+            "y": 396.2313969934446,
+            "z": 574.288991352312,
+            "distance": 1600,
+            "drop": 753.3947356329941,
+            "nearDrop": 135.13609602829365,
+            "leftRise": 181.7547717106561,
+            "rightRise": 23.80560186837289,
+            "score": 139.94527695795793
+          },
+          "setting": "valley overlook",
+          "score": 251.26351958961584,
+          "stoneCount": 48
+        }
+      ],
+      "stats": {
+        "sites": 3,
+        "draws": 4,
+        "triangles": 2474,
+        "responses": 0
+      }
+    }
+  ],
+  "samples": [
+    {
+      "label": "umbra / gate enabled",
+      "frames": 720,
+      "interval": {
+        "mean": 16.66161335161233,
+        "p95": 19.699999809265137,
+        "max": 24.100000381469727
+      },
+      "structureUpdateMs": {
+        "mean": 0.0037500050332811142,
+        "p95": 0,
+        "max": 0.10000038146972656
+      },
+      "programs": 122,
+      "geometryCount": 2095,
+      "audio": {
+        "underrunDuration": 0,
+        "underrunEvents": 0,
+        "totalDuration": 16.014662,
+        "averageLatency": 0.027266,
+        "minimumLatency": 0,
+        "maximumLatency": 0.027296
+      }
+    },
+    {
+      "label": "umbra / inside fold",
+      "frames": 720,
+      "interval": {
+        "mean": 16.669123783562544,
+        "p95": 20.800000190734863,
+        "max": 25.200000762939453
+      },
+      "structureUpdateMs": {
+        "mean": 0.009444453981187609,
+        "p95": 0.10000038146972656,
+        "max": 0.10000038146972656
+      },
+      "programs": 125,
+      "geometryCount": 2162,
+      "audio": {
+        "underrunDuration": 0,
+        "underrunEvents": 0,
+        "totalDuration": 40.072646,
+        "averageLatency": 0.027272,
+        "minimumLatency": 0,
+        "maximumLatency": 0.027296
+      }
+    },
+    {
+      "label": "umbra / summit trail",
+      "frames": 720,
+      "interval": {
+        "mean": 16.67051460414669,
+        "p95": 20.5,
+        "max": 22.600000381469727
+      },
+      "structureUpdateMs": {
+        "mean": 0.0023611121707492405,
+        "p95": 0,
+        "max": 0.10000038146972656
+      },
+      "programs": 125,
+      "geometryCount": 1357,
+      "audio": {
+        "underrunDuration": 0,
+        "underrunEvents": 0,
+        "totalDuration": 68.140294,
+        "averageLatency": 0.027273,
+        "minimumLatency": 0,
+        "maximumLatency": 0.027296
+      }
+    },
+    {
+      "label": "umbra / structures disabled",
+      "frames": 720,
+      "interval": {
+        "mean": 16.68636995827538,
+        "p95": 19.600000381469727,
+        "max": 35.39999961853027
+      },
+      "structureUpdateMs": {
+        "mean": 0.0013869625520110957,
+        "p95": 0,
+        "max": 0.10000038146972656
+      },
+      "programs": 120,
+      "geometryCount": 2015,
+      "audio": {
+        "underrunDuration": 0,
+        "underrunEvents": 0,
+        "totalDuration": 20.024326,
+        "averageLatency": 0.027268,
+        "minimumLatency": 0,
+        "maximumLatency": 0.027296
+      }
+    }
+  ],
+  "status": "passed"
+}

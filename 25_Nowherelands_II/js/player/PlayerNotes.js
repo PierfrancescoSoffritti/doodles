@@ -17,11 +17,11 @@ export class PlayerNotes {
   if(s.audio.ctx.state!=='running')await s.audio.resume();const e=s.audio;
   if(e.now-this.last<.16)return false;this.last=e.now;
   const degree=[0,2,4,2][this.serial++%4],loaded=charge>2/3;
-  e.playTone({freq:s.conductor.scale.freq(degree,loaded?1:2),position:{x:s.player.position.x,y:s.player.position.y,z:s.player.position.z},velocity:.35+Math.min(1,charge)*.6,type:loaded?'triangle':'sine',voices:loaded?3:1,detune:loaded?7:0,octaveLayer:loaded?.35:0,attack:loaded?.055:.035,duration:loaded?.48:.22,release:loaded?.75:.4,cutoff:loaded?1300:2200,reverb:.2,dest:e.playerBus,layer:'player-note',replyTarget});
-  e.duck(.35,1.2);return true;
+  e.playTone({freq:s.conductor.scale.freq(degree,loaded?1:2),position:{x:s.player.position.x,y:s.player.position.y,z:s.player.position.z},velocity:.35+Math.min(1,charge)*.6,type:loaded?'triangle':'sine',voices:loaded?3:1,detune:loaded?7:0,octaveLayer:loaded?.35:0,attack:loaded?.055:.035,duration:loaded?.48:.22,release:loaded?.75:.4,cutoff:loaded?1300:2200,reverb:.2+(s.structureShelter||0)*.35,dest:e.playerBus,layer:'player-note',replyTarget});
+  e.duck(.45,.75);return true;
  }
  hear(note){
-  const s=this.shared,size=.6+note.velocity*2,radius=playerNoteRadius(note.velocity);
+  const s=this.shared,size=.9+note.velocity*2.6,radius=playerNoteRadius(note.velocity);
   s.ripples.add(note.position.x,note.position.z,size,note.velocity>.75?.085:(s.hue+.15)%1,.9,radius);
   const stimulus={...note,radius};
   s.plants?.hearNote(stimulus);

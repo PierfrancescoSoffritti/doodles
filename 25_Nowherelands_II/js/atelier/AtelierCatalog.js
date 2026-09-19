@@ -17,18 +17,24 @@ export const ATELIER_WATER = [
  {id:'scarlet-fish', name:'Scarlet fish', number:'W2'},
  {id:'light-lily', name:'Light lilies', number:'W3'}
 ];
+export const ATELIER_STRUCTURES = [
+ {id:'resonant-gate',name:'Resonant gate',number:'S1'},
+ {id:'listening-fold',name:'Listening fold',number:'S2'},
+ {id:'horizon-frame',name:'Horizon frame',number:'S3'}
+];
 export function atelierURL(id, seed = '') {
+ const structure = ATELIER_STRUCTURES.some(s=>s.id===id);
  const plant = ATELIER_PLANTS.some(s=>s.id===id);
  const water = ATELIER_WATER.some(s=>s.id===id);
- const path = water ? './water-atelier.html' : plant ? './vegetation-atelier.html' : id === 'reed' ? './reed-study.html' : './fauna-atelier.html';
- const params = new URLSearchParams(); if (id !== 'reed') params.set('species', water || plant || ATELIER_SPECIES.some(s=>s.id===id) ? id : 'lumen');
+ const path = structure ? './structure-atelier.html' : water ? './water-atelier.html' : plant ? './vegetation-atelier.html' : id === 'reed' ? './reed-study.html' : './fauna-atelier.html';
+ const params = new URLSearchParams(); if (id !== 'reed') params.set('species', structure || water || plant || ATELIER_SPECIES.some(s=>s.id===id) ? id : 'lumen');
  if (seed) params.set('seed',seed); return path + (params.size ? '?' + params : '');
 }
 export function mountAtelierNavigation(id) {
  const seed = new URLSearchParams(location.search).get('seed') || '';
  const select = document.getElementById('atelier-species');
- select.setAttribute('aria-label','Atelier species');
- for (const [label, entries] of [['Fauna', ATELIER_SPECIES], ['Vegetation', ATELIER_PLANTS], ['Water · atelier studies', ATELIER_WATER]]) {
+ select.setAttribute('aria-label','Explore the atelier');
+ for (const [label, entries] of [['Fauna', ATELIER_SPECIES], ['Vegetation', ATELIER_PLANTS], ['Water · atelier studies', ATELIER_WATER], ['Structures · atelier studies', ATELIER_STRUCTURES]]) {
   const group=document.createElement('optgroup');group.label=label;
   for (const species of entries) { const option=document.createElement('option'); option.value=species.id;option.textContent=species.number+' / '+species.name;group.append(option); }
   select.append(group);

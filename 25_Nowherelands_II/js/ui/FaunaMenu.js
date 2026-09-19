@@ -1,3 +1,5 @@
+import { StructureSurvey } from './StructureSurvey.js?v=structures-place-4';
+import { STRUCTURE_KINDS } from '../world/structures/StructureSites.js?v=structures-place-4';
 import { FaunaSurvey } from './FaunaSurvey.js?v=streaming-60-30-19';
 import { ReedSurvey } from './ReedSurvey.js?v=fauna-menu-2';
 import { BirdSurvey } from './BirdSurvey.js?v=fauna-menu-2';
@@ -7,6 +9,9 @@ import { PlantSurvey } from './PlantSurvey.js?v=streaming-60-30-19';
 import { config } from '../core/Config.js?v=stable-30-3';
 
 const FAUNA = [
+ {id:'resonant-gate',name:'Resonant gate',habitat:'A passage that answers your note',next:'Return to the gate'},
+ {id:'listening-fold',name:'Listening fold',habitat:'A shelter that changes the music',next:'Return to the fold'},
+ {id:'horizon-frame',name:'Horizon frame',habitat:'An opening around a distant view',next:'Return to the frame'},
 	{ id: 'scarlet-fish', name: 'Scarlet fish', habitat: 'Quiet swimmers beneath the water', next: 'Visit another pool' },
 	{ id: 'light-lily', name: 'Light lilies', habitat: 'Floating flowers with warm hearts', next: 'Visit another patch' },
 	{ id: 'lumen', name: 'Lumen shoal', habitat: 'Living lights along the shores', next: 'Visit another flock' },
@@ -31,10 +36,10 @@ export class FaunaMenu {
 		this.panel.id = 'fauna-menu';
 		this.panel.className = 'fauna-guide fauna-menu';
 		this.panel.setAttribute('aria-labelledby', 'fauna-menu-title');
-		this.panel.innerHTML = '<header><div class="fauna-guide-kicker">NOWHERELANDS</div><h2 id="fauna-menu-title">Meet the living world</h2><p>Visit the plants and creatures in their homes.</p></header>';
+		this.panel.innerHTML = '<header><div class="fauna-guide-kicker">NOWHERELANDS</div><h2 id="fauna-menu-title">Meet the living world</h2><p>Visit plants, creatures and quiet structures.</p></header>';
 		const list = document.createElement('nav');
 		list.className = 'fauna-menu-list';
-		list.setAttribute('aria-label', 'Plants and fauna');
+		list.setAttribute('aria-label', 'Structures, plants and fauna');
 		for (const entry of FAUNA) {
 			const button = document.createElement('button');
 			button.type = 'button';
@@ -89,7 +94,7 @@ export class FaunaMenu {
 			}
 		});
 		const params = new URLSearchParams(location.search);
-		const initial = params.get('plants') || (params.has('reeds') ? 'reed' : params.has('birds') ? 'bird' : params.has('mites') ? 'mite' : params.get('fauna'));
+		const initial = (STRUCTURE_KINDS.includes(params.get('structures'))?params.get('structures'):null) || params.get('plants') || (params.has('reeds') ? 'reed' : params.has('birds') ? 'bird' : params.has('mites') ? 'mite' : params.get('fauna'));
 		if (FAUNA.some(entry => entry.id === initial)) this.visit(initial, false, false);
 	}
 
@@ -105,7 +110,7 @@ export class FaunaMenu {
 		const key = ['lumen', 'hopper', 'ray'].includes(kind) ? 'fauna' : kind;
 		if (!this.controllers.has(key)) {
 			const s = this.shared, options = { mount: false };
-			const controller = ['scarlet-fish','light-lily'].includes(key) ? new WaterLifeSurvey(s,key) : ['bell-reed','veil-willow'].includes(key) ? new PlantSurvey(s,key) : key === 'fauna' ? new FaunaSurvey(s, s.fauna, options)
+			const controller = STRUCTURE_KINDS.includes(key) ? new StructureSurvey(s,key) : ['scarlet-fish','light-lily'].includes(key) ? new WaterLifeSurvey(s,key) : ['bell-reed','veil-willow'].includes(key) ? new PlantSurvey(s,key) : key === 'fauna' ? new FaunaSurvey(s, s.fauna, options)
 				: key === 'reed' ? new ReedSurvey(s, s.walkers, options)
 				: key === 'bird' ? new BirdSurvey(s, s.birds, options)
 				: new LanternMiteSurvey(s, s.mites, options);
@@ -141,7 +146,7 @@ export class FaunaMenu {
 			const other = another && this.shared.birds.encounters.find(bird => bird.habitat.id !== controller.subject?.habitat.id);
 			if (another && !other) this.findForest(kind, controller.subject?.habitat.id);
 			else { controller.watch('ground', other || undefined); if (controller.mode === 'search') this.findForest(kind); }
-		} else if (kind === 'scarlet-fish' || kind === 'light-lily' || kind === 'reed' || kind === 'mite' || kind === 'bell-reed' || kind === 'veil-willow') {
+		} else if (STRUCTURE_KINDS.includes(kind) || kind === 'scarlet-fish' || kind === 'light-lily' || kind === 'reed' || kind === 'mite' || kind === 'bell-reed' || kind === 'veil-willow') {
 			const found = controller.visit(another ? controller.group : undefined);
 			if (kind === 'mite' && !found) this.findForest(kind, another ? controller.group?.id : undefined);
 		} else if (another) {
@@ -157,7 +162,9 @@ export class FaunaMenu {
 		const url = new URL(location.href);
 		url.searchParams.set('seed',config.seed);
 		for (const key of ['reeds', 'birds', 'mites']) url.searchParams.delete(key);
-		const plant=['bell-reed','veil-willow','light-lily'].includes(kind);url.searchParams.delete(plant?'fauna':'plants');url.searchParams.set(plant?'plants':'fauna', kind);
+		if(STRUCTURE_KINDS.includes(kind)){url.searchParams.delete('fauna');url.searchParams.delete('plants');url.searchParams.set('structures',kind);history.replaceState(null,'',url);return;}
+  if(url.searchParams.get('structures')!=='off')url.searchParams.delete('structures');
+  const plant=['bell-reed','veil-willow','light-lily'].includes(kind);url.searchParams.delete(plant?'fauna':'plants');url.searchParams.set(plant?'plants':'fauna', kind);
 		history.replaceState(null, '', url);
 	}
 

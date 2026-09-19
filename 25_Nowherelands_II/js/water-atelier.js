@@ -4,7 +4,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { ATELIER_WATER, mountAtelierNavigation } from './atelier/AtelierCatalog.js?v=water-2';
+import { ATELIER_WATER, mountAtelierNavigation } from './atelier/AtelierCatalog.js?v=structures-world-2';
 import { WaterStudy } from './atelier/WaterStudy.js?v=3';
 import { WaterMeshes } from './atelier/WaterMeshes.js?v=3';
 import { VegetationAudio } from './atelier/VegetationAudio.js';

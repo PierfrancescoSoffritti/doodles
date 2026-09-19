@@ -1,4 +1,4 @@
-import { Layer } from './Layer.js';
+import { Layer } from './Layer.js?v=structures-world-2';
 import { damp } from '../../core/Utils.js';
 
 // High detuned sine cluster with a tremolo whose rate follows the wanderer's proximity.

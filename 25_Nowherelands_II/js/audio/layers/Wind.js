@@ -1,4 +1,4 @@
-import { Layer } from './Layer.js';
+import { Layer } from './Layer.js?v=structures-world-2';
 import { damp, smoothstep } from '../../core/Utils.js';
 
 export class Wind extends Layer {

@@ -7,7 +7,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { LanternMiteStudy } from './world/fauna/LanternMiteStudy.js?v=stable-30-3';
 import { Random } from './core/Random.js';
 import { LanternMiteMeshes } from './world/fauna/LanternMiteMeshes.js?v=streaming-60-30-19';
-import { mountLanternListening } from './atelier/LanternMiteListening.js';
+import { mountLanternListening } from './atelier/LanternMiteListening.js?v=structures-place-4';
 
 const $ = id => document.getElementById(id);
 const model = new LanternMiteStudy();

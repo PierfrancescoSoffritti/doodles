@@ -1,12 +1,12 @@
 import {replyOutline,writeReplyEcho} from './ReplyOutline.js?v=streaming-60-30-19';
 import { pebbleLighting, setPebbleLight } from './PebbleLighting.js';
 import * as THREE from 'three';
-import { createRockMaterial, noiseGlsl } from '../TerrainMaterial.js?v=player-notes-13';
+import { createRockMaterial, noiseGlsl } from '../TerrainMaterial.js?v=gate-dark-4';
 import { fogGlsl } from '../FogGlsl.js';
 import { faunaGeometry } from './FaunaGeometry.js';
 import { faunaDeformation } from './FaunaDeformation.js';
 import { solveLeg, SPECIES, PEBBLE_DRAW_DISTANCE } from './FaunaModel.js?v=streaming-60-30-19';
-import { PebbleEyeMeshes } from './PebbleEyeMeshes.js?v=streaming-60-30-19';
+import { PebbleEyeMeshes } from './PebbleEyeMeshes.js?v=gate-dark-4';
 import { clamp, smooth } from './Locomotion.js';
 
 // Bodies share the scenery's rock lighting; legs retain their darker palette.

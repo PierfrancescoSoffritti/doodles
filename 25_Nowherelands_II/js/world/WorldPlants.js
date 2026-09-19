@@ -1,5 +1,6 @@
 import { warmStreamedMaterials } from '../fx/StreamedMaterialWarmup.js?v=streaming-60-30-19';
 import * as THREE from 'three';
+import { inStructureClearing } from './structures/StructureSites.js?v=structures-place-4';
 import { VegetationStudy, reedVoice } from '../atelier/VegetationStudy.js?v=reed-chorus-1';
 import { VegetationMeshes } from '../atelier/VegetationMeshes.js?v=streaming-60-30-19';
 import { PlantMeshBatch } from './PlantMeshBatch.js?v=streaming-60-30-19';
@@ -21,7 +22,7 @@ export class WorldPlants {
   };
   this.sites=plantSites(shared.world,lakes,sample,seed);
  }
- blocked(site){return this.shared.colliders.some(c=>c!==this.entries.get(site.id)?.collider&&Math.hypot(site.x-c.position.x,site.z-c.position.z)<(c.radius||c.r||0)+(site.species==='veil-willow'?8:3)&&Math.abs(site.y-c.position.y)<Math.max(30,(c.radius||c.r||0)*2));}
+ blocked(site){return inStructureClearing(this.hm.structureSites,site.x,site.z,12)||this.shared.colliders.some(c=>c!==this.entries.get(site.id)?.collider&&Math.hypot(site.x-c.position.x,site.z-c.position.z)<(c.radius||c.r||0)+(site.species==='veil-willow'?8:3)&&Math.abs(site.y-c.position.y)<Math.max(30,(c.radius||c.r||0)*2));}
  async prewarm(){
   this.warmEntries=[];
   for(const species of PLANT_SPECIES){

@@ -1,0 +1,29 @@
+{
+  "frames": 721,
+  "mean": 16.663055555025736,
+  "p95": 20.09999942779541,
+  "max": 22.600000381469727,
+  "stats": {
+    "sites": 3,
+    "draws": 4,
+    "triangles": 434,
+    "responses": 0
+  },
+  "programs": 125,
+  "emission": 0,
+  "audio": {
+    "underrunDuration": 0,
+    "underrunEvents": 0,
+    "totalDuration": 159.392142,
+    "averageLatency": 0.027274,
+    "minimumLatency": 0,
+    "maximumLatency": 0.027298
+  },
+  "errors": [],
+  "scope": "12-second headless desktop check after a material-only revision; no new physical-phone run.",
+  "date": "2026-09-19",
+  "atelierSmoke": {
+    "status": "passed",
+    "errors": []
+  }
+}

@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { lilyPad } from '../atelier/WaterLilyGeometry.js';
-import { lakeWaveGlsl } from './WaterShader.js';
+import { lakeWaveGlsl } from './WaterShader.js?v=gate-dark-4';
 import { LILY_PALETTES } from './WaterHabitats.js?v=streaming-60-30-19';
-import { noiseGlsl } from './TerrainMaterial.js?v=player-notes-13';
+import { noiseGlsl } from './TerrainMaterial.js?v=gate-dark-4';
 
 // Three draws per patch: leaves, ivory cups/petals, warm cores. No point lights,
 // reflection render targets, shadows, or submerged stems per plant.

@@ -1,8 +1,8 @@
 import { terrainMeshData } from './TerrainMeshData.js?v=stable-30-23';
 import * as THREE from 'three';
 import { config } from '../core/Config.js?v=stable-30-3';
-import { createTerrainMaterial } from './TerrainMaterial.js?v=player-notes-13';
-import { Vegetation } from './Vegetation.js?v=streaming-60-30-19';
+import { createTerrainMaterial } from './TerrainMaterial.js?v=gate-dark-4';
+import { Vegetation } from './Vegetation.js?v=structures-place-4';
 
 // Quadtree terrain: the whole continent is always on screen, from 3 m cells at the player's feet
 // to 300 m cells on the far horizon. Every node is a 48x48 grid with a skirt hanging off its

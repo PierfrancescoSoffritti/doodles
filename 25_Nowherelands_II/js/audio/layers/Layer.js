@@ -6,12 +6,13 @@ export class Layer {
 		this.name = name;
 		this.unlocked = unlocked;
 		this.level = level;          // designed loudness
+		this.structureGain = 1;
 		this.multiplier = 1;         // conductor-driven (stillness, events)
 		this.current = 0;
 		this.out = engine.createLayerGain(0);
 	}
 	unlock() { this.unlocked = true; }
-	get target() { return this.unlocked ? this.level * this.multiplier : 0; }
+	get target() { return this.unlocked ? this.level * this.multiplier * this.structureGain : 0; }
 	update(dt, params) {
 		this.current = damp(this.current, this.target, 0.8, dt);
 		this.out.gain.setTargetAtTime(this.current, this.engine.now, 0.1);

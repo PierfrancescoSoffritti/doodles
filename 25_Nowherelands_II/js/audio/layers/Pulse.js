@@ -1,4 +1,4 @@
-import { Layer } from './Layer.js';
+import { Layer } from './Layer.js?v=structures-world-2';
 import { damp } from '../../core/Utils.js';
 
 // A heartbeat that only exists while you move: soft kick on the beat, ticks between, louder the faster you go.

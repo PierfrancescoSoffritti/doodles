@@ -1,7 +1,7 @@
 import { warmStreamedMaterials } from '../fx/StreamedMaterialWarmup.js?v=streaming-60-30-19';
 import * as THREE from 'three';
 import { WaterFish } from '../atelier/WaterFish.js?v=4';
-import { PoolLilies } from './PoolLilies.js?v=streaming-60-30-19';
+import { PoolLilies } from './PoolLilies.js?v=gate-dark-4';
 import { PoolLifeModel, waterSites } from './WaterHabitats.js?v=streaming-60-30-19';
 import { RIVER_STRIDE as S, RV } from './gen/Rivers.js';
 import { playerNoteRadius } from './RippleWave.js';

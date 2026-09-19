@@ -1,6 +1,6 @@
-import { AudioEngine } from './AudioEngine.js?v=stable-30-3';
+import { AudioEngine } from './AudioEngine.js?v=structures-play-4';
 import { FaunaAudio } from './FaunaAudio.js?v=stable-30-3';
-import { Conductor } from './Conductor.js?v=pebble-audio-10';
+import { Conductor } from './Conductor.js?v=structures-place-4';
 import { WatersideAmbience } from './WatersideAmbience.js';
 
 // Shared by the listening studio and offline mix checks: production routing,

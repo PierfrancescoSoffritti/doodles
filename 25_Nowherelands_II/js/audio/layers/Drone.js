@@ -1,4 +1,4 @@
-import { Layer } from './Layer.js';
+import { Layer } from './Layer.js?v=structures-world-2';
 import { damp } from '../../core/Utils.js';
 
 // The ever-present pad. Each voice is a crossfaded pair of oscillators so it never sweeps:
@@ -126,9 +126,10 @@ export class Drone extends Layer {
 
 	update(dt, p) {
 		super.update(dt, p);
-		this.cutoff = damp(this.cutoff, p.cutoff, 0.7, dt);
+		// Keep the lowest voices audible when an already-dark outdoor mix closes.
+		this.cutoff = damp(this.cutoff, Math.max(p.cutoff,130*(p.structureShelter||0)), p.structureShelter>.05?3:1.5, dt);
 		this.filter.frequency.setTargetAtTime(this.cutoff, this.engine.now, 0.2);
 		this.wobbleGain.gain.setTargetAtTime(p.hum * 25, this.engine.now, 0.5);
-		this.lfoGain.gain.setTargetAtTime(140 + p.hum * 600, this.engine.now, 0.5);
+		this.lfoGain.gain.setTargetAtTime((140 + p.hum * 600)*(1-(p.structureShelter||0)*.85), this.engine.now, 0.5);
 	}
 }

@@ -1,4 +1,4 @@
-import { createReedAudioScene } from '../audio/ReedWalkerAudioScene.js';
+import { createReedAudioScene } from '../audio/ReedWalkerAudioScene.js?v=structures-place-4';
 import { FaunaAudio } from '../audio/FaunaAudio.js?v=stable-30-3';
 
 export function mountVeilRayListening(model, normalPlayback) {

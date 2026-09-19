@@ -1,4 +1,4 @@
-import { createPebbleAudioScene, pebbleEncounter } from './audio/PebbleAudioScene.js?v=pebble-audio-10';
+import { createPebbleAudioScene, pebbleEncounter } from './audio/PebbleAudioScene.js?v=structures-place-4';
 import { readPebbleVolume, savePebbleVolume, watchPebbleVolume } from './audio/PebbleAudioSettings.js?v=pebble-audio-10';
 import { checkPebbleMix, renderPebbleMix, encodeWav } from '../tests/PebbleMixChecks.js?v=pebble-audio-10';
 const $=id=>document.getElementById(id);

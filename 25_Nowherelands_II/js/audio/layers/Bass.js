@@ -1,4 +1,4 @@
-import { Layer } from './Layer.js';
+import { Layer } from './Layer.js?v=structures-world-2';
 
 export class Bass extends Layer {
 	constructor(engine) { super(engine, 'bass', { level: 0.9 }); this.bar = 0; }

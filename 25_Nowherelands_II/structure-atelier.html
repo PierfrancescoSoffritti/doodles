@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+ <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <title>Structures · Nowherelands atelier</title>
+ <link rel="stylesheet" href="./css/fauna-atelier.css?v=1">
+ <link rel="stylesheet" href="./css/vegetation-atelier.css?v=1">
+ <link rel="stylesheet" href="./css/structure-atelier.css?v=1">
+ <script type="importmap">{"imports":{"three":"../common/libs/three-0.185/build/three.module.min.js","three/addons/":"../common/libs/three-0.185/examples/jsm/"}}</script>
+</head>
+<body>
+ <main class="stage atelier-stage night" id="stage">
+  <header><small>Nowherelands / Structure atelier</small><h1 id="name">Resonant gate.</h1><p id="intro">An opening. A quiet answer. A view beyond.</p></header>
+  <canvas id="canvas" tabindex="0" aria-label="Structure study. Drag to orbit or look. In walking view, use WASD or the direction buttons. Press N to offer a note."></canvas>
+  <div class="walk-pad" id="walk-pad" hidden aria-label="Walk around the structure"><button data-move="forward" aria-label="Walk forward">↑</button><button data-move="left" aria-label="Walk left">←</button><button data-move="back" aria-label="Walk backward">↓</button><button data-move="right" aria-label="Walk right">→</button></div>
+  <div class="caption"><span class="eyebrow" id="specimen">Form study 001</span><h2 id="form-title">A place to pass through.</h2><p id="gesture-status" role="status" aria-live="polite">Drag to explore the form.</p></div>
+  <div class="transport"><button id="pause" aria-pressed="false">Pause</button><button id="reset-view">Reset view</button><button id="quick-note">Offer a note · N</button><span class="spacer"></span><span class="orbit-hint" id="view-hint">Drag to orbit · Scroll to approach</span></div>
+ </main>
+ <aside>
+  <div class="eyebrow"><span>Places · Study 01</span><a id="world-link" href="./">World ↗</a></div>
+  <label class="field atelier-nav"><span>Explore the atelier</span><select id="atelier-species"></select></label>
+  <h2 id="character-title">The landscape beyond.</h2><p class="lede" id="character"></p>
+  <div class="tabs" role="tablist" aria-label="Structure study">
+   <button id="tab-form" role="tab" aria-controls="panel-form" aria-selected="true">01 Form</button>
+   <button id="tab-life" role="tab" aria-controls="panel-life" aria-selected="false" tabindex="-1">02 Experience</button>
+   <button id="tab-home" role="tab" aria-controls="panel-home" aria-selected="false" tabindex="-1">03 Place</button>
+  </div>
+  <section class="panel" id="panel-form" role="tabpanel" aria-labelledby="tab-form">
+   <label class="field"><span>Material</span><select id="material"><option value="stone">Faceted stone</option><option value="ceramic">Pale ceramic</option></select></label>
+   <label class="field"><span>View</span><select id="view"><option value="quarter">Three-quarter</option><option value="front">Front</option><option value="side">Side</option><option value="top">Above</option><option value="walk">Walk at player height</option></select></label>
+   <label class="field"><span>Light</span><select id="light"><option value="night">Night · in the landscape</option><option value="day">Overcast · inspect the form</option></select></label>
+   <button class="action" id="individual">Another proportion <small>Keep the family, vary the silhouette</small></button>
+   <label class="field check-field"><input id="scale-marker" type="checkbox"> Show player-height marker</label>
+   <p class="note">All three forms use the same setting and player scale. The opening remains empty and the ground continues through it.</p>
+  </section>
+  <section class="panel" id="panel-life" role="tabpanel" aria-labelledby="tab-life" hidden>
+   <p class="note" id="interaction-note"></p>
+   <button class="action" id="approach">Approach <small>Stand just in front</small></button>
+   <button class="action" id="enter">Pass through <small>Move to the opening at player height</small></button>
+   <button class="action" id="leave">Step outside <small>Compare the space around it</small></button>
+   <button class="action" id="offer-note">Offer a note <small>One invitation, one quiet answer · N</small></button>
+   <button class="action" id="strong-note">A stronger note <small>A slightly longer answer · Hold N</small></button>
+   <p class="note" id="feedback" role="status" aria-live="polite">Choose an action to begin.</p>
+   <button class="action" id="music">Listen with game music <small>The game’s conductor and musical layers</small></button>
+   <label class="field check-field"><input id="sound" type="checkbox" checked> Sound on interaction</label>
+   <label class="field"><span>Listening level</span><input id="volume" type="range" min="0" max="100" value="45" aria-label="Listening level"></label>
+   <button class="action" id="stop-audio">Stop all sound</button>
+   <p class="note" id="music-note">Music begins only when requested. Stop also clears lingering notes.</p>
+  </section>
+  <section class="panel" id="panel-home" role="tabpanel" aria-labelledby="tab-home" hidden>
+   <h3 id="home-title"></h3><p class="note" id="home-detail"></p>
+   <div class="fact"><strong>Three places with different roles</strong><p>The gate answers. The fold reshapes listening. The frame directs attention.</p></div>
+   <p class="note">An atelier prototype on a small landscape. World placement and weather shelter are still to be developed.</p>
+   <a class="note" href="./docs/structures/exploration-v1/README.md">Concept study ↗</a>
+  </section>
+  <div class="footer">A place to study together.<br>Compare the silhouette, then step inside.</div>
+ </aside>
+ <div id="error" role="alert" hidden></div>
+ <script type="module">import('./js/structure-atelier.js?v=structures-world-2').catch(e=>{document.body.dataset.status='fail';const el=document.getElementById('error');el.hidden=false;el.textContent=e.message;console.error(e);});</script>
+</body>
+</html>

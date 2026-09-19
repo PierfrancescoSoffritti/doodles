@@ -1,0 +1,244 @@
+{
+  "scope": "Short headless desktop integration/overhead check; not a sustained device acceptance run.",
+  "errors": [],
+  "seeds": [
+    {
+      "seed": "umbra",
+      "sites": [
+        {
+          "id": "resonant-gate",
+          "kind": "resonant-gate",
+          "x": -104.70350390462269,
+          "y": 78.95836446475079,
+          "z": 685.7708908880267,
+          "yaw": 0.7853981633974483,
+          "cos": 0.7071067811865476,
+          "sin": 0.7071067811865475,
+          "clearX": 43,
+          "clearZ": 35,
+          "extent": 55.44366510251644,
+          "score": 7.266062625260788,
+          "relief": 1.4492670631266122
+        },
+        {
+          "id": "listening-fold",
+          "kind": "listening-fold",
+          "x": 489.1378124547736,
+          "y": 84.82373064309643,
+          "z": 804.8391835007359,
+          "yaw": 4.71238898038469,
+          "cos": -1.8369701987210297e-16,
+          "sin": -1,
+          "clearX": 32,
+          "clearZ": 42,
+          "extent": 52.80151512977635,
+          "score": 7.710545331953209,
+          "relief": 1.4503114499288898
+        },
+        {
+          "id": "horizon-frame",
+          "kind": "horizon-frame",
+          "x": 201.60107003279094,
+          "y": 82.22065365675888,
+          "z": 687.8356406319357,
+          "yaw": 0,
+          "cos": 1,
+          "sin": 0,
+          "clearX": 43,
+          "clearZ": 35,
+          "extent": 55.44366510251644,
+          "score": 5.950363914015373,
+          "relief": 1.208822259537996
+        }
+      ],
+      "stats": {
+        "sites": 3,
+        "draws": 4,
+        "triangles": 434,
+        "responses": 0
+      }
+    },
+    {
+      "seed": "fern",
+      "sites": [
+        {
+          "id": "resonant-gate",
+          "kind": "resonant-gate",
+          "x": -637.5701940691117,
+          "y": 99.81902168236137,
+          "z": -698.4379441634073,
+          "yaw": 5.497787143782138,
+          "cos": 0.7071067811865474,
+          "sin": -0.7071067811865477,
+          "clearX": 43,
+          "clearZ": 35,
+          "extent": 55.44366510251644,
+          "score": 12.924428691386986,
+          "relief": 2.7372657234680275
+        },
+        {
+          "id": "listening-fold",
+          "kind": "listening-fold",
+          "x": 1070.6869734816232,
+          "y": 5.610440901694272,
+          "z": 290.70327661062294,
+          "yaw": 0.7853981633974483,
+          "cos": 0.7071067811865476,
+          "sin": 0.7071067811865475,
+          "clearX": 32,
+          "clearZ": 42,
+          "extent": 52.80151512977635,
+          "score": 12.20780366296808,
+          "relief": 2.4818391559570223
+        }
+      ],
+      "stats": {
+        "sites": 2,
+        "draws": 3,
+        "triangles": 338,
+        "responses": 0
+      }
+    },
+    {
+      "seed": "ondine-ossia",
+      "sites": [
+        {
+          "id": "resonant-gate",
+          "kind": "resonant-gate",
+          "x": 592.164228297675,
+          "y": 79.2017157762469,
+          "z": -639.4038963568514,
+          "yaw": 1.5707963267948966,
+          "cos": 6.123233995736766e-17,
+          "sin": 1,
+          "clearX": 43,
+          "clearZ": 35,
+          "extent": 55.44366510251644,
+          "score": 9.663337086654803,
+          "relief": 1.9689196561679267
+        },
+        {
+          "id": "listening-fold",
+          "kind": "listening-fold",
+          "x": 942.1933488222422,
+          "y": 90.51316627474192,
+          "z": -162.1862097686,
+          "yaw": 3.141592653589793,
+          "cos": -1,
+          "sin": 1.2246467991473532e-16,
+          "clearX": 32,
+          "clearZ": 42,
+          "extent": 52.80151512977635,
+          "score": 8.88817526621632,
+          "relief": 1.7388022183150866
+        },
+        {
+          "id": "horizon-frame",
+          "kind": "horizon-frame",
+          "x": -729.7508912025908,
+          "y": 3.732396461300745,
+          "z": -1198.6680899209553,
+          "yaw": 0.7853981633974483,
+          "cos": 0.7071067811865476,
+          "sin": 0.7071067811865475,
+          "clearX": 43,
+          "clearZ": 35,
+          "extent": 55.44366510251644,
+          "score": 9.214178864221717,
+          "relief": 1.6658229380385903
+        }
+      ],
+      "stats": {
+        "sites": 3,
+        "draws": 4,
+        "triangles": 434,
+        "responses": 0
+      }
+    }
+  ],
+  "samples": [
+    {
+      "label": "umbra / gate enabled",
+      "frames": 719,
+      "interval": {
+        "mean": 16.685933147632312,
+        "p95": 20,
+        "max": 35.89999961853027
+      },
+      "structureUpdateMs": {
+        "mean": 0.0012499981456332737,
+        "p95": 0,
+        "max": 0.10000038146972656
+      },
+      "programs": 125,
+      "geometryCount": 2023,
+      "audio": {
+        "underrunDuration": 0,
+        "underrunEvents": 0,
+        "totalDuration": 16.014662,
+        "averageLatency": 0.027266,
+        "minimumLatency": 0,
+        "maximumLatency": 0.027296
+      }
+    },
+    {
+      "label": "umbra / inside fold",
+      "frames": 720,
+      "interval": {
+        "mean": 16.663004172196473,
+        "p95": 19.100000381469727,
+        "max": 23.5
+      },
+      "structureUpdateMs": {
+        "mean": 0.005972217188941108,
+        "p95": 0.09999942779541016,
+        "max": 0.10000038146972656
+      },
+      "programs": 125,
+      "geometryCount": 2010,
+      "audio": {
+        "underrunDuration": 0,
+        "underrunEvents": 0,
+        "totalDuration": 39.07023,
+        "averageLatency": 0.027271,
+        "minimumLatency": 0,
+        "maximumLatency": 0.027297
+      }
+    },
+    {
+      "label": "umbra / structures disabled",
+      "frames": 719,
+      "interval": {
+        "mean": 16.687186628995168,
+        "p95": 19.5,
+        "max": 32.89999961853027
+      },
+      "structureUpdateMs": {
+        "mean": 0.0018055531713697646,
+        "p95": 0,
+        "max": 0.10000038146972656
+      },
+      "programs": 123,
+      "geometryCount": 2050,
+      "audio": {
+        "underrunDuration": 0,
+        "underrunEvents": 0,
+        "totalDuration": 20.024326,
+        "averageLatency": 0.027268,
+        "minimumLatency": 0,
+        "maximumLatency": 0.027293
+      }
+    }
+  ],
+  "status": "passed",
+  "date": "2026-09-19",
+  "sampleSeconds": 12,
+  "nodeTests": {
+    "passed": 535,
+    "failed": 0
+  },
+  "atelierSmoke": {
+    "status": "passed",
+    "errors": []
+  }
+}

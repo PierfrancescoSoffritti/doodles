@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { noiseGlsl } from './TerrainMaterial.js?v=player-notes-13';
+import { noiseGlsl } from './TerrainMaterial.js?v=gate-dark-4';
 
 // vnoise already repeats its integer cell coordinates every 1024 units. Store
 // the four original corner hashes together so each octave needs one fetch.

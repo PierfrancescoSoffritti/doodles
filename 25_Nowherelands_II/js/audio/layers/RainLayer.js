@@ -1,4 +1,4 @@
-import { Layer } from './Layer.js';
+import { Layer } from './Layer.js?v=structures-world-2';
 import { damp } from '../../core/Utils.js';
 
 // Rain you can hear: a soft hiss with a slowly breathing filter and scattered drop ticks.

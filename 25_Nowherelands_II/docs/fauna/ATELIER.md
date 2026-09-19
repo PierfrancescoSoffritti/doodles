@@ -1,5 +1,7 @@
 # Fauna atelier
 
+The shared selector also includes **Structures · atelier studies**: Resonant gate, Listening fold and Horizon frame. These reuse the atelier interface and navigation, with orbit/walking inspection, a playable gate and a fold that reshapes the production game music. See [Structure atelier](../structures/ATELIER.md).
+
 The selector also includes **Water · atelier studies**: a living pool, Scarlet fish, and Light lilies (plants). These are prototypes for comparison before world placement; see [Water atelier](WATER_ATELIER.md) for controls and verification.
 
 Open **fauna atelier ↗** on the game’s entrance screen or in the corner menu

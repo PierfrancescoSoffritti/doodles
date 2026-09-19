@@ -1,0 +1,11 @@
+.stage.night{--paper:#171225;--line:#62566e;--muted:#c6bbd0;--ink:#f0e9f5}
+.stage header{max-width:calc(100% - 64px)}
+.stage header p{max-width:340px}
+.stage .transport{flex-wrap:wrap}
+.walk-pad{position:absolute;right:28px;bottom:165px;display:grid;grid-template-columns:repeat(3,44px);gap:5px;z-index:3}
+.walk-pad button{height:44px;background:#eee9e1e8;color:#303c37;border:1px solid #b7bfb1;border-radius:5px;touch-action:none}
+.walk-pad button:first-child{grid-column:2}
+.walk-pad button:nth-child(2){grid-column:1}
+.stage.walking .caption{right:180px}
+.stage.walking .caption h2{font-size:19px}
+@media(max-width:850px){.stage{height:76dvh;min-height:610px}.walk-pad{right:20px;bottom:164px}.stage .caption{bottom:117px}.stage.walking .caption{right:24px}.stage.walking .caption p{max-width:180px}.stage .transport{bottom:20px}.orbit-hint{flex-basis:100%;margin-left:8px}.stage h1{font-size:40px}}

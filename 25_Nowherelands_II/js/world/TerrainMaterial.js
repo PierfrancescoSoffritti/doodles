@@ -122,6 +122,13 @@ export function createTerrainMaterial(shared, heightmap) {
 	};
 	Object.assign(uniforms, lumenLightUniforms(shared), shared.ripples.uniforms, shared.shoreMap.uniforms, shared.fogUniforms, shared.weather.uniforms);
 	Object.assign(uniforms, vegetationFadeUniforms(shared));
+ // One 64 KiB site mask, sampled only within the gate's footprint. The loading
+ // phase replaces the neutral pixel once placement has selected the gate.
+ if(!shared.gateGround){
+  const empty=new THREE.DataTexture(new Uint8Array(4),1,1,THREE.RGBAFormat);empty.needsUpdate=true;
+  shared.gateGround={uGateGround:{value:empty},uGatePose:{value:new THREE.Vector4()},uGateActive:{value:0}};
+ }
+ Object.assign(uniforms,shared.gateGround);
 
 	const material = new THREE.ShaderMaterial({
 		uniforms,
@@ -142,6 +149,9 @@ export function createTerrainMaterial(shared, heightmap) {
 			uniform vec3 uMoonDir, uMoonColor, uSkyColor, uGroundColor, uCameraPos, uSunDir, uSunColor;
 			uniform float uSunIntensity;
 			uniform sampler2D uRockMap, uHabitatMap;
+   uniform sampler2D uGateGround;
+   uniform vec4 uGatePose;
+   uniform float uGateActive;
 			uniform vec2 uRockOrigin;
 			varying vec3 vWorldPos;
 			varying float vCave;
@@ -229,6 +239,16 @@ export function createTerrainMaterial(shared, heightmap) {
 				float moss = hab.r * shoreBand * smoothstep(0.25, 0.8, h) * (1.0 - smoothstep(2.0, 5.0, h)) * smoothstep(0.35, 0.7, vnoise(vWorldPos.xz * 0.3));
 				albedo = mix(albedo, vec3(0.095, 0.16, 0.14), moss * 0.55);
 
+   vec4 gateGround=vec4(0.);
+   vec2 gateDelta=vWorldPos.xz-uGatePose.xy;
+   if(uGateActive>.5 && max(abs(gateDelta.x),abs(gateDelta.y))<91.){
+    vec2 localGate=vec2(uGatePose.z*gateDelta.x-uGatePose.w*gateDelta.y,uGatePose.w*gateDelta.x+uGatePose.z*gateDelta.y);
+    if(max(abs(localGate.x),abs(localGate.y))<64.)gateGround=texture2D(uGateGround,localGate/128.+.5);
+   }
+   vec3 foundationStone=mix(vec3(.105,.10,.12),vec3(.20,.19,.22),grain);
+   albedo=mix(albedo,vec3(.105,.082,.11)*(.85+speck*.3),gateGround.b*.65);
+   albedo=mix(albedo,foundationStone,gateGround.r*.88);
+
 				// snow: seasonal on gentle ground, permanent above the snow line
 				float snowLine = 780.0 + (vnoise(vWorldPos.xz * 0.003) - 0.5) * 220.0;
 				float caps = smoothstep(snowLine - 60.0, snowLine + 90.0, hSea) * smoothstep(0.4, 0.8, n.y);
@@ -253,7 +273,7 @@ export function createTerrainMaterial(shared, heightmap) {
 				color += uMoonColor * pow(max(dot(reflect(-uMoonDir, n), normalize(uCameraPos - vWorldPos)), 0.0), 24.0) * wetness * 0.25 * uMoonIntensity;
 
 				// glowing grid + contours
-				float lineFade = (1.0-vApron*.95)*exp(-dist / 380.0) * smoothstep(2.0, 12.0, dist);
+				float lineFade = (1.0-vApron*.95)*(1.0-gateGround.a*.85)*exp(-dist / 380.0) * smoothstep(2.0, 12.0, dist);
 				float grid = gridLine(vWorldPos.xz, 16.0) * lineFade * smoothstep(0.35, 0.65, n.y);   // the grid is drawn on the ground, not up the cliffs
 				float cq = hSea / 10.0;
 				float contour = (1.0 - min(abs(fract(cq - 0.5) - 0.5) / fwidth(cq), 1.0)) * lineFade * step(1.0, h);
@@ -269,7 +289,7 @@ export function createTerrainMaterial(shared, heightmap) {
 				float meadow = (1.0 - 0.6 * hab.r) * (0.45 + 0.55 * hab.g) * (1.0 - 0.45 * hard);
 				meadow *= smoothstep(0.74, 0.85, n.y) * smoothstep(3.5, 6.0, h) * (1.0 - smoothstep(700.0, 950.0, hSea));
 				float reeds = smoothstep(0.84, 0.9, n.y) * smoothstep(-0.5, 0.5, h) * (1.0 - smoothstep(3.5, 5.0, h)) * hab.g;
-				float farCover = (1.0 - vegetationFade(vWorldPos.xz)) * (1.0 - snowMask) * (1.0 - caveRim) * (1.0 - vApron);
+				float farCover = (1.0 - vegetationFade(vWorldPos.xz)) * (1.0 - snowMask) * (1.0 - caveRim) * (1.0 - vApron)*(1.0-gateGround.r);
 				color += mix(lineColor, vec3(0.6, 0.6, 0.75), 0.7) * (meadow + reeds * 0.6) * farCover * (0.65 + 0.35 * speck) * (0.035 + 0.015 * uLevel);
 
 				// ripples from notes and footsteps

@@ -3,7 +3,7 @@ import { mobileDetail } from '../core/MobileDetail.js?v=stable-30-3';
 import * as THREE from 'three';
 import { Random } from '../core/Random.js';
 import { crestOffset } from './RiverGeometry.js';
-import { noiseGlsl } from './TerrainMaterial.js?v=player-notes-13';
+import { noiseGlsl } from './TerrainMaterial.js?v=gate-dark-4';
 import { fogGlsl } from './FogGlsl.js';
 import { RIVER_STRIDE, RV, RIVER_KIND, fallFaceRun, surfaceHalfWidth } from './gen/Rivers.js';
 

@@ -8,11 +8,12 @@ import { spotCandidates, gridCandidates, finishPlacement } from './PlantPlacemen
 import { vegetationWind } from './weather/WeatherModel.js?v=stable-30-10';
 import { weatherGlsl } from './weather/WeatherGlsl.js';
 import * as THREE from 'three';
+import { inStructureClearing } from './structures/StructureSites.js?v=structures-place-4';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { indexPlantGeometry } from './IndexPlantGeometry.js?v=stable-30-3';
 import { Random, Simplex2D } from '../core/Random.js';
 import { config } from '../core/Config.js?v=stable-30-3';
-import { hslGlsl, createRockMaterial } from './TerrainMaterial.js?v=player-notes-13';
+import { hslGlsl, createRockMaterial } from './TerrainMaterial.js?v=gate-dark-4';
 import { ROCK_STRIDE } from './gen/Rivers.js';
 import { SEG_KIND } from './Heightmap.js?v=stable-30-6';
 import { WatersideMeshes } from './WatersideMeshes.js?v=stable-30-3';
@@ -667,7 +668,7 @@ export class Vegetation {
 		const canopyVariants = [rnd.int(0, this.broadleaves.length - 1), rnd.int(0, this.broadleaves.length - 1)];
 		const coniferVariants = [rnd.int(0, this.sequoias.length - 1), rnd.int(0, this.sequoias.length - 1)];
 		this.grid(rnd, ox, oz, size, 40, (x, z) => {
-			if (Math.hypot(x, z) < 150) return;
+			if (Math.hypot(x, z) < 150 || inStructureClearing(this.heightmap.structureSites,x,z,25)) return;
 			this.look(x, z);
 			if (pr.H < 4 || pr.bank > 0.35 || pr.slope > 0.7 || pr.forest < 0.03 || pr.alt < 0.25) return;
 			const f = pr.forest;
@@ -829,7 +830,8 @@ export class Vegetation {
 	grid(...args) { finishPlacement(gridCandidates(...args)); }
 
 	makeInstanced(geometry, material, kind, items, rnd, chunk, place) {
-		items=items.filter(it=>!this.heightmap.caves.hasOpening(it.x,it.z) || this.heightmap.caves.surfaceDensity(it.x,it.y ?? this.heightmap.height(it.x,it.z),it.z)<-2);
+		const structurePadding=(kind==='blade'||kind==='sprout')?3:12;
+		items=items.filter(it=>!inStructureClearing(this.heightmap.structureSites,it.x,it.z,structurePadding)&&(!this.heightmap.caves.hasOpening(it.x,it.z) || this.heightmap.caves.surfaceDensity(it.x,it.y ?? this.heightmap.height(it.x,it.z),it.z)<-2));
 		if (!items.length) return;
 		const geom = sharedPlantGeometry(geometry);
 		const mesh = new THREE.InstancedMesh(geom, material, items.length);
@@ -1035,7 +1037,7 @@ export class Vegetation {
 					const n = rnd.int(3, 7);
 					for (let i = 0; i < n; i++) {
 						const x = cx2 + rnd.range(-9, 9), z = cz2 + rnd.range(-9, 9);
-						if (!hm.isLand(x, z, 2)) continue;
+						if (!hm.isLand(x, z, 2) || inStructureClearing(hm.structureSites,x,z,12)) continue;
 						crystals.push({ x, z, y: hm.height(x, z) - 0.5, r: rnd.range(1.2, 2.6), h: rnd.range(5, 22), rot: rnd.range(0, 6.3) });
 					}
 				}
@@ -1050,7 +1052,7 @@ export class Vegetation {
 			const verts = new Float32Builder(), heights = packedLines?new Float32Builder():null, bases=packedLines?null:new Float32Builder(), infos=packedLines?null:new Float32Builder(), plantIds = [], metadata = [], lineIndices = [], ranges = [], pos = [], kinds = [];
 			let padding = 12;
 			const pushLines = (arr, x, y, z, rot, sx, sy, sz, dx, dz, h, phase, kind, dur) => {
-				if(hm.caves.surfaceDensity(x,y,z)>-2)return;
+				if(inStructureClearing(hm.structureSites,x,z,2)||hm.caves.surfaceDensity(x,y,z)>-2)return;
 				const template=indexLineTemplate(arr), points=template.positions, offset=verts.length/3, plant=kinds.length-1;
 				if(packedLines){metadata[plant*8]=x;metadata[plant*8+1]=y;metadata[plant*8+2]=z;metadata[plant*8+3]=phase;metadata[plant*8+4]=kind;metadata[plant*8+5]=dur;}
 				const cosine=Math.cos(rot), sine=Math.sin(rot);

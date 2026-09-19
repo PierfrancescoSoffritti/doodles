@@ -5,8 +5,8 @@ import { EntranceDressing } from './EntranceDressing.js';
 import * as THREE from 'three';
 import { WaterOptics } from '../WaterOptics.js';
 import { Ripples } from '../Ripples.js?v=player-notes-13';
-import { noiseGlsl,terrainLightGlsl } from '../TerrainMaterial.js?v=player-notes-13';
-import { createNoiseLookup, lookupNoiseGlsl } from '../NoiseLookup.js?v=stable-30-16';
+import { noiseGlsl,terrainLightGlsl } from '../TerrainMaterial.js?v=gate-dark-4';
+import { createNoiseLookup, lookupNoiseGlsl } from '../NoiseLookup.js?v=gate-dark-4';
 import { mobileOption } from '../../core/MobileDetail.js?v=stable-30-3';
 
 const vertex=/* glsl */`

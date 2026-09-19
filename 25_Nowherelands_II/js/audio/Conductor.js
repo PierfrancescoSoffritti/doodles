@@ -1,15 +1,16 @@
+import { foldMusic } from '../atelier/StructureStudy.js?v=structures-place-4';
 import { bus, Events } from '../core/EventBus.js';
 import { config } from '../core/Config.js?v=stable-30-3';
 import { Scale } from './Scale.js';
 import { Scheduler } from './Scheduler.js';
-import { Drone } from './layers/Drone.js?v=stable-30-3';
-import { Arpeggio } from './layers/Arpeggio.js';
-import { Bells } from './layers/Bells.js';
-import { Bass } from './layers/Bass.js';
-import { Wind } from './layers/Wind.js?v=waterfall-audio-1';
-import { Shimmer } from './layers/Shimmer.js?v=pebble-audio-10';
-import { Pulse } from './layers/Pulse.js';
-import { RainLayer } from './layers/RainLayer.js';
+import { Drone } from './layers/Drone.js?v=structures-play-4';
+import { Arpeggio } from './layers/Arpeggio.js?v=structures-world-2';
+import { Bells } from './layers/Bells.js?v=structures-world-2';
+import { Bass } from './layers/Bass.js?v=structures-world-2';
+import { Wind } from './layers/Wind.js?v=structures-world-2';
+import { Shimmer } from './layers/Shimmer.js?v=structures-world-2';
+import { Pulse } from './layers/Pulse.js?v=structures-world-2';
+import { RainLayer } from './layers/RainLayer.js?v=structures-world-2';
 import { clamp01, smoothstep, damp } from '../core/Utils.js';
 
 // Ties the world to the music: picks keys and modes, drives layer parameters from player
@@ -36,6 +37,7 @@ export class Conductor {
 		this.chordStep = 0;
 		this.fast = false;
 		this.stillness = 0;
+  this.structureMix=foldMusic(0);this.noteResponse=0;
 
 		this.scheduler.onStep((step, time, dur) => {
 			for (const l of Object.values(this.layers)) l.onStep(step, time, dur, this.scale, this.params);
@@ -83,7 +85,9 @@ export class Conductor {
 		bus.emit(Events.KEY_CHANGE, { root, mode: this.scale.mode });
 	}
 
+ playerNote(note){this.noteResponse=Math.min(1,this.noteResponse+.4+(note.velocity||.35)*.35);}
 	update(dt, world) {
+  this.noteResponse*=Math.exp(-dt*1.7);
 		const p = this.params;
 		const player = world.player;
 		const altitude01 = smoothstep(4, 70, player.position.y - world.heightmap.waterLevel);
@@ -125,6 +129,11 @@ export class Conductor {
 		this.layers.pulse.level = 0.8 * (1 - p.rain * 0.5 - p.snow * 0.3);
 		this.layers.bass.level = 0.9 * (1 - p.rain * 0.3);
 
+  const shelter=world.structureShelter||0,mix=foldMusic(shelter,this.structureMix);
+  p.cutoff=(p.cutoff+this.noteResponse*1500)*mix.cutoff;p.density=Math.min(1,p.density+this.noteResponse*.28)*mix.density;
+  p.structureShelter=shelter;
+  for(const name in this.layers)this.layers[name].structureGain=mix[name]??1;
+  this.layers.drone.reverbSend.gain.setTargetAtTime(mix.send,this.engine.now,.35);
 		for (const l of Object.values(this.layers)) l.update(dt, p);
 
 		this.keyTimer -= dt;

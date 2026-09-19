@@ -5,10 +5,10 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { VeilRayStudy } from './world/fauna/VeilRayStudy.js?v=streaming-60-30-19';
-import { FaunaMeshes } from './world/fauna/FaunaMeshes.js?v=streaming-60-30-19';
+import { FaunaMeshes } from './world/fauna/FaunaMeshes.js?v=gate-dark-4';
 import { createFogUniforms } from './world/FogGlsl.js';
 import { Random } from './core/Random.js';
-import { mountVeilRayListening } from './atelier/VeilRayListening.js';
+import { mountVeilRayListening } from './atelier/VeilRayListening.js?v=structures-place-4';
 
 const $ = id => document.getElementById(id), model = new VeilRayStudy();
 const renderer = new THREE.WebGLRenderer({ canvas: $('canvas'), antialias: true });

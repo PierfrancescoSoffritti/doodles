@@ -232,6 +232,8 @@ export class AudioEngine {
 		nodes.push(...this.route(env, { dest, position, reverb, delay }));
 		this.finishVoice(sources,nodes);
 		this.emitNote(freq, position, velocity, layer, time, replyTarget);
+  let stopped=false;
+  return {stop:()=>{if(stopped||ctx.currentTime>=end)return;stopped=true;const at=ctx.currentTime;env.gain.cancelScheduledValues(at);env.gain.setTargetAtTime(.0001,at,.02);for(const source of sources)source.stop(Math.min(end,at+.12));}};
 	}
 
 	// FM bell: carrier modulated by a decaying modulator.

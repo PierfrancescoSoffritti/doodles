@@ -1,4 +1,4 @@
-import { createReedAudioScene } from '../audio/ReedWalkerAudioScene.js';
+import { createReedAudioScene } from '../audio/ReedWalkerAudioScene.js?v=structures-place-4';
 import { LanternMiteAudio } from '../audio/LanternMiteVoice.js?v=stable-30-3';
 
 export function mountLanternListening(model, normalPlayback) {

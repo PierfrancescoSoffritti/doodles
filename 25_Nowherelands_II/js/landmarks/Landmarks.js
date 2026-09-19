@@ -92,7 +92,10 @@ export class Landmarks {
 		const plants=this.shared.plants;
 		const plantTargets=plants?.root.visible?plants.targets:[];
 		const waterTargets=this.shared.waterLife?.root.visible?this.shared.waterLife.targets:[];
-		return pickTarget(this.raycaster,this.camera,p,[...this.interactables,...plantTargets,...waterTargets],this.pointer||undefined);
+  const structureTargets=this.shared.structures?.targets||[];
+		const target=pickTarget(this.raycaster,this.camera,p,[...this.interactables,...plantTargets,...waterTargets,...structureTargets],this.pointer||undefined);
+  if(target){const hit=this.raycaster.intersectObject(target.mesh,false)[0];if(hit&&this.shared.structures?.occludes(this.raycaster,hit.distance))return null;}
+  return target;
 	}
 
 	update(dt, shared) {
