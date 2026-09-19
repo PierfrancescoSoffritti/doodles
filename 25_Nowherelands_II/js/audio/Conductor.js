@@ -6,7 +6,7 @@ import { Drone } from './layers/Drone.js?v=stable-30-3';
 import { Arpeggio } from './layers/Arpeggio.js';
 import { Bells } from './layers/Bells.js';
 import { Bass } from './layers/Bass.js';
-import { Wind } from './layers/Wind.js';
+import { Wind } from './layers/Wind.js?v=waterfall-audio-1';
 import { Shimmer } from './layers/Shimmer.js?v=pebble-audio-10';
 import { Pulse } from './layers/Pulse.js';
 import { RainLayer } from './layers/RainLayer.js';
