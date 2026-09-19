@@ -102,7 +102,8 @@ test('blips startle fish away even without lilies, then smoothly restore cruisin
  for(let t=2.02;t<3;t+=.02){const yaw=f.yaw;m.update(t);const turn=Math.atan2(Math.sin(f.yaw-yaw),Math.cos(f.yaw-yaw));assert.ok(Math.abs(turn)<=.113,'heading turns gradually');peakSpeed=Math.max(peakSpeed,f.speed);}
  assert.ok(Math.abs(Math.atan2(Math.sin(f.yaw-firstYaw),Math.cos(f.yaw-firstYaw)))>.1);assert.ok(peakSpeed>5);
  const retrigger={x:f.x,z:f.z},at=m.time;m.hear(px,pz,100,1);m.update(at);assert.ok(Math.hypot(f.x-retrigger.x,f.z-retrigger.z)<1e-8);
- for(let t=at+.02;t<24;t+=.02){const prev={x:f.x,z:f.z};m.update(t);assert.ok(Math.hypot(f.x-prev.x,f.z-prev.z)<.65,'no abrupt return to route');farthest=Math.max(farthest,Math.hypot(f.x-g.x,f.z-g.z));assert.ok(f.y+f.size*.4<0);}
+ const finish=at+f.escape.duration+f.escape.roamDuration+f.escape.returnDuration+1;
+ for(let t=at+.02;t<finish;t+=.02){const prev={x:f.x,z:f.z};m.update(t);assert.ok(Math.hypot(f.x-prev.x,f.z-prev.z)<.65,'no abrupt return to route');farthest=Math.max(farthest,Math.hypot(f.x-g.x,f.z-g.z));assert.ok(f.y+f.size*.4<0);}
  assert.ok(farthest>g.radius+15,'escape travels far beyond original school boundary');
  assert.equal(f.escape,undefined);assert.equal(f.burst,0);assert.deepEqual({x:f.x,z:f.z},m.pose(f,m.time));
 });
@@ -113,6 +114,79 @@ test('repeated blips keep whole schools inside validated water and below its sur
   m.update(i/30);if(i%23===0)m.hear(site.x+Math.sin(i)*30,site.z+Math.cos(i)*30,100,i%2);
   for(const f of m.fish){assert.ok(Math.hypot(f.x-f.group.x,f.z-f.group.z)<=f.group.radius*.95+1e-8);assert.ok(f.y+f.size*(.8+.2*f.bodyWidth)*.4<-.2);assert.ok(f.y-f.size*(.8+.2*f.bodyWidth)*.4>-2.8);}
  }}
+});
+
+test('escaping fish coast through the return turn and rejoin cruising without a velocity jump',()=>{
+ const sites=waterSites(world,lakes,sample,'water-test');
+ let checked=0;
+ for(const site of sites){
+  const m=new PoolLifeModel(site,'water-test',{canSwim:()=>true});
+  m.update(2);m.hear(site.x,site.z,200,checked%2);
+  for(const f of m.fish){
+   const b=f.escape;if(!b)continue;
+   for(const age of [b.duration,b.duration+b.roamDuration,b.duration+b.roamDuration+b.returnDuration]){
+    const t=b.at+age,h=.001,p=m.swimPose(f,t),before=m.swimPose(f,t-h),after=m.swimPose(f,t+h);
+    const incoming={x:(p.x-before.x)/h,z:(p.z-before.z)/h},outgoing={x:(after.x-p.x)/h,z:(after.z-p.z)/h};
+    assert.ok(Math.hypot(incoming.x-outgoing.x,incoming.z-outgoing.z)<.05,'both speed and direction remain continuous at the handoff');
+    assert.ok(Math.hypot(incoming.x,incoming.z)>.1,'the fish keeps gliding through the handoff');
+   }
+   checked++;
+  }
+ }
+ assert.ok(checked>30,'covers varied schools, headings and escape distances');
+});
+
+test('fish spend several seconds swimming away before a broad, unhurried return',()=>{
+ const sites=waterSites(world,lakes,sample,'water-test'),timings=new Set();let checked=0;
+ for(const fps of [30,60,120])for(const site of sites.slice(0,8)){
+  let probes=0;
+  const m=new PoolLifeModel(site,'water-test',{canSwim:()=>{probes++;return true;}});
+  m.update(2);m.hear(site.x,site.z,200,1);const planned=probes;
+  for(const f of m.fish){
+   const b=f.escape;assert.ok(b,'open-water fish still react to the note');
+   assert.ok(b.roamDuration>=5);assert.ok(b.returnDuration>=10);
+   timings.add(b.roamDuration.toFixed(2));
+   const coastAt=b.at+b.duration,start=m.swimPose(f,coastAt),later=m.swimPose(f,coastAt+3);
+   assert.ok(Math.hypot(later.x,later.z)>Math.hypot(start.x,start.z)+2,'keeps going away instead of immediately coming back');
+   const end=coastAt+b.roamDuration+b.returnDuration,h=1/fps;
+   const home=m.pose(f,end),homeNext=m.pose(f,end+.001),cruiseSpeed=Math.hypot(homeNext.x-home.x,homeNext.z-home.z)/.001;
+   let p=start,velocity=null;
+   for(let t=coastAt+h;t<end;t+=h){
+    const next=m.swimPose(f,t),v={x:(next.x-p.x)/h,z:(next.z-p.z)/h},speed=Math.hypot(v.x,v.z);
+    assert.ok(speed>Math.min(.6,cruiseSpeed*.6),'keeps swimming while easing down to its own cruise speed');
+    assert.ok(speed<7,'recovery is a relaxed swim');
+    if(velocity){const turn=Math.abs(Math.atan2(velocity.x*v.z-velocity.z*v.x,velocity.x*v.x+velocity.z*v.z));assert.ok(turn/h<1,'turns stay broad during recovery');}
+    p=next;velocity=v;
+   }
+   const final=m.swimPose(f,end);assert.ok(Math.hypot(final.x-home.x,final.z-home.z)<1e-7);checked++;
+  }
+  assert.equal(probes,planned,'following the coast and return never probes terrain');
+ }
+ assert.ok(checked>30);assert.ok(timings.size>5,'individuals regain confidence at different times');
+});
+
+test('confined pools retain complete safe recovery routes',()=>{
+ const site={id:'small',x:0,z:0,y:10,plants:[],radius:45,groups:[{x:0,z:0,count:9,radius:18,depth:3,speed:.2,direction:1,phase:.4,aspect:.8,turn:.3}]};
+ const m=new PoolLifeModel(site,'small');m.update(2);m.hear(30,0,100);
+ const escaping=m.fish.filter(f=>f.escape);assert.ok(escaping.length>=4,'there is still room to react in a small pool');
+ for(const f of escaping){
+  const b=f.escape;
+  for(let age=0;age<b.duration+b.roamDuration+b.returnDuration;age+=.025){
+   const p=m.swimPose(f,b.at+age);
+   assert.ok(Math.hypot(p.x,p.z)<=f.group.radius*.93,'all three phases stay inside validated water');
+  }
+ }
+});
+
+test('a fresh startle interrupts the wandering phase without teleporting',()=>{
+ const site=waterSites(world,lakes,sample,'water-test').find(s=>s.groups.length);
+ const m=new PoolLifeModel(site,'water-test',{canSwim:()=>true});m.update(2);m.hear(site.x,site.z,200);
+ const f=m.fish[0],trip=f.escape;
+ m.update(trip.at+trip.duration+trip.roamDuration*.5);
+ const start={x:f.x,z:f.z},dx=f.x-f.group.x,dz=f.z-f.group.z,d=Math.hypot(dx,dz);
+ m.hear(site.x+f.x+dx/d*5,site.z+f.z+dz/d*5,10);
+ assert.notEqual(f.escape,trip);assert.equal(f.escape.at,m.time);
+ assert.deepEqual(m.swimPose(f,m.time),start);
 });
 
 

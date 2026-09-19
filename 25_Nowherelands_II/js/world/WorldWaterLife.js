@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { WaterFish } from '../atelier/WaterFish.js?v=4';
 import { PoolLilies } from './PoolLilies.js?v=pool-life-6';
-import { PoolLifeModel, waterSites } from './WaterHabitats.js?v=pool-life-8';
+import { PoolLifeModel, waterSites } from './WaterHabitats.js?v=pool-life-11';
 import { RIVER_STRIDE as S, RV } from './gen/Rivers.js';
 import { playerNoteRadius } from './RippleWave.js';
 

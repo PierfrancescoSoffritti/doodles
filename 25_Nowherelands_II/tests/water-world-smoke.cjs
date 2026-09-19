@@ -69,7 +69,7 @@ const fs=require('node:fs');
    const d=window.__debug,w=d.waterLife,hm=d.heightmap;let checked=0,invalid=0,far=0;
    for(const e of w.entries.values())for(const f of e.model.fish){const b=f.escape;if(!b)continue;
     let excursion=0;
-    for(let t=0;t<=b.duration+b.returnDuration;t+=.08){const p=e.model.swimPose(f,b.at+t),ground=hm.sample(e.site.x+p.x,e.site.z+p.z),y=e.site.y+e.model.swimY(f,b.at+t);
+    for(let t=0;t<=b.duration+b.roamDuration+b.returnDuration;t+=.08){const p=e.model.swimPose(f,b.at+t),ground=hm.sample(e.site.x+p.x,e.site.z+p.z),y=e.site.y+e.model.swimY(f,b.at+t);
      checked++;if(y-f.size*.42<ground+.1||y+f.size*.42>hm._water-.1)invalid++;
      excursion=Math.max(excursion,Math.hypot(p.x-f.group.x,p.z-f.group.z)-f.group.radius);
     }

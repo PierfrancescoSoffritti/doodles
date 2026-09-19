@@ -73,8 +73,8 @@ export function waterSites(world,lakes,sample,seed,seaLevel=0){
  return sites;
 }
 
-// Independent lanes spread and regroup over time; individual excursions are
-// bounded inside the validated disk, with no per-frame terrain sampling.
+// Independent lanes spread and regroup over time. Excursions follow complete
+// validated water routes, with no per-frame terrain sampling.
 export class PoolLifeModel {
  constructor(site,seed,{canSwim=null}={}){
   this.canSwim=canSwim||((x,z,f)=>Math.hypot(x-(f.group.x||0),z-(f.group.z||0))<=f.group.radius*.93);
@@ -115,8 +115,24 @@ export class PoolLifeModel {
  }
  swimPose(f,time){
   const b=f.escape;if(!b)return this.pose(f,time);
-  const age=Math.max(0,time-b.at);if(age>=b.duration+b.returnDuration)return this.pose(f,time);
-  return age<b.duration?this.curve(b.out,age/b.duration):this.curve(b.back,clamp((age-b.duration)/b.returnDuration,0,1));
+  const age=Math.max(0,time-b.at);if(age>=b.duration+b.roamDuration+b.returnDuration)return this.pose(f,time);
+  if(age<b.duration)return this.curve(b.out,age/b.duration);
+  if(age<b.duration+b.roamDuration)return this.curve(b.roam,(age-b.duration)/b.roamDuration);
+  return this.curve(b.back,clamp((age-b.duration-b.roamDuration)/b.returnDuration,0,1));
+ }
+ gentleReturn(points,duration,minSpeed){
+  // Reject folded curves that would almost stop and pivot before reaching the
+  // school. Position/velocity matching alone cannot rule out those hairpins.
+  let previous=null;
+  const steps=Math.ceil(duration/.08);
+  for(let i=0;i<=steps;i++){
+   const t=i/steps,u=1-t,weights=[u*u*u,3*u*u*t,3*u*t*t,t*t*t];let x=0,z=0;
+   for(let j=0;j<4;j++){x+=(points[j+1].x-points[j].x)*weights[j]*4/duration;z+=(points[j+1].z-points[j].z)*weights[j]*4/duration;}
+   if(Math.hypot(x,z)<minSpeed)return false;
+   if(previous&&Math.abs(Math.atan2(previous.x*z-previous.z*x,previous.x*x+previous.z*z))>duration/steps*.85)return false;
+   previous={x,z};
+  }
+  return true;
  }
  startle(x,z,radius,charge){
   let heard=false;
@@ -124,27 +140,45 @@ export class PoolLifeModel {
    const dx=f.x+this.site.x-x,dz=f.z+this.site.z-z,d=Math.hypot(dx,dz);if(d>radius)continue;
    const away=Math.atan2(dz,dx)+Math.sin(f.beat)*.18,start={x:f.x,z:f.z},g=f.group;
    const heading={x:Math.cos(f.yaw),z:-Math.sin(f.yaw)};
-   // Plan a complete turning loop through open water on the blip only. The
-   // return meets the original cruise route at its future position and heading.
+   // Plan a dart, a wandering coast, and only then a gradual return. The coast
+   // follows open water away from the note, without aiming at the home route.
+   // The eventual return meets that route at its future position and velocity.
    // The world supplies terrain clearance, rather than the old school boundary.
    let trip=null;
    for(const distance of [34+charge*10+f.size*3,25,16,9]){
     for(const offset of [0,.4,-.4,.85,-.85,1.25,-1.25]){
-     const angle=away+offset,ux=Math.cos(angle),uz=Math.sin(angle);
-     const end={x:start.x+ux*distance,z:start.z+uz*distance};
-     // A brisk launch; the long, relaxed return keeps its own timing.
-     const duration=.7+distance/26,returnDuration=5+distance/9,returnAt=this.time+duration+returnDuration;
-     const home=this.pose(f,returnAt),next=this.pose(f,returnAt+.025),speed=Math.hypot(next.x-home.x,next.z-home.z)/.025||1;
-     const reach=Math.min(7,distance*.2),side=Math.sign(heading.x*uz-heading.z*ux)||1,arc=(heading.x*ux+heading.z*uz<-.3?reach*1.5:reach*.3)*side,out=[start,{x:start.x+heading.x*reach,z:start.z+heading.z*reach},{x:end.x-ux*reach-uz*arc,z:end.z-uz*reach+ux*arc},end];
-     const back=[end,{x:end.x+ux*reach,z:end.z+uz*reach},{x:(end.x+home.x)*.5-uz*distance*.55*side,z:(end.z+home.z)*.5+ux*distance*.55*side},{x:home.x-(next.x-home.x)/(.025*speed)*reach,z:home.z-(next.z-home.z)/(.025*speed)*reach},home];
-     let valid=true;
-     for(const path of [out,back]){
-      // Sample by control-polygon length, at most 1.5 units between samples.
-      const length=path.slice(1).reduce((sum,p,i)=>sum+Math.hypot(p.x-path[i].x,p.z-path[i].z),0),steps=Math.ceil(length/1.5);
-      for(let i=1;i<=steps;i++){const p=this.curve(path,i/steps);if(Math.hypot(p.x-(g.x||0),p.z-(g.z||0))>g.radius+65||!this.canSwim(p.x,p.z,f)){valid=false;break;}}
-      if(!valid)break;
+     for(const delay of [0,2.5,5]){
+      const angle=away+offset,ux=Math.cos(angle),uz=Math.sin(angle);
+      const end={x:start.x+ux*distance,z:start.z+uz*distance};
+      // Individuals recover at different times, so the school doesn't perform
+      // a synchronized U-turn. Smaller refuges use a tighter, slower coast.
+      const duration=.7+distance/26,roamDuration=5+f.beat*.55,returnDuration=10+distance/7+(1+Math.sin(f.beat))*1.5+delay;
+      const returnAt=this.time+duration+roamDuration+returnDuration;
+      const home=this.pose(f,returnAt),previous=this.pose(f,returnAt-.001),next=this.pose(f,returnAt+.001);
+      const reach=Math.min(7,distance*.2),side=Math.sign(heading.x*uz-heading.z*ux)||1,scale=Math.min(1,distance/25);
+      const glideSpeed=(3+f.pace*.4)*scale,roamSpeed=(1.8+f.pace*.5)*scale;
+      const vx=ux*glideSpeed,vz=uz*glideSpeed;
+      const out=[start,{x:start.x+heading.x*reach,z:start.z+heading.z*reach},{x:end.x-vx*duration/3,z:end.z-vz*duration/3},end];
+      const bend=.9+.45*(.5+.5*Math.sin(f.beat)),r=(glideSpeed+roamSpeed)*.5*roamDuration/bend;
+      const forward=Math.sin(bend)*r,lateral=(1-Math.cos(bend))*r*side;
+      const drift={x:end.x+ux*forward-uz*lateral,z:end.z+uz*forward+ux*lateral};
+      const rx=(ux*Math.cos(bend)-uz*Math.sin(bend)*side)*roamSpeed,rz=(uz*Math.cos(bend)+ux*Math.sin(bend)*side)*roamSpeed;
+      // Time-scaled handles preserve velocity through every phase. The coast
+      // keeps moving outward while gently bending sideways and slowing down.
+      const roam=[end,{x:end.x+vx*roamDuration/3,z:end.z+vz*roamDuration/3},{x:drift.x-rx*roamDuration/3,z:drift.z-rz*roamDuration/3},drift];
+      const back=[drift,{x:drift.x+rx*returnDuration/4,z:drift.z+rz*returnDuration/4},{x:(drift.x+home.x)*.5-uz*distance*.55*side,z:(drift.z+home.z)*.5+ux*distance*.55*side},{x:home.x-(next.x-previous.x)/.002*returnDuration/4,z:home.z-(next.z-previous.z)/.002*returnDuration/4},home];
+      const cruiseSpeed=Math.hypot(next.x-previous.x,next.z-previous.z)/.002;
+      if(!this.gentleReturn(back,returnDuration,Math.min(.8,roamSpeed*.7,cruiseSpeed*.7)))continue;
+      let valid=true;
+      for(const path of [out,roam,back]){
+       // Sample by control-polygon length, at most 1.5 units between samples.
+       const length=path.slice(1).reduce((sum,p,i)=>sum+Math.hypot(p.x-path[i].x,p.z-path[i].z),0),steps=Math.ceil(length/1.5);
+       for(let i=1;i<=steps;i++){const p=this.curve(path,i/steps);if(Math.hypot(p.x-(g.x||0),p.z-(g.z||0))>g.radius+65||!this.canSwim(p.x,p.z,f)){valid=false;break;}}
+       if(!valid)break;
+      }
+      if(valid){trip={at:this.time,out,roam,back,duration,roamDuration,returnDuration};break;}
      }
-     if(valid){trip={at:this.time,out,back,duration,returnDuration};break;}
+     if(trip)break;
     }
     if(trip)break;
    }
@@ -155,7 +189,7 @@ export class PoolLifeModel {
  update(time){
   const dt=Math.max(0,time-this.time);this.time=time;
   for(const f of this.fish){
-   if(f.escape&&time-f.escape.at>=f.escape.duration+f.escape.returnDuration)delete f.escape;
+   if(f.escape&&time-f.escape.at>=f.escape.duration+f.escape.roamDuration+f.escape.returnDuration)delete f.escape;
    const p=this.swimPose(f,time),next=this.swimPose(f,time+.025);
    f.burst=f.escape?Math.max(0,1-(time-f.escape.at)/(f.escape.duration+1)):0;
    f.x=p.x;f.z=p.z;f.y=this.swimY(f,time);const yaw=Math.atan2(-(next.z-p.z),next.x-p.x);

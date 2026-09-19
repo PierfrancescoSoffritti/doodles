@@ -94,7 +94,7 @@ test('deep fish escape routes reject shelves shallower than their entire dive ra
  assert.ok(e.model.fish.some(f=>f.escape));
  for(const f of e.model.fish){
   const b=f.escape;if(!b)continue;
-  for(let t=0;t<b.duration+b.returnDuration;t+=.025){
+  for(let t=0;t<b.duration+b.roamDuration+b.returnDuration;t+=.025){
    const p=e.model.swimPose(f,b.at+t),y=site.y+e.model.swimY(f,b.at+t),half=f.size*(.8+.2*f.bodyWidth)*.4;
    assert.ok(y-half>life.sample(p.x,p.z).ground+.2);
    assert.ok(y+half<site.y-.2);
