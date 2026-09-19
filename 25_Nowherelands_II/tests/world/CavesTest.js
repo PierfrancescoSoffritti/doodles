@@ -4,7 +4,7 @@ import { generateWorld } from '../../js/world/gen/WorldGen.js';
 import { generateCaves } from '../../js/world/caves/CaveGen.js';
 import {sweepWalk} from '../../js/world/caves/CaveCollision.js';
 import { CaveField } from '../../js/world/caves/CaveField.js';
-import { erodeEntrances,EntranceTerrain } from '../../js/world/caves/EntranceTerrain.js';
+import { erodeEntrances,EntranceTerrain,clearEntranceVegetation } from '../../js/world/caves/EntranceTerrain.js';
 import { entranceHabitat } from '../../js/world/caves/EntranceHabitat.js';
 import { buildCaveMeshes } from '../../js/world/caves/CaveMeshData.js';
 
@@ -57,18 +57,35 @@ for(const seed of ['umbra','halcyon']) test(`${seed}: connected deep caves have 
 	if(seed==='umbra') {
 		const patches=erodeEntrances(hm,caves);
 		assert.ok(patches.length>=3);
-		for(const p of patches) {
+		for(const p of patches.filter(p=>!p.landmark)) {
 			assert.ok(p.delta.every(Number.isFinite));
 			assert.ok(p.delta.some(v=>v< -5),'the face needs real erosion');
 			assert.ok(p.delta.some(v=>v> .1),'the apron needs deposited sediment');
-			for(let i=0;i<p.n;i++)assert.equal(p.delta[i],0,'patch edges must join unchanged terrain');
+			for(let i=0;i<p.n;i++)assert.ok(p.delta[i]===0,'patch edges must join unchanged terrain');
 		}
+		world.caveTerrain=patches;
 		hm.entranceTerrain=new EntranceTerrain(patches);hm.caves=field;
-		for(const cave of caves.filter(c=>c.entrance.type==='mountain'||c.entrance.type==='fissure')) {
-			const [a,b,inside]=cave.paths[0].points,dx=b.x-a.x,dz=b.z-a.z,l=Math.hypot(dx,dz),x=a.x-dx/l*60,z=a.z-dz/l*60;
+		const before=world.habitat.slice();clearEntranceVegetation(hm);
+		for(let i=0;i<before.length;i++)if(i%4)assert.equal(world.habitat[i],before[i],'clearings preserve moisture, coast and altitude');
+		for(const cave of caves)for(const e of cave.entrances) {
+			assert.ok(hm.entranceTerrain.sample(e.x,e.z,'mask')>.7,'each mouth has exposed rock, including springs');
+			assert.ok(hm.habitat(e.x,e.z).forest<.01,'near and far trees share a cleared mouth');
+			const pts=cave.paths[e.path].points,end=e.end==='end',a=pts[end?pts.length-1:0],b=pts[end?pts.length-2:1];
+			const l=Math.hypot(b.x-a.x,b.z-a.z),x=a.x-(b.x-a.x)/l*100,z=a.z-(b.z-a.z)/l*100;
+			assert.ok(hm.entranceTerrain.sample(x,z,'clearing')>.9,'the sightline stays open ahead of the mouth');
+		}
+		for(const p of patches.filter(p=>p.landmark)) {
+			assert.ok(p.delta.every(v=>v===0),'landmark masks do not dam springs or change collision');
+			assert.ok(p.mask.every(Number.isFinite));
+			for(let i=0;i<p.n;i++)for(const k of [i,(p.n-1)*p.n+i,i*p.n,i*p.n+p.n-1]) {
+				assert.equal(p.mask[k],0);assert.equal(p.clearing[k],0);
+			}
+		}
+		for(const cave of caves.filter(c=>c.entrance.type==='mountain'||c.entrance.type==='fissure')) for(const distance of [60,180]) {
+			const [a,b,inside]=cave.paths[0].points,dx=b.x-a.x,dz=b.z-a.z,l=Math.hypot(dx,dz),x=a.x-dx/l*distance,z=a.z-dz/l*distance;
 			const outside={x,z,y:hm.height(x,z)+11},q=field.column(inside.x,inside.z,inside.floor+11),target={x:inside.x,z:inside.z,y:q.floor+11};
 			const entered=sweepWalk(hm,outside,target);
-			assert.ok(Math.hypot(entered.x-target.x,entered.z-target.z)<2,'the generated approach must lead into the cave without a threshold wall');
+			assert.ok(Math.hypot(entered.x-target.x,entered.z-target.z)<2,`the ${cave.entrance.type} approach from ${distance} must lead into the cave without a threshold wall (${Math.hypot(entered.x-outside.x,entered.z-outside.z).toFixed(1)} travelled)`);
 			const exited=sweepWalk(hm,target,outside);
 			assert.ok(Math.hypot(exited.x-outside.x,exited.z-outside.z)<2,'the same eroded approach must allow exit');
 		}
@@ -171,4 +188,11 @@ test('dry floors have continuous relief across segment joins and no exterior end
 	assert.ok(Math.max(...heights)-Math.min(...heights)>2,'the floor cannot be a straight plane');
 	assert.ok(Math.abs(field.column(39.99,0,11).floor-field.column(40.01,0,11).floor)<.1,'relief must not reset at polyline joins');
 	assert.ok(field.density(-8,11,0)<0,'the mouth must not subtract a rounded cap from the approach outside');
+});
+
+test('a viable starting-river cave is selected before remote geological favorites',()=>{
+ const seed='ondine-ossia',world=generateWorld(seed,null,{res:512}),hm=new Heightmap(seed,world),caves=generateCaves(hm,seed);
+ assert.equal(caves[0].river,world.spawn.river);
+ assert.ok(Math.hypot(caves[0].entrance.x,caves[0].entrance.z)<4000);
+ assert.ok(caves.slice(1).some(c=>c.river!==world.spawn.river),'later caves retain regional variety');
 });

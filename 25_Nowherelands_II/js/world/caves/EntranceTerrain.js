@@ -13,7 +13,9 @@ export class EntranceTerrain {
 		for(const p of list) {
 			const u=(x-p.x)/p.step,v=(z-p.z)/p.step;if(u<0||v<0||u>=p.n-1||v>=p.n-1)continue;
 			const i=Math.floor(u),j=Math.floor(v),tx=u-i,tz=v-j,d=p[channel],o=j*p.n+i;
-			value+=(d[o]*(1-tx)+d[o+1]*tx)*(1-tz)+(d[o+p.n]*(1-tx)+d[o+p.n+1]*tx)*tz;
+			if(!d)continue;
+			const sample=(d[o]*(1-tx)+d[o+1]*tx)*(1-tz)+(d[o+p.n]*(1-tx)+d[o+p.n+1]*tx)*tz;
+			value=channel==='delta'?value+sample:Math.max(value,sample);
 		}
 		return value;
 	}
@@ -27,11 +29,11 @@ export function erodeEntrances(hm,caves) {
 	for(const cave of caves)for(const entrance of cave.entrances) {
 		if(entrance.type==='spring'||entrance.type==='valley')continue;
 		const pts=cave.paths[entrance.path].points,end=entrance.end==='end',a=pts[end?pts.length-1:0],b=pts[end?pts.length-2:1];
-		const l=Math.hypot(b.x-a.x,b.z-a.z),nx=(b.x-a.x)/l,nz=(b.z-a.z)/l,n=81,step=3,size=(n-1)*step;
+		const l=Math.hypot(b.x-a.x,b.z-a.z),nx=(b.x-a.x)/l,nz=(b.z-a.z)/l,n=141,step=3,size=(n-1)*step;
 		const patch={x:a.x-size/2,z:a.z-size/2,size,n,step,delta:new Float32Array(n*n),mask:new Float32Array(n*n),cave:cave.id};
 		const mouthSegment=field.segments.find(s=>end?s.b===a:s.a===a);
-		const landingX=a.x-nx*105,landingZ=a.z-nz*105;
-		const landingOffset=Math.max(-110,Math.min(110,hm.height(landingX,landingZ)-field.section(mouthSegment,landingX,landingZ).floor));
+		const landingX=a.x-nx*195,landingZ=a.z-nz*195;
+		const landingGround=hm.height(landingX,landingZ),mouthGround=field.section(mouthSegment,a.x,a.z).floor;
 		const bed=new Float64Array(n*n),base=new Float64Array(n*n),soil=new Float64Array(n*n),weight=new Float64Array(n*n),safe=new Uint8Array(n*n);
 		let removed=0,total=0;
 		for(let j=0;j<n;j++)for(let i=0;i<n;i++) {
@@ -71,11 +73,13 @@ export function erodeEntrances(hm,caves) {
 			// continues across the threshold, removing the old straight clipped shelf.
 			const curve=Math.sin(Math.max(0,-along)*.025)*18;
 			const width=a.width+16+Math.max(0,-along)*.22;
-			const corridor=(1-smooth(width*.35,width,Math.abs(across-curve)))*(1-smooth(2,25,along))*smooth(-114,-90,along);
+			const corridor=(1-smooth(width*.35,width,Math.abs(across-curve)))*(1-smooth(2,25,along))*smooth(-204,-170,along);
 			const floor=field.section(mouthSegment,x,z).floor;
-			const blend=Math.max(0,Math.min(1,(-along-8)/97));
-			const sediment=(1-smooth(-35,-8,along))*floorRelief(x,z)*.75;
-			const target=floor-sediment+landingOffset*blend+.25;
+			const blend=Math.max(0,Math.min(1,-along/195));
+			// Keep the approach below a direct view into the mouth. Extrapolating the
+			// descending cave floor outward used to leave a convex lip hiding the opening.
+			const relief=(floorRelief(x,z)-floorRelief(a.x,a.z))*(1-blend)*.25;
+			const target=along<0?mouthGround*(1-blend)+landingGround*blend+relief+.25:floor+.25;
 			let shaped=bed[k]+soil[k];
 			if(safe[k]) {
 				shaped+=(target-shaped)*corridor;
@@ -84,10 +88,52 @@ export function erodeEntrances(hm,caves) {
 				const sill=(1-smooth(a.width*.5,a.width*.95,Math.abs(across)))*smooth(-5,2,along)*(1-smooth(40,65,along));
 				shaped+=Math.max(0,floor+.25-shaped)*sill;
 			}
-			patch.delta[k]=(shaped-base[k])*edge;
+			patch.delta[k]=edge?(shaped-base[k])*edge:0;
 			patch.mask[k]=Math.min(1,Math.max(patch.mask[k],soil[k]*.15,corridor))*edge;
 		}
 		patches.push(patch);
 	}
+	return patches.concat(entranceLandmarks(caves));
+}
+
+// Broad, irregular limestone scars give every mouth a recognizable setting, including
+// river springs. These masks do not raise riverbeds or alter the entrance collision.
+function entranceLandmarks(caves) {
+	const patches=[];
+	for(const cave of caves)for(const e of cave.entrances) {
+		const points=cave.paths[e.path].points,end=e.end==='end';
+		const a=points[end?points.length-1:0],b=points[end?points.length-2:1];
+		const length=Math.hypot(b.x-a.x,b.z-a.z),nx=(b.x-a.x)/length,nz=(b.z-a.z)/length;
+		const n=101,step=6,size=(n-1)*step;
+		const p={x:a.x-size/2,z:a.z-size/2,size,n,step,cave:cave.id,landmark:true,
+			delta:new Float32Array(n*n),mask:new Float32Array(n*n),clearing:new Float32Array(n*n)};
+		for(let j=0;j<n;j++)for(let i=0;i<n;i++) {
+			const dx=p.x+i*step-a.x,dz=p.z+j*step-a.z,along=dx*nx+dz*nz,across=-dx*nz+dz*nx;
+			const bend=Math.sin(along*.021)*15,edge=.88+.12*Math.sin(across*.037+along*.026);
+			const width=a.width*1.8+42;
+			const scar=((along+12)/145)**2+((across-bend)/(width*edge))**2;
+			const clearing=((along+40)/230)**2+((across-bend)/(width+65))**2;
+			p.mask[j*n+i]=(1-smooth(.25,1,scar))*(.8+.2*rockNoise(dx/35,dz/35));
+			p.clearing[j*n+i]=1-smooth(.48,1,clearing);
+		}
+		patches.push(p);
+	}
 	return patches;
+}
+
+// Bake canopy clearance into the same habitat map used by near trees, distant trees,
+// fauna habitat and terrain shading. Preserve wetness and all other habitat channels.
+export function clearEntranceVegetation(hm) {
+	const map=hm.world.habitat,N=hm.N,visited=new Set();
+	for(const p of hm.world.caveTerrain || []) {
+		if(!p.clearing)continue;
+		const x0=Math.max(0,Math.floor(hm.gx(p.x))),x1=Math.min(N-1,Math.ceil(hm.gx(p.x+p.size)));
+		const z0=Math.max(0,Math.floor(hm.gz(p.z))),z1=Math.min(N-1,Math.ceil(hm.gz(p.z+p.size)));
+		for(let j=z0;j<=z1;j++)for(let i=x0;i<=x1;i++) {
+			const key=j*N+i;if(visited.has(key))continue;visited.add(key);
+			const x=i*hm.cell-hm.size/2-hm.ox,z=j*hm.cell-hm.size/2-hm.oz;
+			const clear=Math.min(1,hm.entranceTerrain.sample(x,z,'clearing'));
+			map[(j*N+i)*4]=Math.round(map[(j*N+i)*4]*(1-clear));
+		}
+	}
 }

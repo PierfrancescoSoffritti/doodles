@@ -642,6 +642,7 @@ export class Vegetation {
 		const hm = this.heightmap, pr = this.pr;
 		const y = hm.sample(x, z);
 		pr.x = x; pr.z = z; pr.y = y; pr.H = y - hm._water; pr.hSea = y - hm.waterLevel;
+		pr.apron = Math.min(1,hm.entranceTerrain.sample(x,z,'mask'));
 		pr.slope = hm._slope; pr.bank = hm._bank; pr.hard = hm._hardness;
 		const hb = hm.habitat(x, z);
 		pr.forest = hb.forest; pr.wet = hb.wet; pr.coast = hb.coast; pr.alt = hb.alt;
@@ -963,7 +964,7 @@ export class Vegetation {
 			(yield* gridCandidates(rnd, ox, oz, size, 8, (x, z) => {
 				look(x, z);
 				if (pr.H < 3 || pr.bank > 0.35 || pr.slope > 0.85 || pr.hSea > 950 || pr.alt > 0.6) return;
-				const p = 0.3 * (1 - ss(0.05, 0.6, pr.alt)) * (1 - 0.5 * pr.hard) * (0.5 + 0.5 * (1 - pr.forest));
+				const p = (1-pr.apron) * 0.3 * (1 - ss(0.05, 0.6, pr.alt)) * (1 - 0.5 * pr.hard) * (0.5 + 0.5 * (1 - pr.forest));
 				if (rnd.next() > p) return;
 				const w = downwind(x, z, pr.coast);
 				shrubs.push({ x, z, y: pr.y, yaw: rnd.range(0, 6.3), sc: rnd.range(0.6, 1.3) * (0.75 + 0.3 * pr.wet), lean: rnd.range(0.05, 0.3), lx: w.x, lz: w.z, mirror: rnd.next() < 0.5, variant: shrubVariants[rnd.int(0, 1)] });
@@ -986,7 +987,7 @@ export class Vegetation {
 			const grassP = (top) => (x, z) => {
 				look(x, z);
 				if (pr.H < 3.5 || pr.hSea > top || pr.bank > 0.35 || pr.slope > 0.9) return false;
-				const g = (1 - 0.6 * pr.forest) * (0.45 + 0.55 * pr.wet) * (1 - 0.45 * pr.hard) * (0.35 + 0.65 * (1 - ss(top - 250, top, pr.hSea)));
+				const g = (1-pr.apron) * (1 - 0.6 * pr.forest) * (0.45 + 0.55 * pr.wet) * (1 - 0.45 * pr.hard) * (0.35 + 0.65 * (1 - ss(top - 250, top, pr.hSea)));
 				return rnd.next() < g;
 			};
 			// Placement already sampled this exact point. Copy the needed values

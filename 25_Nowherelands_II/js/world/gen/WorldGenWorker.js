@@ -2,7 +2,7 @@ import { entranceHabitat } from '../caves/EntranceHabitat.js';
 import { generateWorld } from './WorldGen.js';
 import { Heightmap } from '../Heightmap.js?v=stable-30-6';
 import { generateCaves } from '../caves/CaveGen.js';
-import { erodeEntrances, EntranceTerrain } from '../caves/EntranceTerrain.js';
+import { erodeEntrances, EntranceTerrain, clearEntranceVegetation } from '../caves/EntranceTerrain.js';
 import { buildCaveMeshes } from '../caves/CaveMeshData.js';
 import { indexCaveMesh } from '../caves/IndexCaveMesh.js?v=stable-30-8';
 
@@ -22,12 +22,13 @@ self.onmessage = (e) => {
 	world.caves=generateCaves(heightmap,seed);
 	world.caveTerrain=erodeEntrances(heightmap,world.caves);
 	heightmap.entranceTerrain=new EntranceTerrain(world.caveTerrain);
+	clearEntranceVegetation(heightmap);
 	world.caveHabitat=entranceHabitat(heightmap,world.caves);
 	const caveMeshes=buildCaveMeshes(heightmap,world.caves,p=>self.postMessage({type:'progress',label:'carving caverns',p:.96+p*.035}));
 	for (const chunk of [...caveMeshes.chunks, ...caveMeshes.decorations]) indexCaveMesh(chunk);
 	delete world.area;
 	const transfer = [world.height.buffer, world.lakeLevel.buffer, world.lakeId.buffer, world.rock.buffer, world.habitat.buffer];
-	for(const p of world.caveTerrain)transfer.push(p.delta.buffer,p.mask.buffer);
+	for(const p of world.caveTerrain){transfer.push(p.delta.buffer,p.mask.buffer);if(p.clearing)transfer.push(p.clearing.buffer);}
 	for (const l of world.lakes) transfer.push(l.cells.buffer);
 	for (const r of world.rivers) transfer.push(r.data.buffer, r.rocks.buffer, r.wakes.buffer);
 	for (const group of [caveMeshes.chunks,caveMeshes.decorations,caveMeshes.water]) for (const mesh of group) for(const value of Object.values(mesh)) if(ArrayBuffer.isView(value)) transfer.push(value.buffer);
